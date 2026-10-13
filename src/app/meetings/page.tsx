@@ -7,8 +7,8 @@ import {
   Search, Bell, Settings, Video, Folder,
   Users, Building, Shield, ChevronDown, X, Home,
   Bookmark, Plus, Copy, Check, Clock, FileText,
-  Trash2, BookOpen, Calendar,
-  Eye, EyeOff, Lock, Share2, Mail,
+  Trash2, Calendar,
+  Eye, EyeOff, Share2, Mail,
   Monitor, Play, Radio,
   HelpCircle, CheckCircle2, ChevronRight
 } from "lucide-react";

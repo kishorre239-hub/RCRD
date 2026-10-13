@@ -18,7 +18,7 @@ export async function GET(req: Request) {
       for (const df of videos) {
         const exists = await videosCol.findOne({ driveFileId: df.id });
         if (!exists) {
-          await videosCol.insertOne({
+          const newVideo: Video = {
             title: df.title || 'Drive Recording',
             driveFileId: df.id,
             ownerId: userId,
@@ -32,7 +32,8 @@ export async function GET(req: Request) {
             comments: [],
             createdAt: df.createdAt || Date.now(),
             updatedAt: Date.now(),
-          });
+          };
+          await videosCol.insertOne(newVideo);
         }
       }
     } catch (dbErr: any) {

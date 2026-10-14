@@ -26,6 +26,7 @@ type TextOverlay = {
   rotation?: number;
   stylePreset?: 'subtitle' | 'lowerThird' | 'badge' | 'minimal';
   bgOpacity?: number;
+  mergeMode?: 'overlay' | 'middleSlide';
 };
 type MediaOverlay = {
   id: string;
@@ -38,6 +39,8 @@ type MediaOverlay = {
   rotation?: number;
   opacity?: number;
   rounded?: boolean;
+  mergeMode?: 'overlay' | 'middleSlide';
+  isVideo?: boolean;
 };
 type AudioSettings = {
   enabled: boolean;
@@ -317,6 +320,25 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
         const isVisible = currentTime >= text.start && currentTime <= text.end;
         if (!isVisible) return null;
 
+        // Merged in middle of video
+        if (text.mergeMode === 'middleSlide') {
+          return (
+            <div
+              key={text.id}
+              className="absolute inset-0 z-20 flex items-center justify-center bg-black/65 backdrop-blur-md transition-all animate-in fade-in duration-200 pointer-events-none p-6"
+            >
+              <div className="max-w-xl mx-auto px-8 py-6 rounded-2xl bg-white/10 border border-white/25 shadow-2xl backdrop-blur-xl text-center">
+                <p 
+                  style={{ color: text.color || '#ffffff', fontSize: `${text.size ? Math.max(24, text.size) : 32}px` }}
+                  className="font-extrabold tracking-wide drop-shadow-lg"
+                >
+                  {text.text}
+                </p>
+              </div>
+            </div>
+          );
+        }
+
         let styleClasses = "font-black drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]";
         if (text.stylePreset === 'subtitle' || !text.stylePreset) {
           styleClasses = "bg-black/80 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/20 shadow-2xl font-bold tracking-wide";
@@ -350,6 +372,43 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
         const isVisible = currentTime >= media.start && currentTime <= media.end;
         if (!isVisible) return null;
         const opacity = media.opacity !== undefined ? media.opacity / 100 : 1;
+
+        // Merged in middle of video
+        if (media.mergeMode === 'middleSlide') {
+          return (
+            <div
+              key={media.id}
+              className="absolute inset-0 z-20 flex items-center justify-center bg-black/75 backdrop-blur-md transition-all animate-in fade-in duration-200 pointer-events-none p-6"
+            >
+              <div 
+                style={{ 
+                  transform: `scale(${(media.scale || 100) / 100}) rotate(${media.rotation || 0}deg)`,
+                  opacity
+                }}
+                className="relative max-h-[85%] max-w-[85%] rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black/50 flex items-center justify-center"
+              >
+                {media.isVideo ? (
+                  <video
+                    src={media.url}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="max-h-[70vh] max-w-full object-contain rounded-2xl"
+                  />
+                ) : (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={media.url}
+                    alt="Merged Media"
+                    className="max-h-[70vh] max-w-full object-contain rounded-2xl"
+                  />
+                )}
+              </div>
+            </div>
+          );
+        }
+
         return (
           <div
             key={media.id}
@@ -361,12 +420,23 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
             }}
             className="absolute pointer-events-none z-10 select-none transition-all"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src={media.url} 
-              alt="Overlay" 
-              className={`w-[150px] h-[150px] object-cover pointer-events-none ${media.rounded !== false ? 'rounded-2xl shadow-2xl border border-white/20' : 'rounded-none shadow-lg'}`} 
-            />
+            {media.isVideo ? (
+              <video 
+                src={media.url} 
+                autoPlay 
+                loop 
+                muted 
+                playsInline 
+                className={`w-[150px] h-[150px] object-cover pointer-events-none ${media.rounded !== false ? 'rounded-2xl shadow-2xl border border-white/20' : 'rounded-none shadow-lg'}`}
+              />
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img 
+                src={media.url} 
+                alt="Overlay" 
+                className={`w-[150px] h-[150px] object-cover pointer-events-none ${media.rounded !== false ? 'rounded-2xl shadow-2xl border border-white/20' : 'rounded-none shadow-lg'}`} 
+              />
+            )}
           </div>
         );
       })}

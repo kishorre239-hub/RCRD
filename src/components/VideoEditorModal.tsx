@@ -17,7 +17,7 @@ interface VideoEditorModalProps {
 
 // Data Types
 export type CutRegion = { id: string; start: number; end: number };
-export type TextStylePreset = 'subtitle' | 'lowerThird' | 'badge' | 'minimal';
+export type TextStylePreset = 'subtitle' | 'lowerThird' | 'badge' | 'minimal' | 'middleSlide';
 export type TextOverlay = { 
   id: string; 
   text: string; 
@@ -29,10 +29,12 @@ export type TextOverlay = {
   end: number; 
   rotation?: number;
   stylePreset?: TextStylePreset;
+  mergeMode?: 'overlay' | 'middleSlide';
 };
 export type MediaOverlay = { 
   id: string; 
   url: string; 
+  isVideo?: boolean;
   x: number; 
   y: number; 
   scale: number; 
@@ -41,6 +43,7 @@ export type MediaOverlay = {
   rotation?: number;
   opacity?: number;
   rounded?: boolean;
+  mergeMode?: 'overlay' | 'middleSlide';
 };
 export type AudioSettings = {
   enabled: boolean;
@@ -293,15 +296,27 @@ export default function VideoEditorModal({
     }
   };
 
+
   const handleTimeUpdate = () => {
     if (!videoRef.current) return;
     const ct = videoRef.current.currentTime;
     setCurrentTime(ct);
     
+    // Auto-skip active cut region during playback so video never plays through cut
+    if (activeCut && ct >= activeCut.start && ct < activeCut.end) {
+      videoRef.current.currentTime = activeCut.end;
+      setCurrentTime(activeCut.end);
+      if (audioRef.current && audioRef.current.duration) {
+        audioRef.current.currentTime = activeCut.end % audioRef.current.duration;
+      }
+      return;
+    }
+
     // Auto-skip over completed cuts
     for (const cut of completedCuts) {
       if (ct >= cut.start && ct < cut.end) {
         videoRef.current.currentTime = cut.end;
+        setCurrentTime(cut.end);
         if (audioRef.current && audioRef.current.duration) {
           audioRef.current.currentTime = cut.end % audioRef.current.duration;
         }
@@ -314,8 +329,16 @@ export default function VideoEditorModal({
     if (!timelineRef.current || !videoRef.current || duration === 0 || dragHandle) return;
     const rect = timelineRef.current.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const clickTime = pos * duration;
+    let clickTime = pos * duration;
     
+    // If clicked inside a completed cut, jump to the end of that cut
+    for (const cut of completedCuts) {
+      if (clickTime >= cut.start && clickTime < cut.end) {
+        clickTime = cut.end;
+        break;
+      }
+    }
+
     videoRef.current.currentTime = clickTime;
     if (audioRef.current && audioRef.current.duration) {
       audioRef.current.currentTime = clickTime % audioRef.current.duration;
@@ -354,22 +377,40 @@ export default function VideoEditorModal({
     }
   };
 
+  const trimToActiveSelection = () => {
+    if (!activeCut) return;
+    const newCuts: CutRegion[] = [];
+    if (activeCut.start > 0.1) {
+      newCuts.push({ id: Math.random().toString(), start: 0, end: activeCut.start });
+    }
+    if (activeCut.end < duration - 0.1) {
+      newCuts.push({ id: Math.random().toString(), start: activeCut.end, end: duration });
+    }
+    setCompletedCuts(prev => [...prev, ...newCuts]);
+    setActiveCut(null);
+    if (videoRef.current) {
+      videoRef.current.currentTime = activeCut.start;
+      setCurrentTime(activeCut.start);
+    }
+  };
+
   const cancelCut = () => setActiveCut(null);
 
   // TEXT ACTIONS
-  const handleAddText = () => {
+  const handleAddText = (mergeMode: 'middleSlide' | 'overlay' = 'middleSlide') => {
     setActiveTab('text');
     const start = videoRef.current?.currentTime || currentTime || 0;
     const newText: TextOverlay = { 
       id: Math.random().toString(), 
-      text: 'Sample Caption', 
+      text: mergeMode === 'middleSlide' ? 'Title Card in Video Middle' : 'Sample Caption', 
       x: 50, 
-      y: 84, // Default to lower-third / subtitle position, NOT over face!
+      y: mergeMode === 'middleSlide' ? 50 : 84, 
       color: '#ffffff', 
-      size: 28,
+      size: mergeMode === 'middleSlide' ? 32 : 28,
       start: start, 
       end: Math.min(start + 5, duration || 5),
-      stylePreset: 'subtitle' // High readability glass box by default
+      stylePreset: mergeMode === 'middleSlide' ? 'middleSlide' : 'subtitle',
+      mergeMode
     };
     setTextOverlays([...textOverlays, newText]);
     setSelectedTextId(newText.id);
@@ -377,19 +418,21 @@ export default function VideoEditorModal({
   };
 
   // MEDIA ACTIONS
-  const handleAddMedia = (customUrl?: string) => {
+  const handleAddMedia = (customUrl?: string, isVideo = false, mergeMode: 'middleSlide' | 'overlay' = 'middleSlide') => {
     setActiveTab('media');
     const start = videoRef.current?.currentTime || currentTime || 0;
     const newMedia: MediaOverlay = { 
       id: Math.random().toString(), 
       url: customUrl || PRESET_WATERMARK_IMAGES[0].url, 
-      x: 88, 
-      y: 12, // Default to top-right watermark position!
-      scale: 65,
+      isVideo,
+      x: 50, 
+      y: 50, 
+      scale: mergeMode === 'middleSlide' ? 100 : 65,
       start: start, 
-      end: Math.min(start + 10, duration || 10),
-      opacity: 85,
-      rounded: true
+      end: Math.min(start + 6, duration || 6),
+      opacity: 100,
+      rounded: true,
+      mergeMode
     };
     setMediaOverlays([...mediaOverlays, newMedia]);
     setSelectedMediaId(newMedia.id);
@@ -454,13 +497,14 @@ export default function VideoEditorModal({
   const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const isVideo = file.type.startsWith('video/');
       const reader = new FileReader();
       reader.onload = (uploadEvent) => {
         const dataUrl = uploadEvent.target?.result as string;
         if (selectedMediaId) {
-          setMediaOverlays(prev => prev.map(m => m.id === selectedMediaId ? { ...m, url: dataUrl } : m));
+          setMediaOverlays(prev => prev.map(m => m.id === selectedMediaId ? { ...m, url: dataUrl, isVideo } : m));
         } else {
-          handleAddMedia(dataUrl);
+          handleAddMedia(dataUrl, isVideo, 'middleSlide');
         }
       };
       reader.readAsDataURL(file);
@@ -722,8 +766,63 @@ export default function VideoEditorModal({
               if (!isVisible) return null;
 
               const isSelected = selectedTextId === text.id;
+              const isMiddleSlide = text.mergeMode === 'middleSlide' || text.stylePreset === 'middleSlide';
 
-              // Style presets: subtitle pill has high-contrast background to blend cleanly without obscuring faces!
+              if (isMiddleSlide) {
+                return (
+                  <div 
+                    key={text.id}
+                    onClick={(e) => { e.stopPropagation(); setSelectedTextId(text.id); setSelectedMediaId(null); setActiveTab('text'); }}
+                    className="absolute inset-0 bg-black/65 backdrop-blur-md z-30 flex items-center justify-center p-8 transition-all animate-in fade-in duration-200"
+                  >
+                    <div 
+                      onPointerDown={(e) => handlePointerDown(e, text.id, 'text')}
+                      style={{ 
+                        color: text.color || '#ffffff', 
+                        fontSize: `${text.size || 32}px`,
+                        transform: `rotate(${text.rotation || 0}deg)`
+                      }}
+                      className={`relative max-w-2xl px-8 py-6 rounded-2xl bg-black/80 border border-white/20 shadow-2xl text-center select-none cursor-move ${
+                        isSelected ? 'ring-4 ring-blue-500 scale-105' : 'hover:ring-2 hover:ring-white/40'
+                      }`}
+                    >
+                      <span className="font-bold tracking-tight block leading-snug">{text.text}</span>
+                      
+                      {/* Floating Toolbar when selected */}
+                      {isSelected && (
+                        <div 
+                          className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center bg-white text-slate-800 rounded-lg shadow-2xl border border-slate-200 p-1 gap-1 z-50 cursor-default text-xs"
+                          onPointerDown={(e) => e.stopPropagation()} 
+                        >
+                          <button 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setTextOverlays(prev => prev.map(t => t.id === text.id ? {...t, rotation: (t.rotation || 0) + 45} : t)); 
+                            }} 
+                            className="p-1.5 hover:bg-slate-100 rounded text-slate-700"
+                            title="Rotate 45°"
+                          >
+                            <RotateCw className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setTextOverlays(prev => prev.filter(t => t.id !== text.id)); 
+                              setSelectedTextId(null); 
+                            }} 
+                            className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded text-slate-700"
+                            title="Delete text"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+
+              // Standard floating overlay
               let containerStyle = "font-black drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]";
               if (text.stylePreset === 'subtitle' || !text.stylePreset) {
                 containerStyle = "bg-black/80 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/20 shadow-2xl font-bold tracking-wide";
@@ -804,7 +903,78 @@ export default function VideoEditorModal({
 
               const isSelected = selectedMediaId === media.id;
               const opacity = media.opacity !== undefined ? media.opacity / 100 : 0.9;
+              const isMiddleSlide = media.mergeMode === 'middleSlide';
 
+              if (isMiddleSlide) {
+                return (
+                  <div 
+                    key={media.id}
+                    onClick={(e) => { e.stopPropagation(); setSelectedMediaId(media.id); setSelectedTextId(null); setActiveTab('media'); }}
+                    className="absolute inset-0 bg-black/70 backdrop-blur-md z-30 flex items-center justify-center p-6 transition-all animate-in fade-in duration-200"
+                  >
+                    <div 
+                      onPointerDown={(e) => handlePointerDown(e, media.id, 'media')}
+                      style={{ 
+                        transform: `scale(${media.scale / 100}) rotate(${media.rotation || 0}deg)`,
+                        opacity
+                      }}
+                      className={`relative max-w-[85%] max-h-[85%] flex items-center justify-center rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black/50 p-2 cursor-move ${
+                        isSelected ? 'ring-4 ring-blue-500 scale-105' : 'hover:ring-2 hover:ring-white/40'
+                      }`}
+                    >
+                      {media.isVideo ? (
+                        <video 
+                          src={media.url} 
+                          autoPlay 
+                          loop 
+                          muted 
+                          className="max-h-[340px] max-w-full rounded-xl object-contain shadow-2xl" 
+                        />
+                      ) : (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img 
+                          src={media.url} 
+                          alt="Merged Media" 
+                          className="max-h-[340px] max-w-full rounded-xl object-contain shadow-2xl pointer-events-none" 
+                          draggable={false} 
+                        />
+                      )}
+
+                      {/* Floating Toolbar when selected */}
+                      {isSelected && (
+                        <div 
+                          className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center bg-white text-slate-800 rounded-lg shadow-2xl border border-slate-200 p-1 gap-1 z-50 cursor-default text-xs"
+                          onPointerDown={(e) => e.stopPropagation()} 
+                        >
+                          <button 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setMediaOverlays(prev => prev.map(m => m.id === media.id ? {...m, rotation: (m.rotation || 0) + 45} : m)); 
+                            }} 
+                            className="p-1.5 hover:bg-slate-100 rounded text-slate-700"
+                            title="Rotate 45°"
+                          >
+                            <RotateCw className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setMediaOverlays(prev => prev.filter(m => m.id !== media.id)); 
+                              setSelectedMediaId(null); 
+                            }} 
+                            className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded text-slate-700"
+                            title="Delete image"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+
+              // Standard floating overlay
               return (
                 <div
                   key={media.id}
@@ -863,15 +1033,27 @@ export default function VideoEditorModal({
                       }}
                     />
                   )}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img 
-                    src={media.url} 
-                    alt="Overlay" 
-                    className={`w-[140px] h-[140px] object-cover pointer-events-none ${
-                      media.rounded !== false ? 'rounded-2xl shadow-2xl border border-white/20' : 'rounded-none shadow-lg'
-                    }`} 
-                    draggable={false} 
-                  />
+                  {media.isVideo ? (
+                    <video 
+                      src={media.url} 
+                      autoPlay 
+                      loop 
+                      muted 
+                      className={`w-[140px] h-[140px] object-cover pointer-events-none ${
+                        media.rounded !== false ? 'rounded-2xl shadow-2xl border border-white/20' : 'rounded-none shadow-lg'
+                      }`} 
+                    />
+                  ) : (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img 
+                      src={media.url} 
+                      alt="Overlay" 
+                      className={`w-[140px] h-[140px] object-cover pointer-events-none ${
+                        media.rounded !== false ? 'rounded-2xl shadow-2xl border border-white/20' : 'rounded-none shadow-lg'
+                      }`} 
+                      draggable={false} 
+                    />
+                  )}
                 </div>
               );
             })}
@@ -994,7 +1176,7 @@ export default function VideoEditorModal({
               <div className="space-y-2 pt-2 border-t border-slate-100">
                 <p className="text-xs font-bold text-slate-600 uppercase tracking-wide">Quick Add</p>
                 <button 
-                  onClick={handleAddText}
+                  onClick={() => handleAddText()}
                   className="w-full py-2.5 px-3 bg-slate-50 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200 rounded-lg text-slate-700 font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                 >
                   <Type className="w-4 h-4 text-indigo-500" />
@@ -1020,7 +1202,7 @@ export default function VideoEditorModal({
             </div>
           )}
 
-          {/* TAB 2: CUT TOOL */}
+              {/* TAB 2: CUT TOOL */}
           {activeTab === 'cut' && (
             <div className="space-y-5 animate-in fade-in duration-150">
               <div className="border-b border-slate-100 pb-3">
@@ -1030,6 +1212,51 @@ export default function VideoEditorModal({
                 </h3>
                 <p className="text-xs text-slate-500 mt-1">Remove mistakes or unwanted pauses cleanly.</p>
               </div>
+
+              {/* Active Cut Actions Card if a selection is in progress */}
+              {activeCut && (
+                <div className="p-4 bg-red-50/90 border-2 border-red-300 rounded-2xl space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-red-900 flex items-center gap-1.5 uppercase tracking-wide">
+                      <Scissors className="w-4 h-4 text-red-600 animate-pulse" />
+                      Cut Selection Active
+                    </span>
+                    <span className="font-mono text-xs font-extrabold text-red-700 bg-white px-2.5 py-1 rounded-md border border-red-200 shadow-xs">
+                      {formatTimeStr(activeCut.start)} - {formatTimeStr(activeCut.end)}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-red-700 leading-relaxed font-medium">
+                    The highlighted section is skipped during preview playback. Choose what to do:
+                  </p>
+
+                  <div className="space-y-2">
+                    <button
+                      onClick={confirmCut}
+                      className="w-full py-2.5 px-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                    >
+                      <Scissors className="w-4 h-4" />
+                      Cut Out & Remove Selection
+                    </button>
+
+                    <button
+                      onClick={trimToActiveSelection}
+                      className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                      title="Keeps only this part and trims away the rest of the video"
+                    >
+                      <Check className="w-4 h-4" />
+                      Keep Only Selection (Trim)
+                    </button>
+
+                    <button
+                      onClick={cancelCut}
+                      className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-medium transition-all cursor-pointer"
+                    >
+                      Cancel Selection
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <button 
@@ -1094,7 +1321,7 @@ export default function VideoEditorModal({
                   <p className="text-xs text-slate-500 mt-1">High-clarity subtitles and lower thirds.</p>
                 </div>
                 <button 
-                  onClick={handleAddText}
+                  onClick={() => handleAddText()}
                   className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                   title="Add new text"
                 >
@@ -1114,6 +1341,35 @@ export default function VideoEditorModal({
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-none h-20 shadow-inner font-medium" 
                       placeholder="Type text here..."
                     />
+                  </div>
+
+                  {/* Display Mode (Middle Merge vs Floating Overlay) */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">Display Mode</label>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <button
+                        onClick={() => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, mergeMode: 'middleSlide', x: 50, y: 50 } : t))}
+                        className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                          activeText.mergeMode === 'middleSlide' || !activeText.mergeMode
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        🎬 In Video Middle
+                        <p className="text-[10px] font-normal opacity-90 mt-0.5">Blurred backdrop with centered card</p>
+                      </button>
+                      <button
+                        onClick={() => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, mergeMode: 'overlay', x: 50, y: 88 } : t))}
+                        className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                          activeText.mergeMode === 'overlay'
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        🏷️ Floating Overlay
+                        <p className="text-[10px] font-normal opacity-90 mt-0.5">Subtitle / badge over video</p>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Style Presets */}
@@ -1354,16 +1610,45 @@ export default function VideoEditorModal({
 
               {activeMedia ? (
                 <div className="space-y-4">
-                  {/* Upload Custom File */}
+                  {/* Upload Custom File (Image or Video) */}
                   <div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1.5">Change Image</label>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">Change Photo or Video Clip</label>
                     <label className="flex items-center justify-center w-full h-11 px-4 transition bg-slate-50 border-2 border-slate-200 border-dashed rounded-xl appearance-none cursor-pointer hover:border-purple-500 hover:bg-purple-50 text-xs font-bold text-slate-600">
                       <span className="flex items-center space-x-2">
                         <ImageIcon className="w-4 h-4 text-purple-500" />
-                        <span>Upload Custom Image...</span>
+                        <span>Upload Photo or Video Clip...</span>
                       </span>
-                      <input type="file" accept="image/*" className="hidden" onChange={handleMediaUpload} />
+                      <input type="file" accept="image/*,video/*" className="hidden" onChange={handleMediaUpload} />
                     </label>
+                  </div>
+
+                  {/* Display Mode (In Video Middle vs Floating Watermark) */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">Display Mode</label>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <button
+                        onClick={() => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, mergeMode: 'middleSlide', x: 50, y: 50, scale: 100 } : m))}
+                        className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                          activeMedia.mergeMode === 'middleSlide' || !activeMedia.mergeMode
+                            ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        🎬 In Video Middle
+                        <p className="text-[10px] font-normal opacity-90 mt-0.5">Cinematic slide with backdrop blur</p>
+                      </button>
+                      <button
+                        onClick={() => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, mergeMode: 'overlay', scale: 65 } : m))}
+                        className={`p-2.5 rounded-xl border text-left font-bold transition-all cursor-pointer ${
+                          activeMedia.mergeMode === 'overlay'
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        🏷️ Floating Watermark
+                        <p className="text-[10px] font-normal opacity-90 mt-0.5">Corner logo or PiP overlay</p>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Position Presets */}
@@ -1693,36 +1978,39 @@ export default function VideoEditorModal({
         <div className="flex-1 relative px-6 py-4 bg-white flex flex-col justify-center gap-2">
           
           {/* Main Waveform / Playhead Bar */}
-          <div className="relative w-full h-16 bg-blue-50/70 border border-blue-200 rounded-xl flex shadow-inner overflow-hidden flex-shrink-0">
-            {/* Visual Waveform bars */}
-            <div className="absolute inset-0 flex items-center justify-between px-2 opacity-25 pointer-events-none">
-              {waveformHeights.map((h, i) => (
-                <div key={i} className="w-1 bg-[#2563eb] rounded-full" style={{ height: `${h}%` }}></div>
-              ))}
+          <div className="relative w-full h-16 flex-shrink-0 mt-3 mb-1">
+            {/* Visual Waveform background container with overflow-hidden */}
+            <div className="absolute inset-0 bg-blue-50/70 border border-blue-200 rounded-xl overflow-hidden shadow-inner flex">
+              {/* Visual Waveform bars */}
+              <div className="absolute inset-0 flex items-center justify-between px-2 opacity-25 pointer-events-none">
+                {waveformHeights.map((h, i) => (
+                  <div key={i} className="w-1 bg-[#2563eb] rounded-full" style={{ height: `${h}%` }}></div>
+                ))}
+              </div>
+
+              {/* Completed Cuts representation */}
+              {duration > 0 && completedCuts.map(cut => {
+                const left = (cut.start / duration) * 100;
+                const width = ((cut.end - cut.start) / duration) * 100;
+                return (
+                  <div 
+                    key={cut.id}
+                    className="absolute top-0 bottom-0 bg-red-500/20 border-l-2 border-r-2 border-red-500 z-10"
+                    style={{ left: `${left}%`, width: `${width}%` }}
+                  >
+                     <div className="absolute inset-0 flex items-center justify-center opacity-40">
+                        <div className="w-full h-px bg-red-600 rotate-12"></div>
+                        <div className="w-full h-px bg-red-600 -rotate-12 absolute"></div>
+                     </div>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* Completed Cuts representation */}
-            {duration > 0 && completedCuts.map(cut => {
-              const left = (cut.start / duration) * 100;
-              const width = ((cut.end - cut.start) / duration) * 100;
-              return (
-                <div 
-                  key={cut.id}
-                  className="absolute top-0 bottom-0 bg-red-500/20 border-l-2 border-r-2 border-red-500 z-10"
-                  style={{ left: `${left}%`, width: `${width}%` }}
-                >
-                   <div className="absolute inset-0 flex items-center justify-center opacity-40">
-                      <div className="w-full h-px bg-red-600 rotate-12"></div>
-                      <div className="w-full h-px bg-red-600 -rotate-12 absolute"></div>
-                   </div>
-                </div>
-              );
-            })}
-
-            {/* Active Cut handles */}
+            {/* Active Cut handles and floating toolbar (UNCLIPPED) */}
             {activeCut && duration > 0 && (
               <div 
-                className="absolute top-0 bottom-0 bg-red-500/30 border-t-2 border-b-2 border-red-600 z-30 shadow-lg"
+                className="absolute top-0 bottom-0 bg-red-500/30 border-t-2 border-b-2 border-red-600 z-30 shadow-lg rounded"
                 style={{ 
                   left: `${(activeCut.start / duration) * 100}%`, 
                   width: `${((activeCut.end - activeCut.start) / duration) * 100}%` 
@@ -1730,23 +2018,46 @@ export default function VideoEditorModal({
               >
                 <div 
                   onMouseDown={(e) => { e.preventDefault(); setDragHandle('start'); e.stopPropagation(); }} 
-                  className="absolute -left-3 top-0 bottom-0 w-6 bg-red-600 rounded-l-md cursor-ew-resize flex items-center justify-center hover:bg-red-700 shadow-md"
+                  className="absolute -left-3 top-0 bottom-0 w-6 bg-red-600 rounded-l-md cursor-ew-resize flex items-center justify-center hover:bg-red-700 shadow-md z-40"
                   title="Drag start handle"
                 >
                   <div className="w-1 h-6 border-l border-r border-white/60"></div>
                 </div>
                 <div 
                   onMouseDown={(e) => { e.preventDefault(); setDragHandle('end'); e.stopPropagation(); }} 
-                  className="absolute -right-3 top-0 bottom-0 w-6 bg-red-600 rounded-r-md cursor-ew-resize flex items-center justify-center hover:bg-red-700 shadow-md"
+                  className="absolute -right-3 top-0 bottom-0 w-6 bg-red-600 rounded-r-md cursor-ew-resize flex items-center justify-center hover:bg-red-700 shadow-md z-40"
                   title="Drag end handle"
                 >
                   <div className="w-1 h-6 border-l border-r border-white/60"></div>
                 </div>
-                <div className="absolute -top-11 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white p-1 rounded-lg shadow-xl border border-gray-200 z-50">
-                  <button onClick={confirmCut} className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1">
-                    <Check className="w-3 h-3"/> Cut
+
+                {/* Floating toolbar positioned above timeline */}
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute -top-11 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-slate-900/95 backdrop-blur text-white px-2 py-1 rounded-lg shadow-2xl border border-slate-700 z-50 whitespace-nowrap"
+                >
+                  <span className="text-[10px] font-mono text-red-300 font-bold px-1">
+                    {formatTimeStr(activeCut.start)} - {formatTimeStr(activeCut.end)}
+                  </span>
+                  <button 
+                    onClick={confirmCut} 
+                    className="bg-red-600 hover:bg-red-700 text-white px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer"
+                    title="Cut out and delete this section"
+                  >
+                    <Scissors className="w-3 h-3"/> Cut Out
                   </button>
-                  <button onClick={cancelCut} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-md text-xs font-bold">
+                  <button 
+                    onClick={trimToActiveSelection} 
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer"
+                    title="Keep ONLY this section and trim everything else"
+                  >
+                    <Check className="w-3 h-3"/> Keep Selection
+                  </button>
+                  <button 
+                    onClick={cancelCut} 
+                    className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-1.5 py-0.5 rounded text-[11px] font-medium cursor-pointer"
+                    title="Cancel selection"
+                  >
                     Cancel
                   </button>
                 </div>

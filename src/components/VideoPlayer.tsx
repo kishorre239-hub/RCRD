@@ -339,15 +339,15 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
           );
         }
 
-        let styleClasses = "font-black drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]";
+        let styleClasses = "font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]";
         if (text.stylePreset === 'subtitle' || !text.stylePreset) {
-          styleClasses = "bg-black/80 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/20 shadow-2xl font-bold tracking-wide";
+          styleClasses = "bg-slate-950/90 backdrop-blur-md px-5 py-2 rounded-xl border border-white/20 shadow-lg font-semibold tracking-wide text-center";
         } else if (text.stylePreset === 'lowerThird') {
-          styleClasses = "bg-slate-950/90 backdrop-blur-md px-5 py-2.5 rounded-r-xl border-l-4 border-blue-500 shadow-2xl font-semibold";
+          styleClasses = "bg-slate-950/90 backdrop-blur-md px-5 py-2.5 rounded-r-xl border-l-4 border-blue-500 shadow-lg font-semibold";
         } else if (text.stylePreset === 'badge') {
-          styleClasses = "bg-blue-600 text-white px-4 py-1.5 rounded-full font-bold shadow-lg ring-2 ring-white/30";
+          styleClasses = "bg-blue-600 text-white px-4 py-1.5 rounded-full font-bold shadow-md ring-1 ring-white/30";
         } else if (text.stylePreset === 'minimal') {
-          styleClasses = "font-black drop-shadow-[0_4px_8px_rgba(0,0,0,0.95)]";
+          styleClasses = "font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]";
         }
 
         return (

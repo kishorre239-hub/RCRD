@@ -9,7 +9,7 @@
  */
 
 export interface PlanDefinition {
-  id: 'free' | 'pro' | 'team' | 'yearly';
+  id: string;
   name: string;
   price: number; // in INR
   interval: 'free' | 'month' | 'year';
@@ -88,6 +88,48 @@ export const SAAS_PLANS: Record<string, PlanDefinition> = {
       'Admin role control & teammate invites'
     ],
     ctaLabel: 'Upgrade Team Plan',
+  },
+  business: {
+    id: 'business',
+    name: 'Business',
+    price: 180,
+    interval: 'year',
+    intervalLabel: '/year',
+    displayPrice: '$180.00',
+    storageLimitMb: -1,
+    storageLimitBytes: -1,
+    maxSeats: 100,
+    description: 'Move work forward faster with unlimited videos and basic editing',
+    features: [
+      'Unlimited video recording and storage',
+      'Basic video editing & trim',
+      'Team workspace & shared library',
+      'Viewer insights & analytics',
+      'Custom branding'
+    ],
+    ctaLabel: 'Upgrade now',
+  },
+  business_ai: {
+    id: 'business_ai',
+    name: 'Business + AI',
+    price: 240,
+    interval: 'year',
+    intervalLabel: '/year',
+    displayPrice: '$240.00',
+    storageLimitMb: -1,
+    storageLimitBytes: -1,
+    maxSeats: 100,
+    recommended: true,
+    badge: 'RECOMMENDED',
+    description: 'Communicate your best with videos auto-enhanced by AI and polished with advanced editing tools',
+    features: [
+      'Everything in Business plan',
+      'AI auto-generated titles, summaries & chapters',
+      'Instant filler word & silence removal',
+      'Auto-enhanced audio & noise reduction',
+      'AI composite action items & tasks'
+    ],
+    ctaLabel: 'Upgrade now',
   },
   yearly: {
     id: 'yearly',

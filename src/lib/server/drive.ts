@@ -1,10 +1,10 @@
-import { google } from 'googleapis';
+import { google, drive_v3 } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
 
-let driveClient: any = null;
+let driveClient: drive_v3.Drive | null = null;
 
-function getServiceAccountCredentials(): any {
+function getServiceAccountCredentials(): Record<string, unknown> | null {
   // Check environment variable first
   if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
     try {
@@ -43,7 +43,7 @@ function getServiceAccountCredentials(): any {
   return null;
 }
 
-export function getDriveClient(): any {
+export function getDriveClient(): drive_v3.Drive | null {
   if (driveClient) return driveClient;
 
   const credentials = getServiceAccountCredentials();
@@ -72,7 +72,7 @@ export async function getMeetingFolderId(): Promise<string> {
       supportsAllDrives: true,
       includeItemsFromAllDrives: true,
     });
-    if (res.data.files && res.data.files.length > 0) {
+    if (res.data.files && res.data.files.length > 0 && res.data.files[0].id) {
       return res.data.files[0].id;
     }
     const createdId = await createDriveFolder('MEETING');
@@ -110,7 +110,7 @@ export async function createResumableUploadSession(params: {
     throw new Error('Failed to acquire Google Drive access token');
   }
 
-  const metadata: any = {
+  const metadata: { name: string; mimeType: string; parents?: string[] } = {
     name: params.title || `Recording-${Date.now()}.webm`,
     mimeType: params.mimeType || 'video/webm',
   };
@@ -231,13 +231,13 @@ export async function getFileMetadata(fileId: string) {
 
     return {
       ...data,
-      title: cleanVideoTitle(data.name || '', data.createdTime),
+      title: cleanVideoTitle(data.name || '', data.createdTime || undefined),
       duration,
       thumbnailUrl,
       thumbnailLink: thumbnailUrl,
     };
-  } catch (error: any) {
-    console.error(`Failed to get Google Drive file ${fileId}:`, error?.message);
+  } catch (error: unknown) {
+    console.error(`Failed to get Google Drive file ${fileId}:`, (error as Error)?.message);
     return null;
   }
 }
@@ -279,8 +279,8 @@ export async function getDriveFileStream(fileId: string, rangeHeader?: string | 
       headers: streamRes.headers,
       status: streamRes.status || 200,
     };
-  } catch (error: any) {
-    console.error(`Failed to stream Drive file ${fileId}:`, error?.message);
+  } catch (error: unknown) {
+    console.error(`Failed to stream Drive file ${fileId}:`, (error as Error)?.message);
     return null;
   }
 }
@@ -298,8 +298,8 @@ export async function deleteDriveFile(fileId: string): Promise<boolean> {
       supportsAllDrives: true,
     });
     return true;
-  } catch (error: any) {
-    console.error(`Failed to delete Google Drive file ${fileId}:`, error?.message);
+  } catch (error: unknown) {
+    console.error(`Failed to delete Google Drive file ${fileId}:`, (error as Error)?.message);
     return false;
   }
 }
@@ -345,8 +345,8 @@ export async function renameDriveFile(fileId: string, newTitle: string): Promise
     }
 
     return true;
-  } catch (error: any) {
-    console.error(`Failed to rename Google Drive file ${fileId}:`, error?.message);
+  } catch (error: unknown) {
+    console.error(`Failed to rename Google Drive file ${fileId}:`, (error as Error)?.message);
     return false;
   }
 }
@@ -359,7 +359,7 @@ export async function createDriveFolder(name: string, parentId?: string): Promis
   if (!drive) return null;
 
   try {
-    const metadata: any = {
+    const metadata: { name: string; mimeType: string; parents?: string[] } = {
       name,
       mimeType: 'application/vnd.google-apps.folder',
     };
@@ -373,8 +373,8 @@ export async function createDriveFolder(name: string, parentId?: string): Promis
       supportsAllDrives: true,
     });
     return res.data.id || null;
-  } catch (error: any) {
-    console.error('Failed to create Drive folder:', error?.message);
+  } catch (error: unknown) {
+    console.error('Failed to create Drive folder:', (error as Error)?.message);
     return null;
   }
 }
@@ -382,7 +382,13 @@ export async function createDriveFolder(name: string, parentId?: string): Promis
 /**
  * Get Google Drive storage quota
  */
-export async function getDriveStorageStatus(): Promise<any> {
+export async function getDriveStorageStatus(): Promise<{
+  connected: boolean;
+  message?: string;
+  storageQuota?: drive_v3.Schema$About['storageQuota'];
+  user?: drive_v3.Schema$User;
+  error?: string;
+}> {
   const drive = getDriveClient();
   if (!drive) return { connected: false, message: 'Google Drive credentials unavailable' };
 
@@ -395,26 +401,54 @@ export async function getDriveStorageStatus(): Promise<any> {
       storageQuota: res.data.storageQuota,
       user: res.data.user,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       connected: false,
-      error: error?.message,
+      error: (error as Error)?.message,
     };
   }
+}
+
+export interface DriveVideoItem {
+  id: string;
+  driveFileId: string;
+  title: string;
+  rawName?: string | null;
+  ownerName: string;
+  ownerEmail: string;
+  mimeType: string;
+  size: number;
+  duration: number;
+  thumbnailUrl: string;
+  thumbnailLink: string;
+  status: string;
+  isPublic: boolean;
+  views: number;
+  comments: unknown[];
+  courseId: string;
+  createdAt: number;
+  updatedAt: number;
+  webViewLink?: string | null;
+  webContentLink?: string | null;
+}
+
+export interface DriveFolderItem {
+  id: string | null | undefined;
+  name: string;
 }
 
 /**
  * Fast cached listing of videos and folders directly from Google Drive
  */
-let driveCache: { timestamp: number; videos: any[]; folders: any[] } = {
+let driveCache: { timestamp: number; videos: DriveVideoItem[]; folders: DriveFolderItem[] } = {
   timestamp: 0,
   videos: [],
   folders: [],
 };
 
 export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
-  videos: any[];
-  folders: any[];
+  videos: DriveVideoItem[];
+  folders: DriveFolderItem[];
   connected: boolean;
 }> {
   const drive = getDriveClient();
@@ -437,8 +471,8 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
     });
 
     const files = res.data.files || [];
-    const videos: any[] = [];
-    const folders: any[] = [];
+    const videos: DriveVideoItem[] = [];
+    const folders: DriveFolderItem[] = [];
 
     for (const f of files) {
       if (f.mimeType === 'application/vnd.google-apps.folder') {
@@ -457,9 +491,9 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
         const thumbnailUrl = formatDriveThumbnailUrl(f.thumbnailLink);
 
         videos.push({
-          id: f.id,
-          driveFileId: f.id,
-          title: cleanVideoTitle(f.name || '', f.createdTime),
+          id: f.id || '',
+          driveFileId: f.id || '',
+          title: cleanVideoTitle(f.name || '', f.createdTime || undefined),
           rawName: f.name,
           ownerName: 'Google Drive User',
           ownerEmail: 'admin@rcrd.com',
@@ -488,8 +522,8 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
     };
 
     return { videos, folders, connected: true };
-  } catch (err: any) {
-    console.warn('Google Drive list error:', err?.message);
+  } catch (err: unknown) {
+    console.warn('Google Drive list error:', (err as Error)?.message);
     return { videos: driveCache.videos, folders: driveCache.folders, connected: true };
   }
 }

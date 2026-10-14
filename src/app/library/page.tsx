@@ -1113,16 +1113,29 @@ export default function LibraryPage() {
                             
                             {/* Video Dropdown Menu */}
                             {activeVideoMenu === video.id && (
-                              <div className="absolute top-0 right-8 w-44 bg-white rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.15)] border border-slate-200 py-1.5 z-40">
+                              <div className="absolute top-0 right-8 w-48 bg-white rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.15)] border border-slate-200 py-1.5 z-40">
                                 <DropdownItem label="Share" onClick={() => { setShareModalVideoId(video.id); setActiveVideoMenu(null); }} />
-                                <DropdownItem label="Save to watch later" onClick={() => {
-                                  setActiveVideoMenu(null);
-                                  const saved = JSON.parse(localStorage.getItem('watchLaterVideos') || '[]');
-                                  if (!saved.some((v: VideoData) => v.id === video.id)) {
-                                    localStorage.setItem('watchLaterVideos', JSON.stringify([...saved, video]));
-                                  }
-                                  showToast("Saved to Watch later");
-                                }} />
+                                <DropdownItem 
+                                  label={
+                                    typeof window !== 'undefined' && JSON.parse(localStorage.getItem('watchLaterVideos') || '[]').some((v: VideoData) => v.id === video.id)
+                                      ? "Remove from watch later"
+                                      : "Save to watch later"
+                                  } 
+                                  onClick={() => {
+                                    setActiveVideoMenu(null);
+                                    const saved = JSON.parse(localStorage.getItem('watchLaterVideos') || '[]');
+                                    const exists = saved.some((v: VideoData) => v.id === video.id);
+                                    if (exists) {
+                                      const updated = saved.filter((v: VideoData) => v.id !== video.id);
+                                      localStorage.setItem('watchLaterVideos', JSON.stringify(updated));
+                                      showToast("Removed from Watch later");
+                                    } else {
+                                      localStorage.setItem('watchLaterVideos', JSON.stringify([...saved, video]));
+                                      showToast("Saved to Watch later");
+                                    }
+                                    window.dispatchEvent(new CustomEvent('video-updated', { detail: { id: video.id } }));
+                                  }} 
+                                />
                                 <DropdownItem label="Rename" onClick={() => handleRenameVideo(video.id, video.title)} />
                                 <DropdownItem label="Move..." onClick={() => handleMoveVideoClick(video.id)} />
                                 <DropdownItem label="Duplicate" onClick={() => {
@@ -1630,6 +1643,210 @@ export default function LibraryPage() {
             </div>
           </div>
         )}
+
+        {/* SHARE MODAL */}
+        {shareModalVideoId && (() => {
+          const targetVid = videos.find(v => v.id === shareModalVideoId);
+          const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/video/${shareModalVideoId}` : '';
+          const embedCode = `<iframe src="${shareUrl}" width="640" height="360" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>`;
+          return (
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-150" onClick={() => setShareModalVideoId(null)}>
+              <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
+                {/* Header */}
+                <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                      <Share2 size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-base">Share Recording</h3>
+                      <p className="text-xs text-slate-500 truncate max-w-[280px]">{targetVid?.title || 'Screen Recording'}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShareModalVideoId(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-6 flex flex-col gap-5">
+                  {/* Copy Link */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2 block">Share Link</label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 font-mono truncate select-all">
+                        {shareUrl}
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (typeof navigator !== 'undefined') {
+                            navigator.clipboard.writeText(shareUrl);
+                            showToast("Link copied to clipboard!");
+                          }
+                        }}
+                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 shrink-0 shadow-sm shadow-blue-500/20"
+                      >
+                        <LinkIcon size={14} /> Copy link
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Embed Video Code */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2 block">Embed on Website</label>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-500 font-mono truncate select-all">
+                        {embedCode}
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (typeof navigator !== 'undefined') {
+                            navigator.clipboard.writeText(embedCode);
+                            showToast("Embed iframe code copied!");
+                          }
+                        }}
+                        className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-colors shrink-0"
+                      >
+                        <Code size={13} className="inline mr-1" /> Copy code
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Quick Share to Social */}
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2 block">Share with</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      <a 
+                        href={`mailto:?subject=${encodeURIComponent(targetVid?.title || 'Video')}&body=${encodeURIComponent(shareUrl)}`}
+                        target="_blank" rel="noreferrer"
+                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-700 text-xs font-medium"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center font-bold text-xs">@</div>
+                        <span>Email</span>
+                      </a>
+                      <a 
+                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent((targetVid?.title || 'Video') + ' - ' + shareUrl)}`}
+                        target="_blank" rel="noreferrer"
+                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-700 text-xs font-medium"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">WA</div>
+                        <span>WhatsApp</span>
+                      </a>
+                      <a 
+                        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(targetVid?.title || 'Video')}&url=${encodeURIComponent(shareUrl)}`}
+                        target="_blank" rel="noreferrer"
+                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-700 text-xs font-medium"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-900 flex items-center justify-center font-bold text-xs">𝕏</div>
+                        <span>Twitter/X</span>
+                      </a>
+                      <a 
+                        href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
+                        target="_blank" rel="noreferrer"
+                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-700 text-xs font-medium"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs">in</div>
+                        <span>LinkedIn</span>
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Access notice */}
+                  <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-xl flex items-center gap-2 text-xs text-blue-800">
+                    <Globe size={16} className="text-blue-600 shrink-0" />
+                    <span>Anyone with this link can watch this recording without an account.</span>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                  <button onClick={() => setShareModalVideoId(null)} className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold text-sm transition-colors">
+                    Done
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* MOVE MODAL */}
+        {showMoveModal && (() => {
+          const moveVid = videos.find(v => v.id === showMoveModal);
+          const allDestinations = [
+            { id: 'root', name: 'Home / All Recordings', icon: 'home' },
+            { id: 'screen-shares', name: 'Screen Shares', icon: 'folder' },
+            { id: 'team-updates', name: 'Team Updates', icon: 'folder' },
+            { id: 'MEETING', name: 'Live Meetings', icon: 'folder' },
+            ...courses.filter(c => !['screen-shares', 'team-updates', 'MEETING'].includes(c.id)).map(c => ({
+              id: c.id,
+              name: c.name,
+              icon: 'folder',
+            }))
+          ];
+
+          return (
+            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-150" onClick={() => setShowMoveModal(null)}>
+              <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
+                {/* Header */}
+                <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                      <Folder size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-base">Move Video</h3>
+                      <p className="text-xs text-slate-500 truncate max-w-[240px]">{moveVid?.title || 'Select folder'}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowMoveModal(null)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-5 flex flex-col gap-2 max-h-[340px] overflow-y-auto">
+                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Select Destination</div>
+                  {allDestinations.map(dest => {
+                    const isSelected = moveTargetFolderId === dest.id;
+                    return (
+                      <button
+                        key={dest.id}
+                        onClick={() => setMoveTargetFolderId(dest.id)}
+                        className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
+                          isSelected 
+                            ? 'bg-blue-50 border-blue-500 text-blue-900 font-semibold shadow-sm'
+                            : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Folder size={18} className={isSelected ? 'text-blue-600' : 'text-slate-400'} />
+                          <span className="text-sm">{dest.name}</span>
+                        </div>
+                        {isSelected && <Check size={16} className="text-blue-600" />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                  <button 
+                    onClick={() => setShowMoveModal(null)} 
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium text-sm transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={confirmMoveVideo} 
+                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-sm shadow-blue-500/20"
+                  >
+                    Move here
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
       </main>
     </div>

@@ -32,7 +32,7 @@ export async function POST(
       await videosCol.insertOne({
         id,
         driveFileId: id,
-        title: driveMeta?.title || cleanVideoTitle(driveMeta?.name || '', driveMeta?.createdTime),
+        title: driveMeta?.title || cleanVideoTitle(driveMeta?.name || '', driveMeta?.createdTime || undefined),
         ownerId: 'google-drive-user',
         ownerName: 'Google Drive User',
         ownerEmail: 'admin@rcrd.com',

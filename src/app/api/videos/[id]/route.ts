@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { deleteDriveFile, getFileMetadata, cleanVideoTitle, renameDriveFile } from '@/lib/server/drive';
-import { Video } from '@/lib/server/types';
+import { Video, VideoComment } from '@/lib/server/types';
 import { ObjectId } from 'mongodb';
+import { getBackupComments, getBackupVideoMeta, saveBackupVideoMeta } from '@/lib/server/localBackup';
 
 export async function GET(
   req: Request,
@@ -14,6 +15,9 @@ export async function GET(
     if (!id) {
       return NextResponse.json({ error: 'Video ID required' }, { status: 400 });
     }
+
+    const backupComments = getBackupComments(id);
+    const backupMeta = getBackupVideoMeta(id);
 
     let video: Video | null = null;
     try {
@@ -37,12 +41,29 @@ export async function GET(
         const driveMeta = await getFileMetadata(driveFileId);
         if (driveMeta?.duration) duration = driveMeta.duration;
       }
+
+      // Merge MongoDB comments with local backup comments
+      const commentMap = new Map<string, VideoComment>();
+      if (backupComments && Array.isArray(backupComments)) {
+        for (const c of backupComments) {
+          if (c && c.id) commentMap.set(c.id, c);
+        }
+      }
+      if (video.comments && Array.isArray(video.comments)) {
+        for (const c of video.comments) {
+          if (c && c.id) commentMap.set(c.id, c);
+        }
+      }
+
+      const mergedComments = Array.from(commentMap.values());
+      const rawTitle = backupMeta?.title || video.title;
+
       const normalized = {
         ...video,
         id: vidId,
-        title: cleanVideoTitle(video.title, video.createdAt),
-        views: video.views || 0,
-        comments: video.comments || [],
+        title: cleanVideoTitle(rawTitle, video.createdAt),
+        views: Math.max(video.views || 0, backupMeta?.views || 0),
+        comments: mergedComments,
         duration,
         thumbnailUrl: `/api/videos/${vidId}/thumbnail`,
         thumbnailLink: `/api/videos/${vidId}/thumbnail`,
@@ -53,10 +74,11 @@ export async function GET(
     // Fallback: Check Google Drive directly for the file
     const driveMeta = await getFileMetadata(id);
     if (driveMeta) {
+      const chosenTitle = backupMeta?.title || driveMeta.title || cleanVideoTitle(driveMeta.name || '', driveMeta.createdTime || undefined);
       const driveVideo = {
         id: driveMeta.id,
         driveFileId: driveMeta.id,
-        title: driveMeta.title || cleanVideoTitle(driveMeta.name || '', driveMeta.createdTime),
+        title: chosenTitle,
         rawName: driveMeta.name,
         ownerName: 'Google Drive User',
         ownerEmail: 'admin@rcrd.com',
@@ -67,8 +89,8 @@ export async function GET(
         thumbnailLink: driveMeta.thumbnailUrl || '',
         status: 'READY',
         isPublic: true,
-        views: 0,
-        comments: [],
+        views: backupMeta?.views || 0,
+        comments: backupComments || [],
         createdAt: driveMeta.createdTime ? new Date(driveMeta.createdTime).getTime() : Date.now(),
         updatedAt: driveMeta.createdTime ? new Date(driveMeta.createdTime).getTime() : Date.now(),
         webViewLink: driveMeta.webViewLink,
@@ -107,7 +129,10 @@ export async function PUT(
 
     const updateFields: any = { updatedAt: Date.now() };
     const newTitle = typeof body.title === 'string' ? body.title.trim() : undefined;
-    if (newTitle !== undefined) updateFields.title = newTitle;
+    if (newTitle !== undefined) {
+      updateFields.title = newTitle;
+      saveBackupVideoMeta(id, { title: newTitle });
+    }
     if (body.courseId !== undefined) updateFields.courseId = body.courseId;
     if (body.editorData !== undefined) updateFields.editorData = body.editorData;
 

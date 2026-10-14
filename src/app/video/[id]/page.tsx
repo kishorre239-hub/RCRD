@@ -187,7 +187,30 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
         const data = await getVideo(id);
         if (!mounted) return;
         if (data) {
-          setVideo(data);
+          // Merge server comments with localStorage comments so no comment is lost
+          let finalComments = Array.isArray(data.comments) ? data.comments : [];
+          try {
+            const meta = JSON.parse(localStorage.getItem(`video-meta-${id}`) || '{}');
+            if (meta.comments && Array.isArray(meta.comments)) {
+              const commentMap = new Map();
+              finalComments.forEach((c: any) => { if (c && c.id) commentMap.set(c.id, c); });
+              meta.comments.forEach((c: any) => {
+                if (c && c.id && !commentMap.has(c.id)) {
+                  commentMap.set(c.id, c);
+                }
+              });
+              finalComments = Array.from(commentMap.values());
+            }
+            meta.comments = finalComments;
+            if (data.views !== undefined) meta.views = data.views;
+            localStorage.setItem(`video-meta-${id}`, JSON.stringify(meta));
+          } catch {}
+
+          setVideo({
+            ...data,
+            comments: finalComments,
+          });
+
           const token = localStorage.getItem('token');
           setStreamUrl(`${API_URL}/videos/${id}/stream?token=${token}`);
           
@@ -729,10 +752,17 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                           try {
                             const timeStr = `${Math.floor(currentVideoTime / 60)}:${Math.floor(currentVideoTime % 60).toString().padStart(2, '0')}`;
                             const newComment = await addVideoComment(id, commentText, timeStr);
+                            const updatedComments = [...(video?.comments || []), newComment];
                             setVideo(prev => {
                               if (!prev) return prev;
-                              return { ...prev, comments: [...(prev.comments || []), newComment] };
+                              return { ...prev, comments: updatedComments };
                             });
+                            try {
+                              const meta = JSON.parse(localStorage.getItem(`video-meta-${id}`) || '{}');
+                              meta.comments = updatedComments;
+                              localStorage.setItem(`video-meta-${id}`, JSON.stringify(meta));
+                            } catch {}
+                            window.dispatchEvent(new CustomEvent('video-updated', { detail: { id, comments: updatedComments } }));
                             setCommentText('');
                           } catch(err) {
                             console.error("Failed to add comment", err);
@@ -753,10 +783,17 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         try {
                           const timeStr = `${Math.floor(currentVideoTime / 60)}:${Math.floor(currentVideoTime % 60).toString().padStart(2, '0')}`;
                           const newComment = await addVideoComment(id, commentText, timeStr);
+                          const updatedComments = [...(video?.comments || []), newComment];
                           setVideo(prev => {
                             if (!prev) return prev;
-                            return { ...prev, comments: [...(prev.comments || []), newComment] };
+                            return { ...prev, comments: updatedComments };
                           });
+                          try {
+                            const meta = JSON.parse(localStorage.getItem(`video-meta-${id}`) || '{}');
+                            meta.comments = updatedComments;
+                            localStorage.setItem(`video-meta-${id}`, JSON.stringify(meta));
+                          } catch {}
+                          window.dispatchEvent(new CustomEvent('video-updated', { detail: { id, comments: updatedComments } }));
                           setCommentText('');
                         } catch(err) {
                           console.error("Failed to add comment", err);

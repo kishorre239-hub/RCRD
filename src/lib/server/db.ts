@@ -3,14 +3,15 @@ import dns from 'dns';
 
 // Enable public DNS servers to guarantee SRV record resolution across all local and cloud networks
 try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
+  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 } catch {
   // Ignore in environments where setServers is restricted
 }
 
-const DEFAULT_URI = 'mongodb+srv://harikishorereddy9908_db_user:GeonixaLoom@cluster0.lsj9dut.mongodb.net/loom?appName=Cluster0';
+const DEFAULT_SRV_URI = 'mongodb+srv://harikishorereddy9908_db_user:GeonixaLoom@cluster0.lsj9dut.mongodb.net/loom?appName=Cluster0';
+const DEFAULT_DIRECT_URI = 'mongodb://harikishorereddy9908_db_user:GeonixaLoom@ac-qdl9dar-shard-00-00.lsj9dut.mongodb.net:27017,ac-qdl9dar-shard-00-01.lsj9dut.mongodb.net:27017,ac-qdl9dar-shard-00-02.lsj9dut.mongodb.net:27017/loom?ssl=true&replicaSet=atlas-qdl9dar-shard-0&authSource=admin&appName=Cluster0';
 
-const uri = process.env.MONGODB_URI || DEFAULT_URI;
+const uri = process.env.MONGODB_URI || DEFAULT_DIRECT_URI || DEFAULT_SRV_URI;
 
 declare global {
   // eslint-disable-next-line no-var

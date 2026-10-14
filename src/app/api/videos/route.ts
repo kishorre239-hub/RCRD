@@ -3,6 +3,7 @@ import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { listDriveVideosAndFolders, cleanVideoTitle } from '@/lib/server/drive';
 import { Video } from '@/lib/server/types';
+import { getBackupVideoMeta } from '@/lib/server/localBackup';
 
 export async function GET(req: Request) {
   try {
@@ -34,10 +35,13 @@ export async function GET(req: Request) {
 
     // 1. First add Google Drive videos
     for (const dv of driveVideos) {
-      if (courseId && dv.courseId !== courseId) continue;
+      const backupMeta = getBackupVideoMeta(dv.id);
+      const effectiveCourseId = (backupMeta?.courseId !== undefined) ? backupMeta.courseId : (dv.courseId || '');
+      if (courseId && effectiveCourseId !== courseId) continue;
       videoMap.set(dv.id, {
         ...dv,
-        title: cleanVideoTitle(dv.title || dv.rawName || '', dv.createdAt),
+        courseId: effectiveCourseId,
+        title: backupMeta?.title || cleanVideoTitle(dv.title || dv.rawName || '', dv.createdAt),
         thumbnailUrl: `/api/videos/${dv.id}/thumbnail`,
         thumbnailLink: `/api/videos/${dv.id}/thumbnail`,
         directThumbnailUrl: dv.thumbnailUrl,
@@ -51,8 +55,12 @@ export async function GET(req: Request) {
       if (key.startsWith('local:') && !v.webViewLink) continue;
 
       const existing = videoMap.get(key) || {};
+      const backupMeta = getBackupVideoMeta(key);
+      const effectiveCourseId = (backupMeta?.courseId !== undefined) 
+        ? backupMeta.courseId 
+        : (v.courseId || existing.courseId || '');
       const createdAt = v.createdAt || existing.createdAt || Date.now();
-      const rawTitle = v.title || existing.title || (v as any).name || 'Recording';
+      const rawTitle = backupMeta?.title || v.title || existing.title || (v as any).name || 'Recording';
       const cleanTitle = cleanVideoTitle(rawTitle, createdAt);
       const id = v.id || v.driveFileId || v._id?.toString() || key;
 
@@ -61,6 +69,7 @@ export async function GET(req: Request) {
         ...v,
         id,
         title: cleanTitle,
+        courseId: effectiveCourseId,
         views: v.views !== undefined ? v.views : (existing.views || 0),
         comments: Array.isArray(v.comments) ? v.comments : (existing.comments || []),
         thumbnailUrl: `/api/videos/${id}/thumbnail`,

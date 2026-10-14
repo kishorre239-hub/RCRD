@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
-import { deleteDriveFile, getFileMetadata, cleanVideoTitle, renameDriveFile } from '@/lib/server/drive';
+import { deleteDriveFile, getFileMetadata, cleanVideoTitle, renameDriveFile, moveDriveFile } from '@/lib/server/drive';
 import { Video, VideoComment } from '@/lib/server/types';
 import { ObjectId, Filter } from 'mongodb';
 import { getBackupComments, getBackupVideoMeta, saveBackupVideoMeta } from '@/lib/server/localBackup';
@@ -135,7 +135,10 @@ export async function PUT(
       updateFields.title = newTitle;
       saveBackupVideoMeta(id, { title: newTitle });
     }
-    if (body.courseId !== undefined) updateFields.courseId = body.courseId;
+    if (body.courseId !== undefined) {
+      updateFields.courseId = body.courseId;
+      saveBackupVideoMeta(id, { courseId: body.courseId });
+    }
     if (body.editorData !== undefined) {
       updateFields.editorData = body.editorData;
       saveBackupVideoMeta(id, { editorData: body.editorData });
@@ -150,6 +153,15 @@ export async function PUT(
         await renameDriveFile(targetDriveFileId, newTitle);
       } catch (driveErr) {
         console.warn('Could not rename Drive file:', driveErr);
+      }
+    }
+
+    // If folder changed (video moved), move file in Google Drive too
+    if (body.courseId !== undefined && targetDriveFileId && !targetDriveFileId.startsWith('local:')) {
+      try {
+        await moveDriveFile(targetDriveFileId, body.courseId, body.folderName);
+      } catch (driveErr) {
+        console.warn('Could not move Drive file:', driveErr);
       }
     }
 

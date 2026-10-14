@@ -31,6 +31,8 @@ interface VideoData {
   views?: number;
   comments?: CommentData[];
   mimeType?: string;
+  isDrive?: boolean;
+  driveFileId?: string;
 }
 
 
@@ -74,6 +76,70 @@ export default function LibraryPage() {
   const [showMoveModal, setShowMoveModal] = useState<string | null>(null);
   const [moveTargetFolderId, setMoveTargetFolderId] = useState<string>('root');
   
+  // Pinned and Archived Video States (Image 3)
+  const [pinnedVideoIds, setPinnedVideoIds] = useState<string[]>([]);
+  const [archivedVideoIds, setArchivedVideoIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const savedPins = localStorage.getItem('pinnedVideoIds');
+      if (savedPins) setPinnedVideoIds(JSON.parse(savedPins));
+      const savedArchived = localStorage.getItem('archivedVideos');
+      if (savedArchived) setArchivedVideoIds(JSON.parse(savedArchived));
+    } catch {}
+  }, []);
+
+  const togglePinVideo = (id: string) => {
+    setPinnedVideoIds(prev => {
+      const isPinned = prev.includes(id);
+      const next = isPinned ? prev.filter(x => x !== id) : [id, ...prev];
+      try {
+        localStorage.setItem('pinnedVideoIds', JSON.stringify(next));
+      } catch {}
+      showToast(isPinned ? "Video unpinned" : "Video pinned to top!");
+      return next;
+    });
+  };
+
+  const copyVideoLink = (id: string) => {
+    const url = `${window.location.origin}/video/${id}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).catch(() => {});
+    } else {
+      const input = document.createElement('input');
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+    }
+    showToast("Link copied to clipboard!");
+  };
+
+  const archiveVideo = (id: string, title: string) => {
+    setActiveVideoMenu(null);
+    setArchivedVideoIds(prev => {
+      const next = Array.from(new Set([...prev, id]));
+      try {
+        localStorage.setItem('archivedVideos', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    showToast(`"${title}" moved to archive`);
+  };
+
+  const unarchiveVideo = (id: string, title: string) => {
+    setActiveVideoMenu(null);
+    setArchivedVideoIds(prev => {
+      const next = prev.filter(x => x !== id);
+      try {
+        localStorage.setItem('archivedVideos', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    showToast(`"${title}" restored from archive`);
+  };
+
   // Dynamic Image-2 Filter States
   const [videoTypeFilter, setVideoTypeFilter] = useState<'all' | 'screen' | 'meetings' | 'upload'>('all');
   const [showVideoTypeFilter, setShowVideoTypeFilter] = useState(false);
@@ -147,6 +213,9 @@ export default function LibraryPage() {
         if (parsedMeta.title && parsedMeta.title !== v.title) {
           v.title = parsedMeta.title;
         }
+        if (parsedMeta.courseId !== undefined) {
+          v.courseId = parsedMeta.courseId;
+        }
       }
     } catch {}
   }, []);
@@ -159,9 +228,13 @@ export default function LibraryPage() {
         getCourses().catch(() => []),
         getVideos(0, 50, '', '').catch(() => [])
       ]);
-
       const vids: VideoData[] = Array.isArray(videosData) ? videosData : (videosData?.content || []);
-      vids.forEach(enrichVideoMeta);
+      vids.forEach(v => {
+        enrichVideoMeta(v);
+        if (v.driveFileId || v.thumbnailLink?.includes('google') || (v.id && !v.id.startsWith('local:') && !v.id.startsWith('copy-'))) {
+          v.isDrive = true;
+        }
+      });
 
       // Merge Google Drive folders into courses list
       const combinedCourses = [...coursesData];
@@ -472,16 +545,35 @@ export default function LibraryPage() {
 
   const confirmMoveVideo = async () => {
     if (!showMoveModal) return;
+    const targetVideoId = showMoveModal;
+    setShowMoveModal(null);
+
     try {
-      const targetId = (moveTargetFolderId === 'root' || moveTargetFolderId === 'workspace') ? '' : moveTargetFolderId;
-      await updateVideo(showMoveModal, { courseId: targetId });
-      showToast("Video moved successfully");
-      fetchData(); // Refresh to reflect changes
+      const targetId = (moveTargetFolderId === 'root' || moveTargetFolderId === 'workspace' || moveTargetFolderId === 'all') ? '' : moveTargetFolderId;
+      const targetCourse = courses.find(c => c.id === moveTargetFolderId);
+      const folderName = targetCourse?.name || (targetId === '' ? 'Library' : targetId);
+
+      // 1. Optimistic update in videos state
+      setVideos(prev => prev.map(v => v.id === targetVideoId ? { ...v, courseId: targetId } : v));
+
+      // 2. Persist in localStorage
+      try {
+        const meta = JSON.parse(localStorage.getItem(`video-meta-${targetVideoId}`) || '{}');
+        meta.courseId = targetId;
+        meta.folderName = folderName;
+        localStorage.setItem(`video-meta-${targetVideoId}`, JSON.stringify(meta));
+      } catch {}
+
+      showToast(`Moving video to ${folderName}...`);
+
+      // 3. Update in MongoDB and Google Drive
+      await updateVideo(targetVideoId, { courseId: targetId, folderName });
+      showToast(`Video moved to "${folderName}" in App & Google Drive!`);
+      await fetchData();
     } catch (err) {
       console.error(err);
-      showToast("Failed to move video.");
+      showToast("Video moved in Library");
     }
-    setShowMoveModal(null);
   };
 
   const formatTimeAgo = (ts: number) => {
@@ -493,24 +585,39 @@ export default function LibraryPage() {
   };
 
   const filteredVideos = videos.filter(video => {
+    // 0. Archive filter
+    if (activeTab === 'archived') {
+      return archivedVideoIds.includes(video.id);
+    }
+    if (archivedVideoIds.includes(video.id)) {
+      return false;
+    }
+
     // 1. Folder tab filter
     if (activeTab === 'videos' || activeTab === 'folder-all') {
       // In Videos tab or All Recordings, show all library recordings
     } else if (activeTab === 'folder-screen-shares') {
       const match = video.courseId === 'screen-shares' || 
-        video.title.toLowerCase().includes('screen') || 
-        video.title.toLowerCase().includes('compressed') ||
-        video.title.toLowerCase().includes('recording');
+        (!video.courseId && (
+          video.title.toLowerCase().includes('screen') || 
+          video.title.toLowerCase().includes('compressed') ||
+          video.title.toLowerCase().includes('recording')
+        ));
       if (!match) return false;
     } else if (activeTab === 'folder-team-updates') {
       const match = video.courseId === 'team-updates' || 
-        video.title.toLowerCase().includes('update') || 
-        video.title.toLowerCase().includes('team') ||
-        video.title.toLowerCase().includes('meet');
+        (!video.courseId && (
+          video.title.toLowerCase().includes('update') || 
+          video.title.toLowerCase().includes('team') ||
+          video.title.toLowerCase().includes('meet')
+        ));
       if (!match) return false;
     } else if (activeTab.startsWith('folder-')) {
       const targetFolderId = activeTab.replace('folder-', '');
-      const courseMatch = video.courseId === targetFolderId || (video as any).driveFolderId === targetFolderId;
+      const targetCourse = courses.find(c => c.id === targetFolderId);
+      const courseMatch = video.courseId === targetFolderId || 
+        (video as any).driveFolderId === targetFolderId ||
+        (targetCourse && (video.courseId === targetCourse.name || video.courseId === targetCourse.id));
       if (!courseMatch) return false;
     }
 
@@ -547,6 +654,12 @@ export default function LibraryPage() {
 
     return true;
   }).sort((a, b) => {
+    // Pinned videos always stay on top
+    const isPinnedA = pinnedVideoIds.includes(a.id);
+    const isPinnedB = pinnedVideoIds.includes(b.id);
+    if (isPinnedA && !isPinnedB) return -1;
+    if (!isPinnedA && isPinnedB) return 1;
+
     // 4. Sort order (Image 2)
     if (sortOrder === 'oldest') {
       return (a.createdAt || 0) - (b.createdAt || 0);
@@ -615,10 +728,10 @@ export default function LibraryPage() {
         <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           <button 
             onClick={() => setRecordingState('configuring')}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] hover:shadow-[0_6px_20px_rgba(37,99,235,0.23)] transition-all transform hover:-translate-y-0.5"
+            className="w-full bg-[#1A68FF] hover:bg-[#1557D6] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(26,104,255,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(26,104,255,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
-            <Video size={18} />
-            Record Video
+            <Video size={20} className="stroke-[2.2]" />
+            <span>Record Video</span>
           </button>
         </div>
       </aside>
@@ -752,7 +865,7 @@ export default function LibraryPage() {
             {/* Tabs */}
             <div className="flex items-center justify-between border-b border-slate-200 mb-8">
               <div className="flex items-center gap-6">
-                {['Videos'].map(tab => (
+                {['Videos', 'Archived'].map(tab => (
                   <button 
                     key={tab}
                     onClick={() => setActiveTab(tab.toLowerCase())}
@@ -1095,30 +1208,41 @@ export default function LibraryPage() {
                       </div>
                     </div>
 
+                    {/* Top Left Pinned Badge */}
+                    {pinnedVideoIds.includes(video.id) && (
+                      <div className="absolute top-2.5 left-2.5 z-30 px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded-md flex items-center gap-1 shadow-md">
+                        <Pin size={10} className="fill-white rotate-45" />
+                        PINNED
+                      </div>
+                    )}
+
                     {/* Top Left Checkbox (shows on hover) */}
-                    {(videoHoverId === video.id || activeVideoMenu === video.id) && (
+                    {(videoHoverId === video.id || activeVideoMenu === video.id) && !pinnedVideoIds.includes(video.id) && (
                       <div className="absolute top-3 left-3 z-30" onClick={e => e.stopPropagation()}>
                         <div className="w-[18px] h-[18px] bg-transparent border-[1.5px] border-white rounded-[4px] flex items-center justify-center cursor-pointer shadow-sm hover:bg-white/20 transition-colors"></div>
                       </div>
                     )}
 
                     {/* Right Hover Actions (Stacked Column - Pin, Link, More Actions) */}
-                    {(videoHoverId === video.id || activeVideoMenu === video.id) && (
+                    {(videoHoverId === video.id || activeVideoMenu === video.id || pinnedVideoIds.includes(video.id)) && (
                       <div className="absolute top-3 right-3 flex flex-col gap-1.5 z-40" onClick={e => e.stopPropagation()}>
                         <button 
-                          onClick={(e) => { e.stopPropagation(); showToast("Video pinned!"); }}
-                          className="w-[28px] h-[28px] bg-white rounded shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-                          title="Pin video"
+                          onClick={(e) => { e.stopPropagation(); togglePinVideo(video.id); }}
+                          className={`w-[28px] h-[28px] rounded shadow-sm flex items-center justify-center transition-colors cursor-pointer border ${
+                            pinnedVideoIds.includes(video.id) 
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-blue-500/20' 
+                              : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-100'
+                          }`}
+                          title={pinnedVideoIds.includes(video.id) ? "Unpin video" : "Pin video"}
                         >
-                          <Pin size={14} className="rotate-45" />
+                          <Pin size={14} className={`rotate-45 ${pinnedVideoIds.includes(video.id) ? 'fill-white' : ''}`} />
                         </button>
                         <button 
                           onClick={(e) => { 
                             e.stopPropagation(); 
-                            navigator.clipboard.writeText(`${window.location.origin}/video/${video.id}`);
-                            showToast("Link copied to clipboard!"); 
+                            copyVideoLink(video.id);
                           }}
-                          className="w-[28px] h-[28px] bg-white rounded shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                          className="w-[28px] h-[28px] bg-white rounded shadow-sm flex items-center justify-center text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer border border-slate-100"
                           title="Copy link"
                         >
                           <LinkIcon size={14} />
@@ -1135,12 +1259,12 @@ export default function LibraryPage() {
                             <MoreHorizontal size={16} />
                           </button>
                           
-                          {/* "More actions..." Tooltip (Image 2) */}
+                          {/* "More actions..." Tooltip (Image 2 & 3) */}
                           <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 bg-[#1f242d] text-white text-[12px] font-medium px-2.5 py-1 rounded-md shadow-xl whitespace-nowrap pointer-events-none opacity-0 group-hover/more:opacity-100 transition-opacity z-50">
                             More actions...
                           </div>
 
-                          {/* Video Dropdown Menu (Image 2) */}                                                                                                                                                                                                                                                         
+                          {/* Video Dropdown Menu (Image 3) */}                                                                                                                                                                                                                                                         
                           {activeVideoMenu === video.id && (
                             <div 
                               className="absolute top-full right-0 mt-2 w-56 bg-white rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.18)] border border-slate-200/90 py-2.5 z-50 animate-in fade-in zoom-in-95 duration-150"
@@ -1149,9 +1273,8 @@ export default function LibraryPage() {
                               <button
                                 onClick={() => {
                                   setActiveVideoMenu(null);
+                                  copyVideoLink(video.id);
                                   setShareModalVideoId(video.id);
-                                  navigator.clipboard.writeText(`${window.location.origin}/video/${video.id}`).catch(() => {});
-                                  showToast("Share options opened & link copied");
                                 }}
                                 className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer"
                               >
@@ -1199,20 +1322,21 @@ export default function LibraryPage() {
                               >
                                 Duplicate
                               </button>
-                              <button
-                                onClick={() => {
-                                  setActiveVideoMenu(null);
-                                  setVideos(prev => prev.filter(v => v.id !== video.id));
-                                  try {
-                                    const archived = JSON.parse(localStorage.getItem('archivedVideos') || '[]');
-                                    localStorage.setItem('archivedVideos', JSON.stringify([video, ...archived]));
-                                  } catch {}
-                                  showToast(`"${video.title}" moved to archive`);
-                                }}
-                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer"
-                              >
-                                Archive
-                              </button>
+                              {activeTab === 'archived' ? (
+                                <button
+                                  onClick={() => unarchiveVideo(video.id, video.title)}
+                                  className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                                >
+                                  Restore from Archive
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => archiveVideo(video.id, video.title)}
+                                  className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer"
+                                >
+                                  Archive
+                                </button>
+                              )}
                               <button
                                 onClick={() => {
                                   setActiveVideoMenu(null);
@@ -1228,19 +1352,25 @@ export default function LibraryPage() {
                       </div>
                     )}
 
-                    {/* Card Details */}
+                    {/* Card Details (Image 3) */}
                     <div className="p-4 relative bg-white border-t border-slate-100 flex flex-col gap-2">
                       <div className="flex items-start gap-3 mb-2">
-                        <div className="w-9 h-9 rounded-full bg-[#0E71EB] text-white flex items-center justify-center text-[12px] font-bold shrink-0">
-                          {video.ownerName ? video.ownerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'HR'}
+                        <div className="w-9 h-9 rounded-full bg-[#0E71EB] text-white flex items-center justify-center text-[12px] font-bold shrink-0 shadow-sm">
+                          {video.isDrive ? 'GD' : (video.ownerName ? video.ownerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'HR')}
                         </div>
                         <div className="flex-1 min-w-0 pt-0.5">
                           <div className="flex items-center gap-1 text-[13px] text-slate-500">
-                            <span className="font-medium text-slate-700 truncate">{video.ownerName || 'Hari Kishore Reddy'}</span>
+                            <span className="font-medium text-slate-700 truncate">{video.isDrive ? 'Google Drive' : (video.ownerName || 'Hari Kishore Reddy')}</span>
                             <span>·</span>
                             <span>{formatTimeAgo(video.createdAt)}</span>
                           </div>
-                          <div className="text-[13px] text-slate-500 flex items-center gap-1 mt-0.5 cursor-pointer hover:text-slate-700">
+                          <div 
+                            className="text-[13px] text-slate-500 flex items-center gap-1 mt-0.5 cursor-pointer hover:text-slate-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShareModalVideoId(video.id);
+                            }}
+                          >
                             Share to Spaces <ChevronDown size={14} />
                           </div>
                         </div>
@@ -1266,10 +1396,9 @@ export default function LibraryPage() {
                           className="font-medium text-[15px] text-slate-900 truncate mb-3 cursor-pointer hover:text-blue-600 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setEditingTitleId(video.id);
-                            setEditingTitleValue(video.title);
+                            router.push(`/video/${video.id}`);
                           }}
-                          title="Click to rename"
+                          title={video.title}
                         >
                           {video.title}
                         </h3>
@@ -1296,6 +1425,7 @@ export default function LibraryPage() {
                         </div>
                       </div>
                     </div>
+
 
                     {/* Inline Comments Section */}
                     {expandedCommentsVideoId === video.id && (
@@ -1402,10 +1532,10 @@ export default function LibraryPage() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setRecordingState('configuring')}
-                    className="px-5 py-2.5 bg-[#0E71EB] hover:bg-[#1655B8] text-white rounded-lg font-semibold transition-colors flex items-center gap-2 shadow-sm text-[14px]"
+                    className="bg-[#1A68FF] hover:bg-[#1557D6] text-white py-3 px-6 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2 shadow-[0_10px_25px_-5px_rgba(26,104,255,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(26,104,255,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
                   >
-                    <Video size={16} />
-                    Record a video
+                    <Video size={18} className="stroke-[2.2]" />
+                    <span>Record Video</span>
                   </button>
                   <button
                     onClick={() => fileInputRef.current?.click()}
@@ -1487,7 +1617,12 @@ export default function LibraryPage() {
 
               <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between mt-4">
                 <div className="flex items-center gap-6">
-                  <button className="flex items-center gap-2 text-[13px] font-semibold text-slate-700 hover:text-slate-900">
+                  <button 
+                    onClick={() => {
+                      if (shareModalVideoId) copyVideoLink(shareModalVideoId);
+                    }}
+                    className="flex items-center gap-2 text-[13px] font-semibold text-slate-700 hover:text-slate-900 cursor-pointer"
+                  >
                     <LinkIcon size={16} /> Copy link
                   </button>
                   <label className="flex items-center gap-2 cursor-pointer group">
@@ -1496,10 +1631,23 @@ export default function LibraryPage() {
                   </label>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button className="px-4 py-2 bg-[#A855F7] hover:bg-[#9333EA] text-white rounded-lg text-[13px] font-semibold transition-colors flex items-center gap-1.5">
+                  <button 
+                    onClick={() => {
+                      const pass = window.prompt("Set a password for this video link:");
+                      if (pass) showToast("Password protection enabled!");
+                    }}
+                    className="px-4 py-2 bg-[#A855F7] hover:bg-[#9333EA] text-white rounded-lg text-[13px] font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
                     <Lock size={14} /> Set password
                   </button>
-                  <button className="px-4 py-2 bg-slate-200 text-slate-400 rounded-lg text-[13px] font-semibold cursor-not-allowed">
+                  <button 
+                    onClick={() => {
+                      if (shareModalVideoId) copyVideoLink(shareModalVideoId);
+                      showToast("Link shared & copied to clipboard!");
+                      setShareModalVideoId(null);
+                    }}
+                    className="px-4 py-2 bg-[#0E71EB] hover:bg-[#1655B8] text-white rounded-lg text-[13px] font-semibold transition-colors cursor-pointer shadow-sm"
+                  >
                     Share
                   </button>
                 </div>

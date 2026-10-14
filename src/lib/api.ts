@@ -292,7 +292,7 @@ export const getVideos = async (page = 0, size = 10, search = '', courseId = '')
   return response.json();
 };
 
-export const updateVideo = async (id: string, updates: { title?: string, courseId?: string }) => {
+export const updateVideo = async (id: string, updates: { title?: string; courseId?: string; folderName?: string; editorData?: unknown }) => {
   const response = await fetchWithAuth(`/videos/${id}`, {
     method: 'PUT',
     body: JSON.stringify(updates),

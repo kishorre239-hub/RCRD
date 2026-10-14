@@ -380,6 +380,128 @@ export async function createDriveFolder(name: string, parentId?: string): Promis
 }
 
 /**
+ * Find or create a folder with a given name inside root Drive folder
+ */
+export async function getOrCreateNamedDriveFolder(folderName: string): Promise<string> {
+  const drive = getDriveClient();
+  const rootId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  if (!drive) return rootId || '';
+
+  try {
+    let q = `mimeType = 'application/vnd.google-apps.folder' and name = '${folderName.replace(/'/g, "\\'")}' and trashed = false`;
+    if (rootId) {
+      q += ` and '${rootId}' in parents`;
+    }
+
+    const listRes = await drive.files.list({
+      q,
+      fields: 'files(id, name)',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+      pageSize: 1,
+    });
+
+    if (listRes.data.files && listRes.data.files.length > 0 && listRes.data.files[0].id) {
+      return listRes.data.files[0].id;
+    }
+
+    const createdId = await createDriveFolder(folderName, rootId);
+    return createdId || rootId || '';
+  } catch (err) {
+    console.warn(`Could not get/create Drive folder "${folderName}":`, err);
+    return rootId || '';
+  }
+}
+
+/**
+ * Move a file in Google Drive to a destination folder (or root folder)
+ */
+export async function moveDriveFile(fileId: string, targetFolderId?: string, targetFolderName?: string): Promise<boolean> {
+  const drive = getDriveClient();
+  if (!drive || !fileId || fileId.startsWith('local:')) return false;
+
+  try {
+    const file = await drive.files.get({
+      fileId,
+      fields: 'id, parents',
+      supportsAllDrives: true,
+    });
+
+    const rootId = process.env.GOOGLE_DRIVE_FOLDER_ID || '';
+    
+    let destinationFolderId = targetFolderId;
+    if (!destinationFolderId || destinationFolderId === 'root' || destinationFolderId === 'workspace' || destinationFolderId === 'folder-all' || destinationFolderId === 'all') {
+      destinationFolderId = rootId;
+    } else if (destinationFolderId === 'screen-shares') {
+      destinationFolderId = await getOrCreateNamedDriveFolder('Screen Shares');
+    } else if (destinationFolderId === 'team-updates') {
+      destinationFolderId = await getOrCreateNamedDriveFolder('Team Updates');
+    } else if (destinationFolderId === 'MEETING') {
+      destinationFolderId = '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4';
+    } else if (targetFolderName && targetFolderName.trim()) {
+      destinationFolderId = await getOrCreateNamedDriveFolder(targetFolderName.trim());
+    } else if (destinationFolderId.startsWith('folder-')) {
+      const name = destinationFolderId.replace(/^folder-/, '');
+      destinationFolderId = await getOrCreateNamedDriveFolder(name);
+    } else {
+      // Verify if destinationFolderId is already a valid Drive folder
+      try {
+        const folderCheck = await drive.files.get({
+          fileId: destinationFolderId,
+          fields: 'id, mimeType',
+          supportsAllDrives: true,
+        });
+        if (folderCheck.data.mimeType !== 'application/vnd.google-apps.folder') {
+          destinationFolderId = rootId;
+        }
+      } catch {
+        destinationFolderId = await getOrCreateNamedDriveFolder(destinationFolderId);
+      }
+    }
+
+    if (!destinationFolderId) {
+      destinationFolderId = rootId;
+    }
+
+    const prevParentsList = file.data.parents || [];
+    
+    // If the file is already in this folder, nothing to move
+    if (prevParentsList.includes(destinationFolderId)) {
+      return true;
+    }
+
+    const parentsToRemove = prevParentsList.filter(p => p !== destinationFolderId).join(',');
+
+    const updateParams: drive_v3.Params$Resource$Files$Update = {
+      fileId,
+      fields: 'id, parents',
+      supportsAllDrives: true,
+    };
+
+    if (parentsToRemove) {
+      updateParams.removeParents = parentsToRemove;
+    }
+    if (destinationFolderId) {
+      updateParams.addParents = destinationFolderId;
+    }
+
+    await drive.files.update(updateParams);
+
+    // Invalidate driveCache
+    driveCache.timestamp = 0;
+    const cached = driveCache.videos.find(v => v.id === fileId || v.driveFileId === fileId);
+    if (cached) {
+      cached.courseId = destinationFolderId || targetFolderId || '';
+    }
+
+    return true;
+  } catch (error: unknown) {
+    console.error(`Failed to move Google Drive file ${fileId}:`, (error as Error)?.message);
+    return false;
+  }
+}
+
+/**
  * Get Google Drive storage quota
  */
 export async function getDriveStorageStatus(): Promise<{

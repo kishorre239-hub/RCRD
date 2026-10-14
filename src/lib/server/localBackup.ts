@@ -5,6 +5,7 @@ import { VideoComment } from './types';
 interface StoredVideoMeta {
   views?: number;
   title?: string;
+  courseId?: string;
   comments?: VideoComment[];
   editorData?: any;
   updatedAt?: number;

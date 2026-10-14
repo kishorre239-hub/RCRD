@@ -25,7 +25,7 @@ export async function GET(
         filter = { $or: [{ id }, { driveFileId: id }] };
       }
       video = await videosCol.findOne(filter);
-    } catch (e) {
+    } catch {
       // Continue to check Google Drive if DB is unavailable
     }
 
@@ -152,9 +152,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const authResult = await authenticateRequest(req);
-    const user = authResult.authenticated ? authResult.user : null;
-    const userId = user?.id || user?._id?.toString() || 'dev-admin-id';
+    await authenticateRequest(req);
 
     const videosCol = await getCollection<Video>('videos');
     let filter: any = {};

@@ -45,7 +45,6 @@ export default function LibraryPage() {
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [syncError, setSyncError] = useState(false);
 
   // --- Recording Modal State ---
   const [recordingState, setRecordingState] = useState<'idle' | 'configuring' | 'countdown' | 'recording' | 'uploading'>('idle');
@@ -86,7 +85,6 @@ export default function LibraryPage() {
   const [showSortFilter, setShowSortFilter] = useState(false);
   
   const [showNewVideoMenu, setShowNewVideoMenu] = useState(false);
-  const [isDriveConnected, setIsDriveConnected] = useState(true);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Inline editing state
@@ -125,9 +123,6 @@ export default function LibraryPage() {
   const loadData = useCallback(async () => {
     try {
       const syncResult = await syncVideos().catch(() => null);
-      if (syncResult && syncResult.driveConnected) {
-        setIsDriveConnected(true);
-      }
       
       const [coursesData, videosData] = await Promise.all([
         getCourses().catch(() => []),
@@ -157,10 +152,8 @@ export default function LibraryPage() {
 
       setCourses(combinedCourses);
       setVideos(vids);
-      setSyncError(false);
     } catch (err) {
       console.error('Error loading library data:', err);
-      setSyncError(false);
     } finally {
       setIsLoading(false);
     }
@@ -168,7 +161,6 @@ export default function LibraryPage() {
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
-    setSyncError(false);
     await loadData();
   }, [loadData]);
 
@@ -504,8 +496,8 @@ export default function LibraryPage() {
     }
 
     // 3. Upload date filter (Image 2)
-    if (dateFilter !== 'all') {
-      const currentTime = now || Date.now();
+    if (dateFilter !== 'all' && now) {
+      const currentTime = now;
       const videoTime = video.createdAt || 0;
       const ageMs = currentTime - videoTime;
       const oneDay = 24 * 60 * 60 * 1000;

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
-import { authenticateRequest } from '@/lib/server/auth';
 import { getDriveFileStream } from '@/lib/server/drive';
 import { Video } from '@/lib/server/types';
 import { ObjectId } from 'mongodb';

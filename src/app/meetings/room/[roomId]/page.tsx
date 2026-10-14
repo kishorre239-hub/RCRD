@@ -8,7 +8,7 @@ import {
   Loader2, X, Check, Upload, StopCircle, Pause, Play,
   AlertCircle, ChevronRight, ChevronDown, Info, Camera, Lock, Clock,
   Pen, Eraser, Edit3, Shield, Users, MessageSquare, Copy, Send,
-  Sparkles, Smile, VolumeX, Hand, Volume2
+  Smile, VolumeX, Hand
 } from "lucide-react";
 import { getCourses, uploadVideo } from "@/lib/api";
 
@@ -204,7 +204,7 @@ export default function ClassRoomPage() {
     setTimeout(() => setToast(null), 4000);
   }, []);
 
-  const triggerReaction = (emoji: string) => {
+  const triggerReaction = useCallback((emoji: string) => {
     const id = Date.now().toString() + Math.random();
     const left = Math.floor(Math.random() * 50) + 25; // 25% - 75%
     setFloatingReactions(prev => [...prev, { id, emoji, left }]);
@@ -212,7 +212,7 @@ export default function ClassRoomPage() {
       setFloatingReactions(prev => prev.filter(r => r.id !== id));
     }, 2400);
     setShowReactionsPopup(false);
-  };
+  }, []);
 
   const toggleHandRaise = () => {
     if (!isMentor && !securitySettings.allowRaiseHand) {
@@ -285,11 +285,12 @@ export default function ClassRoomPage() {
           status: "live",
         };
       }
-      setMeeting(m);
-      if (m.courseId) setUploadCourse(m.courseId);
-
-      const allNotes = JSON.parse(localStorage.getItem(NOTES_KEY) || "{}");
-      setNotes(allNotes[roomId] || []);
+      setTimeout(() => {
+        setMeeting(m);
+        if (m.courseId) setUploadCourse(m.courseId);
+        const allNotes = JSON.parse(localStorage.getItem(NOTES_KEY) || "{}");
+        setNotes(allNotes[roomId] || []);
+      }, 0);
     } catch {}
     getCourses().then(setCourses).catch(() => {});
   }, [roomId]);
@@ -360,10 +361,8 @@ export default function ClassRoomPage() {
         canvas.width = 1280;
         canvas.height = 720;
         const ctx = canvas.getContext("2d");
-        let f = 0;
         const renderScreen = () => {
           if (!ctx) return;
-          f++;
           ctx.fillStyle = "#0f172a";
           ctx.fillRect(0, 0, 1280, 720);
           ctx.fillStyle = "#1e293b";

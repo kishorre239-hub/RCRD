@@ -5,7 +5,7 @@ import {
   Check, Sparkles, RefreshCw, AlertCircle, 
   HardDrive, Info, ShieldCheck 
 } from "lucide-react";
-import { SAAS_PLANS, PlanDefinition } from "@/lib/plans";
+import { PlanDefinition } from "@/lib/plans";
 import { 
   getBillingSubscription, 
   createBillingOrder, 
@@ -55,7 +55,10 @@ export default function BillingTab() {
   };
 
   useEffect(() => {
-    fetchBilling();
+    const timer = setTimeout(() => {
+      fetchBilling();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const loadRazorpayScript = (): Promise<boolean> => {

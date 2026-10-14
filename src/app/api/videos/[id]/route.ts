@@ -3,7 +3,7 @@ import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { deleteDriveFile, getFileMetadata, cleanVideoTitle, renameDriveFile } from '@/lib/server/drive';
 import { Video, VideoComment } from '@/lib/server/types';
-import { ObjectId } from 'mongodb';
+import { ObjectId, Filter } from 'mongodb';
 import { getBackupComments, getBackupVideoMeta, saveBackupVideoMeta } from '@/lib/server/localBackup';
 
 export async function GET(
@@ -22,7 +22,7 @@ export async function GET(
     let video: Video | null = null;
     try {
       const videosCol = await getCollection<Video>('videos');
-      let filter: any = {};
+      let filter: Filter<Video> = {};
       try {
         filter = { $or: [{ _id: new ObjectId(id) }, { id }, { driveFileId: id }] };
       } catch {
@@ -102,7 +102,7 @@ export async function GET(
     }
 
     return NextResponse.json({ error: 'Video not found' }, { status: 404 });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching video details:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -120,7 +120,7 @@ export async function PUT(
     const body = await req.json();
 
     const videosCol = await getCollection<Video>('videos');
-    let filter: any = {};
+    let filter: Filter<Video> = {};
     try {
       filter = { $or: [{ _id: new ObjectId(id) }, { id }, { driveFileId: id }] };
     } catch {
@@ -129,7 +129,7 @@ export async function PUT(
 
     let video = await videosCol.findOne(filter);
 
-    const updateFields: any = { updatedAt: Date.now() };
+    const updateFields: Record<string, unknown> = { updatedAt: Date.now() };
     const newTitle = typeof body.title === 'string' ? body.title.trim() : undefined;
     if (newTitle !== undefined) {
       updateFields.title = newTitle;
@@ -188,7 +188,7 @@ export async function PUT(
       title: updateFields.title || video?.title || newTitle,
       editorData: updateFields.editorData !== undefined ? updateFields.editorData : (video?.editorData || null),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating video:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -205,7 +205,7 @@ export async function DELETE(
     await authenticateRequest(req);
 
     const videosCol = await getCollection<Video>('videos');
-    let filter: any = {};
+    let filter: Filter<Video> = {};
     try {
       filter = { $or: [{ _id: new ObjectId(id) }, { id }, { driveFileId: id }] };
     } catch {
@@ -218,14 +218,14 @@ export async function DELETE(
     if (driveFileId && !driveFileId.startsWith('local:')) {
       try {
         await deleteDriveFile(driveFileId);
-      } catch (e: any) {
-        console.warn('Drive file deletion note:', e?.message);
+      } catch (e: unknown) {
+        console.warn('Drive file deletion note:', (e as Error)?.message);
       }
     }
 
     await videosCol.deleteOne(filter);
     return NextResponse.json({ success: true, message: 'Video deleted successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting video:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

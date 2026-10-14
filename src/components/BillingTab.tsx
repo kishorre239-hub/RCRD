@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Info, ExternalLink, Check, Sparkles } from "lucide-react";
+import { Info, ExternalLink, Check } from "lucide-react";
 import { 
   getBillingSubscription, 
   createBillingOrder, 
@@ -19,21 +19,22 @@ export default function BillingTab({
 }: BillingTabProps) {
   const [people, setPeople] = useState<number>(1);
   const [billingCycle, setBillingCycle] = useState<'ANNUAL' | 'MONTHLY'>(initialBillingCycle);
-  const [currentPlanId, setCurrentPlanId] = useState<string>('starter');
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [currentPlanId, setCurrentPlanId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedPlan = localStorage.getItem('workspace_plan');
+        if (savedPlan) return savedPlan;
+      } catch {}
+    }
+    if (initialOffering.toLowerCase().includes('enterprise')) return 'enterprise';
+    if (initialOffering.toLowerCase().includes('business')) return 'business';
+    return 'starter';
+  });
   const [upgradingId, setUpgradingId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
 
   useEffect(() => {
-    // Check saved plan in localStorage or backend
-    try {
-      const savedPlan = localStorage.getItem('workspace_plan');
-      if (savedPlan) {
-        setCurrentPlanId(savedPlan);
-      }
-    } catch {}
-
     const loadSub = async () => {
       try {
         const subData = await getBillingSubscription();

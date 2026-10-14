@@ -427,7 +427,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                   onTimeUpdate={(time) => setCurrentVideoTime(time)} 
                   downloadEnabled={downloadEnabled}
                   externalPlaybackRate={recommendPlaybackSpeed === 'None' ? 1 : parseFloat(recommendPlaybackSpeed)}
-                  videoId={video?.id}
+                  videoId={video?.id || id}
                   initialEditorData={video?.editorData}
                 />
               ) : (
@@ -1327,13 +1327,20 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
           try {
             const local = localStorage.getItem(`video-edits-${id}`);
             if (local) {
-              setVideo(prev => prev ? { ...prev, editorData: JSON.parse(local) } : prev);
+              const parsed = JSON.parse(local);
+              setVideo(prev => prev ? { ...prev, editorData: parsed } : prev);
             }
           } catch {}
         }} 
+        onSave={(savedData) => {
+          setVideo(prev => prev ? { ...prev, editorData: savedData } : prev);
+          setToastMessage('Video changes saved successfully!');
+          setTimeout(() => setToastMessage(''), 3000);
+        }}
         videoUrl={streamUrl || ''} 
         videoTitle={video?.title || 'Video'}
         videoId={id}
+        initialEditorData={video?.editorData}
       />
 
       {toastMessage && (

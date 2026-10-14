@@ -6,6 +6,7 @@ interface StoredVideoMeta {
   views?: number;
   title?: string;
   comments?: VideoComment[];
+  editorData?: any;
   updatedAt?: number;
 }
 

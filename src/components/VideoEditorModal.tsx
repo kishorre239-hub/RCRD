@@ -1,28 +1,95 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Scissors, Play, Pause, ChevronLeft, Volume2, VolumeX, MousePointer2, Type, Image as ImageIcon, Music, Download, Check, Trash2, RotateCcw, Edit2, RotateCw } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { 
+  Scissors, Play, Pause, ChevronLeft, Volume2, VolumeX, MousePointer2, 
+  Type, Image as ImageIcon, Music, Download, Check, Trash2, RotateCcw, 
+  RotateCw, Plus, Clock, Sparkles, CheckCircle2, Sliders, Eye
+} from 'lucide-react';
 
 interface VideoEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSave?: (data: VideoEditorData) => void;
   videoUrl: string;
   videoTitle: string;
   videoId: string;
+  initialEditorData?: unknown;
 }
 
 // Data Types
-type CutRegion = { id: string; start: number; end: number; };
-type TextOverlay = { id: string; text: string; x: number; y: number; color: string; size: number; start: number; end: number; rotation?: number };
-type MediaOverlay = { id: string; url: string; x: number; y: number; scale: number; start: number; end: number; rotation?: number };
+export type CutRegion = { id: string; start: number; end: number };
+export type TextStylePreset = 'subtitle' | 'lowerThird' | 'badge' | 'minimal';
+export type TextOverlay = { 
+  id: string; 
+  text: string; 
+  x: number; 
+  y: number; 
+  color: string; 
+  size: number; 
+  start: number; 
+  end: number; 
+  rotation?: number;
+  stylePreset?: TextStylePreset;
+};
+export type MediaOverlay = { 
+  id: string; 
+  url: string; 
+  x: number; 
+  y: number; 
+  scale: number; 
+  start: number; 
+  end: number; 
+  rotation?: number;
+  opacity?: number;
+  rounded?: boolean;
+};
+export type AudioSettings = {
+  enabled: boolean;
+  url: string;
+  volume: number;
+  muteOriginalAudio?: boolean;
+  title?: string;
+};
+export type VideoEditorData = {
+  textOverlays: TextOverlay[];
+  mediaOverlays: MediaOverlay[];
+  completedCuts: CutRegion[];
+  audio: AudioSettings;
+  duration: number;
+  savedAt?: string;
+};
 
-export default function VideoEditorModal({ isOpen, onClose, videoUrl, videoTitle, videoId }: VideoEditorModalProps) {
+const PRESET_AUDIO_TRACKS = [
+  { id: 'lofi', title: '🎧 Chill Lofi Beat', url: 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3' },
+  { id: 'corporate', title: '💼 Modern Tech Upbeat', url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=corporate-ambient-109060.mp3' },
+  { id: 'acoustic', title: '🌿 Calm Acoustic Guitar', url: 'https://cdn.pixabay.com/download/audio/2021/08/04/audio_bb630cc098.mp3?filename=acoustic-guitars-ambient-uplifting-112192.mp3' },
+];
+
+const PRESET_WATERMARK_IMAGES = [
+  { id: 'watermark', label: '💎 RCRD Watermark', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=160&h=160&fit=crop&q=80' },
+  { id: 'badge', label: '🔴 LIVE Badge', url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=160&h=160&fit=crop&q=80' },
+];
+
+export default function VideoEditorModal({ 
+  isOpen, 
+  onClose, 
+  onSave,
+  videoUrl, 
+  videoTitle, 
+  videoId, 
+  initialEditorData 
+}: VideoEditorModalProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+
+  // Active Tool Tab: 'select' | 'cut' | 'text' | 'media' | 'audio'
+  const [activeTab, setActiveTab] = useState<'select' | 'cut' | 'text' | 'media' | 'audio'>('select');
   
   const [waveformHeights] = useState<number[]>(() => 
-    Array.from({ length: 150 }).map((_, i) => Math.max(10, ((i * 37) % 70) + 15))
+    Array.from({ length: 140 }).map((_, i) => Math.max(12, ((i * 37) % 65) + 15))
   );
   
   // CUT FEATURE STATE
@@ -37,27 +104,112 @@ export default function VideoEditorModal({ isOpen, onClose, videoUrl, videoTitle
   const [mediaOverlays, setMediaOverlays] = useState<MediaOverlay[]>([]);
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   
+  // AUDIO STATE
   const [hasAudioTrack, setHasAudioTrack] = useState(false);
   const [audioVolume, setAudioVolume] = useState(50);
-  const [audioUrl, setAudioUrl] = useState(''); 
+  const [audioUrl, setAudioUrl] = useState(PRESET_AUDIO_TRACKS[0].url);
+  const [audioTrackTitle, setAudioTrackTitle] = useState(PRESET_AUDIO_TRACKS[0].title);
+  const [muteOriginalAudio, setMuteOriginalAudio] = useState(false);
+  const [isAudioPreviewPlaying, setIsAudioPreviewPlaying] = useState(false);
 
+  // DRAGGING / RESIZING
   const [draggingOverlay, setDraggingOverlay] = useState<{ id: string, type: 'text' | 'media' } | null>(null);
   const [resizingOverlay, setResizingOverlay] = useState<{ id: string, type: 'text' | 'media', startY: number, initialSize: number } | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const previewAudioRef = useRef<HTMLAudioElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  // Restore saved data on open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let loaded = false;
+    // 1. Try initialEditorData
+    if (initialEditorData) {
+      try {
+        const parsed = typeof initialEditorData === 'string' ? JSON.parse(initialEditorData) : initialEditorData;
+        if (parsed) {
+          if (Array.isArray(parsed.textOverlays)) setTextOverlays(parsed.textOverlays);
+          if (Array.isArray(parsed.mediaOverlays)) setMediaOverlays(parsed.mediaOverlays);
+          if (Array.isArray(parsed.completedCuts)) setCompletedCuts(parsed.completedCuts);
+          if (parsed.audio) {
+            setHasAudioTrack(!!parsed.audio.enabled);
+            if (parsed.audio.url) setAudioUrl(parsed.audio.url);
+            if (parsed.audio.volume !== undefined) setAudioVolume(parsed.audio.volume);
+            if (parsed.audio.title) setAudioTrackTitle(parsed.audio.title);
+            if (parsed.audio.muteOriginalAudio !== undefined) setMuteOriginalAudio(parsed.audio.muteOriginalAudio);
+          }
+          loaded = true;
+        }
+      } catch (e) {
+        console.warn('Could not parse initialEditorData', e);
+      }
+    }
+
+    // 2. Try localStorage if not yet loaded
+    if (!loaded && videoId) {
+      try {
+        const local = localStorage.getItem(`video-edits-${videoId}`);
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed.textOverlays)) setTextOverlays(parsed.textOverlays);
+          if (Array.isArray(parsed.mediaOverlays)) setMediaOverlays(parsed.mediaOverlays);
+          if (Array.isArray(parsed.completedCuts)) setCompletedCuts(parsed.completedCuts);
+          if (parsed.audio) {
+            setHasAudioTrack(!!parsed.audio.enabled);
+            if (parsed.audio.url) setAudioUrl(parsed.audio.url);
+            if (parsed.audio.volume !== undefined) setAudioVolume(parsed.audio.volume);
+            if (parsed.audio.title) setAudioTrackTitle(parsed.audio.title);
+            if (parsed.audio.muteOriginalAudio !== undefined) setMuteOriginalAudio(parsed.audio.muteOriginalAudio);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not load localStorage edits', e);
+      }
+    }
+  }, [isOpen, videoId, initialEditorData]);
+
+  // Lock body scroll
   useEffect(() => {
     if (isOpen) document.body.style.overflow = 'hidden';
     else document.body.style.overflow = 'unset';
     return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
 
+  // Sync background audio volume
   useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = audioVolume / 100;
-  }, [audioVolume, hasAudioTrack]);
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : audioVolume / 100;
+    }
+    if (previewAudioRef.current) {
+      previewAudioRef.current.volume = audioVolume / 100;
+    }
+  }, [audioVolume, isMuted]);
+
+  // Sync mute original audio on video element
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted || muteOriginalAudio;
+    }
+  }, [isMuted, muteOriginalAudio]);
+
+  // Spacebar shortcut to play/pause
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea') return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handlePlayPause();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isPlaying]);
 
   // Cut Drag Handler
   useEffect(() => {
@@ -68,9 +220,9 @@ export default function VideoEditorModal({ isOpen, onClose, videoUrl, videoTitle
       const timeAtCursor = pos * duration;
       
       if (dragHandle === 'start') {
-        setActiveCut(prev => prev ? { ...prev, start: Math.min(timeAtCursor, prev.end - 0.5) } : null);
+        setActiveCut(prev => prev ? { ...prev, start: Math.min(timeAtCursor, prev.end - 0.2) } : null);
       } else {
-        setActiveCut(prev => prev ? { ...prev, end: Math.max(timeAtCursor, prev.start + 0.5) } : null);
+        setActiveCut(prev => prev ? { ...prev, end: Math.max(timeAtCursor, prev.start + 0.2) } : null);
       }
     };
     
@@ -89,36 +241,71 @@ export default function VideoEditorModal({ isOpen, onClose, videoUrl, videoTitle
   if (!isOpen) return null;
 
   const handleLoadedMetadata = () => {
-    if (videoRef.current) setDuration(videoRef.current.duration);
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration || 0);
+    }
   };
 
   const handlePlayPause = () => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause();
-        if (audioRef.current) audioRef.current.pause();
-      } else {
-        videoRef.current.play();
-        if (audioRef.current && hasAudioTrack && audioUrl) {
-          audioRef.current.currentTime = videoRef.current.currentTime % (audioRef.current.duration || 1);
-          audioRef.current.play().catch(e => console.log('Audio blocked:', e));
-        }
+    if (!videoRef.current) return;
+    if (isPlaying) {
+      videoRef.current.pause();
+      if (audioRef.current) audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      videoRef.current.play().catch(() => {});
+      if (audioRef.current && hasAudioTrack && audioUrl) {
+        audioRef.current.currentTime = videoRef.current.currentTime % (audioRef.current.duration || 1);
+        audioRef.current.play().catch(() => {});
       }
-      setIsPlaying(!isPlaying);
+      setIsPlaying(true);
+    }
+  };
+
+  const handleRewind = () => {
+    if (!videoRef.current) return;
+    const nextTime = Math.max(0, videoRef.current.currentTime - 5);
+    videoRef.current.currentTime = nextTime;
+    setCurrentTime(nextTime);
+    if (audioRef.current && hasAudioTrack) {
+      audioRef.current.currentTime = nextTime % (audioRef.current.duration || 1);
+    }
+  };
+
+  const handleForward = () => {
+    if (!videoRef.current) return;
+    const nextTime = Math.min(duration || 100, videoRef.current.currentTime + 5);
+    videoRef.current.currentTime = nextTime;
+    setCurrentTime(nextTime);
+    if (audioRef.current && hasAudioTrack) {
+      audioRef.current.currentTime = nextTime % (audioRef.current.duration || 1);
+    }
+  };
+
+  const handleToggleMute = () => {
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+    if (videoRef.current) {
+      videoRef.current.muted = nextMuted || muteOriginalAudio;
+    }
+    if (audioRef.current) {
+      audioRef.current.volume = nextMuted ? 0 : audioVolume / 100;
     }
   };
 
   const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      const ct = videoRef.current.currentTime;
-      setCurrentTime(ct);
-      
-      for (const cut of completedCuts) {
-        if (ct >= cut.start && ct < cut.end) {
-          videoRef.current.currentTime = cut.end;
-          if (audioRef.current) audioRef.current.currentTime = cut.end % (audioRef.current.duration || 1);
-          break;
+    if (!videoRef.current) return;
+    const ct = videoRef.current.currentTime;
+    setCurrentTime(ct);
+    
+    // Auto-skip over completed cuts
+    for (const cut of completedCuts) {
+      if (ct >= cut.start && ct < cut.end) {
+        videoRef.current.currentTime = cut.end;
+        if (audioRef.current && audioRef.current.duration) {
+          audioRef.current.currentTime = cut.end % audioRef.current.duration;
         }
+        break;
       }
     }
   };
@@ -130,21 +317,38 @@ export default function VideoEditorModal({ isOpen, onClose, videoUrl, videoTitle
     const clickTime = pos * duration;
     
     videoRef.current.currentTime = clickTime;
-    if (audioRef.current) audioRef.current.currentTime = clickTime % (audioRef.current.duration || 1);
+    if (audioRef.current && audioRef.current.duration) {
+      audioRef.current.currentTime = clickTime % audioRef.current.duration;
+    }
     setCurrentTime(clickTime);
   };
 
+  // CUT ACTIONS
   const initiateNewCut = () => {
+    setActiveTab('cut');
     if (duration === 0) return;
     const start = videoRef.current?.currentTime || 0;
-    const end = Math.min(start + 5, duration);
+    const end = Math.min(start + 4, duration);
     setActiveCut({ start, end });
-    setSelectedTextId(null);
-    setSelectedMediaId(null);
+  };
+
+  const cutFromStartToNow = () => {
+    const end = videoRef.current?.currentTime || currentTime;
+    if (end > 0.2) {
+      setCompletedCuts(prev => [...prev, { id: Math.random().toString(), start: 0, end }]);
+      if (videoRef.current) videoRef.current.currentTime = end;
+    }
+  };
+
+  const cutFromNowToEnd = () => {
+    const start = videoRef.current?.currentTime || currentTime;
+    if (duration > start + 0.2) {
+      setCompletedCuts(prev => [...prev, { id: Math.random().toString(), start, end: duration }]);
+    }
   };
 
   const confirmCut = () => {
-    if (activeCut) {
+    if (activeCut && activeCut.end > activeCut.start + 0.1) {
       setCompletedCuts([...completedCuts, { id: Math.random().toString(), start: activeCut.start, end: activeCut.end }]);
       setActiveCut(null);
     }
@@ -152,41 +356,44 @@ export default function VideoEditorModal({ isOpen, onClose, videoUrl, videoTitle
 
   const cancelCut = () => setActiveCut(null);
 
+  // TEXT ACTIONS
   const handleAddText = () => {
-    const start = videoRef.current?.currentTime || 0;
+    setActiveTab('text');
+    const start = videoRef.current?.currentTime || currentTime || 0;
     const newText: TextOverlay = { 
-      id: Math.random().toString(), text: 'Double click to edit', x: 50, y: 50, color: '#ffffff', size: 36,
-      start: start, end: Math.min(start + 5, duration || 5) // Defaults to showing for 5 seconds
+      id: Math.random().toString(), 
+      text: 'Sample Caption', 
+      x: 50, 
+      y: 84, // Default to lower-third / subtitle position, NOT over face!
+      color: '#ffffff', 
+      size: 28,
+      start: start, 
+      end: Math.min(start + 5, duration || 5),
+      stylePreset: 'subtitle' // High readability glass box by default
     };
     setTextOverlays([...textOverlays, newText]);
     setSelectedTextId(newText.id);
     setSelectedMediaId(null);
-    setActiveCut(null);
   };
 
-  const handleAddMedia = () => {
-    const start = videoRef.current?.currentTime || 0;
+  // MEDIA ACTIONS
+  const handleAddMedia = (customUrl?: string) => {
+    setActiveTab('media');
+    const start = videoRef.current?.currentTime || currentTime || 0;
     const newMedia: MediaOverlay = { 
-      id: Math.random().toString(), url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=150&h=150&fit=crop', x: 20, y: 20, scale: 100,
-      start: start, end: Math.min(start + 5, duration || 5) // Defaults to showing for 5 seconds
+      id: Math.random().toString(), 
+      url: customUrl || PRESET_WATERMARK_IMAGES[0].url, 
+      x: 88, 
+      y: 12, // Default to top-right watermark position!
+      scale: 65,
+      start: start, 
+      end: Math.min(start + 10, duration || 10),
+      opacity: 85,
+      rounded: true
     };
     setMediaOverlays([...mediaOverlays, newMedia]);
     setSelectedMediaId(newMedia.id);
     setSelectedTextId(null);
-    setActiveCut(null);
-  };
-
-  const handleAddAudio = () => {
-    setHasAudioTrack(true);
-    if (!audioUrl) setAudioUrl('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
-    setSelectedTextId(null);
-    setSelectedMediaId(null);
-    setActiveCut(null);
-  };
-
-  const handleCanvasClick = () => {
-    setSelectedTextId(null);
-    setSelectedMediaId(null);
   };
 
   const handlePointerDown = (e: React.PointerEvent, id: string, type: 'text' | 'media') => {
@@ -194,13 +401,13 @@ export default function VideoEditorModal({ isOpen, onClose, videoUrl, videoTitle
     if (type === 'text') {
       setSelectedTextId(id);
       setSelectedMediaId(null);
+      setActiveTab('text');
     } else {
       setSelectedMediaId(id);
       setSelectedTextId(null);
+      setActiveTab('media');
     }
     setDraggingOverlay({ id, type });
-    
-    // Explicitly set pointer capture so dragging works even if cursor moves fast
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
 
@@ -208,25 +415,24 @@ export default function VideoEditorModal({ isOpen, onClose, videoUrl, videoTitle
     if (resizingOverlay) {
       const delta = (e.clientY - resizingOverlay.startY) * 1.5;
       if (resizingOverlay.type === 'text') {
-        const newSize = Math.max(12, Math.min(200, resizingOverlay.initialSize + delta));
-        setTextOverlays(prev => prev.map(t => t.id === resizingOverlay.id ? { ...t, size: newSize } : t));
+        const newSize = Math.max(14, Math.min(120, resizingOverlay.initialSize + delta));
+        setTextOverlays(prev => prev.map(t => t.id === resizingOverlay.id ? { ...t, size: Math.round(newSize) } : t));
       } else {
-        const newScale = Math.max(10, Math.min(500, resizingOverlay.initialSize + delta));
-        setMediaOverlays(prev => prev.map(m => m.id === resizingOverlay.id ? { ...m, scale: newScale } : m));
+        const newScale = Math.max(20, Math.min(300, resizingOverlay.initialSize + delta));
+        setMediaOverlays(prev => prev.map(m => m.id === resizingOverlay.id ? { ...m, scale: Math.round(newScale) } : m));
       }
       return;
     }
 
     if (!draggingOverlay || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
-    
-    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    const x = Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(5, Math.min(95, ((e.clientY - rect.top) / rect.height) * 100));
 
     if (draggingOverlay.type === 'text') {
-      setTextOverlays(prev => prev.map(t => t.id === draggingOverlay.id ? { ...t, x, y } : t));
+      setTextOverlays(prev => prev.map(t => t.id === draggingOverlay.id ? { ...t, x: Math.round(x), y: Math.round(y) } : t));
     } else {
-      setMediaOverlays(prev => prev.map(m => m.id === draggingOverlay.id ? { ...m, x, y } : m));
+      setMediaOverlays(prev => prev.map(m => m.id === draggingOverlay.id ? { ...m, x: Math.round(x), y: Math.round(y) } : m));
     }
   };
 
@@ -245,19 +451,89 @@ export default function VideoEditorModal({ isOpen, onClose, videoUrl, videoTitle
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms}`;
   };
 
-  const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>, mediaId: string) => {
+  const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const newUrl = URL.createObjectURL(file);
-      setMediaOverlays(mediaOverlays.map(m => m.id === mediaId ? { ...m, url: newUrl } : m));
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        const dataUrl = uploadEvent.target?.result as string;
+        if (selectedMediaId) {
+          setMediaOverlays(prev => prev.map(m => m.id === selectedMediaId ? { ...m, url: dataUrl } : m));
+        } else {
+          handleAddMedia(dataUrl);
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAudioUrl(URL.createObjectURL(file));
+      const newUrl = URL.createObjectURL(file);
+      setAudioUrl(newUrl);
+      setAudioTrackTitle(file.name || 'Custom Audio Track');
+      setHasAudioTrack(true);
     }
+  };
+
+  // SAVE CHANGES
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    const editorData: VideoEditorData = {
+      textOverlays,
+      mediaOverlays,
+      completedCuts,
+      audio: {
+        enabled: hasAudioTrack,
+        url: audioUrl,
+        volume: audioVolume,
+        muteOriginalAudio,
+        title: audioTrackTitle,
+      },
+      duration: duration === Infinity ? 0 : duration,
+      savedAt: new Date().toISOString()
+    };
+
+    // 1. Save locally
+    try {
+      localStorage.setItem(`video-edits-${videoId}`, JSON.stringify(editorData));
+    } catch (e) {
+      console.warn('LocalStorage save failed:', e);
+    }
+
+    // 2. Dispatch real-time window event so VideoPlayer updates immediately
+    window.dispatchEvent(new CustomEvent('video-editor-updated', { 
+      detail: { videoId, editorData } 
+    }));
+
+    // 3. Persist to API
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      await fetch(`${API_URL}/videos/${videoId}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ 
+          title: videoTitle,
+          editorData: JSON.stringify(editorData)
+        })
+      });
+    } catch (err) {
+      console.warn('API save warning:', err);
+    }
+
+    setIsSaving(false);
+    setSaveSuccess(true);
+    onSave?.(editorData);
+
+    setTimeout(() => {
+      setSaveSuccess(false);
+      onClose();
+    }, 1000);
   };
 
   const activeText = textOverlays.find(t => t.id === selectedTextId);
@@ -269,50 +545,41 @@ export default function VideoEditorModal({ isOpen, onClose, videoUrl, videoTitle
       {/* HEADER */}
       <div className="h-16 border-b border-blue-100 bg-white flex items-center justify-between px-6 shadow-sm z-10">
         <div className="flex items-center gap-4">
-          <button onClick={onClose} className="p-2 hover:bg-blue-50 rounded-full transition-colors text-slate-500 hover:text-blue-600">
+          <button 
+            onClick={onClose} 
+            className="p-2 hover:bg-blue-50 rounded-full transition-colors text-slate-500 hover:text-blue-600"
+            title="Exit Editor"
+          >
             <ChevronLeft className="w-6 h-6" />
           </button>
           <div className="font-bold text-slate-800 text-lg flex items-center gap-2">
-            {videoTitle} <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2 py-1 rounded-md border border-blue-200">Editor Mode</span>
+            <span>{videoTitle}</span> 
+            <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-2.5 py-1 rounded-md border border-blue-200">
+              Video Studio
+            </span>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={async () => {
-              setIsSaving(true);
-              const editorData = {
-                textOverlays,
-                mediaOverlays,
-                completedCuts,
-                duration: duration === Infinity ? 0 : duration,
-                savedAt: new Date().toISOString()
-              };
-              // Always save to localStorage for live overlay rendering
-              localStorage.setItem(`video-edits-${videoId}`, JSON.stringify(editorData));
-              // Also attempt to persist title to backend
-              try {
-                const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
-                const token = localStorage.getItem('token');
-                if (token && videoId) {
-                  await fetch(`${API_URL}/videos/${videoId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ 
-                      title: videoTitle,
-                      editorData: JSON.stringify(editorData)
-                    })
-                  });
-                }
-              } catch (e) {
-                console.warn('Backend sync failed, changes saved locally', e);
-              }
-              setTimeout(() => { setIsSaving(false); onClose(); }, 1200); 
-            }}
-            className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-6 py-2.5 rounded-lg text-sm flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all active:scale-95"
-          >
-            {isSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Download className="w-4 h-4" />}
-            {isSaving ? "Saving..." : "Save Changes"} 
-          </button>
+
+        <div className="flex items-center gap-3">
+          {saveSuccess ? (
+            <div className="bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 shadow-md animate-in zoom-in-95">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Saved!</span>
+            </div>
+          ) : (
+            <button 
+              onClick={handleSaveChanges}
+              disabled={isSaving}
+              className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-6 py-2.5 rounded-lg text-sm flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-75 cursor-pointer"
+            >
+              {isSaving ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span>{isSaving ? "Saving Changes..." : "Save Changes"}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -320,111 +587,204 @@ export default function VideoEditorModal({ isOpen, onClose, videoUrl, videoTitle
       <div className="flex-1 flex overflow-hidden">
         
         {/* Left Sidebar (Tools) */}
-        <div className="w-20 border-r border-blue-100 bg-white flex flex-col items-center py-6 gap-6 shadow-sm z-0">
+        <div className="w-20 border-r border-blue-100 bg-white flex flex-col items-center py-6 gap-4 shadow-sm z-10 select-none">
           <button 
-            onClick={() => { setSelectedTextId(null); setSelectedMediaId(null); setActiveCut(null); }}
-            className="flex flex-col items-center gap-1.5 p-3 rounded-xl w-14 transition-colors text-blue-600 bg-blue-50 border border-blue-100 shadow-sm"
+            onClick={() => { setActiveTab('select'); setSelectedTextId(null); setSelectedMediaId(null); }}
+            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all ${
+              activeTab === 'select'
+                ? 'text-blue-600 bg-blue-50 border-2 border-blue-200 shadow-sm font-bold' 
+                : 'text-slate-500 hover:text-blue-600 hover:bg-slate-50'
+            }`}
           >
-            <MousePointer2 className="w-5 h-5" /><span className="text-[10px] font-bold">Select</span>
+            <MousePointer2 className="w-5 h-5" />
+            <span className="text-[10px]">Overview</span>
           </button>
           
           <button 
-            onClick={initiateNewCut}
-            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl w-14 transition-colors ${activeCut ? 'text-red-600 bg-red-50 border border-red-100' : 'text-slate-500 hover:text-red-500 hover:bg-red-50'}`}
+            onClick={() => { setActiveTab('cut'); initiateNewCut(); }}
+            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all ${
+              activeTab === 'cut' 
+                ? 'text-red-600 bg-red-50 border-2 border-red-200 shadow-sm font-bold' 
+                : 'text-slate-500 hover:text-red-500 hover:bg-red-50'
+            }`}
           >
-            <Scissors className="w-5 h-5" /><span className="text-[10px] font-bold">Cut</span>
+            <Scissors className="w-5 h-5" />
+            <span className="text-[10px]">Cut</span>
+            {completedCuts.length > 0 && (
+              <span className="text-[9px] bg-red-500 text-white px-1.5 rounded-full font-bold">
+                {completedCuts.length}
+              </span>
+            )}
           </button>
           
           <button 
-            onClick={handleAddText}
-            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl w-14 transition-colors ${activeText ? 'text-blue-600 bg-blue-50 border border-blue-100' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}
+            onClick={() => { setActiveTab('text'); if (!textOverlays.length) handleAddText(); }}
+            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all ${
+              activeTab === 'text' 
+                ? 'text-indigo-600 bg-indigo-50 border-2 border-indigo-200 shadow-sm font-bold' 
+                : 'text-slate-500 hover:text-indigo-600 hover:bg-indigo-50'
+            }`}
           >
-            <Type className="w-5 h-5" /><span className="text-[10px] font-bold">Text</span>
+            <Type className="w-5 h-5" />
+            <span className="text-[10px]">Text</span>
+            {textOverlays.length > 0 && (
+              <span className="text-[9px] bg-indigo-500 text-white px-1.5 rounded-full font-bold">
+                {textOverlays.length}
+              </span>
+            )}
           </button>
 
           <button 
-            onClick={handleAddMedia}
-            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl w-14 transition-colors ${activeMedia ? 'text-blue-600 bg-blue-50 border border-blue-100' : 'text-slate-500 hover:text-blue-600 hover:bg-blue-50'}`}
+            onClick={() => { setActiveTab('media'); if (!mediaOverlays.length) handleAddMedia(); }}
+            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all ${
+              activeTab === 'media' 
+                ? 'text-purple-600 bg-purple-50 border-2 border-purple-200 shadow-sm font-bold' 
+                : 'text-slate-500 hover:text-purple-600 hover:bg-purple-50'
+            }`}
           >
-            <ImageIcon className="w-5 h-5" /><span className="text-[10px] font-bold">Media</span>
+            <ImageIcon className="w-5 h-5" />
+            <span className="text-[10px]">Media</span>
+            {mediaOverlays.length > 0 && (
+              <span className="text-[9px] bg-purple-500 text-white px-1.5 rounded-full font-bold">
+                {mediaOverlays.length}
+              </span>
+            )}
           </button>
           
           <button 
-            onClick={handleAddAudio}
-            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl w-14 transition-colors ${hasAudioTrack && !activeText && !activeMedia && !activeCut ? 'text-green-600 bg-green-50 border border-green-100 shadow-sm' : 'text-slate-500 hover:text-green-600 hover:bg-green-50'}`}
+            onClick={() => setActiveTab('audio')}
+            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all ${
+              activeTab === 'audio' 
+                ? 'text-emerald-600 bg-emerald-50 border-2 border-emerald-200 shadow-sm font-bold' 
+                : 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50'
+            }`}
           >
-            <Music className="w-5 h-5" /><span className="text-[10px] font-bold">Audio</span>
+            <Music className="w-5 h-5" />
+            <span className="text-[10px]">Audio</span>
+            {hasAudioTrack && (
+              <span className="w-2 h-2 bg-emerald-500 rounded-full" />
+            )}
           </button>
         </div>
 
         {/* Center Canvas */}
-        <div className="flex-1 flex flex-col relative bg-[#f8fafc]">
-          <div className="absolute top-6 left-6 bg-white/90 text-blue-700 font-mono font-bold text-sm px-3 py-1.5 rounded-lg shadow-sm  z-10 border border-blue-200">
-            {formatTimeStr(currentTime)}
+        <div className="flex-1 flex flex-col relative bg-[#0f172a] select-none">
+          
+          {/* Timestamp Indicator */}
+          <div className="absolute top-4 left-4 bg-black/75 backdrop-blur-md text-white font-mono font-bold text-xs px-3 py-1.5 rounded-lg shadow-lg z-20 border border-white/20">
+            {formatTimeStr(currentTime)} / {formatTimeStr(duration)}
           </div>
           
           <div 
             ref={canvasRef}
-            className="flex-1 p-8 flex items-center justify-center relative overflow-hidden touch-none" 
-            onClick={handleCanvasClick}
+            className="flex-1 p-6 flex items-center justify-center relative overflow-hidden touch-none" 
+            onClick={() => { setSelectedTextId(null); setSelectedMediaId(null); }}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
           >
+             {/* Background Audio Player */}
              {hasAudioTrack && audioUrl && (
                <audio ref={audioRef} src={audioUrl} loop className="hidden" />
              )}
 
+             {/* Video Stream */}
              {videoUrl.includes('drive.google.com') ? (
-               <iframe src={videoUrl} className="w-full h-full max-h-full object-contain border-0 pointer-events-none shadow-xl rounded-2xl bg-black" allow="autoplay"></iframe>
-            ) : (
+               <iframe 
+                 src={videoUrl} 
+                 className="w-full h-full max-h-full object-contain border-0 pointer-events-none shadow-2xl rounded-xl bg-black" 
+                 allow="autoplay"
+               />
+             ) : (
                <video 
                  ref={videoRef}
                  src={videoUrl}
-                 className="w-full h-full max-h-full object-contain shadow-xl bg-black rounded-2xl"
+                 className="w-full h-full max-h-full object-contain shadow-2xl bg-black rounded-xl"
                  onTimeUpdate={handleTimeUpdate}
                  onLoadedMetadata={handleLoadedMetadata}
                  onClick={handlePlayPause}
                />
-            )}
+             )}
             
+            {/* Center Big Play Button (when paused) */}
             {!isPlaying && (
-              <button onClick={handlePlayPause} className="absolute m-auto w-20 h-20 bg-blue-500/20 hover:bg-blue-600/90  rounded-full flex items-center justify-center text-white transition-all transform hover:scale-110 shadow-2xl">
-                <Play className="w-10 h-10 ml-2" />
+              <button 
+                onClick={handlePlayPause} 
+                className="absolute m-auto w-16 h-16 bg-blue-600/90 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-all transform hover:scale-110 shadow-2xl z-20"
+                title="Play (Space)"
+              >
+                <Play className="w-8 h-8 ml-1 fill-current" />
               </button>
             )}
 
             {/* TIMED TEXT OVERLAYS */}
             {textOverlays.map(text => {
               const isVisible = currentTime >= text.start && currentTime <= text.end;
-              if (!isVisible) return null; // Strictly WYSIWYG
+              if (!isVisible) return null;
+
+              const isSelected = selectedTextId === text.id;
+
+              // Style presets: subtitle pill has high-contrast background to blend cleanly without obscuring faces!
+              let containerStyle = "font-black drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]";
+              if (text.stylePreset === 'subtitle' || !text.stylePreset) {
+                containerStyle = "bg-black/80 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/20 shadow-2xl font-bold tracking-wide";
+              } else if (text.stylePreset === 'lowerThird') {
+                containerStyle = "bg-slate-950/90 backdrop-blur-md px-5 py-2.5 rounded-r-xl border-l-4 border-blue-500 shadow-2xl font-semibold";
+              } else if (text.stylePreset === 'badge') {
+                containerStyle = "bg-blue-600 text-white px-4 py-1.5 rounded-full font-bold shadow-lg ring-2 ring-white/30";
+              } else if (text.stylePreset === 'minimal') {
+                containerStyle = "font-black drop-shadow-[0_4px_8px_rgba(0,0,0,0.95)]";
+              }
 
               return (
                 <div
                   key={text.id}
                   onPointerDown={(e) => handlePointerDown(e, text.id, 'text')}
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ left: `${text.x}%`, top: `${text.y}%`, color: text.color, fontSize: `${text.size}px`, transform: `translate(-50%, -50%) rotate(${text.rotation || 0}deg)` }}
-                  className={`absolute font-black drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] cursor-move transition-all p-2 rounded ${selectedTextId === text.id ? 'border-2 border-blue-500 bg-blue-500/10 scale-105 z-30 ring-4 ring-blue-500/20' : 'border-2 border-transparent hover:border-white/30 z-20'}`}
+                  onClick={(e) => { e.stopPropagation(); setSelectedTextId(text.id); setSelectedMediaId(null); setActiveTab('text'); }}
+                  style={{ 
+                    left: `${text.x}%`, 
+                    top: `${text.y}%`, 
+                    color: text.color || '#ffffff', 
+                    fontSize: `${text.size}px`, 
+                    transform: `translate(-50%, -50%) rotate(${text.rotation || 0}deg)` 
+                  }}
+                  className={`absolute cursor-move transition-all z-20 select-none ${containerStyle} ${
+                    isSelected ? 'ring-4 ring-blue-500 shadow-2xl scale-105 z-30' : 'hover:ring-2 hover:ring-white/40'
+                  }`}
                 >
-                  {selectedTextId === text.id && (
+                  {/* Floating Toolbar when selected */}
+                  {isSelected && (
                     <div 
-                      className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center bg-white rounded-lg shadow-xl border border-slate-200 p-1 gap-1 z-50 cursor-default"
+                      className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center bg-white text-slate-800 rounded-lg shadow-2xl border border-slate-200 p-1 gap-1 z-50 cursor-default text-xs"
                       onPointerDown={(e) => e.stopPropagation()} 
                     >
-                      <button onClick={(e) => { e.stopPropagation(); const newText = prompt("Edit text:", text.text); if(newText) setTextOverlays(prev => prev.map(t => t.id === text.id ? {...t, text: newText} : t)); }} className="p-1.5 hover:bg-slate-100 rounded text-slate-700 tooltip">
-                        <Edit2 className="w-4 h-4" />
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setTextOverlays(prev => prev.map(t => t.id === text.id ? {...t, rotation: (t.rotation || 0) + 45} : t)); 
+                        }} 
+                        className="p-1.5 hover:bg-slate-100 rounded text-slate-700"
+                        title="Rotate 45°"
+                      >
+                        <RotateCw className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); setTextOverlays(prev => prev.map(t => t.id === text.id ? {...t, rotation: (t.rotation || 0) + 45} : t)); }} className="p-1.5 hover:bg-slate-100 rounded text-slate-700 tooltip">
-                        <RotateCw className="w-4 h-4" />
-                      </button>
-                      <button onClick={(e) => { e.stopPropagation(); setTextOverlays(prev => prev.filter(t => t.id !== text.id)); setSelectedTextId(null); }} className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded text-slate-700 tooltip">
-                        <Trash2 className="w-4 h-4" />
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setTextOverlays(prev => prev.filter(t => t.id !== text.id)); 
+                          setSelectedTextId(null); 
+                        }} 
+                        className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded text-slate-700"
+                        title="Delete text"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   )}
-                  {selectedTextId === text.id && (
+
+                  {/* Corner Resize Handle */}
+                  {isSelected && (
                     <div 
-                      className="absolute -bottom-2 -right-2 w-5 h-5 bg-white border-2 border-blue-600 rounded-full cursor-nwse-resize z-50 shadow-md"
+                      className="absolute -bottom-2 -right-2 w-5 h-5 bg-blue-600 border-2 border-white rounded-full cursor-nwse-resize z-50 shadow-md"
                       onPointerDown={(e) => {
                         e.stopPropagation();
                         setResizingOverlay({ id: text.id, type: 'text', startY: e.clientY, initialSize: text.size });
@@ -440,34 +800,62 @@ export default function VideoEditorModal({ isOpen, onClose, videoUrl, videoTitle
             {/* TIMED MEDIA OVERLAYS */}
             {mediaOverlays.map(media => {
               const isVisible = currentTime >= media.start && currentTime <= media.end;
-              if (!isVisible) return null; // Strictly WYSIWYG
+              if (!isVisible) return null;
+
+              const isSelected = selectedMediaId === media.id;
+              const opacity = media.opacity !== undefined ? media.opacity / 100 : 0.9;
 
               return (
                 <div
                   key={media.id}
                   onPointerDown={(e) => handlePointerDown(e, media.id, 'media')}
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ left: `${media.x}%`, top: `${media.y}%`, transform: `translate(-50%, -50%) scale(${media.scale / 100}) rotate(${media.rotation || 0}deg)` }}
-                  className={`absolute cursor-move transition-all rounded-lg ${selectedMediaId === media.id ? 'ring-4 ring-blue-500 shadow-2xl z-30' : 'ring-2 ring-transparent hover:ring-white/30 shadow-lg z-20'}`}
+                  onClick={(e) => { e.stopPropagation(); setSelectedMediaId(media.id); setSelectedTextId(null); setActiveTab('media'); }}
+                  style={{ 
+                    left: `${media.x}%`, 
+                    top: `${media.y}%`, 
+                    transform: `translate(-50%, -50%) scale(${media.scale / 100}) rotate(${media.rotation || 0}deg)`,
+                    opacity
+                  }}
+                  className={`absolute cursor-move transition-all z-20 select-none ${
+                    isSelected ? 'ring-4 ring-blue-500 shadow-2xl z-30' : 'hover:ring-2 hover:ring-white/40'
+                  }`}
                 >
-                  {selectedMediaId === media.id && (
+                  {/* Floating Toolbar when selected */}
+                  {isSelected && (
                     <div 
-                      className="absolute -top-14 left-1/2 -translate-x-1/2 flex items-center bg-white rounded-lg shadow-xl border border-slate-200 p-1 gap-1 z-50 cursor-default scale-100"
-                      style={{ transform: `translate(-50%, 0) scale(${100 / media.scale})` }} // Counteract the parent scale so toolbar doesn't grow huge
+                      className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center bg-white text-slate-800 rounded-lg shadow-2xl border border-slate-200 p-1 gap-1 z-50 cursor-default text-xs"
+                      style={{ transform: `translate(-50%, 0) scale(${100 / (media.scale || 100)})` }}
                       onPointerDown={(e) => e.stopPropagation()} 
                     >
-                      <button onClick={(e) => { e.stopPropagation(); setMediaOverlays(prev => prev.map(m => m.id === media.id ? {...m, rotation: (m.rotation || 0) + 45} : m)); }} className="p-1.5 hover:bg-slate-100 rounded text-slate-700 tooltip">
-                        <RotateCw className="w-4 h-4" />
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setMediaOverlays(prev => prev.map(m => m.id === media.id ? {...m, rotation: (m.rotation || 0) + 45} : m)); 
+                        }} 
+                        className="p-1.5 hover:bg-slate-100 rounded text-slate-700"
+                        title="Rotate 45°"
+                      >
+                        <RotateCw className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); setMediaOverlays(prev => prev.filter(m => m.id !== media.id)); setSelectedMediaId(null); }} className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded text-slate-700 tooltip">
-                        <Trash2 className="w-4 h-4" />
+                      <button 
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          setMediaOverlays(prev => prev.filter(m => m.id !== media.id)); 
+                          setSelectedMediaId(null); 
+                        }} 
+                        className="p-1.5 hover:bg-red-50 hover:text-red-600 rounded text-slate-700"
+                        title="Delete image"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   )}
-                  {selectedMediaId === media.id && (
+
+                  {/* Corner Resize Handle */}
+                  {isSelected && (
                     <div 
-                      className="absolute -bottom-2 -right-2 w-6 h-6 bg-white border-2 border-blue-600 rounded-full cursor-nwse-resize z-50 shadow-md flex items-center justify-center"
-                      style={{ transform: `scale(${100 / media.scale})` }}
+                      className="absolute -bottom-2 -right-2 w-6 h-6 bg-blue-600 border-2 border-white rounded-full cursor-nwse-resize z-50 shadow-md"
+                      style={{ transform: `scale(${100 / (media.scale || 100)})` }}
                       onPointerDown={(e) => {
                         e.stopPropagation();
                         setResizingOverlay({ id: media.id, type: 'media', startY: e.clientY, initialSize: media.scale });
@@ -476,273 +864,944 @@ export default function VideoEditorModal({ isOpen, onClose, videoUrl, videoTitle
                     />
                   )}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={media.url} alt="Overlay" className="w-[150px] h-[150px] object-cover pointer-events-none rounded-lg" draggable={false} />
+                  <img 
+                    src={media.url} 
+                    alt="Overlay" 
+                    className={`w-[140px] h-[140px] object-cover pointer-events-none ${
+                      media.rounded !== false ? 'rounded-2xl shadow-2xl border border-white/20' : 'rounded-none shadow-lg'
+                    }`} 
+                    draggable={false} 
+                  />
                 </div>
               );
             })}
           </div>
 
-          {/* Canvas Toolbar */}
-          <div className="h-14 border-t border-blue-100 flex items-center justify-center gap-6 bg-white shadow-sm">
-            <button className="p-2 rounded-lg hover:bg-blue-50 text-slate-500 transition-colors"><RotateCcw className="w-4 h-4"/></button>
-            <button onClick={handlePlayPause} className="w-10 h-10 rounded-full bg-[#2563eb] text-white flex items-center justify-center shadow-md hover:bg-[#1d4ed8] transition-colors">
-              {isPlaying ? <Pause className="w-5 h-5"/> : <Play className="w-5 h-5 ml-1"/>}
+          {/* CANVAS PLAYBACK TOOLBAR (FIXES IMAGE 3) */}
+          <div className="h-14 border-t border-slate-700/60 bg-slate-900/90 backdrop-blur-md flex items-center justify-center gap-4 text-white shadow-lg z-10 px-4">
+            {/* Rewind -5s button */}
+            <button 
+              onClick={handleRewind}
+              title="Rewind 5 seconds"
+              className="px-3 py-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-semibold active:scale-95 cursor-pointer"
+            >
+              <RotateCcw className="w-4 h-4 text-blue-400" />
+              <span>-5s</span>
             </button>
-            <button className="p-2 rounded-lg hover:bg-blue-50 text-slate-500 transition-colors"><RotateCcw className="w-4 h-4 scale-x-[-1]"/></button>
-            <div className="w-px h-6 bg-slate-200 mx-2"></div>
-            <button onClick={() => setIsMuted(!isMuted)} className="p-2 rounded-lg hover:bg-blue-50 text-slate-500 transition-colors">
+
+            {/* Play/Pause Button */}
+            <button 
+              onClick={handlePlayPause} 
+              title={isPlaying ? "Pause (Space)" : "Play (Space)"}
+              className="w-10 h-10 rounded-full bg-[#2563eb] text-white flex items-center justify-center shadow-lg shadow-blue-500/30 hover:bg-[#1d4ed8] transition-all transform hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              {isPlaying ? <Pause className="w-5 h-5 fill-current"/> : <Play className="w-5 h-5 ml-0.5 fill-current"/>}
+            </button>
+
+            {/* Forward +5s button */}
+            <button 
+              onClick={handleForward}
+              title="Forward 5 seconds"
+              className="px-3 py-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-semibold active:scale-95 cursor-pointer"
+            >
+              <span>+5s</span>
+              <RotateCw className="w-4 h-4 text-blue-400" />
+            </button>
+
+            <div className="w-px h-5 bg-white/15 mx-1" />
+
+            {/* Mute/Volume Toggle */}
+            <button 
+              onClick={handleToggleMute} 
+              title={isMuted ? "Unmute" : "Mute"}
+              className={`p-2 rounded-lg transition-all active:scale-95 cursor-pointer ${
+                isMuted ? 'text-red-400 bg-red-500/20' : 'text-slate-300 hover:bg-white/10 hover:text-white'
+              }`}
+            >
               {isMuted ? <VolumeX className="w-5 h-5"/> : <Volume2 className="w-5 h-5"/>}
             </button>
+
+            <span className="text-xs font-mono text-slate-400 ml-2">
+              {formatTimeStr(currentTime)}
+            </span>
           </div>
         </div>
 
-        {/* Right Sidebar (Properties) */}
-        <div className="w-80 border-l border-blue-100 bg-white p-6 flex flex-col gap-6 overflow-y-auto z-0 shadow-sm">
-          <div className="border-b border-blue-50 pb-4">
-            <h3 className="text-slate-800 font-bold text-base">Properties</h3>
-          </div>
+        {/* Right Sidebar (Properties Panel) */}
+        <div className="w-84 border-l border-blue-100 bg-white p-5 flex flex-col gap-5 overflow-y-auto z-10 shadow-sm text-sm">
           
-          {/* TEXT PROPERTIES */}
-          {activeText && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <div>
-                <label className="text-sm font-bold text-slate-700 block mb-2">Edit Text</label>
-                <textarea 
-                  value={activeText.text}
-                  onChange={(e) => setTextOverlays(textOverlays.map(t => t.id === activeText.id ? { ...t, text: e.target.value } : t))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none h-24 shadow-inner" 
-                />
+          {/* TAB 1: OVERVIEW / SELECT */}
+          {activeTab === 'select' && (
+            <div className="space-y-5 animate-in fade-in duration-150">
+              <div className="border-b border-slate-100 pb-3">
+                <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-blue-600" />
+                  <span>Editor Overview</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">Summary of active overlays and cuts in this video.</p>
               </div>
-              <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <label className="text-sm font-bold text-slate-700">Appears At</label>
-                    <span className="text-xs font-mono font-bold text-blue-600 bg-white px-2 py-0.5 rounded shadow-sm border border-blue-100">{formatTimeStr(activeText.start)}</span>
-                  </div>
-                  <input 
-                    type="range" min="0" max={Math.max(0, activeText.end - 0.1)} step="0.1" value={activeText.start} 
-                    onChange={(e) => {
-                      const newStart = parseFloat(e.target.value);
-                      setTextOverlays(textOverlays.map(t => t.id === activeText.id ? { ...t, start: newStart } : t));
-                      if (videoRef.current) videoRef.current.currentTime = newStart;
-                    }}
-                    className="w-full accent-blue-600 cursor-pointer" 
-                  />
+
+              {/* Status summary */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div 
+                  onClick={() => setActiveTab('cut')}
+                  className="p-3 bg-red-50 hover:bg-red-100/70 rounded-xl border border-red-200/60 cursor-pointer transition-all"
+                >
+                  <p className="font-bold text-red-700 flex items-center justify-between">
+                    <span>Cuts</span>
+                    <Scissors className="w-3.5 h-3.5" />
+                  </p>
+                  <p className="text-lg font-black text-red-900 mt-1">{completedCuts.length}</p>
                 </div>
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <label className="text-sm font-bold text-slate-700">Disappears At</label>
-                    <span className="text-xs font-mono font-bold text-blue-600 bg-white px-2 py-0.5 rounded shadow-sm border border-blue-100">{formatTimeStr(activeText.end)}</span>
-                  </div>
-                  <input 
-                    type="range" min={activeText.start + 0.1} max={duration || 1} step="0.1" value={activeText.end} 
-                    onChange={(e) => {
-                      const newEnd = parseFloat(e.target.value);
-                      setTextOverlays(textOverlays.map(t => t.id === activeText.id ? { ...t, end: newEnd } : t));
-                      if (videoRef.current) videoRef.current.currentTime = newEnd;
-                    }}
-                    className="w-full accent-blue-600 cursor-pointer" 
-                  />
+
+                <div 
+                  onClick={() => setActiveTab('text')}
+                  className="p-3 bg-indigo-50 hover:bg-indigo-100/70 rounded-xl border border-indigo-200/60 cursor-pointer transition-all"
+                >
+                  <p className="font-bold text-indigo-700 flex items-center justify-between">
+                    <span>Text</span>
+                    <Type className="w-3.5 h-3.5" />
+                  </p>
+                  <p className="text-lg font-black text-indigo-900 mt-1">{textOverlays.length}</p>
                 </div>
-                <p className="text-[10px] text-slate-400 text-center uppercase tracking-wide font-bold">Use sliders to set visibility time</p>
+
+                <div 
+                  onClick={() => setActiveTab('media')}
+                  className="p-3 bg-purple-50 hover:bg-purple-100/70 rounded-xl border border-purple-200/60 cursor-pointer transition-all"
+                >
+                  <p className="font-bold text-purple-700 flex items-center justify-between">
+                    <span>Media</span>
+                    <ImageIcon className="w-3.5 h-3.5" />
+                  </p>
+                  <p className="text-lg font-black text-purple-900 mt-1">{mediaOverlays.length}</p>
+                </div>
+
+                <div 
+                  onClick={() => setActiveTab('audio')}
+                  className="p-3 bg-emerald-50 hover:bg-emerald-100/70 rounded-xl border border-emerald-200/60 cursor-pointer transition-all"
+                >
+                  <p className="font-bold text-emerald-700 flex items-center justify-between">
+                    <span>Audio</span>
+                    <Music className="w-3.5 h-3.5" />
+                  </p>
+                  <p className="text-xs font-bold text-emerald-900 mt-2 truncate">
+                    {hasAudioTrack ? 'Active' : 'Off'}
+                  </p>
+                </div>
               </div>
-              
-              <div>
-                <label className="text-sm font-bold text-slate-700 block mb-2">Font Size ({activeText.size}px)</label>
-                <input 
-                  type="range" min="12" max="120" value={activeText.size} 
-                  onChange={(e) => setTextOverlays(textOverlays.map(t => t.id === activeText.id ? { ...t, size: parseInt(e.target.value) } : t))}
-                  className="w-full accent-blue-600" 
-                />
+
+              {/* Quick Actions */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <p className="text-xs font-bold text-slate-600 uppercase tracking-wide">Quick Add</p>
+                <button 
+                  onClick={handleAddText}
+                  className="w-full py-2.5 px-3 bg-slate-50 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200 rounded-lg text-slate-700 font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Type className="w-4 h-4 text-indigo-500" />
+                  <span>Add Subtitle / Caption</span>
+                </button>
+
+                <button 
+                  onClick={() => handleAddMedia()}
+                  className="w-full py-2.5 px-3 bg-slate-50 hover:bg-purple-50 hover:text-purple-700 border border-slate-200 rounded-lg text-slate-700 font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <ImageIcon className="w-4 h-4 text-purple-500" />
+                  <span>Add Image / Watermark</span>
+                </button>
+
+                <button 
+                  onClick={initiateNewCut}
+                  className="w-full py-2.5 px-3 bg-slate-50 hover:bg-red-50 hover:text-red-700 border border-slate-200 rounded-lg text-slate-700 font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Scissors className="w-4 h-4 text-red-500" />
+                  <span>Trim or Cut Video</span>
+                </button>
               </div>
-              <button 
-                onClick={() => { setTextOverlays(textOverlays.filter(t => t.id !== activeText.id)); setSelectedTextId(null); }}
-                className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" /> Delete Text
-              </button>
             </div>
           )}
 
-          {/* MEDIA PROPERTIES */}
-          {activeMedia && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <div>
-                <label className="text-sm font-bold text-slate-700 block mb-2">Upload Image Overlay</label>
-                <label className="flex items-center justify-center w-full h-12 px-4 transition bg-slate-50 border-2 border-slate-200 border-dashed rounded-lg appearance-none cursor-pointer hover:border-blue-500 hover:bg-blue-50 focus:outline-none text-sm font-bold text-slate-600">
-                  <span className="flex items-center space-x-2">
-                    <ImageIcon className="w-4 h-4 text-blue-500" />
-                    <span>Choose Image File...</span>
-                  </span>
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleMediaUpload(e, activeMedia.id)} />
-                </label>
-              </div>
-              <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <label className="text-sm font-bold text-slate-700">Appears At</label>
-                    <span className="text-xs font-mono font-bold text-blue-600 bg-white px-2 py-0.5 rounded shadow-sm border border-blue-100">{formatTimeStr(activeMedia.start)}</span>
-                  </div>
-                  <input 
-                    type="range" min="0" max={Math.max(0, activeMedia.end - 0.1)} step="0.1" value={activeMedia.start} 
-                    onChange={(e) => {
-                      const newStart = parseFloat(e.target.value);
-                      setMediaOverlays(mediaOverlays.map(m => m.id === activeMedia.id ? { ...m, start: newStart } : m));
-                      if (videoRef.current) videoRef.current.currentTime = newStart;
-                    }}
-                    className="w-full accent-blue-600 cursor-pointer" 
-                  />
-                </div>
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <label className="text-sm font-bold text-slate-700">Disappears At</label>
-                    <span className="text-xs font-mono font-bold text-blue-600 bg-white px-2 py-0.5 rounded shadow-sm border border-blue-100">{formatTimeStr(activeMedia.end)}</span>
-                  </div>
-                  <input 
-                    type="range" min={activeMedia.start + 0.1} max={duration || 1} step="0.1" value={activeMedia.end} 
-                    onChange={(e) => {
-                      const newEnd = parseFloat(e.target.value);
-                      setMediaOverlays(mediaOverlays.map(m => m.id === activeMedia.id ? { ...m, end: newEnd } : m));
-                      if (videoRef.current) videoRef.current.currentTime = newEnd;
-                    }}
-                    className="w-full accent-blue-600 cursor-pointer" 
-                  />
-                </div>
-                <p className="text-[10px] text-slate-400 text-center uppercase tracking-wide font-bold">Use sliders to set visibility time</p>
+          {/* TAB 2: CUT TOOL */}
+          {activeTab === 'cut' && (
+            <div className="space-y-5 animate-in fade-in duration-150">
+              <div className="border-b border-slate-100 pb-3">
+                <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                  <Scissors className="w-4 h-4 text-red-600" />
+                  <span>Cut & Trim Video</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">Remove mistakes or unwanted pauses cleanly.</p>
               </div>
 
-              <div>
-                <label className="text-sm font-bold text-slate-700 block mb-2">Image Scale ({activeMedia.scale}%)</label>
-                <input 
-                  type="range" min="20" max="300" value={activeMedia.scale} 
-                  onChange={(e) => setMediaOverlays(mediaOverlays.map(m => m.id === activeMedia.id ? { ...m, scale: parseInt(e.target.value) } : m))}
-                  className="w-full accent-blue-600" 
-                />
+              <div className="space-y-2">
+                <button 
+                  onClick={cutFromStartToNow}
+                  className="w-full p-2.5 bg-red-50 hover:bg-red-100/80 border border-red-200 rounded-xl text-red-700 font-semibold text-xs flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <span>✂️ Trim Start (0:00 → {formatTimeStr(currentTime)})</span>
+                </button>
+
+                <button 
+                  onClick={cutFromNowToEnd}
+                  className="w-full p-2.5 bg-red-50 hover:bg-red-100/80 border border-red-200 rounded-xl text-red-700 font-semibold text-xs flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <span>✂️ Trim End ({formatTimeStr(currentTime)} → End)</span>
+                </button>
+
+                <button 
+                  onClick={initiateNewCut}
+                  className="w-full p-2.5 bg-blue-50 hover:bg-blue-100/80 border border-blue-200 rounded-xl text-blue-700 font-semibold text-xs flex items-center justify-between transition-colors cursor-pointer"
+                >
+                  <span>➕ Create Cut Region at {formatTimeStr(currentTime)}</span>
+                </button>
               </div>
-              <button 
-                onClick={() => { setMediaOverlays(mediaOverlays.filter(m => m.id !== activeMedia.id)); setSelectedMediaId(null); }}
-                className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" /> Delete Media
-              </button>
+
+              {/* List of active cuts */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <p className="text-xs font-bold text-slate-600">
+                  Cut Segments ({completedCuts.length})
+                </p>
+                {completedCuts.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">No cuts applied yet.</p>
+                ) : (
+                  completedCuts.map((cut, idx) => (
+                    <div key={cut.id} className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-bold text-slate-700">Cut #{idx + 1}: </span>
+                        <span className="font-mono text-red-600">{formatTimeStr(cut.start)} - {formatTimeStr(cut.end)}</span>
+                      </div>
+                      <button 
+                        onClick={() => setCompletedCuts(prev => prev.filter(c => c.id !== cut.id))}
+                        className="text-slate-400 hover:text-red-600 p-1 rounded transition-colors"
+                        title="Remove Cut"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           )}
 
-          {/* AUDIO PROPERTIES */}
-          {!activeText && !activeMedia && hasAudioTrack && !activeCut && (
-             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-                <div className="bg-green-100 p-2 rounded-full text-green-700"><Music className="w-5 h-5" /></div>
+          {/* TAB 3: TEXT OVERLAYS */}
+          {activeTab === 'text' && (
+            <div className="space-y-5 animate-in fade-in duration-150">
+              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                 <div>
-                  <p className="font-bold text-green-800 text-sm">Background Music</p>
-                  <p className="text-xs text-green-600">Active track playing</p>
+                  <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <Type className="w-4 h-4 text-indigo-600" />
+                    <span>Text Overlays</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">High-clarity subtitles and lower thirds.</p>
                 </div>
+                <button 
+                  onClick={handleAddText}
+                  className="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Add new text"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add</span>
+                </button>
               </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 block mb-2">Upload Background Audio</label>
-                <label className="flex items-center justify-center w-full h-12 px-4 transition bg-slate-50 border-2 border-slate-200 border-dashed rounded-lg appearance-none cursor-pointer hover:border-green-500 hover:bg-green-50 focus:outline-none text-sm font-bold text-slate-600">
-                  <span className="flex items-center space-x-2">
-                    <Music className="w-4 h-4 text-green-500" />
-                    <span>Choose Audio File...</span>
-                  </span>
-                  <input type="file" accept="audio/*" className="hidden" onChange={handleAudioUpload} />
-                </label>
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 block mb-2">Audio Volume ({audioVolume}%)</label>
-                <input 
-                  type="range" min="0" max="100" value={audioVolume} 
-                  onChange={(e) => setAudioVolume(parseInt(e.target.value))}
-                  className="w-full accent-green-600" 
-                />
-              </div>
-              <button 
-                onClick={() => setHasAudioTrack(false)}
-                className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" /> Remove Audio Track
-              </button>
+
+              {activeText ? (
+                <div className="space-y-4">
+                  {/* Textarea */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">Text Content</label>
+                    <textarea 
+                      value={activeText.text}
+                      onChange={(e) => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, text: e.target.value } : t))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 resize-none h-20 shadow-inner font-medium" 
+                      placeholder="Type text here..."
+                    />
+                  </div>
+
+                  {/* Style Presets */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">Style Preset</label>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <button
+                        onClick={() => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, stylePreset: 'subtitle', color: '#ffffff' } : t))}
+                        className={`p-2 rounded-lg border text-left font-medium transition-all cursor-pointer ${
+                          activeText.stylePreset === 'subtitle' || !activeText.stylePreset 
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        🏷️ Subtitle Glass
+                      </button>
+
+                      <button
+                        onClick={() => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, stylePreset: 'lowerThird', color: '#ffffff' } : t))}
+                        className={`p-2 rounded-lg border text-left font-medium transition-all cursor-pointer ${
+                          activeText.stylePreset === 'lowerThird' 
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        💼 Lower Third
+                      </button>
+
+                      <button
+                        onClick={() => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, stylePreset: 'badge', color: '#ffffff' } : t))}
+                        className={`p-2 rounded-lg border text-left font-medium transition-all cursor-pointer ${
+                          activeText.stylePreset === 'badge' 
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' 
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        ⚡ Accent Pill
+                      </button>
+
+                      <button
+                        onClick={() => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, stylePreset: 'minimal', color: '#ffffff' } : t))}
+                        className={`p-2 rounded-lg border text-left font-medium transition-all cursor-pointer ${
+                          activeText.stylePreset === 'minimal' 
+                            ? 'bg-slate-700 text-white border-slate-700 shadow-sm' 
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        🔤 Clean Text
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Position Presets */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">Position</label>
+                    <div className="grid grid-cols-4 gap-1 text-[11px]">
+                      <button 
+                        onClick={() => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, x: 50, y: 88 } : t))}
+                        className="p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded text-center text-slate-700 font-semibold cursor-pointer"
+                      >
+                        Subtitle
+                      </button>
+                      <button 
+                        onClick={() => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, x: 50, y: 80 } : t))}
+                        className="p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded text-center text-slate-700 font-semibold cursor-pointer"
+                      >
+                        Lower
+                      </button>
+                      <button 
+                        onClick={() => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, x: 50, y: 50 } : t))}
+                        className="p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded text-center text-slate-700 font-semibold cursor-pointer"
+                      >
+                        Center
+                      </button>
+                      <button 
+                        onClick={() => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, x: 50, y: 12 } : t))}
+                        className="p-1.5 bg-slate-50 hover:bg-blue-50 border border-slate-200 rounded text-center text-slate-700 font-semibold cursor-pointer"
+                      >
+                        Top
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Timing with 1-click sync */}
+                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">Display Duration</span>
+                      <button 
+                        onClick={() => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, start: 0, end: duration || 100 } : t))}
+                        className="text-[10px] text-blue-600 hover:underline font-bold"
+                      >
+                        Entire Video
+                      </button>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-500">Appears At:</span>
+                        <span className="font-mono font-bold text-blue-600">{formatTimeStr(activeText.start)}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <input 
+                          type="range" min="0" max={Math.max(0, activeText.end - 0.2)} step="0.1" value={activeText.start} 
+                          onChange={(e) => {
+                            const newStart = parseFloat(e.target.value);
+                            setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, start: newStart } : t));
+                          }}
+                          className="flex-1 accent-indigo-600 cursor-pointer" 
+                        />
+                        <button 
+                          onClick={() => {
+                            const ct = videoRef.current?.currentTime || currentTime;
+                            if (ct < activeText.end) {
+                              setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, start: ct } : t));
+                            }
+                          }}
+                          className="px-2 py-0.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded text-[10px] font-bold"
+                          title="Set to Current Time"
+                        >
+                          ⚡ Now
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-500">Disappears At:</span>
+                        <span className="font-mono font-bold text-blue-600">{formatTimeStr(activeText.end)}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <input 
+                          type="range" min={activeText.start + 0.2} max={duration || 100} step="0.1" value={activeText.end} 
+                          onChange={(e) => {
+                            const newEnd = parseFloat(e.target.value);
+                            setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, end: newEnd } : t));
+                          }}
+                          className="flex-1 accent-indigo-600 cursor-pointer" 
+                        />
+                        <button 
+                          onClick={() => {
+                            const ct = videoRef.current?.currentTime || currentTime;
+                            if (ct > activeText.start) {
+                              setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, end: ct } : t));
+                            }
+                          }}
+                          className="px-2 py-0.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded text-[10px] font-bold"
+                          title="Set to Current Time"
+                        >
+                          ⚡ Now
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Font Size */}
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-bold text-slate-700">Font Size</span>
+                      <span className="font-mono text-slate-500">{activeText.size}px</span>
+                    </div>
+                    <input 
+                      type="range" min="14" max="80" value={activeText.size} 
+                      onChange={(e) => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, size: parseInt(e.target.value) } : t))}
+                      className="w-full accent-indigo-600 cursor-pointer" 
+                    />
+                  </div>
+
+                  {/* Delete Text */}
+                  <button 
+                    onClick={() => { 
+                      setTextOverlays(prev => prev.filter(t => t.id !== activeText.id)); 
+                      setSelectedTextId(null); 
+                    }}
+                    className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer text-xs"
+                  >
+                    <Trash2 className="w-4 h-4" /> Delete Text Overlay
+                  </button>
+                </div>
+              ) : (
+                /* List of all text overlays */
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-slate-600">Active Text Overlays ({textOverlays.length})</p>
+                  {textOverlays.length === 0 ? (
+                    <div className="p-6 bg-slate-50 rounded-xl text-center text-slate-400">
+                      <Type className="w-6 h-6 mx-auto mb-2 text-indigo-300" />
+                      <p className="text-xs">No text overlays yet. Click "+ Add" above.</p>
+                    </div>
+                  ) : (
+                    textOverlays.map(text => (
+                      <div 
+                        key={text.id}
+                        onClick={() => setSelectedTextId(text.id)}
+                        className="p-3 bg-slate-50 hover:bg-indigo-50/60 rounded-xl border border-slate-200 cursor-pointer transition-all flex items-center justify-between"
+                      >
+                        <div className="truncate pr-2">
+                          <p className="font-bold text-slate-800 text-xs truncate">{text.text}</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">
+                            {formatTimeStr(text.start)} - {formatTimeStr(text.end)}
+                          </p>
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTextOverlays(prev => prev.filter(t => t.id !== text.id));
+                          }}
+                          className="text-slate-400 hover:text-red-600 p-1 rounded"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {/* DEFAULT STATE */}
-          {!activeText && !activeMedia && !hasAudioTrack && !activeCut && (
-             <div className="flex-1 flex flex-col items-center justify-center text-center px-4 text-slate-400 gap-4 opacity-70">
-              <MousePointer2 className="w-10 h-10 text-blue-300" />
-              <p className="text-sm font-medium">Click on tools in the left menu to add overlays, audio, or cut sections.</p>
+          {/* TAB 4: MEDIA OVERLAYS */}
+          {activeTab === 'media' && (
+            <div className="space-y-5 animate-in fade-in duration-150">
+              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-purple-600" />
+                    <span>Media & Logos</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">Watermarks, icons, and picture-in-picture.</p>
+                </div>
+                <button 
+                  onClick={() => handleAddMedia()}
+                  className="p-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Add new image"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add</span>
+                </button>
+              </div>
+
+              {activeMedia ? (
+                <div className="space-y-4">
+                  {/* Upload Custom File */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">Change Image</label>
+                    <label className="flex items-center justify-center w-full h-11 px-4 transition bg-slate-50 border-2 border-slate-200 border-dashed rounded-xl appearance-none cursor-pointer hover:border-purple-500 hover:bg-purple-50 text-xs font-bold text-slate-600">
+                      <span className="flex items-center space-x-2">
+                        <ImageIcon className="w-4 h-4 text-purple-500" />
+                        <span>Upload Custom Image...</span>
+                      </span>
+                      <input type="file" accept="image/*" className="hidden" onChange={handleMediaUpload} />
+                    </label>
+                  </div>
+
+                  {/* Position Presets */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">Position</label>
+                    <div className="grid grid-cols-4 gap-1 text-[11px]">
+                      <button 
+                        onClick={() => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, x: 88, y: 12 } : m))}
+                        className="p-1.5 bg-slate-50 hover:bg-purple-50 border border-slate-200 rounded text-center text-slate-700 font-semibold cursor-pointer"
+                      >
+                        Top-R
+                      </button>
+                      <button 
+                        onClick={() => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, x: 12, y: 12 } : m))}
+                        className="p-1.5 bg-slate-50 hover:bg-purple-50 border border-slate-200 rounded text-center text-slate-700 font-semibold cursor-pointer"
+                      >
+                        Top-L
+                      </button>
+                      <button 
+                        onClick={() => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, x: 88, y: 85 } : m))}
+                        className="p-1.5 bg-slate-50 hover:bg-purple-50 border border-slate-200 rounded text-center text-slate-700 font-semibold cursor-pointer"
+                      >
+                        Bot-R
+                      </button>
+                      <button 
+                        onClick={() => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, x: 50, y: 50 } : m))}
+                        className="p-1.5 bg-slate-50 hover:bg-purple-50 border border-slate-200 rounded text-center text-slate-700 font-semibold cursor-pointer"
+                      >
+                        Center
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Opacity Slider (Blends cleanly like a watermark) */}
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-bold text-slate-700">Opacity (Transparency)</span>
+                      <span className="font-mono text-slate-500">{activeMedia.opacity ?? 85}%</span>
+                    </div>
+                    <input 
+                      type="range" min="20" max="100" value={activeMedia.opacity ?? 85} 
+                      onChange={(e) => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, opacity: parseInt(e.target.value) } : m))}
+                      className="w-full accent-purple-600 cursor-pointer" 
+                    />
+                  </div>
+
+                  {/* Scale Slider */}
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-bold text-slate-700">Scale</span>
+                      <span className="font-mono text-slate-500">{activeMedia.scale}%</span>
+                    </div>
+                    <input 
+                      type="range" min="20" max="250" value={activeMedia.scale} 
+                      onChange={(e) => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, scale: parseInt(e.target.value) } : m))}
+                      className="w-full accent-purple-600 cursor-pointer" 
+                    />
+                  </div>
+
+                  {/* Rounded Corners toggle */}
+                  <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                    <span className="text-xs font-bold text-slate-700">Rounded Corners & Shadow</span>
+                    <input 
+                      type="checkbox" 
+                      checked={activeMedia.rounded !== false}
+                      onChange={(e) => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, rounded: e.target.checked } : m))}
+                      className="w-4 h-4 accent-purple-600 cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Timing */}
+                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700">Display Duration</span>
+                      <button 
+                        onClick={() => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, start: 0, end: duration || 100 } : m))}
+                        className="text-[10px] text-purple-600 hover:underline font-bold"
+                      >
+                        Entire Video
+                      </button>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-500">Appears At:</span>
+                        <span className="font-mono font-bold text-purple-600">{formatTimeStr(activeMedia.start)}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <input 
+                          type="range" min="0" max={Math.max(0, activeMedia.end - 0.2)} step="0.1" value={activeMedia.start} 
+                          onChange={(e) => {
+                            const newStart = parseFloat(e.target.value);
+                            setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, start: newStart } : m));
+                          }}
+                          className="flex-1 accent-purple-600 cursor-pointer" 
+                        />
+                        <button 
+                          onClick={() => {
+                            const ct = videoRef.current?.currentTime || currentTime;
+                            if (ct < activeMedia.end) {
+                              setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, start: ct } : m));
+                            }
+                          }}
+                          className="px-2 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-[10px] font-bold"
+                          title="Set to Current Time"
+                        >
+                          ⚡ Now
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-slate-500">Disappears At:</span>
+                        <span className="font-mono font-bold text-purple-600">{formatTimeStr(activeMedia.end)}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <input 
+                          type="range" min={activeMedia.start + 0.2} max={duration || 100} step="0.1" value={activeMedia.end} 
+                          onChange={(e) => {
+                            const newEnd = parseFloat(e.target.value);
+                            setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, end: newEnd } : m));
+                          }}
+                          className="flex-1 accent-purple-600 cursor-pointer" 
+                        />
+                        <button 
+                          onClick={() => {
+                            const ct = videoRef.current?.currentTime || currentTime;
+                            if (ct > activeMedia.start) {
+                              setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, end: ct } : m));
+                            }
+                          }}
+                          className="px-2 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-[10px] font-bold"
+                          title="Set to Current Time"
+                        >
+                          ⚡ Now
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Delete Media */}
+                  <button 
+                    onClick={() => { 
+                      setMediaOverlays(prev => prev.filter(m => m.id !== activeMedia.id)); 
+                      setSelectedMediaId(null); 
+                    }}
+                    className="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer text-xs"
+                  >
+                    <Trash2 className="w-4 h-4" /> Delete Image Overlay
+                  </button>
+                </div>
+              ) : (
+                /* List of all media overlays */
+                <div className="space-y-2">
+                  <p className="text-xs font-bold text-slate-600">Active Media Overlays ({mediaOverlays.length})</p>
+                  {mediaOverlays.length === 0 ? (
+                    <div className="p-6 bg-slate-50 rounded-xl text-center text-slate-400">
+                      <ImageIcon className="w-6 h-6 mx-auto mb-2 text-purple-300" />
+                      <p className="text-xs">No media overlays yet. Click "+ Add" above.</p>
+                    </div>
+                  ) : (
+                    mediaOverlays.map(media => (
+                      <div 
+                        key={media.id}
+                        onClick={() => setSelectedMediaId(media.id)}
+                        className="p-3 bg-slate-50 hover:bg-purple-50/60 rounded-xl border border-slate-200 cursor-pointer transition-all flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={media.url} alt="" className="w-9 h-9 object-cover rounded-lg border border-slate-300" />
+                          <div>
+                            <p className="font-bold text-slate-800 text-xs">Image Overlay</p>
+                            <p className="text-[10px] text-slate-500">
+                              {formatTimeStr(media.start)} - {formatTimeStr(media.end)}
+                            </p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMediaOverlays(prev => prev.filter(m => m.id !== media.id));
+                          }}
+                          className="text-slate-400 hover:text-red-600 p-1 rounded"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 5: AUDIO */}
+          {activeTab === 'audio' && (
+            <div className="space-y-5 animate-in fade-in duration-150">
+              <div className="border-b border-slate-100 pb-3">
+                <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                  <Music className="w-4 h-4 text-emerald-600" />
+                  <span>Background Audio</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">Add background music or narration track.</p>
+              </div>
+
+              {/* Master Audio Toggle */}
+              <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-emerald-900 text-xs">Enable Background Music</p>
+                  <p className="text-[11px] text-emerald-700">Mixes audio track into video playback</p>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={hasAudioTrack}
+                  onChange={(e) => setHasAudioTrack(e.target.checked)}
+                  className="w-5 h-5 accent-emerald-600 cursor-pointer"
+                />
+              </div>
+
+              {hasAudioTrack && (
+                <div className="space-y-4">
+                  {/* Preset tracks */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">Preset Music Tracks</label>
+                    <div className="space-y-1.5">
+                      {PRESET_AUDIO_TRACKS.map(track => (
+                        <div 
+                          key={track.id}
+                          onClick={() => {
+                            setAudioUrl(track.url);
+                            setAudioTrackTitle(track.title);
+                          }}
+                          className={`p-2.5 rounded-xl border text-xs flex items-center justify-between cursor-pointer transition-all ${
+                            audioUrl === track.url 
+                              ? 'bg-emerald-50 border-emerald-400 text-emerald-900 font-bold shadow-sm' 
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span>{track.title}</span>
+                          {audioUrl === track.url && <Check className="w-4 h-4 text-emerald-600" />}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Upload Custom Audio */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 block mb-1.5">Upload Custom Audio</label>
+                    <label className="flex items-center justify-center w-full h-11 px-4 transition bg-slate-50 border-2 border-slate-200 border-dashed rounded-xl appearance-none cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 text-xs font-bold text-slate-600">
+                      <span className="flex items-center space-x-2">
+                        <Music className="w-4 h-4 text-emerald-500" />
+                        <span>Choose MP3 or WAV File...</span>
+                      </span>
+                      <input type="file" accept="audio/*" className="hidden" onChange={handleAudioUpload} />
+                    </label>
+                  </div>
+
+                  {/* Volume Slider */}
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-bold text-slate-700">Music Volume</span>
+                      <span className="font-mono text-emerald-600 font-bold">{audioVolume}%</span>
+                    </div>
+                    <input 
+                      type="range" min="0" max="100" value={audioVolume} 
+                      onChange={(e) => setAudioVolume(parseInt(e.target.value))}
+                      className="w-full accent-emerald-600 cursor-pointer" 
+                    />
+                  </div>
+
+                  {/* Mute original video sound toggle */}
+                  <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <div>
+                      <p className="text-xs font-bold text-slate-700">Mute Original Video Sound</p>
+                      <p className="text-[10px] text-slate-500">Only play the background music</p>
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      checked={muteOriginalAudio}
+                      onChange={(e) => setMuteOriginalAudio(e.target.checked)}
+                      className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Preview Player */}
+                  <audio ref={previewAudioRef} src={audioUrl} />
+                  <button 
+                    onClick={() => {
+                      if (!previewAudioRef.current) return;
+                      if (isAudioPreviewPlaying) {
+                        previewAudioRef.current.pause();
+                        setIsAudioPreviewPlaying(false);
+                      } else {
+                        previewAudioRef.current.play().catch(() => {});
+                        setIsAudioPreviewPlaying(true);
+                      }
+                    }}
+                    className="w-full py-2.5 bg-emerald-100/70 hover:bg-emerald-100 text-emerald-800 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    {isAudioPreviewPlaying ? <Pause className="w-4 h-4"/> : <Play className="w-4 h-4"/>}
+                    <span>{isAudioPreviewPlaying ? "Pause Track Preview" : "Preview Music Track"}</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
       {/* BOTTOM TIMELINE AREA */}
-      <div className="h-56 border-t border-blue-200 bg-white flex flex-col shadow-[0_-4px_20px_rgb(0,0,0,0.03)] z-10 relative">
-        <div className="h-12 border-b border-blue-100 flex items-center justify-between px-6 bg-[#f8fafc]">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Video Timeline</span>
-          <div className="text-sm font-bold font-mono text-blue-700 bg-white border border-blue-200 px-3 py-1 rounded-md shadow-sm">
+      <div className="h-52 border-t border-blue-200 bg-white flex flex-col shadow-[0_-4px_20px_rgb(0,0,0,0.03)] z-10 relative select-none">
+        <div className="h-10 border-b border-blue-100 flex items-center justify-between px-6 bg-[#f8fafc]">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Timeline</span>
+            {activeCut && (
+              <span className="text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-md border border-red-200 animate-pulse">
+                Adjust Cut Handles on Timeline
+              </span>
+            )}
+          </div>
+          <div className="text-xs font-bold font-mono text-blue-700 bg-white border border-blue-200 px-2.5 py-1 rounded-md shadow-sm">
             Total Length: {formatTimeStr(duration)}
           </div>
         </div>
 
-        <div className="flex-1 relative p-6 bg-white flex flex-col justify-center gap-3">
-          <div className="relative w-full max-w-5xl h-20 bg-blue-50 border border-blue-200 rounded-lg flex shadow-inner overflow-hidden flex-shrink-0">
-            <div className="absolute inset-0 flex items-center justify-between px-2 opacity-20 pointer-events-none">
-                {waveformHeights.map((h, i) => (
-                  <div key={i} className="w-1 bg-[#2563eb] rounded-full" style={{ height: `${h}%` }}></div>
-                ))}
+        <div className="flex-1 relative px-6 py-4 bg-white flex flex-col justify-center gap-2">
+          
+          {/* Main Waveform / Playhead Bar */}
+          <div className="relative w-full h-16 bg-blue-50/70 border border-blue-200 rounded-xl flex shadow-inner overflow-hidden flex-shrink-0">
+            {/* Visual Waveform bars */}
+            <div className="absolute inset-0 flex items-center justify-between px-2 opacity-25 pointer-events-none">
+              {waveformHeights.map((h, i) => (
+                <div key={i} className="w-1 bg-[#2563eb] rounded-full" style={{ height: `${h}%` }}></div>
+              ))}
             </div>
 
+            {/* Completed Cuts representation */}
             {duration > 0 && completedCuts.map(cut => {
               const left = (cut.start / duration) * 100;
               const width = ((cut.end - cut.start) / duration) * 100;
               return (
                 <div 
                   key={cut.id}
-                  className="absolute top-0 bottom-0 bg-red-900/10  border-l border-r border-red-500/50 z-10"
+                  className="absolute top-0 bottom-0 bg-red-500/20 border-l-2 border-r-2 border-red-500 z-10"
                   style={{ left: `${left}%`, width: `${width}%` }}
                 >
-                   <div className="absolute inset-0 flex items-center justify-center opacity-50">
-                      <div className="w-full h-px bg-red-500 rotate-12"></div>
-                      <div className="w-full h-px bg-red-500 -rotate-12 absolute"></div>
+                   <div className="absolute inset-0 flex items-center justify-center opacity-40">
+                      <div className="w-full h-px bg-red-600 rotate-12"></div>
+                      <div className="w-full h-px bg-red-600 -rotate-12 absolute"></div>
                    </div>
                 </div>
               );
             })}
 
+            {/* Active Cut handles */}
             {activeCut && duration > 0 && (
               <div 
-                className="absolute top-0 bottom-0 bg-red-500/20 border-t-2 border-b-2 border-red-500 z-30 shadow-lg shadow-red-500/20"
-                style={{ left: `${(activeCut.start / duration) * 100}%`, width: `${((activeCut.end - activeCut.start) / duration) * 100}%` }}
+                className="absolute top-0 bottom-0 bg-red-500/30 border-t-2 border-b-2 border-red-600 z-30 shadow-lg"
+                style={{ 
+                  left: `${(activeCut.start / duration) * 100}%`, 
+                  width: `${((activeCut.end - activeCut.start) / duration) * 100}%` 
+                }}
               >
-                <div onMouseDown={(e) => { e.preventDefault(); setDragHandle('start'); e.stopPropagation(); }} className="absolute -left-3 top-0 bottom-0 w-6 bg-red-500 rounded-l-md cursor-ew-resize flex items-center justify-center hover:bg-red-600 transition-colors shadow-md">
-                  <div className="w-1 h-6 border-l border-r border-white/50 rounded-full"></div>
+                <div 
+                  onMouseDown={(e) => { e.preventDefault(); setDragHandle('start'); e.stopPropagation(); }} 
+                  className="absolute -left-3 top-0 bottom-0 w-6 bg-red-600 rounded-l-md cursor-ew-resize flex items-center justify-center hover:bg-red-700 shadow-md"
+                  title="Drag start handle"
+                >
+                  <div className="w-1 h-6 border-l border-r border-white/60"></div>
                 </div>
-                <div onMouseDown={(e) => { e.preventDefault(); setDragHandle('end'); e.stopPropagation(); }} className="absolute -right-3 top-0 bottom-0 w-6 bg-red-500 rounded-r-md cursor-ew-resize flex items-center justify-center hover:bg-red-600 transition-colors shadow-md">
-                  <div className="w-1 h-6 border-l border-r border-white/50 rounded-full"></div>
+                <div 
+                  onMouseDown={(e) => { e.preventDefault(); setDragHandle('end'); e.stopPropagation(); }} 
+                  className="absolute -right-3 top-0 bottom-0 w-6 bg-red-600 rounded-r-md cursor-ew-resize flex items-center justify-center hover:bg-red-700 shadow-md"
+                  title="Drag end handle"
+                >
+                  <div className="w-1 h-6 border-l border-r border-white/60"></div>
                 </div>
-                <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white p-1 rounded-lg shadow-xl border border-gray-200">
-                  <button onClick={confirmCut} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-md text-xs font-bold flex items-center gap-1 transition-colors"><Check className="w-3 h-3"/> Confirm Cut</button>
-                  <button onClick={cancelCut} className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-md text-xs font-bold transition-colors">Cancel</button>
+                <div className="absolute -top-11 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-white p-1 rounded-lg shadow-xl border border-gray-200 z-50">
+                  <button onClick={confirmCut} className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1">
+                    <Check className="w-3 h-3"/> Cut
+                  </button>
+                  <button onClick={cancelCut} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-md text-xs font-bold">
+                    Cancel
+                  </button>
                 </div>
               </div>
             )}
+
+            {/* Clickable timeline area */}
             <div ref={timelineRef} className="absolute inset-0 z-20 cursor-pointer" onClick={handleTimelineClick} />
+            
+            {/* Playhead Vertical Line */}
+            {duration > 0 && (
+              <div 
+                className="absolute top-0 bottom-0 w-1 bg-blue-600 z-40 pointer-events-none shadow-[0_0_8px_rgba(37,99,235,0.8)]"
+                style={{ left: `${(currentTime / duration) * 100}%` }}
+              >
+                <div className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-blue-600 rounded-full shadow-md border-2 border-white"></div>
+              </div>
+            )}
           </div>
           
-          {hasAudioTrack && (
-            <div className="relative w-full max-w-5xl h-10 bg-green-50 border border-green-200 rounded-md flex items-center px-4 shadow-sm animate-in slide-in-from-top-2 cursor-pointer" onClick={handleAddAudio}>
-              <div className="text-xs font-bold text-green-700 flex items-center gap-2"><Music className="w-3 h-3" /> Background Audio</div>
-            </div>
-          )}
+          {/* Overlays Markers Strip */}
+          <div className="relative w-full h-6 bg-slate-100 rounded-lg overflow-hidden flex items-center">
+            {duration > 0 && textOverlays.map(text => {
+              const left = (text.start / duration) * 100;
+              const width = Math.max(2, ((text.end - text.start) / duration) * 100);
+              return (
+                <div 
+                  key={text.id}
+                  onClick={(e) => { e.stopPropagation(); setSelectedTextId(text.id); setActiveTab('text'); }}
+                  className="absolute h-4 rounded bg-indigo-500/80 hover:bg-indigo-600 text-[9px] text-white font-bold flex items-center px-1.5 truncate cursor-pointer shadow-sm transition-all"
+                  style={{ left: `${left}%`, width: `${width}%` }}
+                  title={`Text: ${text.text}`}
+                >
+                  <span className="truncate">{text.text}</span>
+                </div>
+              );
+            })}
 
-          {duration > 0 && (
-            <div 
-              className="absolute top-4 bottom-4 w-0.5 bg-blue-600 z-40 pointer-events-none shadow-[0_0_10px_rgba(37,99,235,0.5)] transition-all duration-75"
-              style={{ left: `calc(1.5rem + ${(currentTime / duration) * 100}% - 3rem)` }}
-            >
-              <div className="absolute -top-2 -left-2 w-4.5 h-4.5 bg-blue-600 rounded-full shadow-md"></div>
-            </div>
-          )}
+            {duration > 0 && mediaOverlays.map(media => {
+              const left = (media.start / duration) * 100;
+              const width = Math.max(2, ((media.end - media.start) / duration) * 100);
+              return (
+                <div 
+                  key={media.id}
+                  onClick={(e) => { e.stopPropagation(); setSelectedMediaId(media.id); setActiveTab('media'); }}
+                  className="absolute h-4 rounded bg-purple-500/80 hover:bg-purple-600 text-[9px] text-white font-bold flex items-center px-1.5 truncate cursor-pointer shadow-sm transition-all"
+                  style={{ left: `${left}%`, width: `${width}%` }}
+                  title="Media overlay"
+                >
+                  <span className="truncate">Image</span>
+                </div>
+              );
+            })}
+          </div>
+
         </div>
       </div>
     </div>

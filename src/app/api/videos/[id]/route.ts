@@ -64,6 +64,7 @@ export async function GET(
         title: cleanVideoTitle(rawTitle, video.createdAt),
         views: Math.max(video.views || 0, backupMeta?.views || 0),
         comments: mergedComments,
+        editorData: video.editorData || backupMeta?.editorData || null,
         duration,
         thumbnailUrl: `/api/videos/${vidId}/thumbnail`,
         thumbnailLink: `/api/videos/${vidId}/thumbnail`,
@@ -91,6 +92,7 @@ export async function GET(
         isPublic: true,
         views: backupMeta?.views || 0,
         comments: backupComments || [],
+        editorData: backupMeta?.editorData || null,
         createdAt: driveMeta.createdTime ? new Date(driveMeta.createdTime).getTime() : Date.now(),
         updatedAt: driveMeta.createdTime ? new Date(driveMeta.createdTime).getTime() : Date.now(),
         webViewLink: driveMeta.webViewLink,
@@ -134,7 +136,10 @@ export async function PUT(
       saveBackupVideoMeta(id, { title: newTitle });
     }
     if (body.courseId !== undefined) updateFields.courseId = body.courseId;
-    if (body.editorData !== undefined) updateFields.editorData = body.editorData;
+    if (body.editorData !== undefined) {
+      updateFields.editorData = body.editorData;
+      saveBackupVideoMeta(id, { editorData: body.editorData });
+    }
 
     // Determine the target Google Drive file ID to update
     const targetDriveFileId = video?.driveFileId || id;
@@ -181,6 +186,7 @@ export async function PUT(
       ...video,
       id: video?.id || video?._id?.toString() || id,
       title: updateFields.title || video?.title || newTitle,
+      editorData: updateFields.editorData !== undefined ? updateFields.editorData : (video?.editorData || null),
     });
   } catch (error: any) {
     console.error('Error updating video:', error);

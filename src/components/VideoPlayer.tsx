@@ -13,14 +13,49 @@ interface VideoPlayerProps {
   initialEditorData?: unknown;
 }
 
+type CutRegion = { id: string; start: number; end: number };
+type TextOverlay = {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  color?: string;
+  size?: number;
+  start: number;
+  end: number;
+  rotation?: number;
+  stylePreset?: 'subtitle' | 'lowerThird' | 'badge' | 'minimal';
+  bgOpacity?: number;
+};
+type MediaOverlay = {
+  id: string;
+  url: string;
+  x: number;
+  y: number;
+  scale?: number;
+  start: number;
+  end: number;
+  rotation?: number;
+  opacity?: number;
+  rounded?: boolean;
+};
+type AudioSettings = {
+  enabled: boolean;
+  url: string;
+  volume: number;
+  muteOriginalAudio?: boolean;
+};
 type EditorData = {
-  textOverlays?: { id: string; text: string; x: number; y: number; color: string; size: number; start: number; end: number; rotation?: number }[];
-  mediaOverlays?: { id: string; url: string; x: number; y: number; scale: number; start: number; end: number; rotation?: number }[];
+  textOverlays?: TextOverlay[];
+  mediaOverlays?: MediaOverlay[];
+  completedCuts?: CutRegion[];
+  audio?: AudioSettings;
   [key: string]: unknown;
 };
 
 export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnabled = true, externalPlaybackRate = 1, videoId, initialEditorData }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const bgAudioRef = useRef<HTMLAudioElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -45,31 +80,83 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
     const handleData = () => {
       if (initialEditorData) {
         try {
-          setEditorData(typeof initialEditorData === 'string' ? JSON.parse(initialEditorData) : initialEditorData);
-        } catch {
-          setEditorData(null);
-        }
-      } else if (videoId) {
+          const parsed = typeof initialEditorData === 'string' ? JSON.parse(initialEditorData) : initialEditorData;
+          setEditorData(parsed);
+          return;
+        } catch {}
+      }
+      if (videoId) {
         try {
           const data = localStorage.getItem(`video-edits-${videoId}`);
-          if (data) setEditorData(JSON.parse(data));
-        } catch {
-          console.error("Failed to load editor data");
+          if (data) {
+            setEditorData(JSON.parse(data));
+            return;
+          }
+        } catch {}
+      }
+    };
+    handleData();
+
+    // Listen to real-time editor updates
+    const handleEditorUpdated = (e: any) => {
+      if (e?.detail?.editorData) {
+        if (!videoId || !e.detail.videoId || e.detail.videoId === videoId) {
+          const updated = typeof e.detail.editorData === 'string' ? JSON.parse(e.detail.editorData) : e.detail.editorData;
+          setEditorData(updated);
         }
       }
     };
-    setTimeout(handleData, 0);
+
+    window.addEventListener('video-editor-updated', handleEditorUpdated as EventListener);
+    return () => {
+      window.removeEventListener('video-editor-updated', handleEditorUpdated as EventListener);
+    };
   }, [videoId, initialEditorData]);
+
+  // Sync background audio with play/pause and volume
+  useEffect(() => {
+    if (!bgAudioRef.current) return;
+    const bgAudio = bgAudioRef.current;
+    const audioVol = editorData?.audio?.volume !== undefined ? editorData.audio.volume / 100 : 0.5;
+    bgAudio.volume = isMuted ? 0 : audioVol * volume;
+
+    if (editorData?.audio?.enabled && editorData?.audio?.url && isPlaying) {
+      bgAudio.play().catch(() => {});
+    } else {
+      bgAudio.pause();
+    }
+  }, [isPlaying, editorData?.audio, volume, isMuted]);
+
+  // Sync mute original audio if enabled
+  useEffect(() => {
+    if (editorData?.audio?.muteOriginalAudio && videoRef.current) {
+      videoRef.current.muted = true;
+    }
+  }, [editorData?.audio?.muteOriginalAudio]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const updateProgress = () => {
-      setCurrentTime(video.currentTime);
-      setProgress((video.currentTime / (video.duration || 1)) * 100);
+      const ct = video.currentTime;
+      setCurrentTime(ct);
+      setProgress((ct / (video.duration || 1)) * 100);
       if (onTimeUpdate) {
-        onTimeUpdate(video.currentTime);
+        onTimeUpdate(ct);
+      }
+
+      // Check cuts: skip over cut regions automatically!
+      if (editorData?.completedCuts && Array.isArray(editorData.completedCuts)) {
+        for (const cut of editorData.completedCuts) {
+          if (ct >= cut.start && ct < cut.end) {
+            video.currentTime = cut.end;
+            if (bgAudioRef.current && bgAudioRef.current.duration) {
+              bgAudioRef.current.currentTime = cut.end % bgAudioRef.current.duration;
+            }
+            break;
+          }
+        }
       }
     };
     
@@ -79,7 +166,17 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
     };
 
     const handleWaiting = () => setIsBuffering(true);
-    const handlePlaying = () => setIsBuffering(false);
+    const handlePlaying = () => {
+      setIsBuffering(false);
+      setIsPlaying(true);
+      if (bgAudioRef.current && editorData?.audio?.enabled && editorData?.audio?.url) {
+        bgAudioRef.current.play().catch(() => {});
+      }
+    };
+    const handlePause = () => {
+      setIsPlaying(false);
+      if (bgAudioRef.current) bgAudioRef.current.pause();
+    };
 
     const handleError = () => {
       setHasError(true);
@@ -90,6 +187,7 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
     video.addEventListener('waiting', handleWaiting);
     video.addEventListener('playing', handlePlaying);
+    video.addEventListener('pause', handlePause);
     video.addEventListener('error', handleError);
 
     return () => {
@@ -97,9 +195,10 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('playing', handlePlaying);
+      video.removeEventListener('pause', handlePause);
       video.removeEventListener('error', handleError);
     };
-  }, [onError, onTimeUpdate]);
+  }, [onError, onTimeUpdate, editorData?.completedCuts, editorData?.audio]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -208,15 +307,38 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
         </div>
       )}
 
+      {/* BACKGROUND AUDIO */}
+      {editorData?.audio?.enabled && editorData?.audio?.url && (
+        <audio ref={bgAudioRef} src={editorData.audio.url} loop className="hidden" />
+      )}
+
       {/* TIMED TEXT OVERLAYS */}
       {editorData?.textOverlays?.map((text) => {
         const isVisible = currentTime >= text.start && currentTime <= text.end;
         if (!isVisible) return null;
+
+        let styleClasses = "font-black drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]";
+        if (text.stylePreset === 'subtitle' || !text.stylePreset) {
+          styleClasses = "bg-black/80 backdrop-blur-md px-4 py-1.5 rounded-xl border border-white/20 shadow-2xl font-bold tracking-wide";
+        } else if (text.stylePreset === 'lowerThird') {
+          styleClasses = "bg-slate-950/90 backdrop-blur-md px-5 py-2.5 rounded-r-xl border-l-4 border-blue-500 shadow-2xl font-semibold";
+        } else if (text.stylePreset === 'badge') {
+          styleClasses = "bg-blue-600 text-white px-4 py-1.5 rounded-full font-bold shadow-lg ring-2 ring-white/30";
+        } else if (text.stylePreset === 'minimal') {
+          styleClasses = "font-black drop-shadow-[0_4px_8px_rgba(0,0,0,0.95)]";
+        }
+
         return (
           <div
             key={text.id}
-            style={{ left: `${text.x}%`, top: `${text.y}%`, color: text.color, fontSize: `${text.size}px`, transform: `translate(-50%, -50%) rotate(${text.rotation || 0}deg)` }}
-            className="absolute font-black drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] pointer-events-none z-10"
+            style={{ 
+              left: `${text.x}%`, 
+              top: `${text.y}%`, 
+              color: text.color || '#ffffff', 
+              fontSize: `${text.size || 28}px`, 
+              transform: `translate(-50%, -50%) rotate(${text.rotation || 0}deg)` 
+            }}
+            className={`absolute pointer-events-none z-10 select-none transition-all ${styleClasses}`}
           >
             {text.text}
           </div>
@@ -227,14 +349,24 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
       {editorData?.mediaOverlays?.map((media) => {
         const isVisible = currentTime >= media.start && currentTime <= media.end;
         if (!isVisible) return null;
+        const opacity = media.opacity !== undefined ? media.opacity / 100 : 1;
         return (
           <div
             key={media.id}
-            style={{ left: `${media.x}%`, top: `${media.y}%`, transform: `translate(-50%, -50%) scale(${media.scale / 100}) rotate(${media.rotation || 0}deg)` }}
-            className="absolute pointer-events-none z-10"
+            style={{ 
+              left: `${media.x}%`, 
+              top: `${media.y}%`, 
+              transform: `translate(-50%, -50%) scale(${(media.scale || 100) / 100}) rotate(${media.rotation || 0}deg)`,
+              opacity
+            }}
+            className="absolute pointer-events-none z-10 select-none transition-all"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={media.url} alt="Overlay" className="w-[150px] h-[150px] object-cover pointer-events-none rounded-lg" />
+            <img 
+              src={media.url} 
+              alt="Overlay" 
+              className={`w-[150px] h-[150px] object-cover pointer-events-none ${media.rounded !== false ? 'rounded-2xl shadow-2xl border border-white/20' : 'rounded-none shadow-lg'}`} 
+            />
           </div>
         );
       })}

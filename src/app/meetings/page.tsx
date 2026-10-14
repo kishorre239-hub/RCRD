@@ -9,7 +9,7 @@ import {
   Bookmark, Plus, Copy, Check, Clock, FileText,
   Trash2, Calendar,
   Eye, EyeOff, Share2, Mail,
-  Monitor, Play, Radio,
+  Monitor, Play,
   HelpCircle, CheckCircle2, ChevronRight
 } from "lucide-react";
 
@@ -330,7 +330,7 @@ export default function MeetingsPage() {
           <div>
             <h3 className="px-3.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-2">Workspace Admin</h3>
             <nav className="space-y-1.5">
-              <SidebarItem icon={<Settings size={17} />} label="Manage Users" />
+              <SidebarItem icon={<Settings size={17} />} label="Manage Users" href="/settings?tab=users" />
               <SidebarItem icon={<Building size={17} />} label="Workspace Info" />
               <SidebarItem icon={<Shield size={17} />} label="Billing & Plans" href="/settings?tab=billing" />
             </nav>

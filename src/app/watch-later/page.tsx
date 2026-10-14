@@ -274,7 +274,7 @@ export default function WatchLaterPage() {
           <div className="mt-10">
             <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Workspace Admin</h3>
             <nav className="space-y-1">
-              <SidebarItem icon={<Settings size={18} />} label="Manage Users" />
+              <SidebarItem icon={<Settings size={18} />} label="Manage Users" href="/settings?tab=users" />
               <SidebarItem icon={<Building size={18} />} label="Workspace Info" />
               <SidebarItem icon={<Shield size={18} />} label="Billing & Plans" href="/settings?tab=billing" />
             </nav>

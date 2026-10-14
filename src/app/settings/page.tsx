@@ -12,6 +12,7 @@ import {
   saveDriveFolder, getDriveFolder, API_URL 
 } from '@/lib/api';
 import BillingTab from '@/components/BillingTab';
+import UsersTab from '@/components/UsersTab';
 
 interface PushDeviceSetting {
   email?: boolean;
@@ -382,13 +383,28 @@ export default function SettingsPage() {
           <div className="mt-10">
             <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Workspace Admin</h3>
             <nav className="space-y-1">
-              <SidebarItem icon={<Settings size={18} />} label="Manage Users" href="/workspace" />
+              <SidebarItem 
+                icon={<Settings size={18} />} 
+                label="Manage Users" 
+                active={activeTab === 'users'} 
+                onClick={() => {
+                  setActiveTab('users');
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/settings?tab=users');
+                  }
+                }}
+              />
               <SidebarItem icon={<Building size={18} />} label="Workspace Info" />
               <SidebarItem 
                 icon={<Shield size={18} />} 
                 label="Billing & Plans" 
                 active={activeTab === 'billing'}
-                onClick={() => setActiveTab('billing')}
+                onClick={() => {
+                  setActiveTab('billing');
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/settings?tab=billing');
+                  }
+                }}
               />
             </nav>
           </div>
@@ -420,60 +436,71 @@ export default function SettingsPage() {
           <div className="flex items-center gap-4 ml-4">
             <button 
               onClick={() => setActiveTab('billing')}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-[13px] font-bold px-4 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 hover:shadow-md cursor-pointer"
+              className="bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-bold px-4 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
             >
               <span>Upgrade</span>
               <span className="bg-white/20 text-[10px] px-1.5 py-0.5 rounded font-mono font-bold">PRO</span>
             </button>
             <button className="text-slate-500 hover:text-slate-700 w-8 h-8 flex items-center justify-center border border-slate-300 rounded-full">?</button>
             <button className="text-slate-500 hover:text-slate-700"><Bell size={20} /></button>
-            <div className="w-8 h-8 bg-[#0E71EB] text-white font-bold text-[12px] flex items-center justify-center rounded-full">HR</div>
+            <div className="w-8 h-8 bg-blue-600 text-white font-bold text-[12px] flex items-center justify-center rounded-full">HR</div>
           </div>
         </header>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar px-8 py-6 min-h-0">
-          <div className="max-w-[900px]">
+          <div className="max-w-[1000px]">
             {/* Title */}
             <div className="mb-6">
-              <p className="text-[13px] text-slate-500 mb-1">Hari Kishore Reddy</p>
-              <h1 className="text-[32px] font-bold text-slate-900 leading-tight">Personal Settings</h1>
+              <p className="text-[13px] text-slate-500 mb-1">
+                {activeTab === 'users' ? 'harikishorereddy9908' : 'Hari Kishore Reddy'}
+              </p>
+              <h1 className="text-[32px] font-bold text-slate-900 leading-tight">
+                {activeTab === 'users' ? 'Users & groups' : 'Personal Settings'}
+              </h1>
             </div>
 
-            {/* Banner (Restored) */}
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <Info size={18} className="text-slate-600" />
-                <p className="text-[14px] text-slate-700">Your profile is linked to RCRD. To edit your info, visit your profile on RCRD.</p>
-              </div>
-              <button className="bg-slate-200 hover:bg-slate-300 text-slate-800 text-[13px] font-bold px-4 py-1.5 rounded transition-colors">
-                Learn more
-              </button>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex items-center gap-6 border-b border-slate-200 mb-8 overflow-x-auto">
-              {[
-                { id: "my-account", label: "My account" },
-                { id: "billing", label: "Billing & Plans 💳" },
-                { id: "meeting-recordings", label: "Meeting recordings" },
-                { id: "push-notifications", label: "Push notifications" },
-                { id: "integrations", label: "Integrations" },
-                { id: "quick-record", label: "Quick record" },
-                { id: "keyboard-shortcuts", label: "Keyboard shortcuts" }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`pb-3 text-[14px] font-medium whitespace-nowrap border-b-2 transition-colors ${
-                    activeTab === tab.id 
-                      ? 'border-blue-600 text-blue-600 font-bold' 
-                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
-                  }`}
-                >
-                  {tab.label}
+            {/* Banner (only for personal settings, not when viewing users & groups) */}
+            {activeTab !== 'users' && (
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <Info size={18} className="text-slate-600" />
+                  <p className="text-[14px] text-slate-700">Your profile is linked to RCRD. To edit your info, visit your profile on RCRD.</p>
+                </div>
+                <button className="bg-slate-200 hover:bg-slate-300 text-slate-800 text-[13px] font-bold px-4 py-1.5 rounded transition-colors">
+                  Learn more
                 </button>
-              ))}
-            </div>
+              </div>
+            )}
+
+            {/* Tabs (only when personal settings) */}
+            {activeTab !== 'users' && (
+              <div className="flex items-center gap-6 border-b border-slate-200 mb-8 overflow-x-auto">
+                {[
+                  { id: "my-account", label: "My account" },
+                  { id: "billing", label: "Billing & Plans 💳" },
+                  { id: "meeting-recordings", label: "Meeting recordings" },
+                  { id: "push-notifications", label: "Push notifications" },
+                  { id: "integrations", label: "Integrations" },
+                  { id: "quick-record", label: "Quick record" },
+                  { id: "keyboard-shortcuts", label: "Keyboard shortcuts" }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`pb-3 text-[14px] font-medium whitespace-nowrap border-b-2 transition-colors ${
+                      activeTab === tab.id 
+                        ? 'border-blue-600 text-blue-600 font-bold' 
+                        : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Tab Content: Users Management */}
+            {activeTab === "users" && <UsersTab />}
 
             {/* Tab Content */}
             {activeTab === "my-account" && (

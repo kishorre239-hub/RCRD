@@ -64,7 +64,8 @@ export default function BillingTab() {
   const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
       if (typeof window === "undefined") return resolve(false);
-      if ((window as any).Razorpay) return resolve(true);
+      const win = window as Window & { Razorpay?: unknown };
+      if (win.Razorpay) return resolve(true);
       const script = document.createElement("script");
       script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.async = true;
@@ -111,7 +112,7 @@ export default function BillingTab() {
         name: "Geonixa Loom SaaS",
         description: `Upgrade to ${orderRes.planName}`,
         order_id: orderRes.orderId,
-        handler: async function (response: any) {
+        handler: async function (response: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) {
           try {
             const verifyRes = await verifyBillingPayment({
               razorpay_order_id: response.razorpay_order_id,
@@ -125,10 +126,11 @@ export default function BillingTab() {
               text: `🎉 Payment successful! You are now subscribed to ${verifyRes.plan.name}.`
             });
             await fetchBilling();
-          } catch (err: any) {
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Payment verification failed";
             setBillingMessage({
               type: "error",
-              text: err.message || "Payment verification failed"
+              text: message
             });
           }
         },
@@ -141,19 +143,21 @@ export default function BillingTab() {
         },
       };
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on("payment.failed", function (resp: any) {
+      const win = window as unknown as { Razorpay: new (opts: typeof options) => { on: (event: string, cb: (resp: { error?: { description?: string } }) => void) => void; open: () => void } };
+      const rzp = new win.Razorpay(options);
+      rzp.on("payment.failed", function (resp: { error?: { description?: string } }) {
         setBillingMessage({
           type: "error",
           text: resp.error?.description || "Payment was cancelled or failed"
         });
       });
       rzp.open();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Upgrade plan error:", err);
+      const message = err instanceof Error ? err.message : "Failed to initialize payment";
       setBillingMessage({
         type: "error",
-        text: err.message || "Failed to initialize payment"
+        text: message
       });
     } finally {
       setUpgradingPlanId(null);

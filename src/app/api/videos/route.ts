@@ -77,6 +77,7 @@ export async function GET(req: Request) {
         directThumbnailUrl: (v as any).thumbnailUrl || v.thumbnailLink || existing.directThumbnailUrl || '',
         duration: (v.duration && v.duration > 0) ? v.duration : (existing.duration || 0),
         status: v.status || existing.status || 'READY',
+        editorData: v.editorData || existing.editorData || null,
       });
     }
 

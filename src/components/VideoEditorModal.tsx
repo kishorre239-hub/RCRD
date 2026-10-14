@@ -74,50 +74,54 @@ const PRESET_WATERMARK_IMAGES = [
   { id: 'badge', label: 'LIVE Broadcast Badge', url: 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=160&h=160&fit=crop&q=80' },
 ];
 
-// Hand-drawn curved arrow with action burst rays matching user reference (Image 5)
-function CurvedTutorialArrow({ 
+// Directional pointing arrow with bouncing keyframe animations pointing to specific UI features
+function AnimatedPointingArrow({ 
+  direction = 'left',
   className = '', 
-  flip = false,
-  rotation = 0,
   strokeColor = '#2563eb'
 }: { 
+  direction?: 'left' | 'up' | 'down' | 'right';
   className?: string; 
-  flip?: boolean; 
-  rotation?: number;
   strokeColor?: string;
 }) {
   return (
-    <div 
-      style={{ transform: `rotate(${rotation}deg) ${flip ? 'scaleX(-1)' : ''}` }} 
-      className={`relative inline-flex items-center justify-center animate-bounce duration-1000 ${className}`}
-    >
-      <svg 
-        viewBox="0 0 140 100" 
-        fill="none" 
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-24 h-18 filter drop-shadow-[0_4px_12px_rgba(37,99,235,0.4)]"
-      >
-        {/* Curled trajectory loop */}
-        <path 
-          d="M20 75 C 32 82, 45 45, 32 25 C 20 10, 8 38, 35 58 C 65 80, 95 45, 120 22" 
-          stroke={strokeColor} 
-          strokeWidth="4" 
-          strokeLinecap="round" 
-          strokeLinejoin="round"
-        />
-        {/* Arrow head */}
-        <path 
-          d="M102 20 L122 21 L118 40" 
-          stroke={strokeColor} 
-          strokeWidth="4" 
-          strokeLinecap="round" 
-          strokeLinejoin="round" 
-        />
-        {/* Action bursts */}
-        <path d="M116 8 L122 2" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" />
-        <path d="M128 14 L136 10" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" />
-        <path d="M130 28 L138 31" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" />
-      </svg>
+    <div className={`relative inline-flex items-center justify-center select-none ${className}`}>
+      <style>{`
+        @keyframes arrowBounceLeft {
+          0%, 100% { transform: translateX(0) scale(1); }
+          50% { transform: translateX(-10px) scale(1.05); }
+        }
+        @keyframes arrowBounceUp {
+          0%, 100% { transform: translateY(0) scale(1); }
+          50% { transform: translateY(-10px) scale(1.05); }
+        }
+        .anim-arrow-left { animation: arrowBounceLeft 1s ease-in-out infinite; }
+        .anim-arrow-up { animation: arrowBounceUp 1s ease-in-out infinite; }
+      `}</style>
+
+      {direction === 'left' && (
+        <div className="anim-arrow-left flex items-center">
+          <svg viewBox="0 0 120 70" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-24 h-14 filter drop-shadow-[0_4px_12px_rgba(37,99,235,0.45)]">
+            <path d="M110 50 C 90 65, 70 60, 50 35 C 38 20, 25 25, 14 35" stroke={strokeColor} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M26 22 L10 35 L26 48" stroke={strokeColor} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M8 20 L3 15" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" />
+            <path d="M4 35 L-2 35" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" />
+            <path d="M8 50 L3 55" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+        </div>
+      )}
+
+      {direction === 'up' && (
+        <div className="anim-arrow-up flex flex-col items-center">
+          <svg viewBox="0 0 70 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-14 h-24 filter drop-shadow-[0_4px_12px_rgba(37,99,235,0.45)]">
+            <path d="M50 110 C 65 90, 60 70, 35 50 C 20 38, 25 25, 35 14" stroke={strokeColor} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M22 26 L35 10 L48 26" stroke={strokeColor} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M20 8 L15 3" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" />
+            <path d="M35 4 L35 -2" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" />
+            <path d="M50 8 L55 3" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round" />
+          </svg>
+        </div>
+      )}
     </div>
   );
 }
@@ -482,6 +486,10 @@ export default function VideoEditorModal({
     setTextOverlays([...textOverlays, newText]);
     setSelectedTextId(newText.id);
     setSelectedMediaId(null);
+    if (videoRef.current) {
+      videoRef.current.currentTime = start;
+      setCurrentTime(start);
+    }
   };
 
   // MEDIA ACTIONS
@@ -504,6 +512,10 @@ export default function VideoEditorModal({
     setMediaOverlays([...mediaOverlays, newMedia]);
     setSelectedMediaId(newMedia.id);
     setSelectedTextId(null);
+    if (videoRef.current) {
+      videoRef.current.currentTime = start;
+      setCurrentTime(start);
+    }
   };
 
   const handlePointerDown = (e: React.PointerEvent, id: string, type: 'text' | 'media') => {
@@ -512,10 +524,20 @@ export default function VideoEditorModal({
       setSelectedTextId(id);
       setSelectedMediaId(null);
       setActiveTab('text');
+      const item = textOverlays.find(t => t.id === id);
+      if (item && videoRef.current) {
+        videoRef.current.currentTime = item.start;
+        setCurrentTime(item.start);
+      }
     } else {
       setSelectedMediaId(id);
       setSelectedTextId(null);
       setActiveTab('media');
+      const item = mediaOverlays.find(m => m.id === id);
+      if (item && videoRef.current) {
+        videoRef.current.currentTime = item.start;
+        setCurrentTime(item.start);
+      }
     }
     setDraggingOverlay({ id, type });
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -609,6 +631,9 @@ export default function VideoEditorModal({
     // 1. Save locally
     try {
       localStorage.setItem(`video-edits-${videoId}`, JSON.stringify(editorData));
+      const meta = JSON.parse(localStorage.getItem(`video-meta-${videoId}`) || '{}');
+      meta.editorData = editorData;
+      localStorage.setItem(`video-meta-${videoId}`, JSON.stringify(meta));
     } catch (e) {
       console.warn('LocalStorage save failed:', e);
     }
@@ -630,7 +655,7 @@ export default function VideoEditorModal({
         },
         body: JSON.stringify({ 
           title: videoTitle,
-          editorData: JSON.stringify(editorData)
+          editorData: editorData
         })
       });
     } catch (err) {
@@ -688,9 +713,12 @@ export default function VideoEditorModal({
             </div>
           ) : (
             <button 
+              id="editor-save-btn"
               onClick={handleSaveChanges}
               disabled={isSaving}
-              className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-6 py-2.5 rounded-lg text-sm flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-75 cursor-pointer"
+              className={`bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-6 py-2.5 rounded-lg text-sm flex items-center gap-2 shadow-md shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-75 cursor-pointer ${
+                showTutorial && tutorialStep === 4 ? 'ring-4 ring-blue-400 ring-offset-2 animate-pulse' : ''
+              }`}
             >
               {isSaving ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -709,6 +737,7 @@ export default function VideoEditorModal({
         {/* Left Sidebar (Tools) */}
         <div className="w-20 border-r border-blue-100 bg-white flex flex-col items-center py-6 gap-4 shadow-sm z-10 select-none">
           <button 
+            id="editor-tab-overview"
             onClick={() => { setActiveTab('select'); setSelectedTextId(null); setSelectedMediaId(null); }}
             className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all ${
               activeTab === 'select'
@@ -721,8 +750,11 @@ export default function VideoEditorModal({
           </button>
           
           <button 
+            id="editor-tab-cut"
             onClick={() => { setActiveTab('cut'); initiateNewCut(); }}
-            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all ${
+            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all relative ${
+              showTutorial && tutorialStep === 0 ? 'ring-4 ring-rose-400 ring-offset-2 z-30' : ''
+            } ${
               activeTab === 'cut' 
                 ? 'text-red-600 bg-red-50 border-2 border-red-200 shadow-sm font-bold' 
                 : 'text-slate-500 hover:text-red-500 hover:bg-red-50'
@@ -738,8 +770,11 @@ export default function VideoEditorModal({
           </button>
           
           <button 
+            id="editor-tab-text"
             onClick={() => { setActiveTab('text'); if (!textOverlays.length) handleAddText(); }}
-            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all ${
+            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all relative ${
+              showTutorial && tutorialStep === 1 ? 'ring-4 ring-indigo-400 ring-offset-2 z-30' : ''
+            } ${
               activeTab === 'text' 
                 ? 'text-indigo-600 bg-indigo-50 border-2 border-indigo-200 shadow-sm font-bold' 
                 : 'text-slate-500 hover:text-indigo-600 hover:bg-indigo-50'
@@ -755,8 +790,11 @@ export default function VideoEditorModal({
           </button>
 
           <button 
+            id="editor-tab-media"
             onClick={() => { setActiveTab('media'); if (!mediaOverlays.length) handleAddMedia(); }}
-            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all ${
+            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all relative ${
+              showTutorial && tutorialStep === 2 ? 'ring-4 ring-purple-400 ring-offset-2 z-30' : ''
+            } ${
               activeTab === 'media' 
                 ? 'text-purple-600 bg-purple-50 border-2 border-purple-200 shadow-sm font-bold' 
                 : 'text-slate-500 hover:text-purple-600 hover:bg-purple-50'
@@ -772,8 +810,11 @@ export default function VideoEditorModal({
           </button>
           
           <button 
+            id="editor-tab-audio"
             onClick={() => setActiveTab('audio')}
-            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all ${
+            className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all relative ${
+              showTutorial && tutorialStep === 3 ? 'ring-4 ring-emerald-400 ring-offset-2 z-30' : ''
+            } ${
               activeTab === 'audio' 
                 ? 'text-emerald-600 bg-emerald-50 border-2 border-emerald-200 shadow-sm font-bold' 
                 : 'text-slate-500 hover:text-emerald-600 hover:bg-emerald-50'
@@ -838,7 +879,7 @@ export default function VideoEditorModal({
 
             {/* TIMED TEXT OVERLAYS */}
             {textOverlays.map(text => {
-              const isVisible = currentTime >= text.start && currentTime <= text.end;
+              const isVisible = (currentTime >= text.start && currentTime <= text.end) || (selectedTextId === text.id && activeTab === 'text');
               if (!isVisible) return null;
 
               const isSelected = selectedTextId === text.id;
@@ -970,14 +1011,13 @@ export default function VideoEditorModal({
                       }}
                     />
                   )}
-                  {text.text}
                 </div>
               );
             })}
 
             {/* TIMED MEDIA OVERLAYS */}
             {mediaOverlays.map(media => {
-              const isVisible = currentTime >= media.start && currentTime <= media.end;
+              const isVisible = (currentTime >= media.start && currentTime <= media.end) || (selectedMediaId === media.id && activeTab === 'media');
               if (!isVisible) return null;
 
               const isSelected = selectedMediaId === media.id;
@@ -1465,25 +1505,33 @@ export default function VideoEditorModal({
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="space-y-1.5">
-                      <button
-                        type="button"
-                        onClick={confirmCut}
-                        className="w-full py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                      >
-                        <Scissors className="w-4 h-4" />
-                        ✂️ Cut Out & Remove This Section
-                      </button>
+                    {/* CapCut / InShot Style Actions: Keep Selected Range as primary */}
+                    <div className="space-y-2 pt-1">
                       <button
                         type="button"
                         onClick={trimToActiveSelection}
-                        className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
-                        title="Keeps only this part and trims away the rest of the video"
+                        className="w-full py-3 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex flex-col items-center justify-center gap-0.5 shadow-md shadow-emerald-600/20 transition-all active:scale-98 cursor-pointer border border-emerald-500"
+                        title="Keeps only this selected portion and cuts out everything before and after"
                       >
-                        <Check className="w-3.5 h-3.5" />
-                        Keep Only This Part (Trim Video)
+                        <div className="flex items-center gap-1.5 text-sm">
+                          <Check className="w-4 h-4 stroke-[3]" />
+                          <span>✂️ Keep Only This Range ({formatTimeStr(activeCut.start)} → {formatTimeStr(activeCut.end)})</span>
+                        </div>
+                        <span className="text-[10px] font-medium text-emerald-100">
+                          Keeps this clip & cuts out remaining parts (00:00 to {formatTimeStr(activeCut.start)} & {formatTimeStr(activeCut.end)} to End)
+                        </span>
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={confirmCut}
+                        className="w-full py-2 px-3 bg-white hover:bg-rose-50 text-rose-700 hover:text-rose-800 border border-rose-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                        title="Cuts out and deletes only this selected section"
+                      >
+                        <Scissors className="w-3.5 h-3.5 text-rose-500" />
+                        <span>❌ Delete This Range Instead (Cut Out {formatTimeStr(activeCut.start)} → {formatTimeStr(activeCut.end)})</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={cancelCut}
@@ -1892,7 +1940,13 @@ export default function VideoEditorModal({
                     textOverlays.map(text => (
                       <div 
                         key={text.id}
-                        onClick={() => setSelectedTextId(text.id)}
+                        onClick={() => {
+                          setSelectedTextId(text.id);
+                          if (videoRef.current) {
+                            videoRef.current.currentTime = text.start;
+                            setCurrentTime(text.start);
+                          }
+                        }}
                         className="p-3 bg-slate-50 hover:bg-indigo-50/60 rounded-xl border border-slate-200 cursor-pointer transition-all flex items-center justify-between"
                       >
                         <div className="truncate pr-2">
@@ -2225,7 +2279,13 @@ export default function VideoEditorModal({
                     mediaOverlays.map(media => (
                       <div 
                         key={media.id}
-                        onClick={() => setSelectedMediaId(media.id)}
+                        onClick={() => {
+                          setSelectedMediaId(media.id);
+                          if (videoRef.current) {
+                            videoRef.current.currentTime = media.start;
+                            setCurrentTime(media.start);
+                          }
+                        }}
                         className="p-3 bg-slate-50 hover:bg-purple-50/60 rounded-xl border border-slate-200 cursor-pointer transition-all flex items-center justify-between"
                       >
                         <div className="flex items-center gap-3">
@@ -2418,61 +2478,93 @@ export default function VideoEditorModal({
               })}
             </div>
 
-            {/* Active Cut handles and floating toolbar (UNCLIPPED) */}
+            {/* Active Cut handles and floating toolbar (CapCut/InShot Keep Selected Range) */}
             {activeCut && duration > 0 && (
-              <div 
-                className="absolute top-0 bottom-0 bg-red-500/30 border-t-2 border-b-2 border-red-600 z-30 shadow-lg rounded"
-                style={{ 
-                  left: `${(activeCut.start / duration) * 100}%`, 
-                  width: `${((activeCut.end - activeCut.start) / duration) * 100}%` 
-                }}
-              >
+              <>
+                {/* Visual indicator for region BEFORE selection (trimmed out if Keep Range clicked) */}
+                {activeCut.start > 0.05 && (
+                  <div 
+                    className="absolute top-0 bottom-0 bg-red-600/25 border-r-2 border-red-500 z-20 pointer-events-none rounded-l-xl overflow-hidden flex items-center justify-center"
+                    style={{ left: 0, width: `${(activeCut.start / duration) * 100}%` }}
+                  >
+                    <span className="text-[10px] font-black text-red-700 bg-white/95 px-2 py-0.5 rounded shadow-sm uppercase tracking-wider">
+                      Cut Out
+                    </span>
+                  </div>
+                )}
+
+                {/* Selected Range: GREEN/EMERALD to visually signify KEPT CLIP */}
                 <div 
-                  onMouseDown={(e) => { e.preventDefault(); setDragHandle('start'); e.stopPropagation(); }} 
-                  className="absolute -left-3 top-0 bottom-0 w-6 bg-red-600 rounded-l-md cursor-ew-resize flex items-center justify-center hover:bg-red-700 shadow-md z-40"
-                  title="Drag start handle"
+                  className="absolute top-0 bottom-0 bg-emerald-500/25 border-t-2 border-b-2 border-emerald-500 z-30 shadow-lg rounded"
+                  style={{ 
+                    left: `${(activeCut.start / duration) * 100}%`, 
+                    width: `${((activeCut.end - activeCut.start) / duration) * 100}%` 
+                  }}
                 >
-                  <div className="w-1 h-6 border-l border-r border-white/60"></div>
-                </div>
-                <div 
-                  onMouseDown={(e) => { e.preventDefault(); setDragHandle('end'); e.stopPropagation(); }} 
-                  className="absolute -right-3 top-0 bottom-0 w-6 bg-red-600 rounded-r-md cursor-ew-resize flex items-center justify-center hover:bg-red-700 shadow-md z-40"
-                  title="Drag end handle"
-                >
-                  <div className="w-1 h-6 border-l border-r border-white/60"></div>
+                  {/* Left Drag Handle */}
+                  <div 
+                    onMouseDown={(e) => { e.preventDefault(); setDragHandle('start'); e.stopPropagation(); }} 
+                    className="absolute -left-3 top-0 bottom-0 w-6 bg-emerald-600 rounded-l-md cursor-ew-resize flex items-center justify-center hover:bg-emerald-700 shadow-md z-40"
+                    title="Drag start handle"
+                  >
+                    <div className="w-1 h-6 border-l border-r border-white/80"></div>
+                  </div>
+                  {/* Right Drag Handle */}
+                  <div 
+                    onMouseDown={(e) => { e.preventDefault(); setDragHandle('end'); e.stopPropagation(); }} 
+                    className="absolute -right-3 top-0 bottom-0 w-6 bg-emerald-600 rounded-r-md cursor-ew-resize flex items-center justify-center hover:bg-emerald-700 shadow-md z-40"
+                    title="Drag end handle"
+                  >
+                    <div className="w-1 h-6 border-l border-r border-white/80"></div>
+                  </div>
+
+                  {/* Floating toolbar positioned above timeline */}
+                  <div 
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute -top-11 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-slate-900/95 backdrop-blur text-white px-2.5 py-1 rounded-xl shadow-2xl border border-slate-700 z-50 whitespace-nowrap"
+                  >
+                    <span className="text-[10px] font-mono text-emerald-300 font-bold px-1">
+                      🟢 Keep: {formatTimeStr(activeCut.start)} - {formatTimeStr(activeCut.end)}
+                    </span>
+                    <button 
+                      onClick={trimToActiveSelection} 
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer"
+                      title="Keep ONLY this section and trim everything else outside"
+                    >
+                      <Check className="w-3 h-3"/> Keep Range
+                    </button>
+                    <button 
+                      onClick={confirmCut} 
+                      className="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer"
+                      title="Delete only this section"
+                    >
+                      <Scissors className="w-3 h-3"/> Delete Section
+                    </button>
+                    <button 
+                      onClick={cancelCut} 
+                      className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded-lg text-[11px] font-medium cursor-pointer"
+                      title="Cancel selection"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
 
-                {/* Floating toolbar positioned above timeline */}
-                <div 
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute -top-11 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-slate-900/95 backdrop-blur text-white px-2 py-1 rounded-lg shadow-2xl border border-slate-700 z-50 whitespace-nowrap"
-                >
-                  <span className="text-[10px] font-mono text-red-300 font-bold px-1">
-                    {formatTimeStr(activeCut.start)} - {formatTimeStr(activeCut.end)}
-                  </span>
-                  <button 
-                    onClick={confirmCut} 
-                    className="bg-red-600 hover:bg-red-700 text-white px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer"
-                    title="Cut out and delete this section"
+                {/* Visual indicator for region AFTER selection (trimmed out if Keep Range clicked) */}
+                {activeCut.end < duration - 0.05 && (
+                  <div 
+                    className="absolute top-0 bottom-0 bg-red-600/25 border-l-2 border-red-500 z-20 pointer-events-none rounded-r-xl overflow-hidden flex items-center justify-center"
+                    style={{ 
+                      left: `${(activeCut.end / duration) * 100}%`, 
+                      width: `${((duration - activeCut.end) / duration) * 100}%` 
+                    }}
                   >
-                    <Scissors className="w-3 h-3"/> Cut Out
-                  </button>
-                  <button 
-                    onClick={trimToActiveSelection} 
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer"
-                    title="Keep ONLY this section and trim everything else"
-                  >
-                    <Check className="w-3 h-3"/> Keep Selection
-                  </button>
-                  <button 
-                    onClick={cancelCut} 
-                    className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-1.5 py-0.5 rounded text-[11px] font-medium cursor-pointer"
-                    title="Cancel selection"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
+                    <span className="text-[10px] font-black text-red-700 bg-white/95 px-2 py-0.5 rounded shadow-sm uppercase tracking-wider">
+                      Cut Out
+                    </span>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Clickable timeline area */}
@@ -2527,221 +2619,398 @@ export default function VideoEditorModal({
         </div>
       </div>
 
-      {/* INTERACTIVE VIDEO EDITING TUTORIAL WALKTHROUGH WITH REFERENCE ARROWS */}
+      {/* IN-CONTEXT INTERACTIVE TUTORIAL WITH ANIMATED POINTING ARROWS */}
       {showTutorial && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[120] pointer-events-none select-none">
+          {/* Subtle dimming backdrop that allows seeing the editor */}
           <div 
-            onClick={(e) => e.stopPropagation()}
-            className="relative bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 space-y-5 animate-in zoom-in-95 duration-200"
-          >
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={() => {
+            className="absolute inset-0 bg-slate-950/40 pointer-events-auto backdrop-blur-[1px] transition-opacity" 
+            onClick={() => {
+              if (tutorialStep < 4) {
+                setTutorialStep(s => {
+                  const next = s + 1;
+                  if (next === 1) setActiveTab('text');
+                  if (next === 2) setActiveTab('media');
+                  if (next === 3) setActiveTab('audio');
+                  if (next === 4) setActiveTab('select');
+                  return next;
+                });
+              } else {
                 setShowTutorial(false);
                 try { localStorage.setItem('rcrd_video_editor_tutorial_seen', 'true'); } catch {}
-              }}
-              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-              title="Close Tutorial"
+              }
+            }}
+          />
+
+          {/* STEP 0: CUT TOOL (Points directly at Cut button in left sidebar) */}
+          {tutorialStep === 0 && (
+            <div 
+              className="absolute left-[84px] top-[135px] flex items-center gap-2 pointer-events-auto animate-in fade-in slide-in-from-left-4 duration-300 z-[130]"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X className="w-5 h-5" />
-            </button>
+              {/* Pointing Animated Arrow pointing LEFT directly at Cut tab button */}
+              <AnimatedPointingArrow direction="left" strokeColor="#e11d48" />
 
-            {/* Header with step pill */}
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
-                Step {tutorialStep + 1} of 4
-              </span>
-              <span className="text-xs font-semibold text-slate-400">Interactive Editor Guide</span>
-            </div>
+              {/* Floating Tooltip Card */}
+              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-rose-300 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black tracking-wider uppercase bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full border border-rose-200">
+                    Step 1 of 5 • Cut & Trim
+                  </span>
+                  <button 
+                    type="button" 
+                    onClick={() => { setShowTutorial(false); try { localStorage.setItem('rcrd_video_editor_tutorial_seen', 'true'); } catch {} }}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
 
-            {/* Step 1: Timing & Duration */}
-            {tutorialStep === 0 && (
-              <>
                 <div>
-                  <h3 className="text-lg font-extrabold text-slate-900">
-                    How to Set Display Timing & Duration
+                  <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <Scissors className="w-4 h-4 text-rose-600" />
+                    CapCut-Style Cut & Trim
                   </h3>
-                  <p className="text-xs font-semibold text-blue-600 mt-0.5">
-                    Effortlessly control when text or images appear on screen
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Select the exact seconds of the video you want. Click <strong className="text-emerald-700 font-bold">&quot;Keep Only This Range&quot;</strong> to trim away everything before and after — or click <strong className="text-rose-700 font-bold">&quot;Delete Section&quot;</strong> to cut out middle pauses!
                   </p>
                 </div>
 
-                <div className="relative bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-xl p-4 border border-blue-100 flex items-center justify-between overflow-hidden min-h-[105px]">
-                  <div className="space-y-1.5 max-w-[280px]">
-                    <p className="text-xs text-slate-700 leading-relaxed font-medium">
-                      No more calculating confusing numbers! Simply pick a 1-click preset (<span className="font-bold text-slate-900">3s, 5s, 10s, Full</span>) or slide <span className="font-bold text-blue-600">Show On Screen For</span> in seconds. Click <span className="font-bold text-slate-900">Set to Now</span> to align with video playhead.
-                    </p>
+                <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-700 font-semibold space-y-1">
+                  <div className="flex items-center gap-1.5 text-emerald-700">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                    <span>Green on timeline = Clip you keep</span>
                   </div>
-                  <div className="flex flex-col items-center justify-center pl-2">
-                    <CurvedTutorialArrow rotation={25} />
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600 font-medium">
-                  Tip: Use the <span className="font-bold text-slate-800">[-1s]</span> and <span className="font-bold text-slate-800">[+1s]</span> buttons to nudge duration without moving sliders.
-                </div>
-              </>
-            )}
-
-            {/* Step 2: In Video Middle vs Floating */}
-            {tutorialStep === 1 && (
-              <>
-                <div>
-                  <h3 className="text-lg font-extrabold text-slate-900">
-                    Add Titles, Subtitles & Watermarks
-                  </h3>
-                  <p className="text-xs font-semibold text-blue-600 mt-0.5">
-                    Choose between full-screen title slides or floating subtitles
-                  </p>
-                </div>
-
-                <div className="relative bg-gradient-to-br from-slate-50 to-indigo-50/50 rounded-xl p-4 border border-indigo-100 flex items-center justify-between overflow-hidden min-h-[105px]">
-                  <div className="space-y-1.5 max-w-[280px]">
-                    <p className="text-xs text-slate-700 leading-relaxed font-medium">
-                      Choose <span className="font-bold text-slate-900">In Video Middle</span> to display a cinematic centered card with backdrop blur for section headers. Or choose <span className="font-bold text-slate-900">Floating Overlay</span> for subtitles. Drag anywhere on the video preview!
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-center justify-center pl-2">
-                    <CurvedTutorialArrow rotation={-15} strokeColor="#4f46e5" />
+                  <div className="flex items-center gap-1.5 text-rose-600">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
+                    <span>Red hatched zones = Parts cut out</span>
                   </div>
                 </div>
 
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600 font-medium">
-                  Tip: Subtitle text is cleanly bordered and shadowed so it never looks duplicated or blurry.
-                </div>
-              </>
-            )}
-
-            {/* Step 3: Cutting & Trimming */}
-            {tutorialStep === 2 && (
-              <>
-                <div>
-                  <h3 className="text-lg font-extrabold text-slate-900">
-                    Cut Out Mistakes & Trim Video
-                  </h3>
-                  <p className="text-xs font-semibold text-blue-600 mt-0.5">
-                    Remove awkward pauses or trim the start and end
-                  </p>
-                </div>
-
-                <div className="relative bg-gradient-to-br from-slate-50 to-rose-50/50 rounded-xl p-4 border border-rose-100 flex items-center justify-between overflow-hidden min-h-[105px]">
-                  <div className="space-y-1.5 max-w-[280px]">
-                    <p className="text-xs text-slate-700 leading-relaxed font-medium">
-                      Pause the video at any time. Click <span className="font-bold text-slate-900">Trim Start</span> or <span className="font-bold text-slate-900">Trim End</span> for 1-click trimming, or click <span className="font-bold text-slate-900">Create Cut Region</span> to cut a middle section.
-                    </p>
+                {/* Navigation */}
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <div className="flex items-center gap-1.5">
+                    {[0, 1, 2, 3, 4].map(idx => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setTutorialStep(idx);
+                          if (idx === 0) setActiveTab('cut');
+                          if (idx === 1) setActiveTab('text');
+                          if (idx === 2) setActiveTab('media');
+                          if (idx === 3) setActiveTab('audio');
+                          if (idx === 4) setActiveTab('select');
+                        }}
+                        className={`h-2 rounded-full transition-all cursor-pointer ${idx === 0 ? 'w-6 bg-rose-600' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
+                      />
+                    ))}
                   </div>
-                  <div className="flex flex-col items-center justify-center pl-2">
-                    <CurvedTutorialArrow rotation={65} strokeColor="#e11d48" />
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600 font-medium">
-                  Tip: Red highlighted sections on the timeline are skipped seamlessly during playback.
-                </div>
-              </>
-            )}
-
-            {/* Step 4: Save & Sync */}
-            {tutorialStep === 3 && (
-              <>
-                <div>
-                  <h3 className="text-lg font-extrabold text-slate-900">
-                    Save Changes & Instant Sync
-                  </h3>
-                  <p className="text-xs font-semibold text-blue-600 mt-0.5">
-                    Your edits immediately apply to video playback everywhere
-                  </p>
-                </div>
-
-                <div className="relative bg-gradient-to-br from-slate-50 to-emerald-50/50 rounded-xl p-4 border border-emerald-100 flex items-center justify-between overflow-hidden min-h-[105px]">
-                  <div className="space-y-1.5 max-w-[280px]">
-                    <p className="text-xs text-slate-700 leading-relaxed font-medium">
-                      When you are done editing, click the blue <span className="font-bold text-blue-600">Save Changes</span> button in the top right. Your title slides, cuts, watermarks, and background audio will automatically play in your library and meeting recordings!
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-center justify-center pl-2">
-                    <CurvedTutorialArrow rotation={-45} strokeColor="#059669" />
-                  </div>
-                </div>
-
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] text-slate-600 font-medium">
-                  Tip: You can re-open this guide anytime by clicking <span className="font-bold text-slate-800">Tutorial & Guide</span> in the top bar.
-                </div>
-              </>
-            )}
-
-            {/* Step Progress Dots & Navigation */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-              <div className="flex items-center gap-1.5">
-                {[0, 1, 2, 3].map((idx) => (
                   <button
-                    key={idx}
                     type="button"
                     onClick={() => {
-                      setTutorialStep(idx);
-                      if (idx === 0 || idx === 1) setActiveTab('text');
-                      if (idx === 2) setActiveTab('cut');
-                      if (idx === 3) setActiveTab('select');
+                      setTutorialStep(1);
+                      setActiveTab('text');
                     }}
-                    className={`h-2 rounded-full transition-all cursor-pointer ${
-                      idx === tutorialStep 
-                        ? 'w-6 bg-blue-600' 
-                        : 'w-2 bg-slate-200 hover:bg-slate-300'
-                    }`}
-                  />
-                ))}
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  >
+                    <span>Next: Text & Subtitles</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 1: TEXT TOOL (Points directly at Text button in left sidebar) */}
+          {tutorialStep === 1 && (
+            <div 
+              className="absolute left-[84px] top-[210px] flex items-center gap-2 pointer-events-auto animate-in fade-in slide-in-from-left-4 duration-300 z-[130]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <AnimatedPointingArrow direction="left" strokeColor="#4f46e5" />
+
+              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-indigo-300 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black tracking-wider uppercase bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full border border-indigo-200">
+                    Step 2 of 5 • Subtitles & Slides
+                  </span>
+                  <button 
+                    type="button" 
+                    onClick={() => { setShowTutorial(false); try { localStorage.setItem('rcrd_video_editor_tutorial_seen', 'true'); } catch {} }}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <Type className="w-4 h-4 text-indigo-600" />
+                    Subtitles & In-Video Slides
+                  </h3>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Add text anywhere in the middle of your video! Choose <strong className="text-slate-900">&quot;In Video Middle&quot;</strong> for full centered title cards or <strong className="text-slate-900">&quot;Subtitle&quot;</strong> for bottom captions. Set exact appearance seconds and drag freely on preview!
+                  </p>
+                </div>
+
+                <div className="p-2.5 bg-indigo-50/70 border border-indigo-200 rounded-xl text-[11px] text-indigo-900 font-semibold">
+                  💡 Tip: Clicking on any subtitle in the list automatically jumps the playhead to that exact second so you can see and edit it live!
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <div className="flex items-center gap-1.5">
+                    {[0, 1, 2, 3, 4].map(idx => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setTutorialStep(idx);
+                          if (idx === 0) setActiveTab('cut');
+                          if (idx === 1) setActiveTab('text');
+                          if (idx === 2) setActiveTab('media');
+                          if (idx === 3) setActiveTab('audio');
+                          if (idx === 4) setActiveTab('select');
+                        }}
+                        className={`h-2 rounded-full transition-all cursor-pointer ${idx === 1 ? 'w-6 bg-indigo-600' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setTutorialStep(0); setActiveTab('cut'); }}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTutorialStep(2); setActiveTab('media'); }}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <span>Next: Media & Logos</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: MEDIA TOOL (Points directly at Media button in left sidebar) */}
+          {tutorialStep === 2 && (
+            <div 
+              className="absolute left-[84px] top-[285px] flex items-center gap-2 pointer-events-auto animate-in fade-in slide-in-from-left-4 duration-300 z-[130]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <AnimatedPointingArrow direction="left" strokeColor="#9333ea" />
+
+              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-purple-300 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black tracking-wider uppercase bg-purple-100 text-purple-700 px-2.5 py-0.5 rounded-full border border-purple-200">
+                    Step 3 of 5 • Photos & Stickers
+                  </span>
+                  <button 
+                    type="button" 
+                    onClick={() => { setShowTutorial(false); try { localStorage.setItem('rcrd_video_editor_tutorial_seen', 'true'); } catch {} }}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <ImageIcon className="w-4 h-4 text-purple-600" />
+                    Image, Logo & Clip Overlays
+                  </h3>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Upload your company logo, photos, or video clips to appear at specific seconds. Choose corner watermark or full middle slide, adjust scale and transparency, and drag anywhere!
+                  </p>
+                </div>
+
+                <div className="p-2.5 bg-purple-50/70 border border-purple-200 rounded-xl text-[11px] text-purple-900 font-semibold">
+                  💡 Tip: Use the Quick Presets (3s, 5s, 10s, Full) to effortlessly set how long images stay on screen!
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <div className="flex items-center gap-1.5">
+                    {[0, 1, 2, 3, 4].map(idx => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setTutorialStep(idx);
+                          if (idx === 0) setActiveTab('cut');
+                          if (idx === 1) setActiveTab('text');
+                          if (idx === 2) setActiveTab('media');
+                          if (idx === 3) setActiveTab('audio');
+                          if (idx === 4) setActiveTab('select');
+                        }}
+                        className={`h-2 rounded-full transition-all cursor-pointer ${idx === 2 ? 'w-6 bg-purple-600' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setTutorialStep(1); setActiveTab('text'); }}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTutorialStep(3); setActiveTab('audio'); }}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <span>Next: Audio & Music</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: AUDIO TOOL (Points directly at Audio button in left sidebar) */}
+          {tutorialStep === 3 && (
+            <div 
+              className="absolute left-[84px] top-[355px] flex items-center gap-2 pointer-events-auto animate-in fade-in slide-in-from-left-4 duration-300 z-[130]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <AnimatedPointingArrow direction="left" strokeColor="#059669" />
+
+              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-emerald-300 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black tracking-wider uppercase bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                    Step 4 of 5 • Background Audio
+                  </span>
+                  <button 
+                    type="button" 
+                    onClick={() => { setShowTutorial(false); try { localStorage.setItem('rcrd_video_editor_tutorial_seen', 'true'); } catch {} }}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <Music className="w-4 h-4 text-emerald-600" />
+                    Background Music & Sound
+                  </h3>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Add soothing background music or upload your own narration track. Adjust track volume and optionally mute original camera audio with one toggle!
+                  </p>
+                </div>
+
+                <div className="p-2.5 bg-emerald-50/70 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 font-semibold">
+                  💡 Tip: The music automatically loops and syncs seamlessly with cuts and video playback!
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <div className="flex items-center gap-1.5">
+                    {[0, 1, 2, 3, 4].map(idx => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setTutorialStep(idx);
+                          if (idx === 0) setActiveTab('cut');
+                          if (idx === 1) setActiveTab('text');
+                          if (idx === 2) setActiveTab('media');
+                          if (idx === 3) setActiveTab('audio');
+                          if (idx === 4) setActiveTab('select');
+                        }}
+                        className={`h-2 rounded-full transition-all cursor-pointer ${idx === 3 ? 'w-6 bg-emerald-600' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { setTutorialStep(2); setActiveTab('media'); }}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setTutorialStep(4); setActiveTab('select'); }}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <span>Next: Save Changes</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: SAVE CHANGES (Points directly UP at Save button in top right header) */}
+          {tutorialStep === 4 && (
+            <div 
+              className="absolute right-6 top-[68px] flex flex-col items-end gap-2 pointer-events-auto animate-in fade-in slide-in-from-top-4 duration-300 z-[130]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="pr-12">
+                <AnimatedPointingArrow direction="up" strokeColor="#2563eb" />
               </div>
 
-              {/* Navigation Actions */}
-              <div className="flex items-center gap-2">
-                {tutorialStep > 0 && (
+              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-blue-400 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black tracking-wider uppercase bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-200">
+                    Step 5 of 5 • Cloud & Local Save
+                  </span>
+                  <button 
+                    type="button" 
+                    onClick={() => { setShowTutorial(false); try { localStorage.setItem('rcrd_video_editor_tutorial_seen', 'true'); } catch {} }}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-1.5">
+                    <Download className="w-4 h-4 text-blue-600" />
+                    Save Changes Instantly
+                  </h3>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    When you are done editing, click this blue <strong className="text-blue-600 font-bold">&quot;Save Changes&quot;</strong> button! All your title slides, cuts, subtitles, and background audio will automatically persist to cloud and local storage and play everywhere!
+                  </p>
+                </div>
+
+                <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-xl text-[11px] text-blue-900 font-semibold">
+                  🎉 You are now ready to create high-impact videos like in CapCut and InShot!
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => { setTutorialStep(3); setActiveTab('audio'); }}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold cursor-pointer"
+                  >
+                    Back
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
-                      const prevStep = tutorialStep - 1;
-                      setTutorialStep(prevStep);
-                      if (prevStep === 0 || prevStep === 1) setActiveTab('text');
-                      if (prevStep === 2) setActiveTab('cut');
-                      if (prevStep === 3) setActiveTab('select');
-                    }}
-                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" /> Back
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (tutorialStep < 3) {
-                      const nextStep = tutorialStep + 1;
-                      setTutorialStep(nextStep);
-                      if (nextStep === 0 || nextStep === 1) setActiveTab('text');
-                      if (nextStep === 2) setActiveTab('cut');
-                      if (nextStep === 3) setActiveTab('select');
-                    } else {
                       setShowTutorial(false);
                       try { localStorage.setItem('rcrd_video_editor_tutorial_seen', 'true'); } catch {}
-                    }
-                  }}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                >
-                  {tutorialStep < 3 ? (
-                    <>
-                      <span>Next Step</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </>
-                  ) : (
-                    <>
-                      <span>Got It, Let&apos;s Edit!</span>
-                      <Check className="w-3.5 h-3.5" />
-                    </>
-                  )}
-                </button>
+                    }}
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition-all cursor-pointer"
+                  >
+                    <span>Start Editing Now 🚀</span>
+                    <Check className="w-4 h-4 stroke-[3]" />
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

@@ -140,8 +140,14 @@ export async function PUT(
       saveBackupVideoMeta(id, { courseId: body.courseId });
     }
     if (body.editorData !== undefined) {
-      updateFields.editorData = body.editorData;
-      saveBackupVideoMeta(id, { editorData: body.editorData });
+      let parsedEditorData = body.editorData;
+      if (typeof parsedEditorData === 'string') {
+        try {
+          parsedEditorData = JSON.parse(parsedEditorData);
+        } catch {}
+      }
+      updateFields.editorData = parsedEditorData;
+      saveBackupVideoMeta(id, { editorData: parsedEditorData });
     }
 
     // Determine the target Google Drive file ID to update

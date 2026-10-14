@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
-import { deleteDriveFile, getFileMetadata, cleanVideoTitle } from '@/lib/server/drive';
+import { deleteDriveFile, getFileMetadata, cleanVideoTitle, renameDriveFile } from '@/lib/server/drive';
 import { Video } from '@/lib/server/types';
 import { ObjectId } from 'mongodb';
 
@@ -41,6 +41,8 @@ export async function GET(
         ...video,
         id: vidId,
         title: cleanVideoTitle(video.title, video.createdAt),
+        views: video.views || 0,
+        comments: video.comments || [],
         duration,
         thumbnailUrl: `/api/videos/${vidId}/thumbnail`,
         thumbnailLink: `/api/videos/${vidId}/thumbnail`,
@@ -104,9 +106,22 @@ export async function PUT(
     let video = await videosCol.findOne(filter);
 
     const updateFields: any = { updatedAt: Date.now() };
-    if (body.title !== undefined) updateFields.title = body.title;
+    const newTitle = typeof body.title === 'string' ? body.title.trim() : undefined;
+    if (newTitle !== undefined) updateFields.title = newTitle;
     if (body.courseId !== undefined) updateFields.courseId = body.courseId;
     if (body.editorData !== undefined) updateFields.editorData = body.editorData;
+
+    // Determine the target Google Drive file ID to update
+    const targetDriveFileId = video?.driveFileId || id;
+
+    // If title changed and Google Drive file exists, update Drive file name too
+    if (newTitle && targetDriveFileId && !targetDriveFileId.startsWith('local:')) {
+      try {
+        await renameDriveFile(targetDriveFileId, newTitle);
+      } catch (driveErr) {
+        console.warn('Could not rename Drive file:', driveErr);
+      }
+    }
 
     if (!video) {
       // Upsert new entry for Google Drive video
@@ -114,7 +129,7 @@ export async function PUT(
       await videosCol.insertOne({
         id,
         driveFileId: id,
-        title: body.title || driveMeta?.title || 'Drive Recording',
+        title: newTitle || driveMeta?.title || 'Drive Recording',
         ownerId: userId,
         ownerEmail: user?.email || 'admin@rcrd.com',
         workspaceId: user?.workspaceId || 'default',
@@ -125,6 +140,7 @@ export async function PUT(
         status: 'READY',
         isPublic: true,
         isCompanyShared: false,
+        views: 0,
         comments: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -139,12 +155,15 @@ export async function PUT(
     return NextResponse.json({
       ...video,
       id: video?.id || video?._id?.toString() || id,
+      title: updateFields.title || video?.title || newTitle,
     });
   } catch (error: any) {
     console.error('Error updating video:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export const PATCH = PUT;
 
 export async function DELETE(
   req: Request,

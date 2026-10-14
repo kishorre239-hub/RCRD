@@ -20,7 +20,8 @@ export interface User {
 export interface VideoComment {
   id: string;
   text: string;
-  author: string;
+  author?: string;
+  userName?: string;
   authorEmail?: string;
   videoTime?: string;
   timestamp?: number;
@@ -42,6 +43,7 @@ export interface Video {
   title: string;
   courseId?: string;
   ownerId?: string;
+  ownerName?: string;
   ownerEmail?: string;
   workspaceId?: string;
   driveFileId?: string;
@@ -54,6 +56,7 @@ export interface Video {
   isPublic?: boolean;
   shareToken?: string;
   isCompanyShared?: boolean;
+  views?: number;
   editorData?: VideoEditorData | Record<string, unknown>;
   comments?: VideoComment[];
   createdAt?: number;

@@ -56,6 +56,8 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [floatingReactions, setFloatingReactions] = useState<{ id: number; emoji: string; left: number; size: number; delay: number }[]>([]);
+  const [activeReactionEmoji, setActiveReactionEmoji] = useState<string | null>(null);
 
   // Settings toggles
   const [settingsTab, setSettingsTab] = useState<'enhancements' | 'audience'>('enhancements');
@@ -82,12 +84,90 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
     setIsEditingTitle(false);
     if (!editedTitle.trim() || editedTitle === video?.title) return;
 
+    const newTitle = editedTitle.trim();
     try {
-      setVideo(prev => prev ? { ...prev, title: editedTitle } : prev);
-      await updateVideo(id, { title: editedTitle });
+      setVideo(prev => prev ? { ...prev, title: newTitle } : prev);
+
+      // Update in localStorage everywhere
+      try {
+        const savedWL = JSON.parse(localStorage.getItem('watchLaterVideos') || '[]');
+        const updatedWL = savedWL.map((v: any) => v.id === id ? { ...v, title: newTitle } : v);
+        localStorage.setItem('watchLaterVideos', JSON.stringify(updatedWL));
+
+        const meta = JSON.parse(localStorage.getItem(`video-meta-${id}`) || '{}');
+        meta.title = newTitle;
+        localStorage.setItem(`video-meta-${id}`, JSON.stringify(meta));
+      } catch {}
+
+      window.dispatchEvent(new CustomEvent('video-updated', { detail: { id, title: newTitle } }));
+
+      await updateVideo(id, { title: newTitle });
+      setToastMessage('Video title updated everywhere, including Google Drive!');
+      setTimeout(() => setToastMessage(''), 3000);
     } catch (err) {
       console.error('Failed to update title', err);
-      setVideo(prev => prev ? { ...prev, title: video?.title || '' } : prev);
+      setToastMessage('Video title updated locally');
+      setTimeout(() => setToastMessage(''), 3000);
+    }
+  };
+
+  const handleEmojiReaction = async (emoji: string) => {
+    // 1. Calculate video timestamp string
+    const minutes = Math.floor(currentVideoTime / 60);
+    const seconds = Math.floor(currentVideoTime % 60).toString().padStart(2, '0');
+    const timeStr = `${minutes}:${seconds}`;
+
+    // 2. Active button pulse
+    setActiveReactionEmoji(emoji);
+    setTimeout(() => setActiveReactionEmoji(null), 500);
+
+    // 3. Trigger floating burst of emojis over video
+    const batchId = Date.now();
+    const newReactions = Array.from({ length: 6 }).map((_, i) => ({
+      id: batchId + i,
+      emoji,
+      left: Math.floor(25 + Math.random() * 50),
+      size: Math.floor(28 + Math.random() * 24),
+      delay: i * 75,
+    }));
+
+    setFloatingReactions(prev => [...prev, ...newReactions]);
+    setTimeout(() => {
+      setFloatingReactions(prev => prev.filter(r => !newReactions.some(nr => nr.id === r.id)));
+    }, 2200);
+
+    // 4. Immediately add to comments list
+    const optimisticComment: VideoComment = {
+      id: `reaction-${Date.now()}`,
+      userId: 'user-current',
+      userName: video?.ownerName || 'You',
+      text: emoji,
+      timestamp: currentVideoTime,
+      videoTime: timeStr,
+    };
+    const updatedComments = [...(video?.comments || []), optimisticComment];
+    setVideo(prev => prev ? { ...prev, comments: updatedComments } : prev);
+
+    // 5. Update localStorage and dispatch event for Library & Watch Later cards
+    try {
+      const meta = JSON.parse(localStorage.getItem(`video-meta-${id}`) || '{}');
+      meta.comments = updatedComments;
+      localStorage.setItem(`video-meta-${id}`, JSON.stringify(meta));
+    } catch {}
+    window.dispatchEvent(new CustomEvent('video-updated', { detail: { id, comments: updatedComments } }));
+
+    // 6. Save to backend API
+    try {
+      const savedComment = await addVideoComment(id, emoji, timeStr);
+      if (savedComment && savedComment.id) {
+        setVideo(prev => {
+          if (!prev) return prev;
+          const comments = prev.comments?.map(c => c.id === optimisticComment.id ? { ...c, id: savedComment.id } : c);
+          return { ...prev, comments };
+        });
+      }
+    } catch (err) {
+      console.warn('Backend comment reaction note:', err);
     }
   };
 
@@ -113,8 +193,14 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
           
           try {
             const viewData = await incrementVideoView(id);
-            if (viewData && viewData.views !== undefined && mounted) {
+            if (viewData && typeof viewData.views === 'number' && mounted) {
                setVideo(prev => prev ? { ...prev, views: viewData.views } : null);
+               try {
+                 const meta = JSON.parse(localStorage.getItem(`video-meta-${id}`) || '{}');
+                 meta.views = viewData.views;
+                 localStorage.setItem(`video-meta-${id}`, JSON.stringify(meta));
+               } catch {}
+               window.dispatchEvent(new CustomEvent('video-updated', { detail: { id, views: viewData.views } }));
             }
           } catch {}
 
@@ -327,6 +413,23 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                   <p>Video processing or unavailable</p>
                 </div>
               )}
+
+              {/* Floating Emoji Reactions Overlay on Video */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden z-30">
+                {floatingReactions.map(r => (
+                  <div 
+                    key={r.id}
+                    className="absolute bottom-10 animate-float-up select-none filter drop-shadow-lg"
+                    style={{ 
+                      left: `${r.left}%`,
+                      fontSize: `${r.size}px`,
+                      animationDelay: `${r.delay}ms`,
+                    }}
+                  >
+                    {r.emoji}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Reactions & Comment Bar */}
@@ -349,10 +452,17 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         try {
                           const timeStr = `${Math.floor(currentVideoTime / 60)}:${Math.floor(currentVideoTime % 60).toString().padStart(2, '0')}`;
                           const newComment = await addVideoComment(id, commentText, timeStr);
+                          const updatedComments = [...(video?.comments || []), newComment];
                           setVideo(prev => {
                             if (!prev) return prev;
-                            return { ...prev, comments: [...(prev.comments || []), newComment] };
+                            return { ...prev, comments: updatedComments };
                           });
+                          try {
+                            const meta = JSON.parse(localStorage.getItem(`video-meta-${id}`) || '{}');
+                            meta.comments = updatedComments;
+                            localStorage.setItem(`video-meta-${id}`, JSON.stringify(meta));
+                          } catch {}
+                          window.dispatchEvent(new CustomEvent('video-updated', { detail: { id, comments: updatedComments } }));
                           setCommentText('');
                           setIsComposingComment(false);
                         } catch(err) {
@@ -374,10 +484,17 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                           try {
                             const timeStr = `${Math.floor(currentVideoTime / 60)}:${Math.floor(currentVideoTime % 60).toString().padStart(2, '0')}`;
                             const newComment = await addVideoComment(id, commentText, timeStr);
+                            const updatedComments = [...(video?.comments || []), newComment];
                             setVideo(prev => {
                               if (!prev) return prev;
-                              return { ...prev, comments: [...(prev.comments || []), newComment] };
+                              return { ...prev, comments: updatedComments };
                             });
+                            try {
+                              const meta = JSON.parse(localStorage.getItem(`video-meta-${id}`) || '{}');
+                              meta.comments = updatedComments;
+                              localStorage.setItem(`video-meta-${id}`, JSON.stringify(meta));
+                            } catch {}
+                            window.dispatchEvent(new CustomEvent('video-updated', { detail: { id, comments: updatedComments } }));
                             setCommentText('');
                             setIsComposingComment(false);
                           } catch(err) {
@@ -395,7 +512,14 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                 <div className="inline-flex items-center bg-white border border-gray-200 rounded-full shadow-sm p-1.5 gap-2 hover:shadow-md transition-shadow">
                   <div className="flex gap-1 px-3 items-center">
                     {['❤️', '👍', '🔥', '👏', '🙌', '👀', '🙂'].map((emoji) => (
-                      <button key={emoji} className="p-1.5 hover:bg-gray-100 hover:scale-125 rounded-full transition-transform text-lg">
+                      <button 
+                        key={emoji} 
+                        onClick={() => handleEmojiReaction(emoji)}
+                        title={`React with ${emoji} at ${Math.floor(currentVideoTime / 60)}:${Math.floor(currentVideoTime % 60).toString().padStart(2, '0')}`}
+                        className={`p-1.5 hover:bg-gray-100 hover:scale-125 rounded-full transition-transform text-lg cursor-pointer active:scale-95 ${
+                          activeReactionEmoji === emoji ? 'scale-150 bg-amber-50 ring-2 ring-amber-300' : ''
+                        }`}
+                      >
                         {emoji}
                       </button>
                     ))}
@@ -405,7 +529,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                     onClick={() => {
                       setIsComposingComment(true);
                     }}
-                    className="flex items-center gap-2 px-4 py-1.5 hover:bg-gray-50 text-gray-700 font-medium rounded-full text-sm transition-colors"
+                    className="flex items-center gap-2 px-4 py-1.5 hover:bg-gray-50 text-gray-700 font-medium rounded-full text-sm transition-colors cursor-pointer"
                   >
                     <MessageSquare className="w-4 h-4" />
                     Comment

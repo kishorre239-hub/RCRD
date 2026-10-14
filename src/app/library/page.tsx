@@ -120,6 +120,29 @@ export default function LibraryPage() {
     }
   };
 
+  const enrichVideoMeta = useCallback((v: VideoData) => {
+    try {
+      const ldata = localStorage.getItem(`video-edits-${v.id}`);
+      if (ldata) {
+        const parsed = JSON.parse(ldata);
+        if (parsed.duration) v.duration = parsed.duration;
+      }
+      const meta = localStorage.getItem(`video-meta-${v.id}`);
+      if (meta) {
+        const parsedMeta = JSON.parse(meta);
+        if (typeof parsedMeta.views === 'number' && parsedMeta.views > (v.views || 0)) {
+          v.views = parsedMeta.views;
+        }
+        if (Array.isArray(parsedMeta.comments) && parsedMeta.comments.length > (v.comments?.length || 0)) {
+          v.comments = parsedMeta.comments;
+        }
+        if (parsedMeta.title && parsedMeta.title !== v.title) {
+          v.title = parsedMeta.title;
+        }
+      }
+    } catch {}
+  }, []);
+
   const loadData = useCallback(async () => {
     try {
       const syncResult = await syncVideos().catch(() => null);
@@ -130,15 +153,7 @@ export default function LibraryPage() {
       ]);
 
       const vids: VideoData[] = Array.isArray(videosData) ? videosData : (videosData?.content || []);
-      vids.forEach((v: VideoData) => {
-        try {
-          const ldata = localStorage.getItem(`video-edits-${v.id}`);
-          if (ldata) {
-            const parsed = JSON.parse(ldata);
-            if (parsed.duration) v.duration = parsed.duration;
-          }
-        } catch {}
-      });
+      vids.forEach(enrichVideoMeta);
 
       // Merge Google Drive folders into courses list
       const combinedCourses = [...coursesData];
@@ -157,7 +172,7 @@ export default function LibraryPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [enrichVideoMeta]);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -180,34 +195,31 @@ export default function LibraryPage() {
       loadData();
     }, 0);
 
-    // Poll for live view/comment updates every 30 seconds (not 2s — that floods the backend)
+    const handleUpdate = () => {
+      loadData();
+    };
+    window.addEventListener('focus', handleUpdate);
+    window.addEventListener('video-updated', handleUpdate);
+
+    // Poll for live view/comment updates every 15 seconds
     let consecutiveFailures = 0;
     const interval = setInterval(async () => {
       if (consecutiveFailures >= 3) {
-        // Stop hammering a down backend
         clearInterval(interval);
         return;
       }
       try {
         const videosData = await getVideos(0, 50, '', '');
-        consecutiveFailures = 0; // reset on success
-        if (videosData && videosData.content) {
-          const vids = videosData.content;
-          vids.forEach((v: VideoData) => {
-            try {
-              const ldata = localStorage.getItem(`video-edits-${v.id}`);
-              if (ldata) {
-                const parsed = JSON.parse(ldata);
-                if (parsed.duration) v.duration = parsed.duration;
-              }
-            } catch {}
-          });
+        consecutiveFailures = 0;
+        const vids: VideoData[] = Array.isArray(videosData) ? videosData : (videosData?.content || []);
+        if (vids.length > 0) {
+          vids.forEach(enrichVideoMeta);
           setVideos(prevVideos => {
             return prevVideos.map(prevV => {
               const newV = vids.find((v: VideoData) => v.id === prevV.id);
               if (newV) {
-                if (newV.views !== prevV.views || JSON.stringify(newV.comments) !== JSON.stringify(prevV.comments) || newV.duration !== prevV.duration) {
-                  return { ...prevV, views: newV.views, comments: newV.comments, duration: newV.duration };
+                if (newV.views !== prevV.views || JSON.stringify(newV.comments) !== JSON.stringify(prevV.comments) || newV.duration !== prevV.duration || newV.title !== prevV.title) {
+                  return { ...prevV, views: newV.views, comments: newV.comments, duration: newV.duration, title: newV.title };
                 }
               }
               return prevV;
@@ -217,13 +229,15 @@ export default function LibraryPage() {
       } catch {
         consecutiveFailures++;
       }
-    }, 30000); // 30 seconds — not 2!
+    }, 15000);
 
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
+      window.removeEventListener('focus', handleUpdate);
+      window.removeEventListener('video-updated', handleUpdate);
     };
-  }, [loadData]);
+  }, [loadData, enrichVideoMeta]);
 
   // Handle countdown & recording init
   useEffect(() => {
@@ -400,14 +414,30 @@ export default function LibraryPage() {
       setEditingTitleId(null);
       return;
     }
+    const newTitle = editingTitleValue.trim();
+    setEditingTitleId(null);
+    setVideos(prev => prev.map(v => v.id === id ? { ...v, title: newTitle } : v));
+
+    // Update in localStorage caches
     try {
-      await updateVideo(id, { title: editingTitleValue });
-      showToast(`Video renamed to ${editingTitleValue}`);
+      const meta = JSON.parse(localStorage.getItem(`video-meta-${id}`) || '{}');
+      meta.title = newTitle;
+      localStorage.setItem(`video-meta-${id}`, JSON.stringify(meta));
+
+      const savedWL = JSON.parse(localStorage.getItem('watchLaterVideos') || '[]');
+      const updatedWL = savedWL.map((v: any) => v.id === id ? { ...v, title: newTitle } : v);
+      localStorage.setItem('watchLaterVideos', JSON.stringify(updatedWL));
+    } catch {}
+
+    window.dispatchEvent(new CustomEvent('video-updated', { detail: { id, title: newTitle } }));
+
+    try {
+      await updateVideo(id, { title: newTitle });
+      showToast(`Video renamed to "${newTitle}"`);
       fetchData();
     } catch (err) {
       console.error(err);
-      setVideos(videos.map(v => v.id === id ? { ...v, title: editingTitleValue } : v));
-      showToast(`Video renamed to ${editingTitleValue}`);
+      showToast(`Video renamed to "${newTitle}"`);
     }
   };
 
@@ -1228,9 +1258,17 @@ export default function LibraryPage() {
                               if (e.key === 'Enter' && newCommentText.trim()) {
                                 e.preventDefault();
                                 try {
-                                  const newComment = await addVideoComment(video.id, newCommentText.trim(), "0:00");
-                                  setVideos(videos.map(v => v.id === video.id ? { ...v, comments: [...(v.comments || []), newComment] } : v));
+                                  const text = newCommentText.trim();
                                   setNewCommentText('');
+                                  const newComment = await addVideoComment(video.id, text, "0:00");
+                                  const updatedComments = [...(video.comments || []), newComment];
+                                  setVideos(prev => prev.map(v => v.id === video.id ? { ...v, comments: updatedComments } : v));
+                                  try {
+                                    const meta = JSON.parse(localStorage.getItem(`video-meta-${video.id}`) || '{}');
+                                    meta.comments = updatedComments;
+                                    localStorage.setItem(`video-meta-${video.id}`, JSON.stringify(meta));
+                                  } catch {}
+                                  window.dispatchEvent(new CustomEvent('video-updated', { detail: { id: video.id, comments: updatedComments } }));
                                 } catch(err) {
                                   console.error("Failed to add comment", err);
                                   showToast("Failed to post comment");
@@ -1243,9 +1281,17 @@ export default function LibraryPage() {
                             onClick={async () => {
                               if (!newCommentText.trim()) return;
                               try {
-                                const newComment = await addVideoComment(video.id, newCommentText.trim(), "0:00");
-                                setVideos(videos.map(v => v.id === video.id ? { ...v, comments: [...(v.comments || []), newComment] } : v));
+                                const text = newCommentText.trim();
                                 setNewCommentText('');
+                                const newComment = await addVideoComment(video.id, text, "0:00");
+                                const updatedComments = [...(video.comments || []), newComment];
+                                setVideos(prev => prev.map(v => v.id === video.id ? { ...v, comments: updatedComments } : v));
+                                try {
+                                  const meta = JSON.parse(localStorage.getItem(`video-meta-${video.id}`) || '{}');
+                                  meta.comments = updatedComments;
+                                  localStorage.setItem(`video-meta-${video.id}`, JSON.stringify(meta));
+                                } catch {}
+                                window.dispatchEvent(new CustomEvent('video-updated', { detail: { id: video.id, comments: updatedComments } }));
                               } catch(err) {
                                 console.error("Failed to add comment", err);
                                 showToast("Failed to post comment");

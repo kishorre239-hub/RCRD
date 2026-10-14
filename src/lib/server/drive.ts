@@ -305,6 +305,53 @@ export async function deleteDriveFile(fileId: string): Promise<boolean> {
 }
 
 /**
+ * Rename a file in Google Drive
+ */
+export async function renameDriveFile(fileId: string, newTitle: string): Promise<boolean> {
+  const drive = getDriveClient();
+  if (!drive || !fileId || fileId.startsWith('local:')) return false;
+
+  try {
+    let finalName = newTitle.trim();
+    try {
+      const existing = await drive.files.get({
+        fileId,
+        fields: 'name',
+        supportsAllDrives: true,
+      });
+      const oldName = existing.data.name || '';
+      const extMatch = oldName.match(/\.(mp4|webm|mov|mkv|avi|png|jpg|jpeg)$/i);
+      if (extMatch && !finalName.toLowerCase().endsWith(extMatch[0].toLowerCase())) {
+        finalName = `${finalName}${extMatch[0]}`;
+      }
+    } catch {
+      // ignore get error and proceed with finalName
+    }
+
+    await drive.files.update({
+      fileId,
+      requestBody: {
+        name: finalName,
+      },
+      supportsAllDrives: true,
+    });
+
+    // Invalidate in-memory cache to force fresh pull
+    driveCache.timestamp = 0;
+    const cached = driveCache.videos.find(v => v.id === fileId || v.driveFileId === fileId);
+    if (cached) {
+      cached.title = newTitle.trim();
+      cached.rawName = finalName;
+    }
+
+    return true;
+  } catch (error: any) {
+    console.error(`Failed to rename Google Drive file ${fileId}:`, error?.message);
+    return false;
+  }
+}
+
+/**
  * Create a folder in Google Drive
  */
 export async function createDriveFolder(name: string, parentId?: string): Promise<string | null> {

@@ -129,3 +129,26 @@ body {
 .animation-delay-200 {
   animation-delay: 200ms;
 }
+
+@keyframes floatUpReaction {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    transform: translateY(-30px) scale(1.4);
+    opacity: 1;
+  }
+  60% {
+    transform: translateY(-100px) scale(1.5) rotate(-8deg);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-200px) scale(1.8) rotate(12deg);
+    opacity: 0;
+  }
+}
+
+.animate-float-up {
+  animation: floatUpReaction 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}

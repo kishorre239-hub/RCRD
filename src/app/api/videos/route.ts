@@ -54,13 +54,15 @@ export async function GET(req: Request) {
       const createdAt = v.createdAt || existing.createdAt || Date.now();
       const rawTitle = v.title || existing.title || (v as any).name || 'Recording';
       const cleanTitle = cleanVideoTitle(rawTitle, createdAt);
-      const id = v.id || v._id?.toString() || key;
+      const id = v.id || v.driveFileId || v._id?.toString() || key;
 
       videoMap.set(key, {
         ...existing,
         ...v,
         id,
         title: cleanTitle,
+        views: v.views !== undefined ? v.views : (existing.views || 0),
+        comments: Array.isArray(v.comments) ? v.comments : (existing.comments || []),
         thumbnailUrl: `/api/videos/${id}/thumbnail`,
         thumbnailLink: `/api/videos/${id}/thumbnail`,
         directThumbnailUrl: (v as any).thumbnailUrl || v.thumbnailLink || existing.directThumbnailUrl || '',

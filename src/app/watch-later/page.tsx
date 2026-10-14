@@ -121,35 +121,55 @@ export default function WatchLaterPage() {
     }
   }, []);
 
+  const enrichVideoMeta = useCallback((v: VideoData) => {
+    try {
+      const ldata = localStorage.getItem(`video-edits-${v.id}`);
+      if (ldata) {
+        const parsed = JSON.parse(ldata);
+        if (parsed.duration) v.duration = parsed.duration;
+      }
+      const meta = localStorage.getItem(`video-meta-${v.id}`);
+      if (meta) {
+        const parsedMeta = JSON.parse(meta);
+        if (typeof parsedMeta.views === 'number' && parsedMeta.views > (v.views || 0)) {
+          v.views = parsedMeta.views;
+        }
+        if (Array.isArray(parsedMeta.comments) && parsedMeta.comments.length > (v.comments?.length || 0)) {
+          v.comments = parsedMeta.comments;
+        }
+        if (parsedMeta.title && parsedMeta.title !== v.title) {
+          v.title = parsedMeta.title;
+        }
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setNow(Date.now());
       fetchData();
     }, 0);
 
+    const handleUpdate = () => {
+      fetchData();
+    };
+    window.addEventListener('focus', handleUpdate);
+    window.addEventListener('video-updated', handleUpdate);
+
     // Real-time dynamic updating for views and comments
     const interval = setInterval(async () => {
       setNow(Date.now());
       try {
         const videosData = await getVideos(0, 50, '', '');
-        if (videosData && videosData.content) {
-          const vids = videosData.content;
-          vids.forEach((v: VideoData) => {
-            try {
-              const ldata = localStorage.getItem(`video-edits-${v.id}`);
-              if (ldata) {
-                const parsed = JSON.parse(ldata);
-                if (parsed.duration) v.duration = parsed.duration;
-              }
-            } catch {}
-          });
+        const vids: VideoData[] = Array.isArray(videosData) ? videosData : (videosData?.content || []);
+        if (vids.length > 0) {
+          vids.forEach(enrichVideoMeta);
           setVideos(prevVideos => {
             return prevVideos.map(prevV => {
               const newV = vids.find((v: VideoData) => v.id === prevV.id);
               if (newV) {
-                // Only update dynamic fields to prevent full card re-renders
-                if (newV.views !== prevV.views || JSON.stringify(newV.comments) !== JSON.stringify(prevV.comments) || newV.duration !== prevV.duration) {
-                  return { ...prevV, views: newV.views, comments: newV.comments, duration: newV.duration };
+                if (newV.views !== prevV.views || JSON.stringify(newV.comments) !== JSON.stringify(prevV.comments) || newV.duration !== prevV.duration || newV.title !== prevV.title) {
+                  return { ...prevV, views: newV.views, comments: newV.comments, duration: newV.duration, title: newV.title };
                 }
               }
               return prevV;
@@ -159,13 +179,15 @@ export default function WatchLaterPage() {
       } catch {
         // Silently fail polling
       }
-    }, 2000);
+    }, 15000);
 
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
+      window.removeEventListener('focus', handleUpdate);
+      window.removeEventListener('video-updated', handleUpdate);
     };
-  }, [fetchData]);
+  }, [fetchData, enrichVideoMeta]);
 
   const handleRenameVideo = (id: string, currentTitle: string) => {
     setActiveVideoMenu(null);
@@ -178,15 +200,30 @@ export default function WatchLaterPage() {
       setEditingTitleId(null);
       return;
     }
+    const newTitle = editingTitleValue.trim();
+    setEditingTitleId(null);
+    setVideos(prev => prev.map(v => v.id === id ? { ...v, title: newTitle } : v));
+
+    // Update in localStorage everywhere
     try {
-      await updateVideo(id, { title: editingTitleValue });
-      showToast(`Video renamed to ${editingTitleValue}`);
+      const meta = JSON.parse(localStorage.getItem(`video-meta-${id}`) || '{}');
+      meta.title = newTitle;
+      localStorage.setItem(`video-meta-${id}`, JSON.stringify(meta));
+
+      const savedWL = JSON.parse(localStorage.getItem('watchLaterVideos') || '[]');
+      const updatedWL = savedWL.map((v: any) => v.id === id ? { ...v, title: newTitle } : v);
+      localStorage.setItem('watchLaterVideos', JSON.stringify(updatedWL));
+    } catch {}
+
+    window.dispatchEvent(new CustomEvent('video-updated', { detail: { id, title: newTitle } }));
+
+    try {
+      await updateVideo(id, { title: newTitle });
+      showToast(`Video renamed to "${newTitle}"`);
       fetchData();
     } catch {
-      setVideos(videos.map(v => v.id === id ? { ...v, title: editingTitleValue } : v));
-      showToast(`Video renamed to ${editingTitleValue}`);
+      showToast(`Video renamed to "${newTitle}"`);
     }
-    setEditingTitleId(null);
   };
 
   const handleDeleteVideo = async (id: string) => {
@@ -592,9 +629,17 @@ export default function WatchLaterPage() {
                               if (e.key === 'Enter' && newCommentText.trim()) {
                                 e.preventDefault();
                                 try {
-                                  const newComment = await addVideoComment(video.id, newCommentText.trim(), "0:00");
-                                  setVideos(videos.map(v => v.id === video.id ? { ...v, comments: [...(v.comments || []), newComment] } : v));
+                                  const text = newCommentText.trim();
                                   setNewCommentText('');
+                                  const newComment = await addVideoComment(video.id, text, "0:00");
+                                  const updatedComments = [...(video.comments || []), newComment];
+                                  setVideos(prev => prev.map(v => v.id === video.id ? { ...v, comments: updatedComments } : v));
+                                  try {
+                                    const meta = JSON.parse(localStorage.getItem(`video-meta-${video.id}`) || '{}');
+                                    meta.comments = updatedComments;
+                                    localStorage.setItem(`video-meta-${video.id}`, JSON.stringify(meta));
+                                  } catch {}
+                                  window.dispatchEvent(new CustomEvent('video-updated', { detail: { id: video.id, comments: updatedComments } }));
                                 } catch(err) {
                                   console.error("Failed to add comment", err);
                                   showToast("Failed to post comment");
@@ -607,9 +652,17 @@ export default function WatchLaterPage() {
                             onClick={async () => {
                               if (!newCommentText.trim()) return;
                               try {
-                                const newComment = await addVideoComment(video.id, newCommentText.trim(), "0:00");
-                                setVideos(videos.map(v => v.id === video.id ? { ...v, comments: [...(v.comments || []), newComment] } : v));
+                                const text = newCommentText.trim();
                                 setNewCommentText('');
+                                const newComment = await addVideoComment(video.id, text, "0:00");
+                                const updatedComments = [...(video.comments || []), newComment];
+                                setVideos(prev => prev.map(v => v.id === video.id ? { ...v, comments: updatedComments } : v));
+                                try {
+                                  const meta = JSON.parse(localStorage.getItem(`video-meta-${video.id}`) || '{}');
+                                  meta.comments = updatedComments;
+                                  localStorage.setItem(`video-meta-${video.id}`, JSON.stringify(meta));
+                                } catch {}
+                                window.dispatchEvent(new CustomEvent('video-updated', { detail: { id: video.id, comments: updatedComments } }));
                               } catch(err) {
                                 console.error("Failed to add comment", err);
                                 showToast("Failed to post comment");

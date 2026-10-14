@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     }
 
     const isMeeting = Boolean(formData.get('isMeeting') === 'true' || courseId === 'MEETING' || courseId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || (title && title.toLowerCase().includes('meeting')));
-    const finalCourseId = isMeeting ? (courseId || '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4') : courseId;
+    const finalCourseId = courseId || (isMeeting ? '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' : null);
 
     const now = Date.now();
 

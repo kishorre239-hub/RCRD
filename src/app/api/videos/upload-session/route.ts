@@ -17,6 +17,7 @@ export async function POST(req: Request) {
     const mimeType = body.mimeType || 'video/webm';
     const size = body.size ? Number(body.size) : 0;
     const courseId = body.courseId || null;
+    const folderName = body.folderName || null;
 
     // Check storage limits against user's plan (100 MB for Free Trial, etc.)
     const { getPlan, formatBytes } = await import('@/lib/plans');
@@ -44,7 +45,8 @@ export async function POST(req: Request) {
     const now = Date.now();
 
     const isMeeting = Boolean(body.isMeeting || body.source === 'meeting' || courseId === 'MEETING' || courseId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || (title && title.toLowerCase().includes('meeting')));
-    const finalCourseId = isMeeting ? (courseId || '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4') : courseId;
+    // Only default to MEETING folder if the user did NOT choose a specific folder
+    const finalCourseId = courseId || (isMeeting ? '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' : null);
 
     const videoDoc: Video = {
       title,
@@ -70,7 +72,8 @@ export async function POST(req: Request) {
         title,
         mimeType,
         size,
-        folderId: finalCourseId,
+        folderId: finalCourseId || undefined,
+        folderName: folderName || undefined,
         isMeeting,
       });
     } catch (e: any) {

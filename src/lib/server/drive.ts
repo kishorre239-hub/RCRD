@@ -1,6 +1,7 @@
 import { google, drive_v3 } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
+import defaultServiceAccountKey from '../../../geonixa-loom-1acdad37ffd0.json';
 
 let driveClient: drive_v3.Drive | null = null;
 
@@ -19,6 +20,11 @@ function getServiceAccountCredentials(): Record<string, unknown> | null {
         console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY env var', e);
       }
     }
+  }
+
+  // Use bundled service account key file directly (ensures Vercel serverless bundling works!)
+  if (defaultServiceAccountKey && (defaultServiceAccountKey as any).client_email) {
+    return defaultServiceAccountKey as unknown as Record<string, unknown>;
   }
 
   // Look for service account json files on disk
@@ -91,6 +97,7 @@ export async function createResumableUploadSession(params: {
   title: string;
   mimeType?: string;
   folderId?: string;
+  folderName?: string;
   size?: number;
   isMeeting?: boolean;
 }): Promise<{ uploadUrl: string } | null> {
@@ -115,9 +122,26 @@ export async function createResumableUploadSession(params: {
     mimeType: params.mimeType || 'video/webm',
   };
 
-  let targetFolder = params.folderId || process.env.DRIVE_DEFAULT_FOLDER_ID;
-  if (params.isMeeting || targetFolder === 'MEETING') {
+  let targetFolder: string | undefined = undefined;
+  if (params.folderId && params.folderId !== 'root' && params.folderId !== 'all') {
+    if (params.folderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || params.folderId === 'MEETING') {
+      targetFolder = await getMeetingFolderId();
+    } else if (params.folderId === 'screen-shares') {
+      targetFolder = await getOrCreateNamedDriveFolder('Screen Shares');
+    } else if (params.folderId === 'team-updates') {
+      targetFolder = await getOrCreateNamedDriveFolder('Team Updates');
+    } else if (params.folderName && params.folderName.trim()) {
+      targetFolder = await getOrCreateNamedDriveFolder(params.folderName.trim());
+    } else if (params.folderId.startsWith('folder-')) {
+      const cleanName = params.folderId.replace(/^folder-/, '');
+      targetFolder = await getOrCreateNamedDriveFolder(cleanName);
+    } else {
+      targetFolder = params.folderId;
+    }
+  } else if (params.isMeeting) {
     targetFolder = await getMeetingFolderId();
+  } else {
+    targetFolder = process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.DRIVE_DEFAULT_FOLDER_ID;
   }
 
   if (targetFolder) {

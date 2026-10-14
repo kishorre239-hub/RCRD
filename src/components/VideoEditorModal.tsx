@@ -1282,110 +1282,279 @@ export default function VideoEditorModal({
           )}
 
               {/* TAB 2: CUT TOOL */}
+          {/* TAB 2: CUT TOOL */}
           {activeTab === 'cut' && (
-            <div className="space-y-5 animate-in fade-in duration-150">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
-                  <Scissors className="w-4 h-4 text-red-600" />
-                  <span>Cut & Trim Video</span>
-                </h3>
-                <p className="text-xs text-slate-500 mt-1">Remove mistakes or unwanted pauses cleanly.</p>
+            <div className="space-y-4 animate-in fade-in duration-150">
+              <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                    <Scissors className="w-4 h-4 text-rose-600" />
+                    <span>Cut & Trim Video</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Remove mistakes or unwanted pauses cleanly.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowTutorial(true)}
+                  className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  Guide
+                </button>
               </div>
 
-              {/* Active Cut Actions Card if a selection is in progress */}
-              {activeCut && (
-                <div className="p-4 bg-red-50/90 border-2 border-red-300 rounded-2xl space-y-3 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-red-900 flex items-center gap-1.5 uppercase tracking-wide">
-                      <Scissors className="w-4 h-4 text-red-600 animate-pulse" />
-                      Cut Selection Active
-                    </span>
-                    <span className="font-mono text-xs font-extrabold text-red-700 bg-white px-2.5 py-1 rounded-md border border-red-200 shadow-xs">
-                      {formatTimeStr(activeCut.start)} - {formatTimeStr(activeCut.end)}
-                    </span>
+              {/* Quick How-To Banner */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-2xl p-3 space-y-2">
+                <span className="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                  💡 How to Cut Video in 3 Steps:
+                </span>
+                <div className="text-[11px] text-slate-600 space-y-1 font-medium leading-relaxed">
+                  <div className="flex items-start gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-blue-200 text-blue-800 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <span>Play and pause video at the mistake you want to remove.</span>
                   </div>
-
-                  <p className="text-[11px] text-red-700 leading-relaxed font-medium">
-                    The highlighted section is skipped during preview playback. Choose what to do:
-                  </p>
-
-                  <div className="space-y-2">
-                    <button
-                      onClick={confirmCut}
-                      className="w-full py-2.5 px-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                    >
-                      <Scissors className="w-4 h-4" />
-                      Cut Out & Remove Selection
-                    </button>
-
-                    <button
-                      onClick={trimToActiveSelection}
-                      className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                      title="Keeps only this part and trims away the rest of the video"
-                    >
-                      <Check className="w-4 h-4" />
-                      Keep Only Selection (Trim)
-                    </button>
-
-                    <button
-                      onClick={cancelCut}
-                      className="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-medium transition-all cursor-pointer"
-                    >
-                      Cancel Selection
-                    </button>
+                  <div className="flex items-start gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-blue-200 text-blue-800 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <span>Click <b>Cut Beginning</b>, <b>Cut Ending</b>, or select a middle part below.</span>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <span className="w-4 h-4 rounded-full bg-blue-200 text-blue-800 font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    <span>That section is skipped automatically during preview and playback!</span>
                   </div>
                 </div>
-              )}
+              </div>
 
+              {/* Quick 1-Click Trim Actions */}
               <div className="space-y-2">
-                <button 
-                  onClick={cutFromStartToNow}
-                  className="w-full p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium text-xs flex items-center justify-between transition-colors cursor-pointer shadow-xs"
-                >
-                  <span className="font-semibold text-rose-600">Trim Start</span>
-                  <span className="font-mono text-slate-500 text-[11px]">0:00 → {formatTimeStr(currentTime)}</span>
-                </button>
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide block">
+                  Quick 1-Click Trim
+                </label>
+                <div className="grid grid-cols-1 gap-2">
+                  <button 
+                    type="button"
+                    onClick={cutFromStartToNow}
+                    disabled={currentTime < 0.2}
+                    className="w-full p-3 bg-white hover:bg-rose-50/60 border border-slate-200 hover:border-rose-300 rounded-xl text-left transition-all cursor-pointer shadow-xs group disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-xs text-slate-800 group-hover:text-rose-700 flex items-center gap-1.5">
+                        <Scissors className="w-3.5 h-3.5 text-rose-500" />
+                        Cut Off Beginning (Intro)
+                      </span>
+                      <span className="font-mono text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                        0:00 → {formatTimeStr(currentTime)}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Deletes everything before playhead so the video starts at {formatTimeStr(currentTime)}.
+                    </p>
+                  </button>
 
-                <button 
-                  onClick={cutFromNowToEnd}
-                  className="w-full p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-slate-800 font-medium text-xs flex items-center justify-between transition-colors cursor-pointer shadow-xs"
-                >
-                  <span className="font-semibold text-rose-600">Trim End</span>
-                  <span className="font-mono text-slate-500 text-[11px]">{formatTimeStr(currentTime)} → End</span>
-                </button>
+                  <button 
+                    type="button"
+                    onClick={cutFromNowToEnd}
+                    disabled={duration <= currentTime + 0.2}
+                    className="w-full p-3 bg-white hover:bg-rose-50/60 border border-slate-200 hover:border-rose-300 rounded-xl text-left transition-all cursor-pointer shadow-xs group disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-xs text-slate-800 group-hover:text-rose-700 flex items-center gap-1.5">
+                        <Scissors className="w-3.5 h-3.5 text-rose-500" />
+                        Cut Off Ending (Outro)
+                      </span>
+                      <span className="font-mono text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                        {formatTimeStr(currentTime)} → End
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Deletes everything after playhead so the video stops at {formatTimeStr(currentTime)}.
+                    </p>
+                  </button>
+                </div>
+              </div>
 
-                <button 
-                  onClick={initiateNewCut}
-                  className="w-full p-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs flex items-center justify-between transition-colors cursor-pointer shadow-sm"
-                >
-                  <span>Create Cut Region</span>
-                  <span className="font-mono text-slate-300 text-[11px]">at {formatTimeStr(currentTime)}</span>
-                </button>
+              {/* Cut Section in Middle */}
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wide block">
+                      Cut Section in Middle
+                    </label>
+                    <p className="text-[11px] text-slate-500">Remove an awkward pause, mistake, or cough</p>
+                  </div>
+                  {!activeCut && (
+                    <button
+                      type="button"
+                      onClick={initiateNewCut}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Mark Section
+                    </button>
+                  )}
+                </div>
+
+                {activeCut ? (
+                  <div className="p-3.5 bg-rose-50/90 border-2 border-rose-300 rounded-2xl space-y-3 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-rose-900 flex items-center gap-1.5">
+                        <Scissors className="w-4 h-4 text-rose-600 animate-pulse" />
+                        Marked Section to Remove
+                      </span>
+                      <span className="font-mono text-xs font-extrabold text-rose-700 bg-white px-2 py-0.5 rounded border border-rose-200">
+                        {formatTimeStr(activeCut.start)} → {formatTimeStr(activeCut.end)}
+                      </span>
+                    </div>
+
+                    {/* Quick Set Buttons at Current Time */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newStart = Math.min(currentTime, activeCut.end - 0.2);
+                          setActiveCut({ ...activeCut, start: Math.max(0, newStart) });
+                        }}
+                        className="py-1.5 px-2 bg-white hover:bg-rose-100/70 border border-rose-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1 transition-all cursor-pointer"
+                        title="Set start of cut to current video playhead"
+                      >
+                        📍 Start at Now ({formatTimeStr(currentTime)})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newEnd = Math.max(currentTime, activeCut.start + 0.2);
+                          setActiveCut({ ...activeCut, end: Math.min(duration || 100, newEnd) });
+                        }}
+                        className="py-1.5 px-2 bg-white hover:bg-rose-100/70 border border-rose-200 rounded-lg text-xs font-bold text-slate-700 flex items-center justify-center gap-1 transition-all cursor-pointer"
+                        title="Set end of cut to current video playhead"
+                      >
+                        📍 End at Now ({formatTimeStr(currentTime)})
+                      </button>
+                    </div>
+
+                    {/* Sliders for precise adjustment */}
+                    <div className="space-y-2 bg-white/80 p-2.5 rounded-xl border border-rose-200">
+                      <div>
+                        <div className="flex justify-between text-[11px] mb-1">
+                          <span className="font-semibold text-slate-600">Cut Start Time:</span>
+                          <span className="font-mono font-bold text-slate-900">{formatTimeStr(activeCut.start)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max={Math.max(0, activeCut.end - 0.2)}
+                          step="0.1"
+                          value={activeCut.start}
+                          onChange={(e) => setActiveCut({ ...activeCut, start: parseFloat(e.target.value) })}
+                          className="w-full accent-rose-600 cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-[11px] mb-1">
+                          <span className="font-semibold text-slate-600">Cut End Time:</span>
+                          <span className="font-mono font-bold text-slate-900">{formatTimeStr(activeCut.end)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={activeCut.start + 0.2}
+                          max={duration || 100}
+                          step="0.1"
+                          value={activeCut.end}
+                          onChange={(e) => setActiveCut({ ...activeCut, end: parseFloat(e.target.value) })}
+                          className="w-full accent-rose-600 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="space-y-1.5">
+                      <button
+                        type="button"
+                        onClick={confirmCut}
+                        className="w-full py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                      >
+                        <Scissors className="w-4 h-4" />
+                        ✂️ Cut Out & Remove This Section
+                      </button>
+                      <button
+                        type="button"
+                        onClick={trimToActiveSelection}
+                        className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                        title="Keeps only this part and trims away the rest of the video"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        Keep Only This Part (Trim Video)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelCut}
+                        className="w-full py-1.5 px-3 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-xs font-medium transition-all cursor-pointer"
+                      >
+                        Cancel Selection
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={initiateNewCut}
+                    className="w-full py-3 px-4 bg-slate-50 hover:bg-blue-50 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-2xl text-slate-700 hover:text-blue-700 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <Scissors className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
+                    <span>Click to Mark & Cut a Middle Section</span>
+                  </button>
+                )}
               </div>
 
               {/* List of active cuts */}
               <div className="space-y-2 pt-2 border-t border-slate-100">
-                <p className="text-xs font-bold text-slate-600">
-                  Cut Segments ({completedCuts.length})
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                    Applied Cuts ({completedCuts.length})
+                  </p>
+                  {completedCuts.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setCompletedCuts([])}
+                      className="text-[11px] font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
+                    >
+                      Reset All Cuts
+                    </button>
+                  )}
+                </div>
+
                 {completedCuts.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">No cuts applied yet.</p>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+                    <p className="text-xs text-slate-500 font-medium">No cuts applied yet.</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Use the buttons above to trim start/end or cut out mistakes.</p>
+                  </div>
                 ) : (
-                  completedCuts.map((cut, idx) => (
-                    <div key={cut.id} className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between text-xs">
-                      <div>
-                        <span className="font-bold text-slate-700">Cut #{idx + 1}: </span>
-                        <span className="font-mono text-red-600">{formatTimeStr(cut.start)} - {formatTimeStr(cut.end)}</span>
+                  completedCuts.map((cut, idx) => {
+                    const cutDuration = Math.max(0.1, cut.end - cut.start);
+                    return (
+                      <div key={cut.id} className="p-3 bg-rose-50/60 rounded-xl border border-rose-200 flex items-center justify-between text-xs">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-800">Cut #{idx + 1}</span>
+                            <span className="font-mono font-bold text-rose-700 bg-white px-2 py-0.5 rounded border border-rose-200 text-[11px]">
+                              {formatTimeStr(cut.start)} → {formatTimeStr(cut.end)}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500">
+                            {cutDuration.toFixed(1)}s removed & skipped during playback
+                          </p>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => setCompletedCuts(prev => prev.filter(c => c.id !== cut.id))}
+                          className="px-2.5 py-1.5 bg-white hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                          title="Restore this cut"
+                        >
+                          <RotateCcw className="w-3 h-3" />
+                          <span>Restore</span>
+                        </button>
                       </div>
-                      <button 
-                        onClick={() => setCompletedCuts(prev => prev.filter(c => c.id !== cut.id))}
-                        className="text-slate-400 hover:text-red-600 p-1 rounded transition-colors"
-                        title="Remove Cut"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

@@ -470,9 +470,28 @@ export default function ClassRoomPage() {
       return;
     }
     const combined = new MediaStream(tracks);
-    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9") ? "video/webm;codecs=vp9" : "video/webm";
+    const getOptimalMimeType = () => {
+      const candidates = [
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp9",
+        "video/webm;codecs=vp8,opus",
+        "video/webm;codecs=vp8",
+        "video/webm",
+      ];
+      for (const c of candidates) {
+        if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(c)) return c;
+      }
+      return "video/webm";
+    };
+
+    const mimeType = getOptimalMimeType();
     try {
-      const rec = new MediaRecorder(combined, { mimeType, videoBitsPerSecond: 2500000 });
+      // Ultra-efficient HD compression: 350 kbps video + 48 kbps audio (keeps 1 hour meeting ultra compact while crystal-clear for slides & screen)
+      const rec = new MediaRecorder(combined, { 
+        mimeType, 
+        videoBitsPerSecond: 350000,
+        audioBitsPerSecond: 48000
+      });
       mediaRecRef.current = rec;
       chunksRef.current = [];
       rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
@@ -485,7 +504,7 @@ export default function ClassRoomPage() {
         const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
         const autoName = `Meeting - ${meeting?.title || roomId} · ${dateStr} (${timeStr})`;
         setUploadTitle(autoName);
-        setUploadCourse("1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4");
+        setUploadCourse(prev => prev || meeting?.courseId || "1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4");
         setShowUpload(true);
       };
       rec.onerror = () => showToast("Recording error occurred.", false);
@@ -499,7 +518,7 @@ export default function ClassRoomPage() {
       showToast("Failed to start recording: " + err.message, false);
       setRecState("idle");
     }
-  }, [showToast, meeting?.title, roomId]);
+  }, [showToast, meeting?.title, meeting?.courseId, roomId]);
 
   const startRecording = () => {
     if (!screenStream) {
@@ -551,11 +570,18 @@ export default function ClassRoomPage() {
       const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
       const vidTitle = uploadTitle.trim() || `Meeting - ${meeting?.title || roomId} · ${dateStr} (${timeStr})`;
       const targetFolder = uploadCourse || "1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4";
-      await uploadVideo(recBlob, targetFolder, p => setUploadProgress(p), vidTitle, { isMeeting: true });
+      const selectedCourse = courses.find(c => c.id === targetFolder);
+      const folderName = selectedCourse ? selectedCourse.name : (targetFolder === "1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4" ? "MEETING" : undefined);
+
+      await uploadVideo(recBlob, targetFolder, p => setUploadProgress(p), vidTitle, { 
+        isMeeting: targetFolder === "1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4",
+        folderName
+      });
       setUploadState("done");
       const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
       localStorage.setItem(STORAGE_KEY, JSON.stringify(all.map((m: Meeting) => m.id === roomId ? { ...m, status: "ended" } : m)));
-      showToast("Recording saved to Google Drive MEETING folder!");
+      const destName = selectedCourse?.name || (targetFolder === "1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4" ? "MEETING" : "Selected Folder");
+      showToast(`Recording saved to Google Drive ${destName} folder!`);
       setTimeout(() => router.push("/meetings"), 2500);
     } catch (e: unknown) {
       const err = e as Error;
@@ -2028,10 +2054,15 @@ export default function ClassRoomPage() {
                     <label className="block text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Save to Folder</label>
                     <div className="relative">
                       <button 
+                        type="button"
                         onClick={() => setIsCourseDropdownOpen(!isCourseDropdownOpen)}
                         className="w-full px-3.5 py-2.5 bg-white border border-slate-300 hover:border-slate-400 text-slate-800 rounded-xl text-sm flex items-center justify-between outline-none transition-colors"
                       >
-                        <span className="font-medium">{uploadCourse ? courses.find(c => c.id === uploadCourse)?.name || "Unknown Folder" : "Library Root (no folder)"}</span>
+                        <span className="font-medium">
+                          {uploadCourse === "1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4" 
+                            ? "📁 MEETING (Google Drive)" 
+                            : (uploadCourse ? (courses.find(c => c.id === uploadCourse)?.name || "Selected Folder") : "Library Root (no folder)")}
+                        </span>
                         <ChevronDown size={16} className={`text-slate-400 transition-transform ${isCourseDropdownOpen ? "rotate-180" : ""}`} />
                       </button>
                       
@@ -2039,18 +2070,27 @@ export default function ClassRoomPage() {
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-1">
                           <div className="max-h-48 overflow-y-auto py-1">
                             <button 
+                              type="button"
+                              onClick={() => { setUploadCourse("1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4"); setIsCourseDropdownOpen(false); }}
+                              className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#0E71EB] hover:text-white transition-colors ${uploadCourse === "1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4" ? "bg-[#0E71EB] text-white" : "text-slate-700"}`}
+                            >
+                              📁 MEETING (Google Drive)
+                            </button>
+                            <button 
+                              type="button"
                               onClick={() => { setUploadCourse(""); setIsCourseDropdownOpen(false); }}
                               className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#0E71EB] hover:text-white transition-colors ${!uploadCourse ? "bg-[#0E71EB] text-white" : "text-slate-700"}`}
                             >
                               Library Root (no folder)
                             </button>
-                            {courses.map(c => (
+                            {courses.filter(c => c.id !== "1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4" && c.name !== "MEETING").map(c => (
                               <button 
                                 key={c.id}
+                                type="button"
                                 onClick={() => { setUploadCourse(c.id); setIsCourseDropdownOpen(false); }}
                                 className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#0E71EB] hover:text-white transition-colors ${uploadCourse === c.id ? "bg-[#0E71EB] text-white" : "text-slate-700"}`}
                               >
-                                {c.name}
+                                📁 {c.name}
                               </button>
                             ))}
                           </div>

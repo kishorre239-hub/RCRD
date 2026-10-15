@@ -824,19 +824,30 @@ export default function ClassRoomPage() {
     } catch {}
   };
 
-  const applyText = () => {
-    if (!textBox || !textBox.text.trim() || !canvasRef.current) {
+  const applyText = (textOverride?: string) => {
+    if (!textBox || !canvasRef.current) {
+      setTextBox(null);
+      return;
+    }
+    const txt = (textOverride !== undefined ? textOverride : textBox.text).trim();
+    if (!txt) {
       setTextBox(null);
       return;
     }
     saveCanvasState();
     const ctx = canvasRef.current.getContext("2d");
     if (ctx) {
-      ctx.font = `bold ${textFontSize}px sans-serif`;
+      ctx.font = `bold ${textFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
       ctx.fillStyle = penColor;
       ctx.textBaseline = "top";
-      ctx.fillText(textBox.text, textBox.x, textBox.y);
-      showToast("Text applied to whiteboard!");
+      const lines = txt.split("\n");
+      const lineHeight = Math.round(textFontSize * 1.25);
+      const startX = textBox.x + 4;
+      const startY = textBox.y + 4;
+      lines.forEach((line, idx) => {
+        ctx.fillText(line, startX, startY + idx * lineHeight);
+      });
+      showToast("Text placed on whiteboard!");
     }
     setTextBox(null);
   };
@@ -870,6 +881,9 @@ export default function ClassRoomPage() {
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current || isReadonly) return;
     if (activeTool === 'text') {
+      if (textBox && textBox.text.trim()) {
+        applyText();
+      }
       const { x, y } = getXY(e);
       setTextBox({ x, y, text: '' });
     }
@@ -878,9 +892,17 @@ export default function ClassRoomPage() {
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current || isReadonly) return;
     if (activeTool === 'text') {
+      if (textBox && textBox.text.trim()) {
+        applyText();
+      }
       const { x, y } = getXY(e);
       setTextBox({ x, y, text: '' });
       return;
+    }
+    if (textBox && textBox.text.trim()) {
+      applyText();
+    } else if (textBox) {
+      setTextBox(null);
     }
     saveCanvasState();
     setIsDrawing(true);
@@ -1116,7 +1138,17 @@ export default function ClassRoomPage() {
 
           {/* Whiteboard (Pure White Canvas) */}
           {showWhiteboard && (
-            <div className="absolute inset-0 z-20 bg-white cursor-crosshair" onClick={() => { setShowSizePicker(false); }}>
+            <div
+              className="absolute inset-0 z-20 bg-white cursor-crosshair"
+              onClick={() => {
+                setShowSizePicker(false);
+                if (textBox && textBox.text.trim()) {
+                  applyText();
+                } else if (textBox) {
+                  setTextBox(null);
+                }
+              }}
+            >
               <canvas
                 ref={canvasRef}
                 onClick={handleCanvasClick}
@@ -1130,33 +1162,90 @@ export default function ClassRoomPage() {
                 className="w-full h-full touch-none bg-white"
               />
 
-              {/* Floating Text Input Box when typing tool clicked canvas */}
+              {/* Direct On-Canvas Inline Typing at Click Location */}
               {textBox && (
                 <div
-                  style={{ left: Math.min(Math.max(textBox.x, 16), window.innerWidth - 320), top: Math.min(Math.max(textBox.y, 16), window.innerHeight - 200) }}
-                  className="absolute z-[110] bg-white border-2 border-blue-500 rounded-2xl shadow-2xl p-3 flex flex-col gap-2 min-w-[280px]"
+                  style={{
+                    left: `${Math.max(8, Math.min(textBox.x, (canvasRef.current?.clientWidth || window.innerWidth) - 300))}px`,
+                    top: `${Math.max(8, Math.min(textBox.y, (canvasRef.current?.clientHeight || window.innerHeight) - 150))}px`,
+                  }}
+                  className="absolute z-[110] flex flex-col items-start select-text"
                   onClick={e => e.stopPropagation()}
+                  onMouseDown={e => e.stopPropagation()}
                 >
-                  <div className="flex items-center justify-between text-xs text-slate-500 pb-1.5 border-b border-slate-100">
-                    <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                      <Type size={14} className="text-blue-600" /> Type on Whiteboard
-                    </span>
+                  {/* Floating Micro Toolbar (Color Swatches, Size & Done) */}
+                  <div className="flex items-center gap-1.5 bg-slate-900/95 backdrop-blur-md px-2.5 py-1 rounded-xl shadow-2xl border border-slate-700 mb-1.5 animate-in fade-in zoom-in-95 duration-150">
+                    {/* Color selection swatches */}
+                    <div className="flex items-center gap-1">
+                      {WHITEBOARD_COLORS.slice(0, 6).map(c => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => setPenColor(c)}
+                          style={{ backgroundColor: c }}
+                          className={`w-4 h-4 rounded-full border transition-transform hover:scale-125 cursor-pointer ${
+                            penColor.toUpperCase() === c.toUpperCase() ? "border-white scale-125 ring-2 ring-blue-400" : "border-slate-500"
+                          }`}
+                          title={`Color ${c}`}
+                        />
+                      ))}
+                      <input
+                        type="color"
+                        value={penColor}
+                        onChange={e => setPenColor(e.target.value)}
+                        className="w-4 h-4 rounded-full cursor-pointer border-0 p-0 bg-transparent"
+                        title="Custom Color"
+                      />
+                    </div>
+
+                    <div className="w-px h-3.5 bg-slate-700 mx-0.5" />
+
+                    {/* Font size selector */}
                     <select
                       value={textFontSize}
                       onChange={e => setTextFontSize(Number(e.target.value))}
-                      className="text-[11px] font-semibold bg-slate-100 text-slate-700 rounded-lg px-2 py-1 border-0 outline-none cursor-pointer"
+                      className="text-[11px] font-bold bg-slate-800 text-white rounded-md px-1.5 py-0.5 border border-slate-700 outline-none cursor-pointer"
                     >
-                      <option value={16}>Small (16px)</option>
-                      <option value={22}>Normal (22px)</option>
-                      <option value={30}>Medium (30px)</option>
-                      <option value={42}>Large (42px)</option>
-                      <option value={56}>Title (56px)</option>
+                      <option value={16}>16px</option>
+                      <option value={20}>20px</option>
+                      <option value={24}>24px</option>
+                      <option value={32}>32px</option>
+                      <option value={42}>42px</option>
+                      <option value={56}>56px</option>
                     </select>
+
+                    <div className="w-px h-3.5 bg-slate-700 mx-0.5" />
+
+                    {/* Quick Done button */}
+                    <button
+                      type="button"
+                      onClick={() => applyText()}
+                      className="px-2 py-0.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
+                      title="Done (or press Enter)"
+                    >
+                      <Check size={11} /> Done
+                    </button>
+
+                    {/* Cancel / Close button */}
+                    <button
+                      type="button"
+                      onClick={() => setTextBox(null)}
+                      className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                      title="Cancel (Esc)"
+                    >
+                      <X size={11} />
+                    </button>
                   </div>
+
+                  {/* Direct On-Board Textarea */}
                   <textarea
                     autoFocus
                     value={textBox.text}
-                    onChange={e => setTextBox({ ...textBox, text: e.target.value })}
+                    onChange={e => {
+                      setTextBox({ ...textBox, text: e.target.value });
+                      e.target.style.height = "auto";
+                      e.target.style.height = `${e.target.scrollHeight}px`;
+                    }}
                     onKeyDown={e => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
@@ -1165,28 +1254,19 @@ export default function ClassRoomPage() {
                         setTextBox(null);
                       }
                     }}
-                    placeholder="Type your notes or formula here... (Enter to stamp)"
-                    rows={2}
-                    className="w-full p-2 text-slate-900 border border-slate-200 rounded-xl text-sm outline-none resize-none focus:border-blue-500 bg-slate-50 font-medium"
-                    style={{ fontSize: `${Math.min(textFontSize, 24)}px`, color: penColor }}
+                    placeholder="Type directly here..."
+                    rows={1}
+                    className="bg-white/85 border-2 border-dashed border-blue-500 rounded-lg px-2.5 py-1 outline-none font-bold placeholder:text-slate-400 resize-none shadow-lg focus:border-blue-600 focus:bg-white min-w-[160px] max-w-[600px] transition-all"
+                    style={{
+                      fontSize: `${textFontSize}px`,
+                      lineHeight: 1.25,
+                      color: penColor,
+                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    }}
                   />
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[10px] text-slate-400 font-medium">Press Enter or click Stamp</span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => setTextBox(null)}
-                        className="px-2.5 py-1 text-xs rounded-lg text-slate-500 hover:bg-slate-100 font-bold transition-colors"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={applyText}
-                        className="px-3.5 py-1 text-xs rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md transition-all"
-                      >
-                        Stamp
-                      </button>
-                    </div>
-                  </div>
+                  <span className="text-[10px] text-slate-500 bg-white/90 px-1 rounded shadow-xs font-medium mt-0.5 ml-1 select-none">
+                    Enter: stamp • Shift+Enter: new line • Esc: cancel
+                  </span>
                 </div>
               )}
 

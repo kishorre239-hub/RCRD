@@ -906,7 +906,7 @@ export default function MeetingsPage() {
                           </button>
                         ) : (
                           <button
-                            onClick={() => router.push(`/meetings/room/${m.id}?role=mentor&readonly=true`)}
+                            onClick={() => router.push(`/meetings/notes/${m.id}`)}
                             className="flex-1 flex items-center justify-center gap-1.5 h-8.5 rounded-xl font-semibold text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
                           >
                             <FileText size={12} /> View Notes

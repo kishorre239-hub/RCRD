@@ -4,8 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { 
   ArrowLeft, FileText, Download, Upload, Paperclip, 
-  Trash2, Search, Plus, Calendar, Clock, BookOpen, 
-  Shield, Users, Lock, Check, Copy, ExternalLink, Video, X
+  Trash2, Search, Plus, Calendar, Clock, Check, Video, X
 } from "lucide-react";
 
 interface NoteAttachment {
@@ -63,19 +62,21 @@ export default function MeetingNotesPage() {
   useEffect(() => {
     if (!meetingId) return;
 
-    // 1. Try sessionStorage or localStorage
-    try {
-      const sess = sessionStorage.getItem(`meeting_${meetingId}`);
-      if (sess) {
-        setMeeting(JSON.parse(sess));
-      }
-      const local = localStorage.getItem("RCRD_SCHEDULED_MEETINGS");
-      if (local) {
-        const list: Meeting[] = JSON.parse(local);
-        const found = list.find(m => m.id === meetingId);
-        if (found) setMeeting(found);
-      }
-    } catch {}
+    setTimeout(() => {
+      // 1. Try sessionStorage or localStorage
+      try {
+        const sess = sessionStorage.getItem(`meeting_${meetingId}`);
+        if (sess) {
+          setMeeting(JSON.parse(sess));
+        }
+        const local = localStorage.getItem("RCRD_SCHEDULED_MEETINGS");
+        if (local) {
+          const list: Meeting[] = JSON.parse(local);
+          const found = list.find(m => m.id === meetingId);
+          if (found) setMeeting(found);
+        }
+      } catch {}
+    }, 0);
 
     // 2. Fetch from backend API
     fetch(`/api/meetings?id=${meetingId}`)
@@ -91,40 +92,51 @@ export default function MeetingNotesPage() {
   // Load notes (supporting both room session notes and saved notes)
   useEffect(() => {
     if (!meetingId) return;
-    try {
-      // 1. Try RCRD_MEETING_NOTES first (created during live call)
-      const roomNotesJson = localStorage.getItem("RCRD_MEETING_NOTES");
-      if (roomNotesJson) {
-        const roomNotesObj = JSON.parse(roomNotesJson);
-        if (Array.isArray(roomNotesObj[meetingId]) && roomNotesObj[meetingId].length > 0) {
-          setNotes(roomNotesObj[meetingId]);
-          return;
-        }
-      }
-      // 2. Try meeting_notes_${meetingId}
-      const saved = localStorage.getItem(`meeting_notes_${meetingId}`);
-      if (saved) {
-        const parsed: Note[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setNotes(parsed);
-          return;
-        }
-      }
-    } catch {}
 
-    // Initial default session notes if completely empty
-    setNotes([
-      {
-        id: "note-demo-1",
-        type: "group",
-        author: "Host",
-        timestamp: Date.now() - 3600000,
-        content: "Class session summary: Core lecture discussion, whiteboard formulas, and class materials.",
-      }
-    ]);
+    setTimeout(() => {
+      try {
+        // 1. Try RCRD_MEETING_NOTES and rcrd_notes first (created during live call)
+        const roomNotesJson = localStorage.getItem("RCRD_MEETING_NOTES");
+        const altNotesJson = localStorage.getItem("rcrd_notes");
+        if (roomNotesJson) {
+          const roomNotesObj = JSON.parse(roomNotesJson);
+          if (Array.isArray(roomNotesObj[meetingId]) && roomNotesObj[meetingId].length > 0) {
+            setNotes(roomNotesObj[meetingId]);
+            return;
+          }
+        }
+        if (altNotesJson) {
+          const altNotesObj = JSON.parse(altNotesJson);
+          if (Array.isArray(altNotesObj[meetingId]) && altNotesObj[meetingId].length > 0) {
+            setNotes(altNotesObj[meetingId]);
+            return;
+          }
+        }
+        // 2. Try meeting_notes_${meetingId}
+        const saved = localStorage.getItem(`meeting_notes_${meetingId}`);
+        if (saved) {
+          const parsed: Note[] = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setNotes(parsed);
+            return;
+          }
+        }
+      } catch {}
+
+      // Initial default session notes if completely empty
+      setNotes([
+        {
+          id: "note-demo-1",
+          type: "group",
+          author: "Host",
+          timestamp: Date.now() - 3600000,
+          content: "Class session summary: Core lecture discussion, whiteboard formulas, and class materials.",
+        }
+      ]);
+    }, 0);
   }, [meetingId]);
 
-  // Persist notes across both storage keys
+  // Persist notes across all storage keys
   const saveNotes = (updated: Note[]) => {
     setNotes(updated);
     try {
@@ -133,6 +145,11 @@ export default function MeetingNotesPage() {
       const roomNotesObj = roomNotesJson ? JSON.parse(roomNotesJson) : {};
       roomNotesObj[meetingId] = updated;
       localStorage.setItem("RCRD_MEETING_NOTES", JSON.stringify(roomNotesObj));
+
+      const altNotesJson = localStorage.getItem("rcrd_notes");
+      const altNotesObj = altNotesJson ? JSON.parse(altNotesJson) : {};
+      altNotesObj[meetingId] = updated;
+      localStorage.setItem("rcrd_notes", JSON.stringify(altNotesObj));
     } catch {}
   };
 

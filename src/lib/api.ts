@@ -99,7 +99,7 @@ async function uploadViaDriveChunks(
   videoId: string,
   onProgress?: (percent: number) => void
 ): Promise<{ videoId: string }> {
-  const CHUNK_SIZE = 3 * 1024 * 1024; // 3MB chunks (strictly under Vercel's 4.5MB limit)
+  const CHUNK_SIZE = 3 * 1024 * 1024; // 3MB chunks (strictly under Vercel's 4.5MB limit, multiple of 256KB)
   const total = file.size;
   let start = 0;
   let driveFileId = '';
@@ -109,25 +109,42 @@ async function uploadViaDriveChunks(
     const chunk = file.slice(start, end);
     const contentRange = `bytes ${start}-${end - 1}/${total}`;
 
-    const res = await fetch(`${API_URL}/videos/drive-chunk`, {
-      method: 'PUT',
-      headers: {
-        'x-upload-url': uploadUrl,
-        'x-content-range': contentRange,
-        'x-video-id': videoId,
-        'Content-Type': file.type || 'video/webm',
-      },
-      body: chunk,
-    });
+    let success = false;
+    let lastErr: Error | null = null;
 
-    if (!res.ok && res.status !== 308) {
-      const errBody = await res.text().catch(() => '');
-      throw new Error(`Drive chunk upload failed (${res.status}): ${errBody}`);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch(`${API_URL}/videos/drive-chunk`, {
+          method: 'PUT',
+          headers: {
+            'x-upload-url': uploadUrl,
+            'x-content-range': contentRange,
+            'x-video-id': videoId,
+            'Content-Type': file.type || 'video/webm',
+          },
+          body: chunk,
+        });
+
+        if (!res.ok && res.status !== 308) {
+          const errBody = await res.text().catch(() => '');
+          throw new Error(`Drive chunk upload failed (${res.status}): ${errBody}`);
+        }
+
+        const data = await res.json().catch(() => ({}));
+        if (data.driveFileId) {
+          driveFileId = data.driveFileId;
+        }
+
+        success = true;
+        break;
+      } catch (err: unknown) {
+        lastErr = err as Error;
+        await new Promise(r => setTimeout(r, 600 * (attempt + 1)));
+      }
     }
 
-    const data = await res.json().catch(() => ({}));
-    if (data.driveFileId) {
-      driveFileId = data.driveFileId;
+    if (!success) {
+      throw lastErr || new Error('Chunk upload failed after retries');
     }
 
     start = end;
@@ -208,66 +225,12 @@ export const uploadVideo = async (
     if (sessionRes.ok) {
       const { uploadUrl, videoId } = await sessionRes.json();
 
-      // If uploadUrl is a Google Drive resumable URL, stream to Google Drive
+      // Stream to Google Drive via same-origin chunk proxy (Zero browser CORS, under Vercel 4.5MB limit)
       if (uploadUrl && uploadUrl.startsWith('https://www.googleapis.com')) {
         try {
-          // Attempt direct upload first
-          const directResult = await new Promise<{ videoId: string }>((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            if (onProgress) {
-              xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable) {
-                  onProgress(Math.round((e.loaded / e.total) * 100));
-                }
-              });
-            }
-
-            xhr.addEventListener('load', async () => {
-              if (xhr.status >= 200 && xhr.status < 300) {
-                try {
-                  let driveFileId = '';
-                  try {
-                    const driveData = JSON.parse(xhr.responseText);
-                    driveFileId = driveData.id || '';
-                  } catch {
-                    // drive response might be empty or location header
-                  }
-
-                  // Step 3: Complete video metadata commit in MongoDB
-                  await fetch(`${API_URL}/videos/complete`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                    },
-                    body: JSON.stringify({
-                      videoId,
-                      driveFileId,
-                      title: safeTitle,
-                      size: file.size,
-                    }),
-                  });
-
-                  resolve({ videoId });
-                } catch (err) {
-                  reject(err);
-                }
-              } else {
-                reject(new Error(`Drive upload failed with status ${xhr.status}`));
-              }
-            });
-
-            xhr.addEventListener('error', () => reject(new Error('CORS_OR_NETWORK_ERROR')));
-            xhr.open('PUT', uploadUrl);
-            xhr.setRequestHeader('Content-Type', file.type || 'video/webm');
-            xhr.send(file);
-          });
-
-          return directResult;
-        } catch (directErr) {
-          console.warn('Direct Google Drive upload encountered CORS/network error, automatically streaming chunks to Drive:', directErr);
-          // Stream chunks through same-origin drive-chunk endpoint (Zero CORS, under Vercel 4.5MB limit)
           return await uploadViaDriveChunks(file, uploadUrl, videoId, onProgress);
+        } catch (chunkErr) {
+          console.warn('Google Drive chunk upload encountered error, falling back to standard upload:', chunkErr);
         }
       }
     }

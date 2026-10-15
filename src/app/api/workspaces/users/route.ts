@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { User } from '@/lib/server/types';
+import { ObjectId, WithId } from 'mongodb';
 
-const PRIMARY_ADMIN = {
+const PRIMARY_ADMIN: WithId<User> = {
+  _id: new ObjectId('660000000000000000000001'),
   id: 'usr-admin-1',
   name: 'Hari Kishore Reddy',
   email: 'harikishorereddy9908@gmail.com',
@@ -47,7 +49,7 @@ export async function GET(req: Request) {
           updatedAt: Date.now(),
         });
       } catch {}
-      users.unshift(PRIMARY_ADMIN as any);
+      users.unshift(PRIMARY_ADMIN);
     }
 
     // Sanitize passwords

@@ -10,7 +10,7 @@ import {
   Pen, Eraser, Edit3, Shield, Users, MessageSquare, Copy, Send,
   Smile, VolumeX, Hand, RotateCcw, RotateCw, Type, Paperclip, FileUp, Image as ImageIcon, Download
 } from "lucide-react";
-import { getCourses, uploadVideo } from "@/lib/api";
+import { getCourses, uploadVideo, ensureValidAuthToken } from "@/lib/api";
 
 interface Note {
   id: string;
@@ -159,7 +159,15 @@ export default function ClassRoomPage() {
   const [activeTool, setActiveTool] = useState<'pen' | 'eraser' | 'text'>('pen');
   const [textBox, setTextBox] = useState<{ x: number; y: number; text: string } | null>(null);
   const [textFontSize, setTextFontSize] = useState(24);
+  const textInputRef = useRef<HTMLTextAreaElement>(null);
   const slideFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Autofocus text input whenever textBox opens
+  useEffect(() => {
+    if (textBox && textInputRef.current) {
+      textInputRef.current.focus();
+    }
+  }, [textBox !== null]);
 
   // Notes file attachment & upload
   const [noteAttachment, setNoteAttachment] = useState<{ name: string; size: number; type: string; dataUrl: string } | null>(null);
@@ -172,9 +180,9 @@ export default function ClassRoomPage() {
   const [floatingReactions, setFloatingReactions] = useState<{ id: string; emoji: string; left: number }[]>([]);
 
   // Unique participant ID for current user (NO DUMMY PARTICIPANTS)
-  const myParticipantId = useRef<string>(
+  const [myParticipantId] = useState<string>(() =>
     isMentor ? "host" : `student_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
-  ).current;
+  );
 
   // Real participants only - no fake dummy students
   const [participants, setParticipants] = useState<Participant[]>([
@@ -324,8 +332,12 @@ export default function ClassRoomPage() {
       setTimeout(() => {
         setMeeting(m);
         if (m.courseId) setUploadCourse(m.courseId);
-        const allNotes = JSON.parse(localStorage.getItem(NOTES_KEY) || "{}");
-        setNotes(allNotes[roomId] || []);
+        try {
+          const roomNotes = JSON.parse(localStorage.getItem("RCRD_MEETING_NOTES") || "{}");
+          const allNotes = JSON.parse(localStorage.getItem(NOTES_KEY) || "{}");
+          const loadedNotes = (roomNotes && roomNotes[roomId]) || (allNotes && allNotes[roomId]) || [];
+          setNotes(loadedNotes);
+        } catch {}
       }, 0);
     } catch {}
     // Fetch meeting details from server API across all users & devices
@@ -398,6 +410,10 @@ export default function ClassRoomPage() {
       const allNotes = JSON.parse(localStorage.getItem(NOTES_KEY) || "{}");
       allNotes[roomId] = updated;
       localStorage.setItem(NOTES_KEY, JSON.stringify(allNotes));
+
+      const roomNotes = JSON.parse(localStorage.getItem("RCRD_MEETING_NOTES") || "{}");
+      roomNotes[roomId] = updated;
+      localStorage.setItem("RCRD_MEETING_NOTES", JSON.stringify(roomNotes));
     } catch {}
   }, [roomId]);
 
@@ -728,20 +744,50 @@ export default function ClassRoomPage() {
       const selectedCourse = courses.find(c => c.id === targetFolder);
       const folderName = selectedCourse ? selectedCourse.name : (targetFolder === "1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4" ? "MEETING" : undefined);
 
-      await uploadVideo(recBlob, targetFolder, p => setUploadProgress(p), vidTitle, { 
-        isMeeting: targetFolder === "1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4",
-        folderName
-      });
+      try {
+        await uploadVideo(recBlob, targetFolder, p => setUploadProgress(p), vidTitle, { 
+          isMeeting: true,
+          folderName
+        });
+      } catch (firstErr) {
+        console.warn("Resumable upload error, attempting direct multipart upload fallback:", firstErr);
+        // Fallback to direct multipart route handler /api/videos/upload
+        const fd = new FormData();
+        fd.append('file', recBlob, `${vidTitle}.webm`);
+        fd.append('title', vidTitle);
+        fd.append('courseId', targetFolder);
+        if (folderName) fd.append('folderName', folderName);
+        fd.append('isMeeting', 'true');
+        const token = await ensureValidAuthToken();
+        const fallbackRes = await fetch('/api/videos/upload', {
+          method: 'POST',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: fd,
+        });
+        if (!fallbackRes.ok) {
+          throw firstErr;
+        }
+      }
+
       setUploadState("done");
+      // Mark meeting as ended in localStorage
       const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
       localStorage.setItem(STORAGE_KEY, JSON.stringify(all.map((m: Meeting) => m.id === roomId ? { ...m, status: "ended" } : m)));
+      
+      // Update meeting status in backend
+      fetch('/api/meetings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: roomId, status: 'ended' }),
+      }).catch(() => {});
+
       const destName = selectedCourse?.name || (targetFolder === "1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4" ? "MEETING" : "Selected Folder");
       showToast(`Recording saved to Google Drive ${destName} folder!`);
-      setTimeout(() => router.push("/meetings"), 2500);
+      setTimeout(() => router.push("/meetings"), 2000);
     } catch (e: unknown) {
       const err = e as Error;
       setUploadState("error");
-      setUploadErrorMsg(err.message || "Upload failed");
+      setUploadErrorMsg(err.message || "Upload failed. You can retry or download your recording locally.");
       showToast(err.message || "Upload failed.", false);
     }
   };
@@ -755,6 +801,11 @@ export default function ClassRoomPage() {
     cameraStream?.getTracks().forEach(t => t.stop());
     const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all.map((m: Meeting) => m.id === roomId ? { ...m, status: "ended" } : m)));
+    fetch('/api/meetings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: roomId, status: 'ended' }),
+    }).catch(() => {});
     router.push("/meetings");
   };
 
@@ -837,8 +888,9 @@ export default function ClassRoomPage() {
     saveCanvasState();
     const ctx = canvasRef.current.getContext("2d");
     if (ctx) {
+      const textColor = penColor.toUpperCase() === "#FFFFFF" ? "#0F172A" : penColor;
       ctx.font = `bold ${textFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
-      ctx.fillStyle = penColor;
+      ctx.fillStyle = textColor;
       ctx.textBaseline = "top";
       const lines = txt.split("\n");
       const lineHeight = Math.round(textFontSize * 1.25);
@@ -879,6 +931,7 @@ export default function ClassRoomPage() {
   };
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    e.stopPropagation();
     if (!canvasRef.current || isReadonly) return;
     if (activeTool === 'text') {
       if (textBox && textBox.text.trim()) {
@@ -892,11 +945,7 @@ export default function ClassRoomPage() {
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current || isReadonly) return;
     if (activeTool === 'text') {
-      if (textBox && textBox.text.trim()) {
-        applyText();
-      }
-      const { x, y } = getXY(e);
-      setTextBox({ x, y, text: '' });
+      e.stopPropagation();
       return;
     }
     if (textBox && textBox.text.trim()) {
@@ -1144,8 +1193,6 @@ export default function ClassRoomPage() {
                 setShowSizePicker(false);
                 if (textBox && textBox.text.trim()) {
                   applyText();
-                } else if (textBox) {
-                  setTextBox(null);
                 }
               }}
             >
@@ -1166,15 +1213,15 @@ export default function ClassRoomPage() {
               {textBox && (
                 <div
                   style={{
-                    left: `${Math.max(8, Math.min(textBox.x, (canvasRef.current?.clientWidth || window.innerWidth) - 300))}px`,
-                    top: `${Math.max(8, Math.min(textBox.y, (canvasRef.current?.clientHeight || window.innerHeight) - 150))}px`,
+                    left: `${Math.max(8, Math.min(textBox.x, (canvasRef.current?.clientWidth || window.innerWidth) - 320))}px`,
+                    top: `${Math.max(8, Math.min(textBox.y, (canvasRef.current?.clientHeight || window.innerHeight) - 160))}px`,
                   }}
                   className="absolute z-[110] flex flex-col items-start select-text"
                   onClick={e => e.stopPropagation()}
                   onMouseDown={e => e.stopPropagation()}
                 >
                   {/* Floating Micro Toolbar (Color Swatches, Size & Done) */}
-                  <div className="flex items-center gap-1.5 bg-slate-900/95 backdrop-blur-md px-2.5 py-1 rounded-xl shadow-2xl border border-slate-700 mb-1.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex items-center gap-1.5 bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-2xl border border-slate-700 mb-2 animate-in fade-in zoom-in-95 duration-150">
                     {/* Color selection swatches */}
                     <div className="flex items-center gap-1">
                       {WHITEBOARD_COLORS.slice(0, 6).map(c => (
@@ -1220,7 +1267,7 @@ export default function ClassRoomPage() {
                     <button
                       type="button"
                       onClick={() => applyText()}
-                      className="px-2 py-0.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
                       title="Done (or press Enter)"
                     >
                       <Check size={11} /> Done
@@ -1239,6 +1286,7 @@ export default function ClassRoomPage() {
 
                   {/* Direct On-Board Textarea */}
                   <textarea
+                    ref={textInputRef}
                     autoFocus
                     value={textBox.text}
                     onChange={e => {
@@ -1254,18 +1302,18 @@ export default function ClassRoomPage() {
                         setTextBox(null);
                       }
                     }}
-                    placeholder="Type directly here..."
+                    placeholder="Type text here..."
                     rows={1}
-                    className="bg-white/85 border-2 border-dashed border-blue-500 rounded-lg px-2.5 py-1 outline-none font-bold placeholder:text-slate-400 resize-none shadow-lg focus:border-blue-600 focus:bg-white min-w-[160px] max-w-[600px] transition-all"
+                    className="bg-white/95 border-2 border-dashed border-blue-500 rounded-xl px-3 py-1.5 outline-none font-bold placeholder:text-slate-400 resize-none shadow-xl focus:border-blue-600 focus:bg-white min-w-[180px] max-w-[650px] transition-all text-slate-900"
                     style={{
                       fontSize: `${textFontSize}px`,
                       lineHeight: 1.25,
-                      color: penColor,
+                      color: penColor.toUpperCase() === '#FFFFFF' ? '#0F172A' : penColor,
                       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                     }}
                   />
-                  <span className="text-[10px] text-slate-500 bg-white/90 px-1 rounded shadow-xs font-medium mt-0.5 ml-1 select-none">
-                    Enter: stamp • Shift+Enter: new line • Esc: cancel
+                  <span className="text-[10px] text-slate-600 bg-white/95 px-1.5 py-0.5 rounded shadow-xs font-semibold mt-1 ml-1 select-none border border-slate-200">
+                    Enter: stamp text • Shift+Enter: new line • Esc: cancel
                   </span>
                 </div>
               )}
@@ -1381,13 +1429,26 @@ export default function ClassRoomPage() {
                   <button
                     onClick={() => {
                       setIsEraser(false);
-                      setActiveTool(prev => prev === "text" ? "pen" : "text");
-                      showToast(activeTool === "text" ? "Pen tool active" : "Typing tool active! Click anywhere on board to type text.");
+                      if (activeTool === "text") {
+                        if (textBox && textBox.text.trim()) applyText();
+                        setTextBox(null);
+                        setActiveTool("pen");
+                        showToast("Pen tool active");
+                      } else {
+                        setActiveTool("text");
+                        const c = canvasRef.current;
+                        const w = c ? c.clientWidth : (typeof window !== "undefined" ? window.innerWidth : 800);
+                        const h = c ? c.clientHeight : (typeof window !== "undefined" ? window.innerHeight : 600);
+                        const defaultX = Math.max(40, Math.round(w / 4));
+                        const defaultY = Math.max(60, Math.round(h / 3));
+                        setTextBox({ x: defaultX, y: defaultY, text: "" });
+                        showToast("Typing active! Start typing or click anywhere on board to place text.");
+                      }
                     }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
                       activeTool === "text" ? "bg-purple-600 text-white shadow-lg ring-2 ring-purple-400/50" : "bg-slate-800 text-slate-300 hover:text-white"
                     }`}
-                    title="Type text on whiteboard (Click board to place text)"
+                    title="Type text on whiteboard (Click anywhere on board to place)"
                   >
                     <Type size={13} />
                     <span>Type</span>

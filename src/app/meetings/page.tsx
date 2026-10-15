@@ -898,23 +898,42 @@ export default function MeetingsPage() {
                       {/* Action Buttons */}
                       <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                         {!isPast ? (
-                          <button
-                            onClick={() => startClass(m)}
-                            className="flex-1 flex items-center justify-center gap-1.5 h-8.5 rounded-xl font-semibold text-xs transition-all shadow-sm bg-blue-600 hover:bg-blue-700 text-white"
-                          >
-                            {isLive ? <><Play size={12} className="fill-white" /> Rejoin Room</> : <><Monitor size={12} /> Start</>}
-                          </button>
+                          <>
+                            <button
+                              onClick={() => startClass(m)}
+                              className="flex-1 flex items-center justify-center gap-1.5 h-8.5 rounded-xl font-semibold text-xs transition-all shadow-sm bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              {isLive ? <><Play size={12} className="fill-white" /> Rejoin Room</> : <><Monitor size={12} /> Start</>}
+                            </button>
+                            <button
+                              onClick={() => router.push(`/meetings/notes/${m.id}`)}
+                              className="h-8.5 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs flex items-center gap-1 transition-colors"
+                              title="View and edit meeting notes"
+                            >
+                              <FileText size={12} /> Notes
+                            </button>
+                          </>
                         ) : (
-                          <button
-                            onClick={() => router.push(`/meetings/notes/${m.id}`)}
-                            className="flex-1 flex items-center justify-center gap-1.5 h-8.5 rounded-xl font-semibold text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
-                          >
-                            <FileText size={12} /> View Notes
-                          </button>
+                          <>
+                            <button
+                              onClick={() => router.push(`/meetings/notes/${m.id}`)}
+                              className="flex-1 flex items-center justify-center gap-1.5 h-8.5 rounded-xl font-semibold text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition-colors shadow-2xs"
+                            >
+                              <FileText size={12} /> View Notes
+                            </button>
+                            <button
+                              onClick={() => startClass(m)}
+                              className="h-8.5 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs flex items-center gap-1 transition-colors"
+                              title="Re-open meeting room"
+                            >
+                              <Play size={11} /> Room
+                            </button>
+                          </>
                         )}
                         <button
                           onClick={() => setShowShare(m)}
-                          className="h-8.5 px-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl font-semibold text-xs flex items-center gap-1 transition-colors shadow-xs"
+                          className="h-8.5 px-2.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl font-semibold text-xs flex items-center gap-1 transition-colors shadow-xs"
+                          title="Invite attendees"
                         >
                           <Share2 size={11} /> Invite
                         </button>

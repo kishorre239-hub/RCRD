@@ -98,6 +98,46 @@ export async function POST(req: Request) {
   }
 }
 
+export async function PATCH(req: Request) {
+  try {
+    const body = await req.json();
+    const { id, status } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    }
+
+    // Update in localBackup if exists
+    const existing = getBackupMeeting(id);
+    if (existing) {
+      if (status) existing.status = status;
+      existing.updatedAt = Date.now();
+      saveBackupMeeting(existing);
+    }
+
+    // Update in MongoDB
+    try {
+      const meetingsCol = await getCollection<StoredMeeting>('meetings');
+      await meetingsCol.updateOne(
+        { id },
+        {
+          $set: {
+            ...(status ? { status } : {}),
+            updatedAt: Date.now(),
+          },
+        }
+      );
+    } catch (dbErr) {
+      console.warn('MongoDB patch meeting note:', (dbErr as Error)?.message);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error patching meeting:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);

@@ -114,6 +114,7 @@ export async function createResumableUploadSession(params: {
   folderName?: string;
   size?: number;
   isMeeting?: boolean;
+  origin?: string;
 }): Promise<{ uploadUrl: string } | null> {
   const credentials = getServiceAccountCredentials();
   if (!credentials) return null;
@@ -167,6 +168,10 @@ export async function createResumableUploadSession(params: {
     'Content-Type': 'application/json; charset=UTF-8',
     'X-Upload-Content-Type': params.mimeType || 'video/webm',
   };
+
+  if (params.origin) {
+    headers['Origin'] = params.origin;
+  }
 
   if (params.size) {
     headers['X-Upload-Content-Length'] = params.size.toString();

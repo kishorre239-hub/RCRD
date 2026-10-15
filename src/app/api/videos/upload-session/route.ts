@@ -50,6 +50,7 @@ export async function POST(req: Request) {
     const insertRes = await videosCol.insertOne(videoDoc);
     const videoId = insertRes.insertedId.toString();
 
+    const origin = req.headers.get('origin') || undefined;
     let sessionResult = null;
     try {
       sessionResult = await createResumableUploadSession({
@@ -59,12 +60,13 @@ export async function POST(req: Request) {
         folderId: finalCourseId || undefined,
         folderName: folderName || undefined,
         isMeeting,
+        origin,
       });
     } catch (e: any) {
       console.warn('Google Drive session creation warning:', e.message);
     }
 
-    const uploadUrl = sessionResult?.uploadUrl || `/api/videos/${videoId}/direct-chunk`;
+    const uploadUrl = sessionResult?.uploadUrl || '';
 
     return NextResponse.json({
       videoId,

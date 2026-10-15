@@ -61,7 +61,12 @@ export default function UsersTab() {
   const fetchUsers = async (showLoadingState = false) => {
     if (showLoadingState) setLoading(true);
     try {
-      const res = await fetch("/api/workspaces/users");
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch("/api/workspaces/users", {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -142,10 +147,14 @@ export default function UsersTab() {
 
     setIsSubmitting(true);
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
       // 1. Post to workspace users API
       const res = await fetch("/api/workspaces/users", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           name: cleanName,
           email: newEmail.trim().toLowerCase(),
@@ -157,7 +166,10 @@ export default function UsersTab() {
       try {
         await fetch("/api/invite", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
           body: JSON.stringify({ emails: [newEmail.trim().toLowerCase()] }),
         });
       } catch {}
@@ -172,7 +184,7 @@ export default function UsersTab() {
       if (res.ok) {
         const data = await res.json();
         newUser = {
-          id: data.id || `usr-${Date.now()}`,
+          id: data.id || data._id || `usr-${Date.now()}`,
           name: data.name || cleanName,
           email: data.email || newEmail.trim().toLowerCase(),
           role: newRole,
@@ -215,7 +227,13 @@ export default function UsersTab() {
     }
 
     try {
-      await fetch(`/api/workspaces/users/${userId}`, { method: "DELETE" });
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      await fetch(`/api/workspaces/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
     } catch {}
 
     const updated = users.filter(u => u.id !== userId);
@@ -225,13 +243,27 @@ export default function UsersTab() {
   };
 
   // Change Role Handler
-  const handleChangeRole = (userId: string, role: "Admin" | "Creator") => {
+  const handleChangeRole = async (userId: string, role: "Admin" | "Creator") => {
     const updated = users.map(u => u.id === userId ? { ...u, role } : u);
     saveUsers(updated);
     if (selectedUser && selectedUser.id === userId) {
       setSelectedUser({ ...selectedUser, role });
     }
     showToast(`Updated role to ${role}`);
+
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      await fetch(`/api/workspaces/users/${userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ role }),
+      });
+    } catch (err) {
+      console.warn("Could not sync role change to server:", err);
+    }
   };
 
   // Filtered Users computation

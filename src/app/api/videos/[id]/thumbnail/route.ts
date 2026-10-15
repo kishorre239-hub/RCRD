@@ -4,6 +4,32 @@ import { getFileMetadata } from '@/lib/server/drive';
 import { Video } from '@/lib/server/types';
 import { ObjectId } from 'mongodb';
 
+function getPlaceholderThumbnail(title?: string) {
+  const safeTitle = (title || 'Video Recording').replace(/[<>&"']/g, '').slice(0, 40);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+    <defs>
+      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#0f172a" />
+        <stop offset="50%" stop-color="#1e293b" />
+        <stop offset="100%" stop-color="#0f172a" />
+      </linearGradient>
+    </defs>
+    <rect width="640" height="360" fill="url(#bg)" rx="8" />
+    <circle cx="320" cy="165" r="40" fill="#3b82f6" fill-opacity="0.2" stroke="#3b82f6" stroke-width="2" />
+    <polygon points="312,150 336,165 312,180" fill="#60a5fa" />
+    <text x="320" y="240" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-size="15" font-weight="600" text-anchor="middle">
+      ${safeTitle}
+    </text>
+  </svg>`;
+  return new Response(svg, {
+    status: 200,
+    headers: {
+      'Content-Type': 'image/svg+xml; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600',
+    },
+  });
+}
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -11,7 +37,7 @@ export async function GET(
   try {
     const { id } = await params;
     if (!id) {
-      return NextResponse.json({ error: 'Video ID required' }, { status: 400 });
+      return getPlaceholderThumbnail('Recording');
     }
 
     let video: Video | null = null;
@@ -37,24 +63,36 @@ export async function GET(
     }
 
     if (!cdnThumbnailUrl && driveFileId && !driveFileId.startsWith('local:')) {
-      const driveMeta = await getFileMetadata(driveFileId);
-      if (driveMeta && driveMeta.thumbnailUrl) {
-        cdnThumbnailUrl = driveMeta.thumbnailUrl;
-      }
+      try {
+        const driveMeta = await getFileMetadata(driveFileId);
+        if (driveMeta && driveMeta.thumbnailUrl) {
+          cdnThumbnailUrl = driveMeta.thumbnailUrl;
+        }
+      } catch {}
     }
 
     if (!cdnThumbnailUrl) {
-      return NextResponse.json({ error: 'Thumbnail not available' }, { status: 404 });
+      return getPlaceholderThumbnail(video?.title);
     }
 
     // Fetch from Google Drive CDN without Referer to bypass Google's 429/403 referer check
-    const imgRes = await fetch(cdnThumbnailUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-      },
-    });
+    try {
+      const imgRes = await fetch(cdnThumbnailUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        },
+      });
 
-    if (!imgRes.ok) {
+      if (imgRes.ok && imgRes.body) {
+        return new Response(imgRes.body, {
+          status: 200,
+          headers: {
+            'Content-Type': imgRes.headers.get('content-type') || 'image/jpeg',
+            'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        });
+      }
+
       // Fallback with lower resolution if s640 is throttled
       const fallbackUrl = cdnThumbnailUrl.replace(/=s\d+/, '=s320');
       const fallbackRes = await fetch(fallbackUrl);
@@ -67,18 +105,10 @@ export async function GET(
           },
         });
       }
-      return NextResponse.json({ error: 'Failed to fetch thumbnail image' }, { status: 502 });
-    }
+    } catch {}
 
-    return new Response(imgRes.body, {
-      status: 200,
-      headers: {
-        'Content-Type': imgRes.headers.get('content-type') || 'image/jpeg',
-        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
-      },
-    });
+    return getPlaceholderThumbnail(video?.title);
   } catch (error: any) {
-    console.error('Error proxying thumbnail:', error?.message || error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return getPlaceholderThumbnail('Recording');
   }
 }

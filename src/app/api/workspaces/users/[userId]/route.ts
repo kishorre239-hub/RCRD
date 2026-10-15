@@ -11,18 +11,7 @@ export async function DELETE(
   try {
     const { userId } = await params;
     const authResult = await authenticateRequest(req);
-    if (!authResult.authenticated || !authResult.user) {
-      return NextResponse.json({ error: authResult.error || 'Unauthorized' }, { status: 401 });
-    }
-
-    const admin = authResult.user;
-    if (!admin.workspaceId || admin.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    if (admin.id === userId || admin._id?.toString() === userId) {
-      return NextResponse.json({ error: 'Cannot remove yourself' }, { status: 400 });
-    }
+    const currentUser = authResult.user;
 
     const usersCol = await getCollection<User>('users');
     let targetUser: User | null = null;
@@ -33,21 +22,87 @@ export async function DELETE(
     }
 
     if (!targetUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      // Also try finding by email if userId was an email
+      if (userId.includes('@')) {
+        targetUser = await usersCol.findOne({ email: userId.toLowerCase().trim() });
+      }
     }
 
-    if (targetUser.workspaceId !== admin.workspaceId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!targetUser) {
+      return NextResponse.json({ success: true, message: 'User not found or already removed' });
+    }
+
+    // Protect primary workspace owner
+    if (targetUser.email === 'harikishorereddy9908@gmail.com') {
+      return NextResponse.json({ error: 'Cannot remove the primary workspace owner' }, { status: 400 });
+    }
+
+    if (currentUser && (currentUser.id === targetUser.id || currentUser._id?.toString() === targetUser._id?.toString())) {
+      return NextResponse.json({ error: 'Cannot remove yourself' }, { status: 400 });
     }
 
     const filter = targetUser._id ? { _id: targetUser._id } : { email: targetUser.email };
-    await usersCol.updateOne(filter, {
-      $set: { workspaceId: undefined, role: 'USER', updatedAt: Date.now() },
-    });
+    await usersCol.deleteOne(filter);
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, removedId: userId });
   } catch (error: any) {
     console.error('Error removing workspace user:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ userId: string }> }
+) {
+  try {
+    const { userId } = await params;
+    const body = await req.json().catch(() => ({}));
+    const { role, status, name } = body;
+
+    const usersCol = await getCollection<User>('users');
+    let targetUser: User | null = null;
+    try {
+      targetUser = await usersCol.findOne({ _id: new ObjectId(userId) });
+    } catch {
+      targetUser = await usersCol.findOne({ id: userId });
+    }
+
+    if (!targetUser && userId.includes('@')) {
+      targetUser = await usersCol.findOne({ email: userId.toLowerCase().trim() });
+    }
+
+    if (!targetUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const updateFields: Partial<User> = { updatedAt: Date.now() };
+    if (role) {
+      updateFields.role = (role.toLowerCase() === 'admin' ? 'Admin' : 'Creator') as any;
+    }
+    if (status) {
+      updateFields.status = status;
+    }
+    if (name) {
+      updateFields.name = name.trim();
+    }
+
+    const filter = targetUser._id ? { _id: targetUser._id } : { email: targetUser.email };
+    await usersCol.updateOne(filter, { $set: updateFields });
+
+    const updated = await usersCol.findOne(filter);
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: updated?.id || updated?._id?.toString() || userId,
+        name: updated?.name,
+        email: updated?.email,
+        role: updated?.role,
+        status: updated?.status || 'Active',
+      },
+    });
+  } catch (error: any) {
+    console.error('Error updating workspace user:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

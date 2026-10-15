@@ -112,7 +112,16 @@ export default function UsersTab() {
   };
 
   useEffect(() => {
-    void fetchUsers(false);
+    let active = true;
+    const timer = setTimeout(() => {
+      if (active) {
+        void fetchUsers();
+      }
+    }, 0);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   const saveUsers = (updated: WorkspaceUser[]) => {

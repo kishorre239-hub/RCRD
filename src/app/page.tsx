@@ -423,7 +423,7 @@ export default function HomePage() {
 
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => setRecordingState('configuring')}
+              onClick={() => router.push('/record')}
               className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-xl font-bold flex items-center gap-3 transition-all shadow-[0_8px_20px_rgba(37,99,235,0.25)] hover:shadow-[0_12px_25px_rgba(37,99,235,0.35)] transform hover:-translate-y-1"
             >
               <div className="bg-white/20 p-1.5 rounded-lg">

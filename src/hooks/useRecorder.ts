@@ -44,12 +44,20 @@ export const useRecorder = () => {
 
       // 1. Get Screen Stream
       if (options.screen) {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: { frameRate: { ideal: 8, max: 10 } },
-          audio: false, // System audio might not be supported on all browsers, we'll rely on mic
-        });
+        const displayMediaOptions: any = {
+          video: {
+            displaySurface: 'monitor',
+            frameRate: { ideal: 30, max: 60 },
+          },
+          audio: true, // Capture system audio if shared by user
+          selfBrowserSurface: 'include',
+          surfaceSwitching: 'include',
+          systemAudio: 'include',
+        };
+
+        const screenStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
         
-        // If user clicks "Stop sharing" via browser UI, we should stop recording
+        // If user clicks "Stop sharing" via browser UI, stop recording
         screenStream.getVideoTracks()[0].onended = () => {
           stopRecording();
         };
@@ -58,13 +66,19 @@ export const useRecorder = () => {
       }
 
       // 2. Get Camera/Mic Stream
-      if (options.microphone || options.camera) {
+      // If screen is active, only add microphone audio to avoid conflicting video tracks
+      const shouldGetCamera = options.camera && !options.screen;
+      const shouldGetMic = options.microphone;
+
+      if (shouldGetMic || shouldGetCamera) {
         const avStream = await navigator.mediaDevices.getUserMedia({
-          video: options.camera ? { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 8, max: 10 } } : false,
-          audio: options.microphone ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false,
+          video: shouldGetCamera ? { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 60 } } : false,
+          audio: shouldGetMic ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false,
         });
         
         avStream.getTracks().forEach((track) => {
+          // If screen was already captured, only add audio tracks from getUserMedia
+          if (options.screen && track.kind === 'video') return;
           combinedStream.addTrack(track);
         });
       }
@@ -89,12 +103,11 @@ export const useRecorder = () => {
         return 'video/webm';
       };
 
-      // Ultra-efficient classroom lecture compression: 22 kbps VP9 video + 10 kbps Opus voice
-      // Produces ~1.1 MB for 5 min, ~13.7 MB for 1 full hour (<15 MB/hr target achieved!), keeping slide text & code 100% sharp and readable!
+      // High-definition 60fps screen & window recording bitrate (2.5 Mbps) for smooth multi-window transitions
       const mediaRecorder = new MediaRecorder(combinedStream, {
         mimeType: getOptimalMimeType(),
-        videoBitsPerSecond: 22000,
-        audioBitsPerSecond: 10000,
+        videoBitsPerSecond: 2500000,
+        audioBitsPerSecond: 128000,
       });
 
       mediaRecorder.ondataavailable = (event) => {
@@ -114,7 +127,7 @@ export const useRecorder = () => {
       };
 
       mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start(1000); // 1-second cluster chunk size to reduce container metadata overhead
+      mediaRecorder.start(1000); // 1-second cluster chunk size
 
       setIsRecording(true);
       
@@ -133,6 +146,16 @@ export const useRecorder = () => {
       stopAllTracks();
     }
   }, [stopAllTracks, stopRecording]);
+
+  const setMediaFile = useCallback((fileOrBlob: Blob) => {
+    if (mediaBlobUrl) {
+      URL.revokeObjectURL(mediaBlobUrl);
+    }
+    const url = URL.createObjectURL(fileOrBlob);
+    setMediaBlob(fileOrBlob);
+    setMediaBlobUrl(url);
+    setError(null);
+  }, [mediaBlobUrl]);
 
   const clearRecording = useCallback(() => {
     if (mediaBlobUrl) {
@@ -162,6 +185,7 @@ export const useRecorder = () => {
     error,
     startRecording,
     stopRecording,
-    clearRecording
+    clearRecording,
+    setMediaFile,
   };
 };

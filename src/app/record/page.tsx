@@ -1,10 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Monitor, Mic, Camera, Play, Square, Download, RotateCcw, UploadCloud, CheckCircle, AlertCircle, Folder } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Monitor, 
+  Mic, 
+  Camera, 
+  Play, 
+  Square, 
+  Download, 
+  RotateCcw, 
+  UploadCloud, 
+  CheckCircle, 
+  AlertCircle, 
+  Folder, 
+  Maximize2, 
+  Minimize2, 
+  Upload, 
+  FileVideo, 
+  Plus, 
+  Check, 
+  ExternalLink, 
+  HardDrive 
+} from 'lucide-react';
 import { useRecorder } from '@/hooks/useRecorder';
-import { uploadVideo, getCourses } from '@/lib/api';
+import { uploadVideo, getCourses, createCourse } from '@/lib/api';
 
 interface Course {
   id: string;
@@ -13,11 +34,17 @@ interface Course {
 
 export default function RecordPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [options, setOptions] = useState({
     screen: true,
     microphone: true,
     camera: false,
   });
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [videoTitle, setVideoTitle] = useState('');
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -27,10 +54,34 @@ export default function RecordPage() {
 
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  
+  // New folder creation state
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [isFolderSubmitting, setIsFolderSubmitting] = useState(false);
 
   useEffect(() => {
     getCourses().then(setCourses).catch(console.error);
   }, []);
+
+  // Track fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  };
 
   const {
     isRecording,
@@ -40,19 +91,73 @@ export default function RecordPage() {
     error,
     startRecording,
     stopRecording,
-    clearRecording
+    clearRecording,
+    setMediaFile,
   } = useRecorder();
+
+  // Set default video title when recording completes or media is ready
+  useEffect(() => {
+    if (mediaBlob && !videoTitle) {
+      if (selectedFileName) {
+        setVideoTitle(selectedFileName.replace(/\.[^/.]+$/, ''));
+      } else {
+        const d = new Date();
+        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        setVideoTitle(`Screen Recording · ${dateStr} (${timeStr})`);
+      }
+    }
+  }, [mediaBlob, videoTitle, selectedFileName]);
 
   const handleStart = () => {
     setUploadSuccess(false);
     setUploadError(null);
     setUploadProgress(0);
     setVideoId(null);
+    setSelectedFileName(null);
+    setVideoTitle('');
     startRecording(options);
   };
 
   const handleStop = () => {
     stopRecording();
+  };
+
+  const handleFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      setSelectedFileName(file.name);
+      setVideoTitle(file.name.replace(/\.[^/.]+$/, ''));
+      setUploadSuccess(false);
+      setUploadError(null);
+      setUploadProgress(0);
+      setVideoId(null);
+      setMediaFile(file);
+    }
+    // Reset file input so same file can be re-selected if desired
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCreateNewFolder = async () => {
+    if (!newFolderName.trim() || isFolderSubmitting) return;
+    setIsFolderSubmitting(true);
+    try {
+      const created = await createCourse(newFolderName.trim());
+      setCourses(prev => {
+        if (prev.some(c => c.id === created.id)) return prev;
+        return [...prev, created];
+      });
+      setSelectedCourseId(created.id);
+      setNewFolderName('');
+      setIsCreatingFolder(false);
+    } catch (err) {
+      console.error('Failed to create folder:', err);
+    } finally {
+      setIsFolderSubmitting(false);
+    }
   };
 
   const handleUpload = async () => {
@@ -63,10 +168,7 @@ export default function RecordPage() {
     setUploadProgress(0);
     
     const selectedCourse = courses.find(c => c.id === selectedCourseId);
-    const d = new Date();
-    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    const vidTitle = `Screen Recording · ${dateStr} (${timeStr})`;
+    const finalTitle = videoTitle.trim() || `Screen Recording · ${new Date().toLocaleDateString('en-US')}`;
 
     try {
       const response = await uploadVideo(
@@ -75,7 +177,7 @@ export default function RecordPage() {
         (percent) => {
           setUploadProgress(percent);
         },
-        vidTitle,
+        finalTitle,
         {
           folderName: selectedCourse?.name,
           isMeeting: selectedCourseId === 'MEETING' || selectedCourseId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4'
@@ -85,7 +187,7 @@ export default function RecordPage() {
       setUploadSuccess(true);
       setVideoId(response.videoId);
     } catch (err: unknown) {
-      setUploadError(err instanceof Error ? err.message : 'Failed to upload video');
+      setUploadError(err instanceof Error ? err.message : 'Failed to upload video to Google Drive');
     } finally {
       setIsUploading(false);
     }
@@ -97,21 +199,61 @@ export default function RecordPage() {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const currentFolder = courses.find(c => c.id === selectedCourseId);
+  const currentFolderName = selectedCourseId === 'MEETING' || selectedCourseId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' 
+    ? 'MEETING' 
+    : (currentFolder?.name || 'Personal Library (Root)');
+
   return (
-    <div className="h-full w-full overflow-y-auto custom-scrollbar bg-[#F9FAFB] dark:bg-[#0f1115] text-slate-900 dark:text-white p-8">
+    <div className="h-full w-full overflow-y-auto custom-scrollbar bg-[#F9FAFB] dark:bg-[#0f1115] text-slate-900 dark:text-white p-6 sm:p-8">
+      {/* Hidden file input for file selection */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileSelection} 
+        accept="video/*" 
+        className="hidden" 
+      />
+
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center mb-8">
+        {/* Header Bar */}
+        <div className="flex items-center justify-between mb-8">
           <button 
             onClick={() => router.push('/')}
-            className="flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+            className="flex items-center text-sm font-semibold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </button>
+
+          {/* Switch to Full Screen Button */}
+          <button
+            onClick={toggleFullscreen}
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#16181d] border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 transition-all shadow-sm hover:shadow"
+            title={isFullscreen ? 'Exit Full Screen' : 'Switch to Full Screen'}
+          >
+            {isFullscreen ? (
+              <>
+                <Minimize2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <span>Exit Full Screen</span>
+              </>
+            ) : (
+              <>
+                <Maximize2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <span>Switch to Full Screen</span>
+              </>
+            )}
+          </button>
         </div>
 
-        <div className="bg-white dark:bg-[#16181d] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-8">
-          <h1 className="text-2xl font-bold mb-6">Recording Studio</h1>
+        <div className="bg-white dark:bg-[#16181d] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 sm:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold">Recording Studio</h1>
+            <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-100 dark:border-indigo-800/50">
+              <HardDrive className="w-3.5 h-3.5" />
+              <span>Google Drive Connected</span>
+            </div>
+          </div>
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium">
@@ -146,15 +288,33 @@ export default function RecordPage() {
                 />
               </div>
 
-              <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+              <div className="flex flex-col items-center justify-center p-10 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl bg-slate-50 dark:bg-slate-800/40">
                 {!isRecording ? (
-                  <button 
-                    onClick={handleStart}
-                    className="flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg shadow-indigo-600/30 transition-all active:scale-95"
-                  >
-                    <Play className="fill-white w-6 h-6" />
-                    Start Recording
-                  </button>
+                  <div className="flex flex-col items-center gap-5 w-full max-w-md">
+                    <button 
+                      onClick={handleStart}
+                      className="w-full flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-indigo-600/30 transition-all active:scale-95 cursor-pointer"
+                    >
+                      <Play className="fill-white w-5 h-5" />
+                      Start Recording
+                    </button>
+
+                    {/* Or choose file from computer */}
+                    <div className="flex items-center gap-3 w-full my-1">
+                      <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700"></div>
+                      <span className="text-xs uppercase font-bold text-slate-400 tracking-wider">or</span>
+                      <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700"></div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-2.5 bg-white dark:bg-[#16181d] border-2 border-indigo-200 dark:border-indigo-900/60 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 py-3.5 px-6 rounded-2xl text-sm font-bold transition-all shadow-xs cursor-pointer"
+                    >
+                      <FileVideo className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                      Select Video File from Computer
+                    </button>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center">
                     <div className="text-4xl font-mono font-bold mb-6 flex items-center gap-4">
@@ -163,7 +323,7 @@ export default function RecordPage() {
                     </div>
                     <button 
                       onClick={handleStop}
-                      className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg shadow-red-600/30 transition-all active:scale-95"
+                      className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg shadow-red-600/30 transition-all active:scale-95 cursor-pointer"
                     >
                       <Square className="fill-white w-6 h-6" />
                       Stop Recording
@@ -173,8 +333,8 @@ export default function RecordPage() {
                 
                 <p className="mt-6 text-sm text-slate-500 text-center max-w-md">
                   {!isRecording 
-                    ? "Select your desired sources above and click Start. You will be prompted to grant browser permissions." 
-                    : "Recording is currently active. Click stop when you are finished."}
+                    ? "Select your desired sources above and click Start, or choose an existing video file to upload directly to Google Drive." 
+                    : "Recording is currently active across your selected screen and microphone. Click Stop when finished."}
                 </p>
               </div>
             </>
@@ -182,8 +342,18 @@ export default function RecordPage() {
             <>
               {/* Preview Mode */}
               <div className="mb-6">
-                <h2 className="text-lg font-semibold mb-4">Preview Recording</h2>
-                <div className="rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-black aspect-video relative">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-lg font-semibold">Preview Video</h2>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer disabled:opacity-50"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    Select a Different Video File
+                  </button>
+                </div>
+                <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-black aspect-video relative shadow-inner">
                   <video 
                     src={mediaBlobUrl} 
                     controls 
@@ -194,32 +364,45 @@ export default function RecordPage() {
               </div>
               
               {uploadSuccess ? (
-                <div className="flex flex-col items-center justify-center p-8 border-2 border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 rounded-xl mb-6">
-                  <CheckCircle className="w-12 h-12 text-green-500 mb-4" />
-                  <h3 className="text-xl font-bold text-green-700 dark:text-green-400 mb-2">Upload Complete!</h3>
-                  <p className="text-green-600 dark:text-green-500 text-center mb-6">Your video has been successfully saved to your library.</p>
-                  <div className="flex gap-4">
+                <div className="flex flex-col items-center justify-center p-8 border-2 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 rounded-2xl mb-6 text-center animate-in fade-in zoom-in-95 duration-200">
+                  <CheckCircle className="w-14 h-14 text-emerald-500 mb-4" />
+                  <h3 className="text-xl font-bold text-emerald-800 dark:text-emerald-300 mb-2">Saved to Google Drive Successfully!</h3>
+                  <p className="text-emerald-700 dark:text-emerald-400 max-w-md mb-2 text-sm">
+                    <span className="font-semibold">{videoTitle}</span> has been uploaded directly to Google Drive under folder <span className="font-semibold">&quot;{currentFolderName}&quot;</span>.
+                  </p>
+                  <p className="text-slate-500 dark:text-slate-400 text-xs mb-6">Your video is immediately accessible in your library and ready to share.</p>
+                  
+                  <div className="flex flex-wrap gap-3 justify-center">
                     <button 
-                      onClick={() => router.push(videoId ? `/s/${videoId}` : '/')}
-                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                      onClick={() => router.push(videoId ? `/video/${videoId}` : '/library')}
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 cursor-pointer"
                     >
-                      {videoId ? 'View Video' : 'Go to Dashboard'}
+                      <ExternalLink className="w-4 h-4" />
+                      View Video
+                    </button>
+                    <button 
+                      onClick={() => router.push('/library')}
+                      className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 px-6 py-2.5 rounded-xl font-bold text-sm transition-colors cursor-pointer"
+                    >
+                      Go to Library
                     </button>
                     <button 
                       onClick={() => {
                         clearRecording();
                         setUploadSuccess(false);
+                        setVideoTitle('');
+                        setSelectedFileName(null);
                       }}
-                      className="bg-white text-green-700 border border-green-200 hover:bg-green-50 px-6 py-2 rounded-lg font-medium transition-colors"
+                      className="bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 px-6 py-2.5 rounded-xl font-bold text-sm transition-colors cursor-pointer"
                     >
-                      Record Another
+                      Record / Upload Another
                     </button>
                   </div>
                 </div>
               ) : (
                 <>
                   {uploadError && (
-                    <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-red-200 dark:border-red-800">
+                    <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-red-200 dark:border-red-800">
                       <div className="flex items-center gap-2">
                         <AlertCircle className="w-5 h-5 flex-shrink-0" />
                         <span>{uploadError}</span>
@@ -235,7 +418,7 @@ export default function RecordPage() {
                         )}
                         <button 
                           onClick={handleUpload}
-                          className="text-red-700 dark:text-red-300 hover:underline font-bold text-xs"
+                          className="text-red-700 dark:text-red-300 hover:underline font-bold text-xs cursor-pointer"
                           disabled={isUploading}
                         >
                           Retry Upload
@@ -244,61 +427,150 @@ export default function RecordPage() {
                     </div>
                   )}
 
+                  {/* Upload Progress Bar */}
                   {isUploading && (
-                    <div className="mb-6">
-                      <div className="flex justify-between text-sm mb-2 font-medium">
-                        <span>Uploading...</span>
+                    <div className="mb-6 p-4 bg-indigo-50/60 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40">
+                      <div className="flex justify-between text-sm mb-2 font-bold text-indigo-700 dark:text-indigo-300">
+                        <span className="flex items-center gap-2">
+                          <UploadCloud className="w-4 h-4 animate-bounce" />
+                          Uploading to Google Drive...
+                        </span>
                         <span>{uploadProgress}%</span>
                       </div>
-                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3">
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
                         <div 
-                          className="bg-indigo-600 h-3 rounded-full transition-all duration-300"
+                          className="bg-indigo-600 h-3 rounded-full transition-all duration-300 shadow-sm"
                           style={{ width: `${uploadProgress}%` }}
                         ></div>
                       </div>
                     </div>
                   )}
 
-                  {!isUploading && courses.length > 0 && (
-                    <div className="mb-6">
-                      <label className="block text-sm font-medium mb-2 flex items-center gap-2">
-                        <Folder className="w-4 h-4" /> Select Video Folder (Optional)
+                  {/* Metadata Configuration Section */}
+                  <div className="bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-5 mb-6 border border-slate-200 dark:border-slate-700/60 space-y-4">
+                    {/* Video Title / File Name Field */}
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                        Video / File Name
                       </label>
+                      <input 
+                        type="text"
+                        value={videoTitle}
+                        onChange={(e) => setVideoTitle(e.target.value)}
+                        placeholder="e.g. Project Architecture Walkthrough"
+                        disabled={isUploading}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#16181d] text-slate-900 dark:text-white font-medium text-sm focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all disabled:opacity-60"
+                      />
+                    </div>
+
+                    {/* Google Drive Folder Selector */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                          <Folder className="w-3.5 h-3.5 text-indigo-500" />
+                          Google Drive Destination Folder
+                        </label>
+                        {!isCreatingFolder && !isUploading && (
+                          <button
+                            type="button"
+                            onClick={() => setIsCreatingFolder(true)}
+                            className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            New Folder
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Inline New Folder Form */}
+                      {isCreatingFolder && (
+                        <div className="mb-3 p-3 bg-white dark:bg-[#16181d] border border-indigo-200 dark:border-indigo-800 rounded-xl flex items-center gap-2">
+                          <input 
+                            type="text"
+                            value={newFolderName}
+                            onChange={(e) => setNewFolderName(e.target.value)}
+                            placeholder="Enter new Google Drive folder name..."
+                            autoFocus
+                            disabled={isFolderSubmitting}
+                            className="flex-1 px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-1 focus:ring-indigo-500"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleCreateNewFolder();
+                              if (e.key === 'Escape') setIsCreatingFolder(false);
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleCreateNewFolder}
+                            disabled={!newFolderName.trim() || isFolderSubmitting}
+                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            Create
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setIsCreatingFolder(false); setNewFolderName(''); }}
+                            className="px-2.5 py-1.5 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+
                       <select 
                         value={selectedCourseId}
                         onChange={(e) => setSelectedCourseId(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#16181d] focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all appearance-none cursor-pointer"
+                        disabled={isUploading}
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-[#16181d] text-slate-900 dark:text-white font-medium text-sm focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all cursor-pointer disabled:opacity-60"
                       >
-                        <option value="">Personal Library (Default)</option>
-                        {courses.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
+                        <option value="">Personal Library (Root Google Drive)</option>
+                        <option value="1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4">MEETING (Google Drive)</option>
+                        {courses
+                          .filter(c => c.id !== '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' && c.name !== 'MEETING')
+                          .map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} (Google Drive)
+                            </option>
+                          ))}
                       </select>
-                    </div>
-                  )}
 
-                  <div className="flex gap-4">
+                      {/* Google Drive Breadcrumb Path Preview */}
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-2">
+                        <span className="font-bold text-slate-600 dark:text-slate-300">Upload Path:</span>
+                        <span className="bg-slate-200/70 dark:bg-slate-700 px-1.5 py-0.5 rounded text-[11px] font-mono">
+                          Google Drive / {currentFolderName} / {videoTitle || 'recording.webm'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button 
                       onClick={handleUpload}
                       disabled={isUploading}
-                      className="flex-1 flex justify-center items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm shadow-indigo-600/30"
+                      className="flex-1 flex justify-center items-center gap-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3.5 rounded-xl font-bold text-sm transition-all shadow-md shadow-indigo-600/30 cursor-pointer active:scale-[0.98]"
                     >
                       <UploadCloud className="w-5 h-5" />
-                      {isUploading ? 'Uploading...' : 'Upload Video'}
+                      {isUploading ? 'Uploading to Google Drive...' : 'Save to Google Drive'}
                     </button>
                     <a 
                       href={mediaBlobUrl} 
-                      download={`recording-${new Date().getTime()}.webm`}
-                      className={`flex-1 flex justify-center items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-6 py-3 rounded-lg font-medium transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+                      download={`${(videoTitle || 'recording').replace(/[^a-zA-Z0-9_\-]/g, '_')}.webm`}
+                      className={`flex justify-center items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 px-5 py-3.5 rounded-xl font-bold text-sm transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                     >
-                      <Download className="w-5 h-5" />
-                      Save Locally
+                      <Download className="w-4 h-4" />
+                      Download Copy
                     </a>
                     <button 
-                      onClick={clearRecording}
+                      onClick={() => {
+                        clearRecording();
+                        setVideoTitle('');
+                        setSelectedFileName(null);
+                      }}
                       disabled={isUploading}
-                      className="flex justify-center items-center p-3 bg-slate-100 dark:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-lg transition-colors"
-                      title="Discard & Record Again"
+                      className="flex justify-center items-center p-3.5 bg-slate-100 dark:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl transition-colors cursor-pointer"
+                      title="Discard & Start Over"
                     >
                       <RotateCcw className="w-5 h-5" />
                     </button>

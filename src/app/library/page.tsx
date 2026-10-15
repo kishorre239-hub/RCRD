@@ -747,7 +747,7 @@ export default function LibraryPage() {
 
         <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           <button 
-            onClick={() => setRecordingState('configuring')}
+            onClick={() => router.push('/record')}
             className="w-full bg-[#1A68FF] hover:bg-[#1557D6] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(26,104,255,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(26,104,255,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <Video size={20} className="stroke-[2.2]" />
@@ -840,7 +840,7 @@ export default function LibraryPage() {
                 </button>
                 <div className="relative flex items-center bg-[#0E71EB] hover:bg-[#1655B8] rounded-lg transition-colors text-white shadow-xs">
                   <button 
-                    onClick={() => setRecordingState('configuring')}
+                    onClick={() => router.push('/record')}
                     className="px-4 py-2 text-[13px] font-semibold border-r border-blue-500 hover:bg-blue-600 transition-colors rounded-l-lg"
                   >
                     New video
@@ -863,7 +863,7 @@ export default function LibraryPage() {
                       onClick={e => e.stopPropagation()}
                     >
                       <button 
-                        onClick={() => { setShowNewVideoMenu(false); setRecordingState('configuring'); }}
+                        onClick={() => { setShowNewVideoMenu(false); router.push('/record'); }}
                         className="w-full text-left px-4 py-2 text-[13px] font-medium hover:bg-slate-50 flex items-center gap-2.5 text-slate-700"
                       >
                         <Video size={16} className="text-blue-600" />
@@ -1551,7 +1551,7 @@ export default function LibraryPage() {
                 </p>
                 <div className="flex items-center gap-3">
                   <button 
-                    onClick={() => setRecordingState('configuring')}
+                    onClick={() => router.push('/record')}
                     className="bg-[#1A68FF] hover:bg-[#1557D6] text-white py-3 px-6 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2 shadow-[0_10px_25px_-5px_rgba(26,104,255,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(26,104,255,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
                   >
                     <Video size={18} className="stroke-[2.2]" />

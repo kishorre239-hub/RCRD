@@ -54,14 +54,23 @@ export const fetchWithAuth = async (endpoint: string, options: RequestInit = {})
   return response;
 };
 
-export const uploadVideo = async (
-  file: Blob, 
-  courseId: string | null, 
-  onProgress?: (percent: number) => void,
-  title?: string,
-  options?: { isMeeting?: boolean; folderName?: string }
-): Promise<{ videoId: string }> => {
+export const ensureValidAuthToken = async (): Promise<string | null> => {
   let token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  if (token) {
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        const now = Math.floor(Date.now() / 1000);
+        if (payload.exp && payload.exp < now + 60) {
+          token = null;
+        }
+      }
+    } catch {
+      token = null;
+    }
+  }
+
   if (!token) {
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
@@ -72,22 +81,33 @@ export const uploadVideo = async (
       if (response.ok) {
         const data = await response.json();
         token = data.token;
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && data.token) {
           localStorage.setItem('token', data.token);
           localStorage.setItem('user', JSON.stringify(data));
         }
       }
     } catch (e) {
-      console.warn('Auto-login before upload failed', e);
+      console.warn('Auto-login refresh failed', e);
     }
   }
+  return token;
+};
+
+export const uploadVideo = async (
+  file: Blob, 
+  courseId: string | null, 
+  onProgress?: (percent: number) => void,
+  title?: string,
+  options?: { isMeeting?: boolean; folderName?: string }
+): Promise<{ videoId: string }> => {
+  let token = await ensureValidAuthToken();
 
   const safeTitle = title || `Recording ${new Date().toLocaleDateString('en-US')}`;
   const isMeeting = Boolean(options?.isMeeting || courseId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || courseId === 'MEETING' || safeTitle.toLowerCase().includes('meeting'));
 
-  // Step 1: Attempt to create a direct resumable upload session
+  // Step 1: Attempt to create a direct resumable upload session on Google Drive
   try {
-    const sessionRes = await fetch(`${API_URL}/videos/upload-session`, {
+    let sessionRes = await fetch(`${API_URL}/videos/upload-session`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -102,6 +122,27 @@ export const uploadVideo = async (
         isMeeting,
       }),
     });
+
+    // If 401 Unauthorized, force token refresh and retry session once
+    if (sessionRes.status === 401) {
+      if (typeof window !== 'undefined') localStorage.removeItem('token');
+      token = await ensureValidAuthToken();
+      sessionRes = await fetch(`${API_URL}/videos/upload-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          title: safeTitle,
+          mimeType: file.type || 'video/webm',
+          size: file.size,
+          courseId: courseId || (isMeeting ? '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' : null),
+          folderName: options?.folderName,
+          isMeeting,
+        }),
+      });
+    }
 
     if (sessionRes.ok) {
       const { uploadUrl, videoId } = await sessionRes.json();
@@ -183,6 +224,8 @@ export const uploadVideo = async (
         } catch {
           reject(new Error('Invalid response from server'));
         }
+      } else if (xhr.status === 413) {
+        reject(new Error(`File size (${(file.size / (1024 * 1024)).toFixed(1)} MB) exceeded standard upload limits. Please use the Download button to save your recording locally or click Try Again.`));
       } else {
         reject(new Error(xhr.responseText || 'Upload failed'));
       }

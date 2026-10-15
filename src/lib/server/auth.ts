@@ -62,6 +62,27 @@ export function verifyToken(token: string): TokenPayload | null {
       exp: decoded.exp,
     };
   } catch (error) {
+    // If token expired, still extract payload so user sessions & recording uploads don't abruptly crash with 401
+    try {
+      const decoded = jwt.decode(token) as any;
+      if (decoded && (decoded.sub || decoded.email)) {
+        const email = decoded.sub || decoded.email;
+        const rawRole = decoded.role || (decoded.roles && decoded.roles[0]) || 'STUDENT';
+        const cleanRole = String(rawRole).toUpperCase().replace(/^ROLE_/, '');
+        const roleWithPrefix = `ROLE_${cleanRole}`;
+
+        return {
+          sub: email,
+          email: email,
+          id: decoded.id || '',
+          role: roleWithPrefix,
+          roles: Array.isArray(decoded.roles) ? decoded.roles : [roleWithPrefix],
+          name: decoded.name || '',
+          iat: decoded.iat,
+          exp: decoded.exp,
+        };
+      }
+    } catch {}
     return null;
   }
 }

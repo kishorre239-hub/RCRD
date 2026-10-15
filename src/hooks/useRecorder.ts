@@ -45,7 +45,7 @@ export const useRecorder = () => {
       // 1. Get Screen Stream
       if (options.screen) {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
+          video: { frameRate: { ideal: 15, max: 20 } },
           audio: false, // System audio might not be supported on all browsers, we'll rely on mic
         });
         
@@ -60,15 +60,11 @@ export const useRecorder = () => {
       // 2. Get Camera/Mic Stream
       if (options.microphone || options.camera) {
         const avStream = await navigator.mediaDevices.getUserMedia({
-          video: options.camera ? true : false,
-          audio: options.microphone ? true : false,
+          video: options.camera ? { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 15 } } : false,
+          audio: options.microphone ? { echoCancellation: true, noiseSuppression: true } : false,
         });
         
         avStream.getTracks().forEach((track) => {
-          // If we are doing screen + camera, we might want both video tracks.
-          // Note: MediaRecorder typically only records the first video track in standard formats like webm.
-          // For a true picture-in-picture, we'd need to composite them onto a Canvas.
-          // For an MVP, we'll just add the tracks and let the browser handle standard merging.
           combinedStream.addTrack(track);
         });
       }
@@ -79,8 +75,24 @@ export const useRecorder = () => {
 
       streamRef.current = combinedStream;
 
+      const getOptimalMimeType = () => {
+        const candidates = [
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp9',
+          'video/webm;codecs=vp8,opus',
+          'video/webm;codecs=vp8',
+          'video/webm',
+        ];
+        for (const c of candidates) {
+          if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(c)) return c;
+        }
+        return 'video/webm';
+      };
+
       const mediaRecorder = new MediaRecorder(combinedStream, {
-        mimeType: 'video/webm; codecs=vp8,opus'
+        mimeType: getOptimalMimeType(),
+        videoBitsPerSecond: 65000,
+        audioBitsPerSecond: 18000,
       });
 
       mediaRecorder.ondataavailable = (event) => {

@@ -3,7 +3,7 @@ import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { Video, VideoComment } from '@/lib/server/types';
 import { getFileMetadata, cleanVideoTitle } from '@/lib/server/drive';
-import { ObjectId } from 'mongodb';
+import { ObjectId, Filter } from 'mongodb';
 import { getBackupComments, saveBackupComment } from '@/lib/server/localBackup';
 
 export async function GET(
@@ -17,7 +17,7 @@ export async function GET(
 
     try {
       const videosCol = await getCollection<Video>('videos');
-      let filter: any;
+      let filter: Filter<Video>;
       if (ObjectId.isValid(id) && id.length === 24) {
         filter = { $or: [{ _id: new ObjectId(id) }, { id }, { driveFileId: id }] };
       } else {
@@ -42,7 +42,7 @@ export async function GET(
     }
 
     return NextResponse.json(Array.from(commentMap.values()));
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching comments:', error);
     return NextResponse.json(getBackupComments(id));
   }
@@ -80,7 +80,7 @@ export async function POST(
     // Also persist to MongoDB
     try {
       const videosCol = await getCollection<Video>('videos');
-      let filter: any;
+      let filter: Filter<Video>;
       if (ObjectId.isValid(id) && id.length === 24) {
         filter = { $or: [{ _id: new ObjectId(id) }, { id }, { driveFileId: id }] };
       } else {
@@ -115,7 +115,7 @@ export async function POST(
     }
 
     return NextResponse.json(newComment);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error adding comment:', error);
     const fallbackComment: VideoComment = {
       id: Date.now().toString(),

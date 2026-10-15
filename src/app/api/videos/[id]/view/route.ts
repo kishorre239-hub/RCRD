@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { Video } from '@/lib/server/types';
 import { getFileMetadata, cleanVideoTitle } from '@/lib/server/drive';
-import { ObjectId } from 'mongodb';
+import { ObjectId, Filter } from 'mongodb';
 
 export async function POST(
   req: Request,
@@ -15,7 +15,7 @@ export async function POST(
     }
 
     const videosCol = await getCollection<Video>('videos');
-    let filter: any;
+    let filter: Filter<Video>;
     if (ObjectId.isValid(id) && id.length === 24) {
       filter = { $or: [{ _id: new ObjectId(id) }, { id }, { driveFileId: id }] };
     } else {
@@ -51,7 +51,7 @@ export async function POST(
     }
 
     return NextResponse.json({ success: true, views: viewsCount });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error incrementing view count:', error);
     // Return simulated success with view count so client doesn't break
     return NextResponse.json({ success: true, views: 1 });

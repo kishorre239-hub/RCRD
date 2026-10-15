@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   ChevronDown, Plus, ChevronRight, X,
-  Trash2, Mail, Shield, Check, UserPlus,
-  RefreshCw, MoreVertical, AlertCircle
+  Trash2, Check, UserPlus,
+  RefreshCw, AlertCircle
 } from "lucide-react";
 
 export interface WorkspaceUser {
@@ -58,8 +58,8 @@ export default function UsersTab() {
   };
 
   // Fetch users from API and sync with local storage
-  const fetchUsers = async () => {
-    setLoading(true);
+  const fetchUsers = async (showLoadingState = false) => {
+    if (showLoadingState) setLoading(true);
     try {
       const res = await fetch("/api/workspaces/users");
       if (res.ok) {
@@ -112,7 +112,7 @@ export default function UsersTab() {
   };
 
   useEffect(() => {
-    fetchUsers();
+    void fetchUsers(false);
   }, []);
 
   const saveUsers = (updated: WorkspaceUser[]) => {

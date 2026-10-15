@@ -163,7 +163,9 @@ export default function MeetingsPage() {
     const durationPerStep = 3400; // ~3.4s per feature
     const intervalMs = 50;
     const progressIncrement = (intervalMs / durationPerStep) * 100;
-    setAutoProgress(0);
+    const resetTimer = setTimeout(() => {
+      setAutoProgress(0);
+    }, 0);
 
     const timer = setInterval(() => {
       setAutoProgress(prev => {
@@ -181,7 +183,10 @@ export default function MeetingsPage() {
       });
     }, intervalMs);
 
-    return () => clearInterval(timer);
+    return () => {
+      clearTimeout(resetTimer);
+      clearInterval(timer);
+    };
   }, [autoStep, isAutoPlaying]);
 
   // Join Meeting Form
@@ -313,29 +318,6 @@ export default function MeetingsPage() {
     }
   };
 
-  const rel = (iso: string) => {
-    if (!now) return "Upcoming";
-    try {
-      const d = now - new Date(iso).getTime();
-      if (d < 0) {
-        const f = -d;
-        if (f < 60000) return "Starts in <1m";
-        if (f < 3600000) return `Starts in ${Math.floor(f / 60000)}m`;
-        if (f < 86400000) {
-          const h = Math.floor(f / 3600000);
-          const m = Math.floor((f % 3600000) / 60000);
-          return m > 0 ? `Starts in ${h}h ${m}m` : `Starts in ${h}h`;
-        }
-        return `Starts in ${Math.floor(f / 86400000)}d`;
-      }
-      if (d < 3600000) return `${Math.floor(d / 60000)}m ago`;
-      if (d < 86400000) return `${Math.floor(d / 3600000)}h ago`;
-      return `${Math.floor(d / 86400000)}d ago`;
-    } catch {
-      return "Scheduled";
-    }
-  };
-
   const getModalSummary = () => {
     try {
       const dateVal = newDate || getTodayString();
@@ -350,7 +332,7 @@ export default function MeetingsPage() {
       const endTimeStr = endDate.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
       const dateStr = startDate.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 
-      const diffMs = startDate.getTime() - (now || Date.now());
+      const diffMs = now > 0 ? startDate.getTime() - now : 0;
       let countdown = "";
       if (diffMs <= 0) {
         countdown = "Starting now / Past";

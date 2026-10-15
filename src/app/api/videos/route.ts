@@ -28,12 +28,13 @@ export async function GET(req: Request) {
     }
 
     // Always fetch live Google Drive videos with high-res thumbnails and metadata
-    const { videos: driveVideos } = await listDriveVideosAndFolders();
+    const { videos: driveVideos, connected: driveConnected } = await listDriveVideosAndFolders();
+    const driveIdSet = new Set(driveVideos.map(dv => dv.id));
 
     // Merge database videos and Google Drive videos, avoiding duplicates by driveFileId / id
     const videoMap = new Map<string, Record<string, any>>();
 
-    // 1. First add Google Drive videos
+    // 1. First add live Google Drive videos (Google Drive is the single source of truth)
     for (const dv of driveVideos) {
       const backupMeta = getBackupVideoMeta(dv.id);
       const effectiveCourseId = (backupMeta?.courseId !== undefined) ? backupMeta.courseId : (dv.courseId || '');
@@ -48,37 +49,57 @@ export async function GET(req: Request) {
       });
     }
 
-    // 2. Merge DB videos, enriching with Drive thumbnails and durations
-    for (const v of dbVideos) {
-      const key = v.driveFileId || v.id || v._id?.toString() || '';
-      // Skip orphaned temporary local files that were never uploaded
-      if (key.startsWith('local:') && !v.webViewLink) continue;
+    // 2. Synchronize DB videos:
+    // If Drive is connected, any DB video associated with a Google Drive file that is NOT in Google Drive was deleted by the user!
+    // We prune it from MongoDB so deleted videos do NOT appear on the website!
+    if (dbVideos.length > 0) {
+      for (const v of dbVideos) {
+        const driveId = v.driveFileId;
+        const vidId = v.id || v._id?.toString() || '';
 
-      const existing = videoMap.get(key) || {};
-      const backupMeta = getBackupVideoMeta(key);
-      const effectiveCourseId = (backupMeta?.courseId !== undefined) 
-        ? backupMeta.courseId 
-        : (v.courseId || existing.courseId || '');
-      const createdAt = v.createdAt || existing.createdAt || Date.now();
-      const rawTitle = backupMeta?.title || v.title || existing.title || (v as any).name || 'Recording';
-      const cleanTitle = cleanVideoTitle(rawTitle, createdAt);
-      const id = v.id || v.driveFileId || v._id?.toString() || key;
+        // If video was meant for Google Drive but does not exist in Google Drive anymore
+        if (driveConnected && driveId && !driveIdSet.has(driveId)) {
+          // Video was deleted in Google Drive: prune it from MongoDB!
+          try {
+            const videosCol = await getCollection<Video>('videos');
+            videosCol.deleteOne({ _id: v._id }).catch(() => {});
+          } catch {}
+          continue; // DO NOT add to videoMap!
+        }
 
-      videoMap.set(key, {
-        ...existing,
-        ...v,
-        id,
-        title: cleanTitle,
-        courseId: effectiveCourseId,
-        views: v.views !== undefined ? v.views : (existing.views || 0),
-        comments: Array.isArray(v.comments) ? v.comments : (existing.comments || []),
-        thumbnailUrl: `/api/videos/${id}/thumbnail`,
-        thumbnailLink: `/api/videos/${id}/thumbnail`,
-        directThumbnailUrl: (v as any).thumbnailUrl || v.thumbnailLink || existing.directThumbnailUrl || '',
-        duration: (v.duration && v.duration > 0) ? v.duration : (existing.duration || 0),
-        status: v.status || existing.status || 'READY',
-        editorData: v.editorData || existing.editorData || null,
-      });
+        // If the video is purely a local upload that hasn't finished yet or exists locally
+        if (!driveId && (v.status === 'UPLOADING' || v.status === 'PROCESSING')) {
+          const createdAt = v.createdAt || Date.now();
+          videoMap.set(vidId, {
+            ...v,
+            id: vidId,
+            title: cleanVideoTitle(v.title || 'Uploading Video...', createdAt),
+            courseId: v.courseId || '',
+            views: v.views || 0,
+            comments: Array.isArray(v.comments) ? v.comments : [],
+            thumbnailUrl: `/api/videos/${vidId}/thumbnail`,
+            thumbnailLink: `/api/videos/${vidId}/thumbnail`,
+            directThumbnailUrl: '',
+            duration: v.duration || 0,
+            status: v.status,
+            editorData: v.editorData || null,
+          });
+        } else if (driveId && driveIdSet.has(driveId)) {
+          // Enrich already added Drive video with DB views, comments, etc.
+          const existing = videoMap.get(driveId);
+          if (existing) {
+            videoMap.set(driveId, {
+              ...existing,
+              ...v,
+              id: driveId,
+              title: v.title || existing.title,
+              views: Math.max(v.views || 0, existing.views || 0),
+              comments: Array.isArray(v.comments) && v.comments.length > 0 ? v.comments : existing.comments,
+              editorData: v.editorData || existing.editorData,
+            });
+          }
+        }
+      }
     }
 
     const allVideos = Array.from(videoMap.values())

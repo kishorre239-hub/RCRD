@@ -89,6 +89,13 @@ export function saveBackupVideoMeta(videoId: string, updates: Partial<StoredVide
   return memoryStore[videoId];
 }
 
+export function deleteBackupVideoMeta(videoId: string): void {
+  if (memoryStore[videoId]) {
+    delete memoryStore[videoId];
+    persistStore();
+  }
+}
+
 export interface StoredMeeting {
   id: string;
   title: string;

@@ -15,6 +15,15 @@ export async function GET(req: Request) {
     // If MongoDB is available, sync to collection in background
     try {
       const videosCol = await getCollection<Video>('videos');
+      const liveDriveIds = new Set(videos.map(v => v.id));
+
+      // Prune videos from MongoDB that have been deleted in Google Drive
+      if (connected) {
+        await videosCol.deleteMany({
+          driveFileId: { $exists: true, $nin: Array.from(liveDriveIds) }
+        });
+      }
+
       for (const df of videos) {
         const exists = await videosCol.findOne({ driveFileId: df.id });
         if (!exists) {

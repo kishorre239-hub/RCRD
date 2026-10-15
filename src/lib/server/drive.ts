@@ -4,6 +4,13 @@ import path from 'path';
 
 let driveClient: drive_v3.Drive | null = null;
 
+// The user's Google Drive root folder: GEONIXA LOOM
+export const DEFAULT_ROOT_FOLDER_ID = '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7';
+
+export function getRootFolderId(): string {
+  return process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.DRIVE_DEFAULT_FOLDER_ID || DEFAULT_ROOT_FOLDER_ID;
+}
+
 // Embedded fallback credentials for seamless Vercel serverless deployment
 const DEFAULT_SERVICE_ACCOUNT = {
   type: "service_account",
@@ -83,10 +90,11 @@ export function getDriveClient(): drive_v3.Drive | null {
 
 export async function getMeetingFolderId(): Promise<string> {
   const drive = getDriveClient();
-  if (!drive) return '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4';
+  const rootId = getRootFolderId();
+  if (!drive) return rootId;
   try {
     const res = await drive.files.list({
-      q: "mimeType = 'application/vnd.google-apps.folder' and name = 'MEETING' and trashed = false",
+      q: `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and name = 'MEETING' and trashed = false`,
       fields: 'files(id, name)',
       pageSize: 1,
       supportsAllDrives: true,
@@ -95,10 +103,10 @@ export async function getMeetingFolderId(): Promise<string> {
     if (res.data.files && res.data.files.length > 0 && res.data.files[0].id) {
       return res.data.files[0].id;
     }
-    const createdId = await createDriveFolder('MEETING');
-    return createdId || '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4';
+    const createdId = await createDriveFolder('MEETING', rootId);
+    return createdId || rootId;
   } catch {
-    return '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4';
+    return rootId;
   }
 }
 
@@ -156,7 +164,7 @@ export async function createResumableUploadSession(params: {
   } else if (params.isMeeting) {
     targetFolder = await getMeetingFolderId();
   } else {
-    targetFolder = process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.DRIVE_DEFAULT_FOLDER_ID;
+    targetFolder = getRootFolderId();
   }
 
   if (targetFolder) {
@@ -426,7 +434,7 @@ export async function createDriveFolder(name: string, parentId?: string): Promis
   if (!drive) return null;
 
   try {
-    const rootId = parentId || process.env.GOOGLE_DRIVE_FOLDER_ID;
+    const rootId = parentId || getRootFolderId();
     const metadata: { name: string; mimeType: string; parents?: string[] } = {
       name: name.trim(),
       mimeType: 'application/vnd.google-apps.folder',
@@ -452,25 +460,16 @@ export async function createDriveFolder(name: string, parentId?: string): Promis
 }
 
 /**
- * List all folders in Google Drive (including MEETING, Screen Shares, Team Updates)
+ * List all folders in Google Drive (inside GEONIXA LOOM root folder)
  */
 export async function listDriveFolders(): Promise<Array<{ id: string; name: string }>> {
   const drive = getDriveClient();
-  const rootId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-  const defaultMeetingId = '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4';
-  const defaultFolders = [
-    { id: defaultMeetingId, name: 'MEETING' },
-    { id: 'screen-shares', name: 'Screen Shares' },
-    { id: 'team-updates', name: 'Team Updates' }
-  ];
+  const rootId = getRootFolderId();
 
-  if (!drive) return defaultFolders;
+  if (!drive) return [];
 
   try {
-    let q = "mimeType = 'application/vnd.google-apps.folder' and trashed = false";
-    if (rootId) {
-      q += ` and '${rootId}' in parents`;
-    }
+    const q = `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
 
     const res = await drive.files.list({
       q,
@@ -489,29 +488,10 @@ export async function listDriveFolders(): Promise<Array<{ id: string; name: stri
       }
     }
 
-    // Ensure MEETING folder exists in Google Drive
-    const meetingFolder = folders.find(f => f.name.toUpperCase() === 'MEETING');
-    if (!meetingFolder) {
-      try {
-        const meetingId = await getMeetingFolderId();
-        folders.unshift({ id: meetingId, name: 'MEETING' });
-      } catch {
-        folders.unshift({ id: defaultMeetingId, name: 'MEETING' });
-      }
-    }
-
-    // Ensure Screen Shares and Team Updates exist if not already
-    if (!folders.some(f => f.name.toLowerCase() === 'screen shares' || f.id === 'screen-shares')) {
-      folders.push({ id: 'screen-shares', name: 'Screen Shares' });
-    }
-    if (!folders.some(f => f.name.toLowerCase() === 'team updates' || f.id === 'team-updates')) {
-      folders.push({ id: 'team-updates', name: 'Team Updates' });
-    }
-
     return folders;
   } catch (err) {
     console.warn('Google Drive folder listing warning:', err);
-    return defaultFolders;
+    return [];
   }
 }
 
@@ -583,7 +563,7 @@ export async function uploadBufferToDrive(params: {
     } else if (params.isMeeting) {
       targetFolder = await getMeetingFolderId();
     } else {
-      targetFolder = process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.DRIVE_DEFAULT_FOLDER_ID;
+      targetFolder = getRootFolderId();
     }
 
     const metadata: { name: string; mimeType: string; parents?: string[] } = {
@@ -625,7 +605,7 @@ export async function uploadBufferToDrive(params: {
  */
 export async function getOrCreateNamedDriveFolder(folderName: string): Promise<string> {
   const drive = getDriveClient();
-  const rootId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  const rootId = getRootFolderId();
   if (!drive) return rootId || '';
 
   try {
@@ -816,18 +796,39 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
   connected: boolean;
 }> {
   const drive = getDriveClient();
+  const rootId = getRootFolderId();
   if (!drive) {
     return { videos: driveCache.videos, folders: driveCache.folders, connected: false };
   }
 
   const now = Date.now();
-  if (!forceRefresh && now - driveCache.timestamp < 15000 && driveCache.videos.length > 0) {
+  if (!forceRefresh && now - driveCache.timestamp < 3000) {
     return { videos: driveCache.videos, folders: driveCache.folders, connected: true };
   }
 
   try {
+    // 1. Fetch all child folders inside GEONIXA LOOM
+    const folderRes = await drive.files.list({
+      q: `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+      fields: 'files(id, name)',
+      pageSize: 100,
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+    });
+
+    const subfolders = folderRes.data.files || [];
+    const folders: DriveFolderItem[] = subfolders.map(f => ({
+      id: f.id || '',
+      name: f.name || 'Untitled Folder',
+    }));
+
+    // 2. Fetch all videos in GEONIXA LOOM or any of its subfolders
+    const parentFolderIds = [rootId, ...subfolders.map(f => f.id).filter(Boolean)];
+    const parentConditions = parentFolderIds.map(id => `'${id}' in parents`).join(' or ');
+    const videoQ = `(${parentConditions}) and trashed = false and (mimeType contains 'video/' or name contains '.mp4' or name contains '.webm' or name contains '.mov' or mimeType = 'application/vnd.google-apps.vid')`;
+
     const res = await drive.files.list({
-      q: "trashed = false",
+      q: videoQ,
       fields: 'files(id, name, mimeType, size, webViewLink, webContentLink, createdTime, parents, thumbnailLink, videoMediaMetadata, description)',
       pageSize: 100,
       supportsAllDrives: true,
@@ -836,15 +837,9 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
 
     const files = res.data.files || [];
     const videos: DriveVideoItem[] = [];
-    const folders: DriveFolderItem[] = [];
 
     for (const f of files) {
-      if (f.mimeType === 'application/vnd.google-apps.folder') {
-        folders.push({
-          id: f.id,
-          name: f.name || 'Untitled Folder',
-        });
-      } else if (
+      if (
         (f.mimeType && f.mimeType.startsWith('video/')) ||
         (f.name && (f.name.endsWith('.mp4') || f.name.endsWith('.webm') || f.name.endsWith('.mov'))) ||
         f.mimeType === 'application/vnd.google-apps.vid'

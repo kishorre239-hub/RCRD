@@ -7,12 +7,6 @@ import { Readable } from 'stream';
 import fs from 'fs';
 import path from 'path';
 
-// Known working Google Drive video fallback IDs
-const FALLBACK_DRIVE_IDS = [
-  '1XPSl-b8WZSsho-ZgKT8PeIFufHdo_2FQ',
-  '1eUwEAkMt3Zfb-Q2Op_eIviklBqTE6cQo',
-  '1ZfdOYrFzUb5uCCV_E_RlsO0_DQ67fKyy',
-];
 
 function streamLocalFile(filePath: string, rangeHeader: string | null, contentType = 'video/mp4') {
   const stat = fs.statSync(filePath);
@@ -128,52 +122,7 @@ export async function GET(
       }
     }
 
-    // 3. Fallback: stream from available working Google Drive video so it is NEVER unavailable
-    for (const fallbackId of FALLBACK_DRIVE_IDS) {
-      if (fallbackId === primaryDriveId) continue;
-      try {
-        const fallbackResult = await getDriveFileStream(fallbackId, rangeHeader);
-        if (fallbackResult && fallbackResult.stream) {
-          // Asynchronously link this video in MongoDB so next fetch has permanent driveFileId
-          if (video && videosCol) {
-            const vidFilter = video._id ? { _id: video._id } : { id: video.id };
-            videosCol.updateOne(vidFilter, { $set: { driveFileId: fallbackId } }).catch(() => {});
-          }
-
-          const responseHeaders: Record<string, string> = {
-            'Content-Type': (fallbackResult.headers?.['content-type'] as string) || 'video/mp4',
-            'Accept-Ranges': 'bytes',
-            'Cache-Control': 'public, max-age=7200',
-          };
-          if (fallbackResult.headers?.['content-range']) {
-            responseHeaders['Content-Range'] = fallbackResult.headers['content-range'] as string;
-          }
-          if (fallbackResult.headers?.['content-length']) {
-            responseHeaders['Content-Length'] = fallbackResult.headers['content-length'] as string;
-          }
-
-          const webStream = Readable.toWeb(fallbackResult.stream as Readable);
-          return new Response(webStream as unknown as BodyInit, {
-            status: fallbackResult.status || 200,
-            headers: responseHeaders,
-          });
-        }
-      } catch {
-        // Try next fallback
-      }
-    }
-
-    // 4. Local file fallback: public/logo.mp4
-    const logoPath = path.join(/*turbopackIgnore: true*/ process.cwd(), 'public', 'logo.mp4');
-    if (fs.existsSync(logoPath)) {
-      return streamLocalFile(logoPath, rangeHeader, 'video/mp4');
-    }
-
-    if (video?.webViewLink) {
-      return NextResponse.redirect(video.webViewLink, 307);
-    }
-
-    return NextResponse.json({ error: 'No media stream available for this video' }, { status: 404 });
+    return NextResponse.json({ error: 'Video media file not found or has been deleted from Google Drive' }, { status: 404 });
   } catch (error: unknown) {
     console.error('Error streaming video:', (error as Error)?.message || error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

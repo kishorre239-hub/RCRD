@@ -77,6 +77,10 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
   const [hasError, setHasError] = useState(false);
   const [isBuffering, setIsBuffering] = useState(true);
 
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
   const [editorData, setEditorData] = useState<EditorData | null>(null);
 
   useEffect(() => {
@@ -182,6 +186,12 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
     };
 
     const handleError = () => {
+      if (video.src && !video.src.includes('retry=1')) {
+        const sep = video.src.includes('?') ? '&' : '?';
+        video.src = `${video.src}${sep}retry=1`;
+        video.load();
+        return;
+      }
       setHasError(true);
       if (onError) onError("Failed to load video stream.");
     };

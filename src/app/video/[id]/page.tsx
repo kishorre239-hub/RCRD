@@ -212,7 +212,8 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
           });
 
           const token = localStorage.getItem('token');
-          setStreamUrl(`${API_URL}/videos/${id}/stream?token=${token}`);
+          const tokenParam = token && token !== 'null' && token !== 'undefined' ? `?token=${token}` : '';
+          setStreamUrl(`${API_URL}/videos/${id}/stream${tokenParam}`);
           
           try {
             const viewData = await incrementVideoView(id);

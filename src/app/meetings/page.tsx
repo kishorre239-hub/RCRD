@@ -10,7 +10,7 @@ import {
   Trash2, Calendar,
   Eye, EyeOff, Share2, Mail,
   Monitor, Play,
-  HelpCircle, CheckCircle2, ChevronRight
+  HelpCircle, CheckCircle2, ChevronRight, Sparkles
 } from "lucide-react";
 
 import { getCourses } from "@/lib/api";
@@ -35,6 +35,35 @@ const DURATION_PRESETS = [
   { label: "1 hour", value: 60 },
   { label: "1.5 hrs", value: 90 },
   { label: "2 hours", value: 120 },
+  { label: "3 hours", value: 180 },
+];
+
+const TOUR_STEPS = [
+  {
+    targetId: "tour-topic-folder",
+    title: "1. Topic & Google Drive Folder",
+    desc: "Type your meeting topic and choose which Google Drive folder will store the recorded video, transcripts, and session notes.",
+  },
+  {
+    targetId: "tour-presets",
+    title: "2. 1-Click Quick Presets",
+    desc: "In a hurry? Click 'In 15 mins' or 'In 1 hour' to automatically calculate the date, hour, minute, and AM/PM instantly.",
+  },
+  {
+    targetId: "tour-datetime",
+    title: "3. Custom Start Date & Time",
+    desc: "Pick your specific calendar date and exact 12-hour start time with AM/PM for upcoming scheduled sessions.",
+  },
+  {
+    targetId: "tour-duration",
+    title: "4. Meeting Duration (Length of Session)",
+    desc: "Select how long the meeting will run (e.g. 1 hour). Note: This is your meeting length, distinct from the start countdown!",
+  },
+  {
+    targetId: "tour-summary",
+    title: "5. Real-Time Schedule Overview",
+    desc: "Review your calculated end time, total session duration, and the countdown until start before confirming.",
+  },
 ];
 
 // Sidebar Item declared outside render
@@ -102,6 +131,7 @@ export default function MeetingsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<"AM" | "PM">("PM");
   const [newDuration, setNewDuration] = useState(60);
   const [newCourse, setNewCourse] = useState("");
+  const [tourStep, setTourStep] = useState<number | null>(null);
 
   // Join Meeting Form
   const [joinId, setJoinId] = useState("");
@@ -811,195 +841,346 @@ export default function MeetingsPage() {
 
       {showCreate && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 transition-opacity animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[640px] flex flex-col font-outfit overflow-hidden transform transition-all animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[700px] flex flex-col font-outfit overflow-hidden transform transition-all animate-in zoom-in-95 duration-200 border border-slate-200">
             
             {/* Header */}
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <div>
-                <h2 className="text-xl font-bold text-slate-900">Schedule Meeting</h2>
-                <p className="text-[13px] text-slate-500 mt-1">Plan your upcoming session with advanced options.</p>
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                  <Calendar size={20} />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">Schedule Meeting</h2>
+                  <p className="text-xs text-slate-500">Plan upcoming sessions with Google Drive recording</p>
+                </div>
               </div>
-              <button onClick={() => setShowCreate(false)} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-xl transition-colors">
-                <X size={20} />
-              </button>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTourStep(tourStep === null ? 0 : null)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+                    tourStep !== null 
+                      ? "bg-amber-500 text-white shadow-amber-200" 
+                      : "bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
+                  }`}
+                  title="Step-by-step feature walkthrough"
+                >
+                  <Sparkles size={13} className={tourStep !== null ? "animate-spin" : "text-amber-500"} />
+                  {tourStep !== null ? "Exit Tutorial" : "✨ Feature Tutorial"}
+                </button>
+                <button onClick={() => { setShowCreate(false); setTourStep(null); }} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer">
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
-            {/* Body */}
-            <div className="p-6 overflow-y-auto max-h-[75vh] space-y-7">
-              
-              {/* Topic & Folder Row */}
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-[13px] font-semibold text-slate-700 uppercase tracking-wider mb-2">Topic</label>
-                  <input
-                    type="text"
-                    value={newTitle}
-                    onChange={e => setNewTitle(e.target.value)}
-                    placeholder="E.g., Full-Stack Web Development"
-                    className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 rounded-xl text-[14px] outline-none transition-all shadow-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[13px] font-semibold text-slate-700 uppercase tracking-wider mb-2">Save to Folder <span className="text-slate-400 font-normal normal-case">(optional)</span></label>
-                  <select
-                    value={newCourse}
-                    onChange={e => setNewCourse(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 rounded-xl text-[14px] outline-none transition-all shadow-sm cursor-pointer"
-                  >
-                    <option value="">None (Root Library)</option>
-                    {courses.map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <hr className="border-slate-100" />
-
-              {/* Dynamic Presets */}
-              <div>
-                <label className="block text-[13px] font-semibold text-slate-700 uppercase tracking-wider mb-2.5">
-                  Quick Start Presets
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      const target = new Date(Date.now() + 15 * 60000);
-                      setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
-                      let h = target.getHours(); const p = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
-                      setSelectedHour(String(h).padStart(2, '0'));
-                      setSelectedMinute(String(Math.floor(target.getMinutes() / 5) * 5).padStart(2, '0'));
-                      setSelectedPeriod(p);
-                    }}
-                    className="px-3.5 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 text-[13px] font-semibold rounded-xl transition-colors border border-blue-200"
-                  >
-                    In 15 mins
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      const target = new Date(Date.now() + 30 * 60000);
-                      setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
-                      let h = target.getHours(); const p = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
-                      setSelectedHour(String(h).padStart(2, '0'));
-                      setSelectedMinute(String(Math.floor(target.getMinutes() / 5) * 5).padStart(2, '0'));
-                      setSelectedPeriod(p);
-                    }}
-                    className="px-3.5 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 text-[13px] font-semibold rounded-xl transition-colors border border-blue-200"
-                  >
-                    In 30 mins
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      const target = new Date(Date.now() + 60 * 60000);
-                      setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
-                      let h = target.getHours(); const p = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
-                      setSelectedHour(String(h).padStart(2, '0'));
-                      setSelectedMinute(String(Math.floor(target.getMinutes() / 5) * 5).padStart(2, '0'));
-                      setSelectedPeriod(p);
-                    }}
-                    className="px-3.5 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 text-[13px] font-semibold rounded-xl transition-colors border border-blue-200"
-                  >
-                    In 1 hour
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      const target = new Date(); target.setDate(target.getDate() + 1); target.setHours(10, 0, 0, 0);
-                      setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
-                      setSelectedHour("10"); setSelectedMinute("00"); setSelectedPeriod("AM");
-                    }}
-                    className="px-3.5 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 text-[13px] font-bold rounded-xl transition-colors border border-slate-200"
-                  >
-                    Tomorrow 10 AM
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      const target = new Date(); target.setDate(target.getDate() + 1); target.setHours(14, 0, 0, 0);
-                      setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
-                      setSelectedHour("02"); setSelectedMinute("00"); setSelectedPeriod("PM");
-                    }}
-                    className="px-3.5 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 text-[13px] font-bold rounded-xl transition-colors border border-slate-200"
-                  >
-                    Tomorrow 2 PM
-                  </button>
-                </div>
-              </div>
-
-              {/* Date & Time and Duration */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-[13px] font-semibold text-slate-700 uppercase tracking-wider mb-2">Start Time</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="date"
-                      value={newDate}
-                      onChange={e => setNewDate(e.target.value)}
-                      className="px-3 py-3 border border-slate-200 hover:border-slate-300 rounded-xl text-[14px] flex-1 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none shadow-sm transition-all bg-white"
-                    />
-                    <select
-                      value={selectedHour}
-                      onChange={e => setSelectedHour(e.target.value)}
-                      className="px-3 py-3 border border-slate-200 hover:border-slate-300 rounded-xl text-[14px] bg-white focus:border-blue-600 outline-none shadow-sm transition-all font-medium text-slate-800"
-                    >
-                      {["01","02","03","04","05","06","07","08","09","10","11","12"].map(h => (
-                        <option key={h} value={h}>{h}</option>
-                      ))}
-                    </select>
-                    <span className="text-slate-400 font-bold">:</span>
-                    <select
-                      value={selectedMinute}
-                      onChange={e => setSelectedMinute(e.target.value)}
-                      className="px-3 py-3 border border-slate-200 hover:border-slate-300 rounded-xl text-[14px] bg-white focus:border-blue-600 outline-none shadow-sm transition-all font-medium text-slate-800"
-                    >
-                      {["00","05","10","15","20","25","30","35","40","45","50","55"].map(m => (
-                        <option key={m} value={m}>{m}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={selectedPeriod}
-                      onChange={e => setSelectedPeriod(e.target.value as "AM" | "PM")}
-                      className="px-3 py-3 border border-slate-200 hover:border-slate-300 rounded-xl text-[14px] bg-white focus:border-blue-600 outline-none shadow-sm transition-all font-semibold text-slate-700"
-                    >
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
+            {/* Interactive Tutorial Guide Banner (if tour active) */}
+            {tourStep !== null && (
+              <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white px-6 py-3.5 shadow-inner flex items-center justify-between gap-4 animate-in slide-in-from-top-3 duration-200">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="w-6 h-6 rounded-full bg-white/20 text-white font-black text-xs flex items-center justify-center shrink-0 border border-white/30">
+                    {tourStep + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-bold text-xs uppercase tracking-wider text-blue-100">
+                      Feature Tutorial · Step {tourStep + 1} of {TOUR_STEPS.length}
+                    </p>
+                    <p className="text-xs font-semibold text-white truncate">
+                      {TOUR_STEPS[tourStep].title}
+                    </p>
                   </div>
                 </div>
 
+                <div className="flex items-center gap-2 shrink-0">
+                  {tourStep > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setTourStep(tourStep - 1)}
+                      className="px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                    >
+                      Back
+                    </button>
+                  )}
+                  {tourStep < TOUR_STEPS.length - 1 ? (
+                    <button
+                      type="button"
+                      onClick={() => setTourStep(tourStep + 1)}
+                      className="px-3 py-1 bg-white text-blue-700 hover:bg-blue-50 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      Next <ChevronRight size={12} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setTourStep(null)}
+                      className="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <Check size={12} /> Done
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Body */}
+            <div className="p-6 overflow-y-auto max-h-[75vh] space-y-6">
+              
+              {/* STEP 1: Topic & Folder Row */}
+              <div 
+                id="tour-topic-folder" 
+                className={`p-4 rounded-2xl border transition-all duration-300 ${
+                  tourStep === 0 
+                    ? "border-blue-500 bg-blue-50/40 ring-4 ring-blue-500/20 shadow-md scale-[1.01]" 
+                    : "border-slate-100 bg-white"
+                }`}
+              >
+                {tourStep === 0 && (
+                  <div className="mb-3 flex items-center justify-between text-xs text-blue-700 font-bold bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200">
+                    <span>💡 {TOUR_STEPS[0].desc}</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Meeting Topic *
+                    </label>
+                    <input
+                      type="text"
+                      value={newTitle}
+                      onChange={e => setNewTitle(e.target.value)}
+                      placeholder="E.g., Full-Stack Web Development"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 rounded-xl text-xs outline-none transition-all shadow-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Save to Folder <span className="text-slate-400 font-normal normal-case">(Google Drive)</span>
+                    </label>
+                    <select
+                      value={newCourse}
+                      onChange={e => setNewCourse(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 hover:border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 rounded-xl text-xs outline-none transition-all shadow-xs cursor-pointer font-medium text-slate-800"
+                    >
+                      <option value="">📁 None (Root Library)</option>
+                      {courses.map(c => (
+                        <option key={c.id} value={c.id}>📁 {c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* STEP 2 & 3: Date & Time Section (Full width, no cramped columns) */}
+              <div 
+                id="tour-datetime" 
+                className={`p-4 rounded-2xl border transition-all duration-300 space-y-4 ${
+                  tourStep === 2 
+                    ? "border-blue-500 bg-blue-50/40 ring-4 ring-blue-500/20 shadow-md scale-[1.01]" 
+                    : "border-slate-100 bg-white"
+                }`}
+              >
+                {tourStep === 2 && (
+                  <div className="flex items-center justify-between text-xs text-blue-700 font-bold bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200">
+                    <span>💡 {TOUR_STEPS[2].desc}</span>
+                  </div>
+                )}
+                
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-[13px] font-semibold text-slate-700 uppercase tracking-wider">Duration</label>
-                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-                      {formatDuration(newDuration)}
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Start Date & Time
+                    </label>
+                    <span className="text-[11px] font-medium text-slate-500">
+                      When should this meeting begin?
                     </span>
                   </div>
 
-                  {/* 1-Click Duration Presets */}
-                  <div className="flex flex-wrap gap-1.5 mb-2.5">
-                    {DURATION_PRESETS.map(preset => {
-                      const isSelected = newDuration === preset.value;
-                      return (
-                        <button
-                          key={preset.value}
-                          type="button"
-                          onClick={() => setNewDuration(preset.value)}
-                          className={`px-2.5 py-1 text-xs rounded-lg transition-all ${
-                            isSelected
-                              ? "bg-blue-600 text-white font-bold shadow-xs ring-2 ring-blue-600/20"
-                              : "bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium"
-                          }`}
-                        >
-                          {preset.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {/* Clean, spacious Start Time row */}
+                  <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                    {/* Date input */}
+                    <div className="flex-1 min-w-[160px]">
+                      <input
+                        type="date"
+                        value={newDate}
+                        onChange={e => setNewDate(e.target.value)}
+                        className="w-full px-3 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 outline-none shadow-xs transition-all bg-white font-medium text-slate-800"
+                      />
+                    </div>
 
-                  {/* Custom Duration Dropdowns */}
+                    {/* Time selects */}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <select
+                        value={selectedHour}
+                        onChange={e => setSelectedHour(e.target.value)}
+                        className="w-16 px-2 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs bg-white focus:border-blue-600 outline-none shadow-xs transition-all font-semibold text-slate-800 text-center cursor-pointer"
+                      >
+                        {["01","02","03","04","05","06","07","08","09","10","11","12"].map(h => (
+                          <option key={h} value={h}>{h}</option>
+                        ))}
+                      </select>
+                      <span className="text-slate-400 font-bold text-sm">:</span>
+                      <select
+                        value={selectedMinute}
+                        onChange={e => setSelectedMinute(e.target.value)}
+                        className="w-16 px-2 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs bg-white focus:border-blue-600 outline-none shadow-xs transition-all font-semibold text-slate-800 text-center cursor-pointer"
+                      >
+                        {["00","05","10","15","20","25","30","35","40","45","50","55"].map(m => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={selectedPeriod}
+                        onChange={e => setSelectedPeriod(e.target.value as "AM" | "PM")}
+                        className="w-16 px-2 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-xs bg-slate-50 focus:border-blue-600 outline-none shadow-xs transition-all font-bold text-blue-700 text-center cursor-pointer"
+                      >
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Start Presets (Inside Step 2 container) */}
+                <div 
+                  id="tour-presets" 
+                  className={`pt-3 border-t border-slate-100 transition-all duration-300 ${
+                    tourStep === 1 
+                      ? "p-2 rounded-xl border border-blue-500 bg-blue-100/40 ring-4 ring-blue-500/20" 
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
+                      <Sparkles size={11} className="text-amber-500" />
+                      1-Click Quick Start Presets:
+                    </span>
+                    {tourStep === 1 && (
+                      <span className="text-[11px] text-blue-700 font-bold">💡 Try clicking one!</span>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-1.5">
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const target = new Date(Date.now() + 15 * 60000);
+                        setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
+                        let h = target.getHours(); const p = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
+                        setSelectedHour(String(h).padStart(2, '0'));
+                        setSelectedMinute(String(Math.floor(target.getMinutes() / 5) * 5).padStart(2, '0'));
+                        setSelectedPeriod(p);
+                      }}
+                      className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg transition-colors border border-blue-200 shadow-2xs cursor-pointer"
+                    >
+                      ⚡ In 15 mins
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const target = new Date(Date.now() + 30 * 60000);
+                        setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
+                        let h = target.getHours(); const p = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
+                        setSelectedHour(String(h).padStart(2, '0'));
+                        setSelectedMinute(String(Math.floor(target.getMinutes() / 5) * 5).padStart(2, '0'));
+                        setSelectedPeriod(p);
+                      }}
+                      className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg transition-colors border border-blue-200 shadow-2xs cursor-pointer"
+                    >
+                      ⚡ In 30 mins
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const target = new Date(Date.now() + 60 * 60000);
+                        setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
+                        let h = target.getHours(); const p = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
+                        setSelectedHour(String(h).padStart(2, '0'));
+                        setSelectedMinute(String(Math.floor(target.getMinutes() / 5) * 5).padStart(2, '0'));
+                        setSelectedPeriod(p);
+                      }}
+                      className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg transition-colors border border-blue-200 shadow-2xs cursor-pointer"
+                    >
+                      ⚡ In 1 hour
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const target = new Date(); target.setDate(target.getDate() + 1); target.setHours(10, 0, 0, 0);
+                        setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
+                        setSelectedHour("10"); setSelectedMinute("00"); setSelectedPeriod("AM");
+                      }}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors border border-slate-200 shadow-2xs cursor-pointer"
+                    >
+                      📅 Tomorrow 10 AM
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const target = new Date(); target.setDate(target.getDate() + 1); target.setHours(14, 0, 0, 0);
+                        setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
+                        setSelectedHour("02"); setSelectedMinute("00"); setSelectedPeriod("PM");
+                      }}
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors border border-slate-200 shadow-2xs cursor-pointer"
+                    >
+                      📅 Tomorrow 2 PM
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* STEP 4: Meeting Duration (Full-width, zero overlap!) */}
+              <div 
+                id="tour-duration" 
+                className={`p-4 rounded-2xl border transition-all duration-300 space-y-3 ${
+                  tourStep === 3 
+                    ? "border-blue-500 bg-blue-50/40 ring-4 ring-blue-500/20 shadow-md scale-[1.01]" 
+                    : "border-slate-100 bg-white"
+                }`}
+              >
+                {tourStep === 3 && (
+                  <div className="flex items-center justify-between text-xs text-blue-700 font-bold bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200">
+                    <span>💡 {TOUR_STEPS[3].desc}</span>
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      Meeting Duration
+                    </label>
+                    <p className="text-[11px] text-slate-500 font-normal">How long should this session run?</p>
+                  </div>
+                  <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 shadow-2xs">
+                    ⏱️ Selected: {formatDuration(newDuration)}
+                  </span>
+                </div>
+
+                {/* 1-Click Duration Chips */}
+                <div className="flex flex-wrap gap-2">
+                  {DURATION_PRESETS.map(preset => {
+                    const isSelected = newDuration === preset.value;
+                    return (
+                      <button
+                        key={preset.value}
+                        type="button"
+                        onClick={() => setNewDuration(preset.value)}
+                        className={`px-3 py-2 text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                          isSelected
+                            ? "bg-blue-600 text-white font-bold shadow-sm ring-2 ring-blue-500/30 scale-105"
+                            : "bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
+                        }`}
+                      >
+                        <Clock size={12} className={isSelected ? "text-white" : "text-slate-400"} />
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Optional Custom Dropdown for custom hours & minutes */}
+                <div className="pt-2 flex items-center gap-3 text-xs text-slate-500 font-medium">
+                  <span className="text-slate-400">Or fine-tune:</span>
                   <div className="flex items-center gap-2">
                     <select
                       value={newDuration >= 60 ? Math.floor(newDuration / 60) : 0}
@@ -1008,7 +1189,7 @@ export default function MeetingsPage() {
                         const mins = newDuration % 60;
                         setNewDuration(hrs * 60 + mins);
                       }}
-                      className="w-full px-3 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-[13px] bg-white focus:border-blue-600 outline-none shadow-xs transition-all font-medium text-slate-800"
+                      className="px-2.5 py-1.5 border border-slate-200 hover:border-slate-300 rounded-lg text-xs bg-white focus:border-blue-600 outline-none font-semibold text-slate-800 cursor-pointer"
                     >
                       {[0,1,2,3,4,5,6].map(h => (
                         <option key={h} value={h}>{h} hr</option>
@@ -1021,7 +1202,7 @@ export default function MeetingsPage() {
                         const mins = parseInt(e.target.value);
                         setNewDuration(hrs * 60 + mins);
                       }}
-                      className="w-full px-3 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-[13px] bg-white focus:border-blue-600 outline-none shadow-xs transition-all font-medium text-slate-800"
+                      className="px-2.5 py-1.5 border border-slate-200 hover:border-slate-300 rounded-lg text-xs bg-white focus:border-blue-600 outline-none font-semibold text-slate-800 cursor-pointer"
                     >
                       {[0,5,10,15,20,30,45].map(m => (
                         <option key={m} value={m}>{m} min</option>
@@ -1031,18 +1212,31 @@ export default function MeetingsPage() {
                 </div>
               </div>
 
-              {/* Live Overview & Duration Clarity Box */}
+              {/* STEP 5: Live Schedule Overview Banner */}
               {(() => {
                 const summary = getModalSummary();
                 return (
-                  <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-indigo-50/40 to-white p-4 shadow-xs">
+                  <div 
+                    id="tour-summary" 
+                    className={`rounded-2xl border transition-all duration-300 p-4 ${
+                      tourStep === 4 
+                        ? "border-blue-500 bg-blue-50/60 ring-4 ring-blue-500/20 shadow-md scale-[1.01]" 
+                        : "border-blue-200/80 bg-gradient-to-r from-blue-50/90 via-indigo-50/40 to-blue-50/90 shadow-xs"
+                    }`}
+                  >
+                    {tourStep === 4 && (
+                      <div className="mb-3 flex items-center justify-between text-xs text-blue-700 font-bold bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200">
+                        <span>💡 {TOUR_STEPS[4].desc}</span>
+                      </div>
+                    )}
+                    
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
                           <Calendar size={18} />
                         </div>
                         <div>
-                          <p className="font-bold text-slate-900 text-sm truncate max-w-[280px]">
+                          <p className="font-bold text-slate-900 text-sm truncate max-w-[320px]">
                             {newTitle.trim() || "Untitled Meeting"}
                           </p>
                           <p className="text-xs text-slate-600 mt-0.5 font-medium">
@@ -1050,6 +1244,7 @@ export default function MeetingsPage() {
                           </p>
                         </div>
                       </div>
+                      
                       <div className="text-right shrink-0">
                         <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-white text-blue-700 border border-blue-200 shadow-2xs">
                           ⏳ {summary.countdown}
@@ -1057,7 +1252,7 @@ export default function MeetingsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-3 pt-3 border-t border-blue-100 flex items-center justify-between text-xs">
+                    <div className="mt-3 pt-3 border-t border-blue-100 flex items-center justify-between text-xs flex-wrap gap-2">
                       <span className="text-slate-700 font-semibold flex items-center gap-1.5">
                         <Clock size={13} className="text-blue-600" />
                         Meeting Duration: <span className="text-blue-700 font-bold bg-white px-2 py-0.5 rounded border border-blue-200">{summary.durationStr}</span>
@@ -1075,49 +1270,60 @@ export default function MeetingsPage() {
                 );
               })()}
 
-              <hr className="border-slate-100" />
-
-              {/* Security */}
-              <div>
-                <label className="block text-[13px] font-semibold text-slate-700 uppercase tracking-wider mb-3">Meeting Security</label>
+              {/* Security Details */}
+              <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/60">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">Meeting Security</label>
                 <div className="flex gap-8">
-                  <label className="flex items-center gap-3 cursor-not-allowed opacity-80">
-                    <div className="w-5 h-5 rounded flex items-center justify-center bg-blue-600 border border-blue-600">
-                       <Check size={14} className="text-white" />
+                  <div className="flex items-center gap-2.5 opacity-90">
+                    <div className="w-5 h-5 rounded flex items-center justify-center bg-blue-600 text-white">
+                      <Check size={13} />
                     </div>
                     <div>
-                      <span className="text-[14px] font-semibold text-slate-800 block">Passcode</span>
-                      <span className="text-[12px] text-slate-500">Auto-generated</span>
+                      <span className="text-xs font-bold text-slate-800 block">Passcode</span>
+                      <span className="text-[11px] text-slate-500">Auto-generated & encrypted</span>
                     </div>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-not-allowed opacity-80">
-                    <div className="w-5 h-5 rounded flex items-center justify-center bg-blue-600 border border-blue-600">
-                       <Check size={14} className="text-white" />
+                  </div>
+                  <div className="flex items-center gap-2.5 opacity-90">
+                    <div className="w-5 h-5 rounded flex items-center justify-center bg-blue-600 text-white">
+                      <Check size={13} />
                     </div>
                     <div>
-                      <span className="text-[14px] font-semibold text-slate-800 block">Waiting Room</span>
-                      <span className="text-[12px] text-slate-500">Strict access enabled</span>
+                      <span className="text-xs font-bold text-slate-800 block">Waiting Room</span>
+                      <span className="text-[11px] text-slate-500">Host admits participants</span>
                     </div>
-                  </label>
+                  </div>
                 </div>
               </div>
 
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-5 border-t border-slate-200 flex justify-end gap-3 bg-slate-50">
+            <div className="px-6 py-4 border-t border-slate-200 flex justify-between items-center bg-slate-50">
               <button
-                onClick={() => setShowCreate(false)}
-                className="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-100 transition-colors shadow-xs"
+                type="button"
+                onClick={() => setTourStep(tourStep === null ? 0 : null)}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
               >
-                Cancel
+                <Sparkles size={13} className="text-amber-500" />
+                {tourStep !== null ? "Close Walkthrough" : "Need help? Take a tour"}
               </button>
-              <button
-                onClick={handleCreate}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-sm flex items-center gap-2"
-              >
-                Schedule Meeting
-              </button>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setShowCreate(false); setTourStep(null); }}
+                  className="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreate}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                >
+                  Schedule Meeting
+                </button>
+              </div>
             </div>
           </div>
         </div>

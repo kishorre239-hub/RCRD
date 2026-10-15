@@ -196,6 +196,22 @@ export default function MeetingsPage() {
         const s = localStorage.getItem(STORAGE_KEY);
         if (s) setMeetings(JSON.parse(s));
       } catch {}
+      // Sync meetings from server across all students & devices
+      fetch('/api/meetings')
+        .then(res => res.json())
+        .then(data => {
+          if (data?.meetings && Array.isArray(data.meetings)) {
+            setMeetings(prev => {
+              const map = new Map<string, Meeting>();
+              prev.forEach(m => map.set(m.id, m));
+              data.meetings.forEach((m: Meeting) => map.set(m.id, m));
+              const merged = Array.from(map.values());
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+              return merged;
+            });
+          }
+        })
+        .catch(() => {});
     }, 0);
     // Realtime 1-second interval for live countdowns and dynamic status updates
     const interval = setInterval(() => {
@@ -234,9 +250,16 @@ export default function MeetingsPage() {
     };
   }, []);
 
-  const save = useCallback((list: Meeting[]) => {
+  const save = useCallback((list: Meeting[], singleUpdated?: Meeting) => {
     setMeetings(list);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    if (singleUpdated) {
+      fetch('/api/meetings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(singleUpdated),
+      }).catch(() => {});
+    }
   }, []);
 
   const showToast = useCallback((msg: string, ok = true) => {
@@ -407,7 +430,7 @@ export default function MeetingsPage() {
       createdAt: new Date().toISOString(),
       notes: "",
     };
-    save([m, ...meetings]);
+    save([m, ...meetings], m);
     setShowCreate(false);
     setNewTitle("");
     setNewCourse("");
@@ -416,31 +439,63 @@ export default function MeetingsPage() {
   };
 
   const startClass = (m: Meeting) => {
-    const updated = meetings.map(x => x.id === m.id ? { ...x, status: "live" as const } : x);
-    save(updated);
-    sessionStorage.setItem(`meeting_${m.id}`, JSON.stringify({ ...m, status: "live" }));
+    const liveMeeting: Meeting = { ...m, status: "live" as const };
+    const updated = meetings.map(x => x.id === m.id ? liveMeeting : x);
+    save(updated, liveMeeting);
+    sessionStorage.setItem(`meeting_${m.id}`, JSON.stringify(liveMeeting));
     router.push(`/meetings/room/${m.id}?role=mentor`);
   };
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     if (!joinId.trim() || !joinPwd.trim() || !joinName.trim()) {
       showToast("Please fill in all fields.", false);
       return;
     }
-    const m = meetings.find(x => x.id === joinId.trim());
+    const trimmedId = joinId.trim();
+    const trimmedPwd = joinPwd.trim();
+    const trimmedName = joinName.trim();
+
+    let m = meetings.find(x => x.id.toUpperCase() === trimmedId.toUpperCase() || x.id === trimmedId);
+
+    // Call server API to validate and fetch meeting details across all devices & students
+    try {
+      const res = await fetch(`/api/meetings/${encodeURIComponent(trimmedId)}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: trimmedPwd, name: trimmedName }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || "Failed to join meeting. Please check meeting ID and password.", false);
+        return;
+      }
+      if (data.meeting) {
+        const foundMeeting = data.meeting as Meeting;
+        m = foundMeeting;
+        sessionStorage.setItem(`meeting_${foundMeeting.id}`, JSON.stringify(foundMeeting));
+        setMeetings(prev => prev.some(x => x.id === foundMeeting.id) ? prev : [foundMeeting, ...prev]);
+      }
+    } catch {
+      // Local fallback
+      if (!m) {
+        showToast("Meeting ID not found.", false);
+        return;
+      }
+      if (m.password.toUpperCase() !== trimmedPwd.toUpperCase()) {
+        showToast("Invalid password.", false);
+        return;
+      }
+    }
+
     if (!m) {
       showToast("Meeting ID not found.", false);
-      return;
-    }
-    if (m.password.toUpperCase() !== joinPwd.trim().toUpperCase()) {
-      showToast("Invalid password.", false);
       return;
     }
 
     const startTime = new Date(m.scheduledAt).getTime();
     const isEarly = m.status !== "live" && startTime > Date.now();
 
-    sessionStorage.setItem(`participant_name_${m.id}`, joinName.trim());
+    sessionStorage.setItem(`participant_name_${m.id}`, trimmedName);
     setShowJoin(false);
 
     if (isEarly) {
@@ -449,12 +504,13 @@ export default function MeetingsPage() {
       showToast(`🔒 Meeting is scheduled for ${fmt(m.scheduledAt)} (Starts in ${diffMins}m). Joining waiting lobby...`);
     }
 
-    router.push(`/meetings/room/${m.id}?role=participant&name=${encodeURIComponent(joinName.trim())}`);
+    router.push(`/meetings/room/${m.id}?role=participant&name=${encodeURIComponent(trimmedName)}`);
   };
 
   const deleteMeeting = (id: string) => {
     if (confirm("Are you sure you want to delete this meeting?")) {
       save(meetings.filter(m => m.id !== id));
+      fetch(`/api/meetings?id=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
       showToast("Meeting deleted.");
     }
   };

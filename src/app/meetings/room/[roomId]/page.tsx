@@ -8,7 +8,7 @@ import {
   Loader2, X, Check, Upload, StopCircle, Pause, Play,
   AlertCircle, ChevronRight, ChevronDown, Info, Camera, Lock, Clock,
   Pen, Eraser, Edit3, Shield, Users, MessageSquare, Copy, Send,
-  Smile, VolumeX, Hand
+  Smile, VolumeX, Hand, RotateCcw, RotateCw, Type, Paperclip, FileUp, Image as ImageIcon, Download
 } from "lucide-react";
 import { getCourses, uploadVideo } from "@/lib/api";
 
@@ -20,6 +20,12 @@ interface Note {
   type: "host" | "participant" | "group";
   participantId?: string;
   participantName?: string;
+  attachment?: {
+    name: string;
+    size: number;
+    type: string;
+    dataUrl: string;
+  };
 }
 interface Course { id: string; name: string; }
 interface Meeting { id: string; title: string; courseId: string | null; password: string; scheduledAt?: string; duration: number; status: string; }
@@ -143,22 +149,51 @@ export default function ClassRoomPage() {
   const [showSizePicker, setShowSizePicker] = useState(false);
   const lastPos = useRef<{x: number; y: number} | null>(null);
 
+  // Whiteboard Undo / Redo / Reverse History
+  const historyRef = useRef<ImageData[]>([]);
+  const redoRef = useRef<ImageData[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  // Whiteboard Typing Tool
+  const [activeTool, setActiveTool] = useState<'pen' | 'eraser' | 'text'>('pen');
+  const [textBox, setTextBox] = useState<{ x: number; y: number; text: string } | null>(null);
+  const [textFontSize, setTextFontSize] = useState(24);
+  const slideFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Notes file attachment & upload
+  const [noteAttachment, setNoteAttachment] = useState<{ name: string; size: number; type: string; dataUrl: string } | null>(null);
+  const noteFileInputRef = useRef<HTMLInputElement>(null);
+  const importNotesInputRef = useRef<HTMLInputElement>(null);
+
   // Hand Raise & Reactions State
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [showReactionsPopup, setShowReactionsPopup] = useState(false);
   const [floatingReactions, setFloatingReactions] = useState<{ id: string; emoji: string; left: number }[]>([]);
 
+  // Unique participant ID for current user (NO DUMMY PARTICIPANTS)
+  const myParticipantId = useRef<string>(
+    isMentor ? "host" : `student_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+  ).current;
+
+  // Real participants only - no fake dummy students
   const [participants, setParticipants] = useState<Participant[]>([
-    { id: "host", name: isMentor ? "You (Host)" : "Mentor (Host)", role: "Host", avatar: "H", isMuted: false, isVideoOn: false, isHandRaised: false, canScreenShare: true, canChat: true },
-    { id: "p1", name: isMentor ? "Aarav Sharma" : `${studentName} (You)`, role: "Student", avatar: "A", isMuted: true, isVideoOn: true, isHandRaised: false, canScreenShare: true, canChat: true },
-    { id: "p2", name: "Priya Patel", role: "Student", avatar: "P", isMuted: true, isVideoOn: false, isHandRaised: false, canScreenShare: true, canChat: true },
-    { id: "p3", name: "Rohan Verma", role: "Student", avatar: "R", isMuted: true, isVideoOn: false, isHandRaised: false, canScreenShare: true, canChat: true },
+    {
+      id: myParticipantId,
+      name: isMentor ? "You (Host)" : studentName,
+      role: isMentor ? "Host" : "Student",
+      avatar: (isMentor ? "H" : studentName.charAt(0)).toUpperCase(),
+      isMuted: false,
+      isVideoOn: false,
+      isHandRaised: false,
+      canScreenShare: true,
+      canChat: true,
+    },
   ]);
 
-  // In-Meeting Chat State
+  // In-Meeting Chat State (Welcome note only - no dummy student)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { id: "c1", sender: "Class Assistant", role: "Host", text: "Welcome to today's live session! Use this chat to ask questions or discuss.", time: "10:00 AM" },
-    { id: "c2", sender: "Priya Patel", role: "Student", text: "Good morning! Excited for today's lecture.", time: "10:01 AM" },
+    { id: "c1", sender: "Class Assistant", role: "Host", text: "Welcome to today's live session! Use this chat to ask questions or discuss.", time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
   ]);
   const [chatInput, setChatInput] = useState("");
   const chatBottomRef = useRef<HTMLDivElement>(null);
@@ -293,8 +328,69 @@ export default function ClassRoomPage() {
         setNotes(allNotes[roomId] || []);
       }, 0);
     } catch {}
+    // Fetch meeting details from server API across all users & devices
+    fetch(`/api/meetings?id=${encodeURIComponent(roomId)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data?.meeting) {
+          setMeeting(data.meeting);
+          if (data.meeting.courseId) setUploadCourse(data.meeting.courseId);
+        }
+      })
+      .catch(() => {});
     getCourses().then(setCourses).catch(() => {});
   }, [roomId]);
+
+  // Real-time server-synchronized participant heartbeat
+  useEffect(() => {
+    if (!roomId) return;
+    const currentName = isMentor ? "You (Host)" : studentName;
+    const currentRole = isMentor ? "Host" : "Student";
+    const currentAvatar = (isMentor ? "H" : studentName.charAt(0)).toUpperCase();
+
+    const syncParticipants = async () => {
+      try {
+        const res = await fetch(`/api/meetings/${encodeURIComponent(roomId)}/participants`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            participantId: myParticipantId,
+            name: currentName,
+            role: currentRole,
+            avatar: currentAvatar,
+            isMuted: !micOn,
+            isVideoOn: cameraOn,
+            isHandRaised,
+          }),
+        });
+        const data = await res.json();
+        if (data?.participants && Array.isArray(data.participants)) {
+          const mapped: Participant[] = data.participants.map((p: any) => ({
+            id: p.id,
+            name: p.id === myParticipantId ? (isMentor ? "You (Host)" : `${studentName} (You)`) : p.name,
+            role: p.role,
+            avatar: p.avatar,
+            isMuted: p.isMuted ?? true,
+            isVideoOn: p.isVideoOn ?? false,
+            isHandRaised: p.isHandRaised ?? false,
+            canScreenShare: p.canScreenShare ?? true,
+            canChat: p.canChat ?? true,
+          }));
+          setParticipants(mapped);
+        }
+      } catch {}
+    };
+
+    syncParticipants();
+    const interval = setInterval(syncParticipants, 2500);
+
+    return () => {
+      clearInterval(interval);
+      fetch(`/api/meetings/${encodeURIComponent(roomId)}/participants?participantId=${encodeURIComponent(myParticipantId)}`, {
+        method: 'DELETE',
+      }).catch(() => {});
+    };
+  }, [roomId, myParticipantId, isMentor, studentName, micOn, cameraOn, isHandRaised]);
 
   const saveNotes = useCallback((updated: Note[]) => {
     setNotes(updated);
@@ -305,14 +401,68 @@ export default function ClassRoomPage() {
     } catch {}
   }, [roomId]);
 
+  const handleNoteFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 25 * 1024 * 1024) {
+      showToast("File size must be under 25MB", false);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setNoteAttachment({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        dataUrl: reader.result as string,
+      });
+      showToast(`📎 Attached: ${file.name}`);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleImportNotesFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        try {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed)) {
+            saveNotes([...parsed, ...notes]);
+            showToast(`Imported ${parsed.length} notes!`);
+            return;
+          }
+        } catch {
+          const importedNote: Note = {
+            id: Date.now().toString(),
+            content: text,
+            author: file.name.replace(/\.[^/.]+$/, ""),
+            timestamp: new Date().toISOString(),
+            type: noteType,
+          };
+          saveNotes([importedNote, ...notes]);
+          showToast(`Imported note from ${file.name}!`);
+        }
+      } catch {
+        showToast("Failed to read notes file.", false);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   const addNote = () => {
-    if (!newNote.trim()) return;
+    if (!newNote.trim() && !noteAttachment) return;
     if (noteType === "host" && !isMentor) {
       showToast("Only the host has access to host notes.", false);
       return;
     }
     const targetParticipant = participants.find(p => p.id === selectedParticipantId) || participants.find(p => p.role === "Student");
-    const myId = participants.find(p => p.name === studentName)?.id || "p1";
+    const myId = myParticipantId;
     const note: Note = {
       id: Date.now().toString(),
       content: newNote.trim(),
@@ -321,9 +471,11 @@ export default function ClassRoomPage() {
       type: noteType,
       participantId: noteType === "participant" ? (isMentor ? selectedParticipantId : myId) : undefined,
       participantName: noteType === "participant" ? (isMentor ? targetParticipant?.name : studentName) : undefined,
+      attachment: noteAttachment || undefined,
     };
     saveNotes([note, ...notes]);
     setNewNote("");
+    setNoteAttachment(null);
     showToast(`${noteType.toUpperCase()} note saved!`);
   };
 
@@ -615,7 +767,7 @@ export default function ClassRoomPage() {
     };
   }, []);
 
-  // ── Whiteboard Logic (Pure White Canvas) ───────────────────────────
+  // ── Whiteboard Logic (Pure White Canvas with Reverse & Typing) ─────
   const getXY = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return {x:0, y:0};
     const rect = canvasRef.current.getBoundingClientRect();
@@ -624,8 +776,113 @@ export default function ClassRoomPage() {
     return { x: clientX - rect.left, y: clientY - rect.top };
   };
 
+  const saveCanvasState = useCallback(() => {
+    if (!canvasRef.current) return;
+    const ctx = canvasRef.current.getContext("2d");
+    if (!ctx) return;
+    try {
+      const data = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+      historyRef.current.push(data);
+      if (historyRef.current.length > 40) historyRef.current.shift();
+      redoRef.current = [];
+      setCanUndo(true);
+      setCanRedo(false);
+    } catch {}
+  }, []);
+
+  const handleReverse = () => {
+    if (!canvasRef.current || historyRef.current.length === 0) return;
+    const ctx = canvasRef.current.getContext("2d");
+    if (!ctx) return;
+    try {
+      const current = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+      redoRef.current.push(current);
+      const prev = historyRef.current.pop();
+      if (prev) {
+        ctx.putImageData(prev, 0, 0);
+      }
+      setCanUndo(historyRef.current.length > 0);
+      setCanRedo(true);
+      showToast("Reverse: Restored previous erased data / drawing");
+    } catch {}
+  };
+
+  const handleRedo = () => {
+    if (!canvasRef.current || redoRef.current.length === 0) return;
+    const ctx = canvasRef.current.getContext("2d");
+    if (!ctx) return;
+    try {
+      const current = ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+      historyRef.current.push(current);
+      const next = redoRef.current.pop();
+      if (next) {
+        ctx.putImageData(next, 0, 0);
+      }
+      setCanUndo(true);
+      setCanRedo(redoRef.current.length > 0);
+      showToast("Redone");
+    } catch {}
+  };
+
+  const applyText = () => {
+    if (!textBox || !textBox.text.trim() || !canvasRef.current) {
+      setTextBox(null);
+      return;
+    }
+    saveCanvasState();
+    const ctx = canvasRef.current.getContext("2d");
+    if (ctx) {
+      ctx.font = `bold ${textFontSize}px sans-serif`;
+      ctx.fillStyle = penColor;
+      ctx.textBaseline = "top";
+      ctx.fillText(textBox.text, textBox.x, textBox.y);
+      showToast("Text applied to whiteboard!");
+    }
+    setTextBox(null);
+  };
+
+  const handleSlideImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !canvasRef.current) return;
+    saveCanvasState();
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.onload = () => {
+        if (!canvasRef.current) return;
+        const ctx = canvasRef.current.getContext("2d");
+        if (!ctx) return;
+        const canvas = canvasRef.current;
+        const scale = Math.min((canvas.width * 0.8) / img.width, (canvas.height * 0.8) / img.height, 1);
+        const w = img.width * scale;
+        const h = img.height * scale;
+        const x = (canvas.width - w) / 2;
+        const y = (canvas.height - h) / 2;
+        ctx.drawImage(img, x, y, w, h);
+        showToast("Slide image inserted onto whiteboard!");
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!canvasRef.current || isReadonly) return;
+    if (activeTool === 'text') {
+      const { x, y } = getXY(e);
+      setTextBox({ x, y, text: '' });
+    }
+  };
+
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current || isReadonly) return;
+    if (activeTool === 'text') {
+      const { x, y } = getXY(e);
+      setTextBox({ x, y, text: '' });
+      return;
+    }
+    saveCanvasState();
     setIsDrawing(true);
     const {x, y} = getXY(e);
     lastPos.current = {x, y};
@@ -658,10 +915,12 @@ export default function ClassRoomPage() {
 
   const clearWhiteboard = () => {
     if (!canvasRef.current || isReadonly) return;
+    saveCanvasState();
     const ctx = canvasRef.current.getContext("2d");
     if (ctx) {
       ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      showToast("Whiteboard cleared. Click Reverse to restore!");
     }
   };
 
@@ -669,12 +928,20 @@ export default function ClassRoomPage() {
     if (showWhiteboard && canvasRef.current) {
       const parent = canvasRef.current.parentElement;
       if (parent) {
-        canvasRef.current.width = parent.clientWidth;
-        canvasRef.current.height = parent.clientHeight;
-        const ctx = canvasRef.current.getContext("2d");
-        if (ctx) {
-          ctx.fillStyle = "#FFFFFF";
-          ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        if (canvasRef.current.width !== parent.clientWidth || canvasRef.current.height !== parent.clientHeight) {
+          canvasRef.current.width = parent.clientWidth;
+          canvasRef.current.height = parent.clientHeight;
+          const ctx = canvasRef.current.getContext("2d");
+          if (ctx) {
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            try {
+              historyRef.current = [ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height)];
+              redoRef.current = [];
+              setCanUndo(false);
+              setCanRedo(false);
+            } catch {}
+          }
         }
       }
     }
@@ -849,9 +1116,10 @@ export default function ClassRoomPage() {
 
           {/* Whiteboard (Pure White Canvas) */}
           {showWhiteboard && (
-            <div className="absolute inset-0 z-20 bg-white cursor-crosshair" onClick={() => setShowSizePicker(false)}>
+            <div className="absolute inset-0 z-20 bg-white cursor-crosshair" onClick={() => { setShowSizePicker(false); }}>
               <canvas
                 ref={canvasRef}
+                onClick={handleCanvasClick}
                 onMouseDown={startDrawing}
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
@@ -861,46 +1129,113 @@ export default function ClassRoomPage() {
                 onTouchEnd={stopDrawing}
                 className="w-full h-full touch-none bg-white"
               />
-              {!isReadonly && (
+
+              {/* Floating Text Input Box when typing tool clicked canvas */}
+              {textBox && (
                 <div
-                  className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-md px-5 py-3 rounded-2xl flex items-center gap-3 border border-slate-700 shadow-2xl z-[100]"
+                  style={{ left: Math.min(Math.max(textBox.x, 16), window.innerWidth - 320), top: Math.min(Math.max(textBox.y, 16), window.innerHeight - 200) }}
+                  className="absolute z-[110] bg-white border-2 border-blue-500 rounded-2xl shadow-2xl p-3 flex flex-col gap-2 min-w-[280px]"
                   onClick={e => e.stopPropagation()}
                 >
-                  <input
-                    type="color"
-                    value={penColor}
-                    onChange={(e) => { setIsEraser(false); setPenColor(e.target.value); }}
-                    className="w-8 h-8 rounded-lg cursor-pointer border-0 p-0 bg-transparent"
-                    title="Choose Color"
-                  />
-                  <div className="flex gap-1.5 ml-1">
-                    {WHITEBOARD_COLORS.map(c => (
-                      <button
-                        key={c}
-                        onClick={() => { setIsEraser(false); setPenColor(c); }}
-                        style={{ backgroundColor: c }}
-                        className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-125 ${
-                          !isEraser && penColor.toUpperCase() === c.toUpperCase() ? "border-white scale-125 shadow-lg" : "border-slate-500"
-                        }`}
-                        title={c}
-                      />
-                    ))}
+                  <div className="flex items-center justify-between text-xs text-slate-500 pb-1.5 border-b border-slate-100">
+                    <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                      <Type size={14} className="text-blue-600" /> Type on Whiteboard
+                    </span>
+                    <select
+                      value={textFontSize}
+                      onChange={e => setTextFontSize(Number(e.target.value))}
+                      className="text-[11px] font-semibold bg-slate-100 text-slate-700 rounded-lg px-2 py-1 border-0 outline-none cursor-pointer"
+                    >
+                      <option value={16}>Small (16px)</option>
+                      <option value={22}>Normal (22px)</option>
+                      <option value={30}>Medium (30px)</option>
+                      <option value={42}>Large (42px)</option>
+                      <option value={56}>Title (56px)</option>
+                    </select>
                   </div>
-                  <div className="w-px h-6 bg-slate-700 ml-2" />
+                  <textarea
+                    autoFocus
+                    value={textBox.text}
+                    onChange={e => setTextBox({ ...textBox, text: e.target.value })}
+                    onKeyDown={e => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        applyText();
+                      } else if (e.key === "Escape") {
+                        setTextBox(null);
+                      }
+                    }}
+                    placeholder="Type your notes or formula here... (Enter to stamp)"
+                    rows={2}
+                    className="w-full p-2 text-slate-900 border border-slate-200 rounded-xl text-sm outline-none resize-none focus:border-blue-500 bg-slate-50 font-medium"
+                    style={{ fontSize: `${Math.min(textFontSize, 24)}px`, color: penColor }}
+                  />
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[10px] text-slate-400 font-medium">Press Enter or click Stamp</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => setTextBox(null)}
+                        className="px-2.5 py-1 text-xs rounded-lg text-slate-500 hover:bg-slate-100 font-bold transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={applyText}
+                        className="px-3.5 py-1 text-xs rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md transition-all"
+                      >
+                        Stamp
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Whiteboard Toolbar */}
+              {!isReadonly && (
+                <div
+                  className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center gap-2.5 border border-slate-700 shadow-2xl z-[100] max-w-[96vw] overflow-x-auto"
+                  onClick={e => e.stopPropagation()}
+                >
+                  {/* Color Picker & Swatches */}
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="color"
+                      value={penColor}
+                      onChange={(e) => { setIsEraser(false); setPenColor(e.target.value); }}
+                      className="w-7 h-7 rounded-lg cursor-pointer border-0 p-0 bg-transparent shrink-0"
+                      title="Custom Color"
+                    />
+                    <div className="flex gap-1">
+                      {WHITEBOARD_COLORS.slice(0, 6).map(c => (
+                        <button
+                          key={c}
+                          onClick={() => { setIsEraser(false); setPenColor(c); }}
+                          style={{ backgroundColor: c }}
+                          className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-125 shrink-0 ${
+                            !isEraser && penColor.toUpperCase() === c.toUpperCase() ? "border-white scale-125 shadow-lg" : "border-slate-500"
+                          }`}
+                          title={c}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="w-px h-6 bg-slate-700 shrink-0" />
                   
-                  {/* Pen Size */}
-                  <div className="relative">
+                  {/* Pen Tool & Size */}
+                  <div className="relative shrink-0">
                     <button
-                      onClick={() => { setShowSizePicker(!showSizePicker); setIsEraser(false); }}
+                      onClick={() => { setActiveTool("pen"); setIsEraser(false); setShowSizePicker(prev => !prev); }}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        !isEraser ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-300 hover:text-white"
+                        activeTool === "pen" && !isEraser ? "bg-blue-600 text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
                       }`}
+                      title="Pen tool"
                     >
                       <Pen size={13} />
                       <span>{penSize}px</span>
                     </button>
                     {showSizePicker && !isEraser && (
-                      <div className="absolute bottom-[115%] left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 rounded-xl p-3 w-48 shadow-2xl">
+                      <div className="absolute bottom-[115%] left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 rounded-xl p-3 w-48 shadow-2xl z-[120]">
                         <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">Pen Size: {penSize}px</p>
                         <input type="range" min={1} max={40} value={penSize} onChange={e => setPenSize(Number(e.target.value))} className="w-full accent-blue-500 cursor-pointer" />
                         <div className="flex justify-between text-[10px] text-slate-400 mt-1"><span>1px</span><span>40px</span></div>
@@ -908,19 +1243,20 @@ export default function ClassRoomPage() {
                     )}
                   </div>
 
-                  {/* Eraser */}
-                  <div className="relative">
+                  {/* Eraser Tool */}
+                  <div className="relative shrink-0">
                     <button
-                      onClick={() => { setIsEraser(!isEraser); setShowSizePicker(isEraser ? false : showSizePicker); }}
+                      onClick={() => { setActiveTool("pen"); setIsEraser(!isEraser); setShowSizePicker(isEraser ? false : showSizePicker); }}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        isEraser ? "bg-amber-600 text-white" : "bg-slate-800 text-slate-300 hover:text-white"
+                        isEraser ? "bg-amber-600 text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
                       }`}
+                      title="Eraser tool"
                     >
-                      <Eraser size={14} />
+                      <Eraser size={13} />
                       <span>Eraser</span>
                     </button>
                     {isEraser && (
-                      <div className="absolute bottom-[115%] left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 rounded-xl p-3 w-48 shadow-2xl">
+                      <div className="absolute bottom-[115%] left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 rounded-xl p-3 w-48 shadow-2xl z-[120]">
                         <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">Eraser Size: {eraserSize}px</p>
                         <input type="range" min={10} max={100} value={eraserSize} onChange={e => setEraserSize(Number(e.target.value))} className="w-full accent-amber-500 cursor-pointer" />
                         <div className="flex justify-between text-[10px] text-slate-400 mt-1"><span>10px</span><span>100px</span></div>
@@ -928,12 +1264,89 @@ export default function ClassRoomPage() {
                     )}
                   </div>
 
-                  <div className="w-px h-6 bg-slate-700" />
-                  <button onClick={clearWhiteboard} className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800 text-slate-300 hover:bg-red-600 hover:text-white transition-all" title="Clear Whiteboard">
-                    <Trash2 size={15} />
+                  <div className="w-px h-6 bg-slate-700 shrink-0" />
+
+                  {/* REVERSE (Undo - restores erased data) Button */}
+                  <button
+                    onClick={handleReverse}
+                    disabled={!canUndo}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                      canUndo
+                        ? "bg-slate-800 hover:bg-slate-700 text-white shadow cursor-pointer"
+                        : "bg-slate-800/40 text-slate-600 cursor-not-allowed"
+                    }`}
+                    title="Reverse: Restore previous erased data (Undo)"
+                  >
+                    <RotateCcw size={13} className="text-amber-400" />
+                    <span>Reverse</span>
                   </button>
-                  <button onClick={() => setShowWhiteboard(false)} className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 ml-1">
-                    <X size={14} /> Exit Board
+
+                  {/* REDO Button */}
+                  <button
+                    onClick={handleRedo}
+                    disabled={!canRedo}
+                    className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                      canRedo
+                        ? "bg-slate-800 hover:bg-slate-700 text-white shadow cursor-pointer"
+                        : "bg-slate-800/40 text-slate-600 cursor-not-allowed"
+                    }`}
+                    title="Redo"
+                  >
+                    <RotateCw size={13} className="text-blue-400" />
+                  </button>
+
+                  <div className="w-px h-6 bg-slate-700 shrink-0" />
+
+                  {/* TYPING Tool Button */}
+                  <button
+                    onClick={() => {
+                      setIsEraser(false);
+                      setActiveTool(prev => prev === "text" ? "pen" : "text");
+                      showToast(activeTool === "text" ? "Pen tool active" : "Typing tool active! Click anywhere on board to type text.");
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                      activeTool === "text" ? "bg-purple-600 text-white shadow-lg ring-2 ring-purple-400/50" : "bg-slate-800 text-slate-300 hover:text-white"
+                    }`}
+                    title="Type text on whiteboard (Click board to place text)"
+                  >
+                    <Type size={13} />
+                    <span>Type</span>
+                  </button>
+
+                  {/* UPLOAD Slide or Image to Whiteboard */}
+                  <button
+                    onClick={() => slideFileInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all shrink-0"
+                    title="Upload and insert slide or image onto whiteboard"
+                  >
+                    <ImageIcon size={13} className="text-emerald-400" />
+                    <span>Upload Slide</span>
+                  </button>
+                  <input
+                    ref={slideFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleSlideImageUpload}
+                    className="hidden"
+                  />
+
+                  <div className="w-px h-6 bg-slate-700 shrink-0" />
+
+                  {/* Clear Whiteboard */}
+                  <button
+                    onClick={clearWhiteboard}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800 text-slate-300 hover:bg-red-600 hover:text-white transition-all shrink-0"
+                    title="Clear Whiteboard"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+
+                  {/* Exit Board */}
+                  <button
+                    onClick={() => setShowWhiteboard(false)}
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 shrink-0"
+                  >
+                    <X size={13} /> Exit
                   </button>
                 </div>
               )}
@@ -980,17 +1393,21 @@ export default function ClassRoomPage() {
 
               {/* Connected Student Mini Avatar Badges */}
               <div className="flex gap-2">
-                {participants.filter(p => p.role === "Student").slice(0, 3).map(p => (
-                  <div key={p.id} className="w-24 h-16 bg-slate-900/90 rounded-xl border border-slate-700/80 overflow-hidden relative shadow-lg flex items-center justify-center">
-                    <div className={`w-8 h-8 rounded-full ${p.id === "p1" ? "bg-indigo-600" : p.id === "p2" ? "bg-pink-600" : "bg-purple-600"} text-white flex items-center justify-center text-xs font-bold shadow`}>
-                      {p.avatar}
+                {participants.filter(p => p.id !== myParticipantId).map((p, idx) => {
+                  const colors = ["bg-indigo-600", "bg-emerald-600", "bg-purple-600", "bg-rose-600", "bg-amber-600"];
+                  const color = colors[idx % colors.length];
+                  return (
+                    <div key={p.id} className="w-24 h-16 bg-slate-900/90 rounded-xl border border-slate-700/80 overflow-hidden relative shadow-lg flex items-center justify-center">
+                      <div className={`w-8 h-8 rounded-full ${color} text-white flex items-center justify-center text-xs font-bold shadow`}>
+                        {p.avatar || p.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div className="absolute bottom-1 left-1.5 right-1.5 flex items-center justify-between text-[9px] text-white/90 bg-black/60 px-1 py-0.5 rounded truncate font-medium">
+                        <span className="truncate">{p.name}</span>
+                      </div>
+                      {p.isHandRaised && <span className="absolute top-1 right-1 text-xs">✋</span>}
                     </div>
-                    <div className="absolute bottom-1 left-1.5 right-1.5 flex items-center justify-between text-[9px] text-white/90 bg-black/60 px-1 py-0.5 rounded truncate font-medium">
-                      <span className="truncate">{p.name}</span>
-                    </div>
-                    {p.isHandRaised && <span className="absolute top-1 right-1 text-xs">✋</span>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -1018,14 +1435,16 @@ export default function ClassRoomPage() {
                   ) : (
                     <div className="flex flex-col items-center justify-center">
                       <div className="w-20 h-20 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-black shadow-xl ring-4 ring-blue-500/20">
-                        HR
+                        {isMentor ? "HR" : (studentName ? studentName.substring(0, 2).toUpperCase() : "ME")}
                       </div>
-                      <span className="text-sm font-semibold text-slate-300 mt-3">You (Host)</span>
+                      <span className="text-sm font-semibold text-slate-300 mt-3">
+                        {isMentor ? "You (Host)" : `${studentName || "You"} (Student)`}
+                      </span>
                     </div>
                   )}
                   <div className="absolute bottom-3 left-3 flex items-center gap-2 px-3 py-1 rounded-xl bg-black/70 backdrop-blur-sm text-xs font-bold text-white shadow">
                     {micOn ? <Mic size={13} className="text-emerald-400" /> : <MicOff size={13} className="text-red-400" />}
-                    <span>You (Host)</span>
+                    <span>{isMentor ? "You (Host)" : (studentName || "You")}</span>
                   </div>
                   {isHandRaised && (
                     <div className="absolute top-3 right-3 bg-amber-500 text-slate-950 px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-lg animate-bounce">
@@ -1034,24 +1453,62 @@ export default function ClassRoomPage() {
                   )}
                 </div>
 
-                {/* Student Attendees Tiles */}
-                {participants.filter(p => p.role === "Student").slice(0, 3).map(p => (
-                  <div key={p.id} className="w-full h-64 md:h-72 bg-slate-900/90 rounded-2xl border border-slate-700/80 overflow-hidden relative shadow-2xl flex flex-col items-center justify-center">
-                    <div className={`w-20 h-20 rounded-full ${p.id === "p1" ? "bg-indigo-600" : p.id === "p2" ? "bg-pink-600" : "bg-purple-600"} text-white flex items-center justify-center text-2xl font-black shadow-xl ring-4 ring-white/10`}>
-                      {p.avatar}
-                    </div>
-                    <span className="text-sm font-semibold text-slate-300 mt-3">{p.name}</span>
-                    <div className="absolute bottom-3 left-3 flex items-center gap-2 px-3 py-1 rounded-xl bg-black/70 backdrop-blur-sm text-xs font-bold text-white shadow">
-                      <MicOff size={13} className="text-red-400" />
-                      <span>{p.name}</span>
-                    </div>
-                    {p.isHandRaised && (
-                      <div className="absolute top-3 right-3 bg-amber-500 text-slate-950 px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-lg animate-bounce">
-                        ✋ Hand Raised
+                {/* Real Joined Students / Other Attendees */}
+                {participants.filter(p => p.id !== myParticipantId).length > 0 ? (
+                  participants.filter(p => p.id !== myParticipantId).map((p, idx) => {
+                    const colors = ["bg-indigo-600", "bg-emerald-600", "bg-purple-600", "bg-rose-600", "bg-amber-600"];
+                    const color = colors[idx % colors.length];
+                    return (
+                      <div key={p.id} className="w-full h-64 md:h-72 bg-slate-900/90 rounded-2xl border border-slate-700/80 overflow-hidden relative shadow-2xl flex flex-col items-center justify-center">
+                        <div className={`w-20 h-20 rounded-full ${color} text-white flex items-center justify-center text-2xl font-black shadow-xl ring-4 ring-white/10`}>
+                          {p.avatar || p.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <span className="text-sm font-semibold text-slate-300 mt-3">{p.name}</span>
+                        <span className="text-[10px] text-slate-500">{p.role}</span>
+                        <div className="absolute bottom-3 left-3 flex items-center gap-2 px-3 py-1 rounded-xl bg-black/70 backdrop-blur-sm text-xs font-bold text-white shadow">
+                          {p.isMuted ? <MicOff size={13} className="text-red-400" /> : <Mic size={13} className="text-emerald-400" />}
+                          <span>{p.name}</span>
+                        </div>
+                        {p.isHandRaised && (
+                          <div className="absolute top-3 right-3 bg-amber-500 text-slate-950 px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-lg animate-bounce">
+                            ✋ Hand Raised
+                          </div>
+                        )}
                       </div>
-                    )}
+                    );
+                  })
+                ) : (
+                  /* Waiting for Students State Card */
+                  <div className="w-full h-64 md:h-72 bg-slate-900/60 rounded-2xl border-2 border-dashed border-slate-700/80 overflow-hidden relative shadow-xl flex flex-col items-center justify-center p-6 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-3 animate-pulse">
+                      <Users size={24} />
+                    </div>
+                    <h4 className="text-sm font-bold text-white mb-1">Waiting for students to join...</h4>
+                    <p className="text-xs text-slate-400 max-w-xs mb-3">
+                      Share the Meeting ID with students. They can join from any browser or device instantly.
+                    </p>
+                    <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-white mb-3">
+                      <span>ID: <strong className="text-blue-400">{roomId}</strong></span>
+                      {meeting?.password && (
+                        <>
+                          <span className="text-slate-600">|</span>
+                          <span>Pass: <strong className="text-emerald-400">{meeting.password}</strong></span>
+                        </>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const passInfo = meeting?.password ? `\nPassword: ${meeting.password}` : "";
+                        const info = `Class Meeting Invitation\nMeeting ID: ${roomId}${passInfo}\nDirect Link: ${window.location.origin}/meetings/room/${roomId}`;
+                        navigator.clipboard.writeText(info);
+                        showToast("Meeting details copied! Share with your students.");
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5"
+                    >
+                      <Copy size={13} /> Copy ID & Details
+                    </button>
                   </div>
-                ))}
+                )}
               </div>
 
               {/* Start Screen Share Action */}
@@ -1092,14 +1549,22 @@ export default function ClassRoomPage() {
 
         {/* ─── Right Drawer Panel (Chat / Participants / Notes) ──────── */}
         {rightPanel && (
-          <div className="w-96 bg-[#2C2C2E] border-l border-white/10 flex flex-col shrink-0 z-30">
+          <div className={`w-96 flex flex-col shrink-0 z-30 transition-colors shadow-2xl ${
+            rightPanel === "notes" ? "bg-white border-l border-slate-200 text-slate-800" : "bg-[#2C2C2E] border-l border-white/10 text-white"
+          }`}>
             {/* Drawer Tabs Header */}
-            <div className="h-12 border-b border-white/10 flex items-center justify-between px-3 bg-[#242426]">
+            <div className={`h-12 border-b flex items-center justify-between px-3 transition-colors ${
+              rightPanel === "notes" ? "bg-slate-50 border-slate-200" : "bg-[#242426] border-white/10"
+            }`}>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setRightPanel("chat")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    rightPanel === "chat" ? "bg-blue-600 text-white" : "text-white/60 hover:text-white"
+                    rightPanel === "chat"
+                      ? "bg-blue-600 text-white shadow"
+                      : rightPanel === "notes"
+                        ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                        : "text-white/60 hover:text-white hover:bg-white/5"
                   }`}
                 >
                   <MessageSquare size={13} /> Chat
@@ -1107,7 +1572,11 @@ export default function ClassRoomPage() {
                 <button
                   onClick={() => setRightPanel("participants")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    rightPanel === "participants" ? "bg-blue-600 text-white" : "text-white/60 hover:text-white"
+                    rightPanel === "participants"
+                      ? "bg-blue-600 text-white shadow"
+                      : rightPanel === "notes"
+                        ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                        : "text-white/60 hover:text-white hover:bg-white/5"
                   }`}
                 >
                   <Users size={13} /> People ({participants.length})
@@ -1115,13 +1584,20 @@ export default function ClassRoomPage() {
                 <button
                   onClick={() => setRightPanel("notes")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                    rightPanel === "notes" ? "bg-blue-600 text-white" : "text-white/60 hover:text-white"
+                    rightPanel === "notes"
+                      ? "bg-blue-600 text-white shadow"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
                   }`}
                 >
                   <FileText size={13} /> Notes
                 </button>
               </div>
-              <button onClick={() => setRightPanel(null)} className="p-1 hover:bg-white/10 rounded-lg text-white/50 hover:text-white transition-colors">
+              <button
+                onClick={() => setRightPanel(null)}
+                className={`p-1 rounded-lg transition-colors ${
+                  rightPanel === "notes" ? "text-slate-400 hover:text-slate-700 hover:bg-slate-200" : "text-white/50 hover:text-white hover:bg-white/10"
+                }`}
+              >
                 <X size={15} />
               </button>
             </div>
@@ -1208,171 +1684,220 @@ export default function ClassRoomPage() {
                   )}
                 </div>
                 <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
-                  {participants.map(p => (
-                    <div key={p.id} className="flex items-center justify-between p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-colors">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className={`w-8 h-8 shrink-0 rounded-full ${p.id === "host" ? "bg-blue-600" : p.id === "p1" ? "bg-indigo-600" : p.id === "p2" ? "bg-pink-600" : "bg-purple-600"} text-white flex items-center justify-center text-xs font-bold`}>
-                          {p.avatar}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-white truncate max-w-[100px]">{p.name}</span>
-                            <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${p.role === "Host" ? "bg-blue-500/30 text-blue-300" : "bg-white/10 text-slate-300"}`}>
-                              {p.role}
-                            </span>
+                  {participants.map((p, idx) => {
+                    const colors = ["bg-indigo-600", "bg-emerald-600", "bg-purple-600", "bg-rose-600", "bg-amber-600"];
+                    const color = p.role === "Host" ? "bg-blue-600" : colors[idx % colors.length];
+                    return (
+                      <div key={p.id} className="flex items-center justify-between p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-colors">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-8 h-8 shrink-0 rounded-full ${color} text-white flex items-center justify-center text-xs font-bold`}>
+                            {p.avatar || p.name.substring(0, 2).toUpperCase()}
                           </div>
-                          {p.isHandRaised && (
-                            <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1 mt-0.5">
-                              ✋ Hand Raised
-                            </span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-white truncate max-w-[100px]">{p.name}</span>
+                              <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${p.role === "Host" ? "bg-blue-500/30 text-blue-300" : "bg-white/10 text-slate-300"}`}>
+                                {p.role}
+                              </span>
+                            </div>
+                            {p.isHandRaised && (
+                              <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1 mt-0.5">
+                                ✋ Hand Raised
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Participant Controls */}
+                        <div className="flex items-center gap-1 text-white/70 shrink-0">
+                          {isMentor && p.role === "Student" ? (
+                            <>
+                              {/* Host controls individual user audio */}
+                              <button
+                                onClick={() => {
+                                  setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, isMuted: !item.isMuted } : item));
+                                  showToast(p.isMuted ? `Unmuted ${p.name}` : `Muted ${p.name}`);
+                                }}
+                                className={`p-1.5 rounded-lg transition-colors ${p.isMuted ? "bg-red-500/20 text-red-400 hover:bg-red-500/30" : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"}`}
+                                title={p.isMuted ? "Unmute this participant" : "Mute this participant"}
+                              >
+                                {p.isMuted ? <MicOff size={13} /> : <Mic size={13} />}
+                              </button>
+
+                              {/* Host controls individual user video */}
+                              <button
+                                onClick={() => {
+                                  setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, isVideoOn: !item.isVideoOn } : item));
+                                  showToast(p.isVideoOn ? `Stopped ${p.name}'s video` : `Allowed ${p.name}'s video`);
+                                }}
+                                className={`p-1.5 rounded-lg transition-colors ${p.isVideoOn ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30" : "bg-white/5 text-slate-400 hover:bg-white/10"}`}
+                                title={p.isVideoOn ? "Stop video" : "Ask to start video"}
+                              >
+                                {p.isVideoOn ? <Camera size={13} /> : <VideoOff size={13} />}
+                              </button>
+
+                              {/* Host toggles Screen Share permission */}
+                              <button
+                                onClick={() => {
+                                  setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, canScreenShare: item.canScreenShare === false ? true : false } : item));
+                                  showToast(p.canScreenShare === false ? `Allowed screen share for ${p.name}` : `Revoked screen share for ${p.name}`);
+                                }}
+                                className={`p-1.5 rounded-lg transition-colors ${p.canScreenShare !== false ? "bg-white/5 text-emerald-400 hover:bg-white/10" : "bg-red-500/20 text-red-400 hover:bg-red-500/30"}`}
+                                title={p.canScreenShare !== false ? "Screen share enabled for attendee" : "Screen share disabled for attendee"}
+                              >
+                                <Monitor size={13} />
+                              </button>
+
+                              {/* Host toggles Chat permission */}
+                              <button
+                                onClick={() => {
+                                  setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, canChat: item.canChat === false ? true : false } : item));
+                                  showToast(p.canChat === false ? `Allowed chat for ${p.name}` : `Revoked chat for ${p.name}`);
+                                }}
+                                className={`p-1.5 rounded-lg transition-colors ${p.canChat !== false ? "bg-white/5 text-blue-400 hover:bg-white/10" : "bg-red-500/20 text-red-400 hover:bg-red-500/30"}`}
+                                title={p.canChat !== false ? "Chat enabled for attendee" : "Chat disabled for attendee"}
+                              >
+                                <MessageSquare size={13} />
+                              </button>
+
+                              {/* Host lowers hand */}
+                              {p.isHandRaised && (
+                                <button
+                                  onClick={() => {
+                                    setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, isHandRaised: false } : item));
+                                    showToast(`Lowered ${p.name}'s hand`);
+                                  }}
+                                  className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors"
+                                  title="Lower Hand"
+                                >
+                                  <Hand size={13} />
+                                </button>
+                              )}
+
+                              {/* Host removes participant */}
+                              <button
+                                onClick={() => {
+                                  setParticipants(prev => prev.filter(item => item.id !== p.id));
+                                  showToast(`Removed ${p.name} from meeting.`);
+                                }}
+                                className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors"
+                                title="Remove attendee"
+                              >
+                                <X size={13} />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              {p.isMuted ? <MicOff size={13} className="text-red-400" /> : <Mic size={13} className="text-emerald-400" />}
+                              {p.isVideoOn ? <Camera size={13} className="text-blue-400" /> : <VideoOff size={13} className="text-slate-500" />}
+                            </>
                           )}
                         </div>
                       </div>
-
-                      {/* Participant Controls */}
-                      <div className="flex items-center gap-1 text-white/70 shrink-0">
-                        {isMentor && p.role === "Student" ? (
-                          <>
-                            {/* Host controls individual user audio */}
-                            <button
-                              onClick={() => {
-                                setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, isMuted: !item.isMuted } : item));
-                                showToast(p.isMuted ? `Unmuted ${p.name}` : `Muted ${p.name}`);
-                              }}
-                              className={`p-1.5 rounded-lg transition-colors ${p.isMuted ? "bg-red-500/20 text-red-400 hover:bg-red-500/30" : "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"}`}
-                              title={p.isMuted ? "Unmute this participant" : "Mute this participant"}
-                            >
-                              {p.isMuted ? <MicOff size={13} /> : <Mic size={13} />}
-                            </button>
-
-                            {/* Host controls individual user video */}
-                            <button
-                              onClick={() => {
-                                setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, isVideoOn: !item.isVideoOn } : item));
-                                showToast(p.isVideoOn ? `Stopped ${p.name}'s video` : `Allowed ${p.name}'s video`);
-                              }}
-                              className={`p-1.5 rounded-lg transition-colors ${p.isVideoOn ? "bg-blue-500/20 text-blue-400 hover:bg-blue-500/30" : "bg-white/5 text-slate-400 hover:bg-white/10"}`}
-                              title={p.isVideoOn ? "Stop video" : "Ask to start video"}
-                            >
-                              {p.isVideoOn ? <Camera size={13} /> : <VideoOff size={13} />}
-                            </button>
-
-                            {/* Host toggles Screen Share permission */}
-                            <button
-                              onClick={() => {
-                                setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, canScreenShare: item.canScreenShare === false ? true : false } : item));
-                                showToast(p.canScreenShare === false ? `Allowed screen share for ${p.name}` : `Revoked screen share for ${p.name}`);
-                              }}
-                              className={`p-1.5 rounded-lg transition-colors ${p.canScreenShare !== false ? "bg-white/5 text-emerald-400 hover:bg-white/10" : "bg-red-500/20 text-red-400 hover:bg-red-500/30"}`}
-                              title={p.canScreenShare !== false ? "Screen share enabled for attendee" : "Screen share disabled for attendee"}
-                            >
-                              <Monitor size={13} />
-                            </button>
-
-                            {/* Host toggles Chat permission */}
-                            <button
-                              onClick={() => {
-                                setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, canChat: item.canChat === false ? true : false } : item));
-                                showToast(p.canChat === false ? `Allowed chat for ${p.name}` : `Revoked chat for ${p.name}`);
-                              }}
-                              className={`p-1.5 rounded-lg transition-colors ${p.canChat !== false ? "bg-white/5 text-blue-400 hover:bg-white/10" : "bg-red-500/20 text-red-400 hover:bg-red-500/30"}`}
-                              title={p.canChat !== false ? "Chat enabled for attendee" : "Chat disabled for attendee"}
-                            >
-                              <MessageSquare size={13} />
-                            </button>
-
-                            {/* Host lowers hand */}
-                            {p.isHandRaised && (
-                              <button
-                                onClick={() => {
-                                  setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, isHandRaised: false } : item));
-                                  showToast(`Lowered ${p.name}'s hand`);
-                                }}
-                                className="p-1.5 rounded-lg bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors"
-                                title="Lower Hand"
-                              >
-                                <Hand size={13} />
-                              </button>
-                            )}
-
-                            {/* Host removes participant */}
-                            <button
-                              onClick={() => {
-                                setParticipants(prev => prev.filter(item => item.id !== p.id));
-                                showToast(`Removed ${p.name} from meeting.`);
-                              }}
-                              className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors"
-                              title="Remove attendee"
-                            >
-                              <X size={13} />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            {p.isMuted ? <MicOff size={13} className="text-red-400" /> : <Mic size={13} className="text-emerald-400" />}
-                            {p.isVideoOn ? <Camera size={13} className="text-blue-400" /> : <VideoOff size={13} className="text-slate-500" />}
-                          </>
-                        )}
-                      </div>
+                    );
+                  })}
+                  {participants.length <= 1 && (
+                    <div className="p-4 text-center text-xs text-white/40">
+                      No students have joined yet. Share Meeting ID: <span className="text-white font-mono font-bold">{roomId}</span>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             )}
 
-            {/* TAB 3: Class Notes (Host-Only, Participant Private 1-on-1, and Group) */}
+            {/* TAB 3: Class Notes (PURE WHITE THEME, File Attachments & Import Notes) */}
             {rightPanel === "notes" && (
-              <div className="flex-1 flex flex-col min-h-0">
-                {/* 3 Sub-tabs */}
-                <div className="flex border-b border-white/10 bg-[#242426]">
-                  {(["host", "participant", "group"] as const).map(t => (
-                    <button
-                      key={t}
-                      onClick={() => setNoteType(t)}
-                      className={`flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-colors relative ${
-                        noteType === t ? "text-blue-400 border-b-2 border-blue-400 bg-white/5" : "text-white/40 hover:text-white"
-                      }`}
-                    >
-                      {t === "host" ? "Host" : t === "participant" ? "Participant" : "Group"}
-                    </button>
-                  ))}
+              <div className="flex-1 flex flex-col min-h-0 bg-white text-slate-800">
+                {/* 3 Sub-tabs + Upload Notes Header */}
+                <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-2.5 py-1.5">
+                  <div className="flex gap-1">
+                    {(["host", "participant", "group"] as const).map(t => (
+                      <button
+                        key={t}
+                        onClick={() => setNoteType(t)}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                          noteType === t ? "bg-white text-blue-600 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-800"
+                        }`}
+                      >
+                        {t === "host" ? "Host" : t === "participant" ? "Participant" : "Group"}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Upload Notes File Button */}
+                  <button
+                    onClick={() => importNotesInputRef.current?.click()}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200"
+                    title="Upload notes from a file (.txt, .json, .md)"
+                  >
+                    <FileUp size={13} />
+                    <span>Upload Notes</span>
+                  </button>
+                  <input
+                    ref={importNotesInputRef}
+                    type="file"
+                    accept=".txt,.json,.md"
+                    onChange={handleImportNotesFile}
+                    className="hidden"
+                  />
                 </div>
 
                 {/* Sub-tab 1: HOST NOTES (Host Only Access) */}
                 {noteType === "host" && (
                   <>
                     {!isMentor ? (
-                      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-white/50 space-y-3">
-                        <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg">
+                      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-500 space-y-3 bg-white">
+                        <div className="w-12 h-12 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shadow">
                           <Lock size={22} />
                         </div>
-                        <h4 className="text-sm font-bold text-white">Host Only Access</h4>
-                        <p className="text-xs text-white/50 max-w-xs leading-relaxed">
-                          This section contains private host meeting notes. Only the host and administrators have access to view or write notes here.
+                        <h4 className="text-sm font-bold text-slate-800">Host Only Access</h4>
+                        <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
+                          This section contains private host meeting notes. Only the host has access to view or write notes here.
                         </p>
                       </div>
                     ) : (
                       <>
-                        <div className="p-2.5 bg-blue-950/40 border-b border-blue-500/20 flex items-center gap-2 text-[11px] text-blue-300">
+                        <div className="p-2.5 bg-blue-50/80 border-b border-blue-100 flex items-center gap-2 text-[11px] text-blue-700 font-semibold">
                           <Shield size={13} /> Private Host Section (Host only)
                         </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white">
                           {notes.filter(n => n.type === "host").length === 0 ? (
-                            <div className="text-center py-12 text-white/30 text-xs">
-                              <FileText size={24} className="mx-auto mb-2 opacity-40" />
-                              No host notes yet. Add confidential meeting notes below.
+                            <div className="text-center py-12 text-slate-400 text-xs">
+                              <FileText size={24} className="mx-auto mb-2 opacity-50" />
+                              No host notes yet. Add private notes or attach files below.
                             </div>
                           ) : (
                             notes.filter(n => n.type === "host").map(n => (
-                              <div key={n.id} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1.5 relative group">
-                                <div className="flex items-center justify-between text-[10px] text-white/40">
-                                  <span className="font-semibold text-blue-400">{n.author} (Host Note)</span>
+                              <div key={n.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5 relative group shadow-sm">
+                                <div className="flex items-center justify-between text-[10px] text-slate-500">
+                                  <span className="font-bold text-blue-600">{n.author} (Host Note)</span>
                                   <span>{new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                                <p className="text-xs text-white/90 leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                                <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                                {n.attachment && (
+                                  <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 shadow-sm">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                        <Paperclip size={13} />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-semibold text-slate-800 truncate">{n.attachment.name}</p>
+                                        <p className="text-[10px] text-slate-400">{(n.attachment.size / 1024).toFixed(1)} KB</p>
+                                      </div>
+                                    </div>
+                                    <a
+                                      href={n.attachment.dataUrl}
+                                      download={n.attachment.name}
+                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-colors shrink-0"
+                                      title="Download attachment"
+                                    >
+                                      <Download size={13} />
+                                    </a>
+                                  </div>
+                                )}
                                 <button
                                   onClick={() => saveNotes(notes.filter(item => item.id !== n.id))}
-                                  className="absolute top-2 right-2 text-white/30 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  className="absolute top-2 right-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                                   title="Delete note"
                                 >
                                   <Trash2 size={12} />
@@ -1381,21 +1906,54 @@ export default function ClassRoomPage() {
                             ))
                           )}
                         </div>
-                        <div className="p-3 border-t border-white/10 bg-[#242426] space-y-2">
+                        <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2">
+                          {noteAttachment && (
+                            <div className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900">
+                              <div className="flex items-center gap-1.5 truncate">
+                                <Paperclip size={13} className="text-blue-600 shrink-0" />
+                                <span className="font-semibold truncate">{noteAttachment.name}</span>
+                                <span className="text-[10px] text-blue-500 shrink-0">({(noteAttachment.size / 1024).toFixed(1)} KB)</span>
+                              </div>
+                              <button
+                                onClick={() => setNoteAttachment(null)}
+                                className="text-blue-400 hover:text-red-500 p-0.5"
+                                title="Remove attachment"
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                          )}
                           <textarea
                             value={newNote}
                             onChange={e => setNewNote(e.target.value)}
                             placeholder="Add a private host note... (Ctrl+Enter)"
                             onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) addNote(); }}
                             rows={3}
-                            className="w-full bg-white/10 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-white/40 focus:border-blue-500 outline-none resize-none"
+                            className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 outline-none resize-none shadow-sm"
                           />
-                          <button
-                            onClick={addNote}
-                            className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow"
-                          >
-                            Save Host Note
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => noteFileInputRef.current?.click()}
+                              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
+                              title="Attach a file to this note"
+                            >
+                              <Paperclip size={13} />
+                              <span>Attach File</span>
+                            </button>
+                            <input
+                              ref={noteFileInputRef}
+                              type="file"
+                              onChange={handleNoteFileSelect}
+                              className="hidden"
+                            />
+                            <button
+                              onClick={addNote}
+                              className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow"
+                            >
+                              Save Host Note
+                            </button>
+                          </div>
                         </div>
                       </>
                     )}
@@ -1408,97 +1966,197 @@ export default function ClassRoomPage() {
                     {isMentor ? (
                       <>
                         {/* Host chooses which participant's private channel to view */}
-                        <div className="p-2 border-b border-white/10 bg-black/20 flex gap-1.5 overflow-x-auto custom-scrollbar">
-                          {participants.filter(p => p.role === "Student").map(p => (
-                            <button
-                              key={p.id}
-                              onClick={() => setSelectedParticipantId(p.id)}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                                selectedParticipantId === p.id ? "bg-blue-600 text-white shadow" : "bg-white/5 text-white/60 hover:text-white"
-                              }`}
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                              {p.name}
-                            </button>
-                          ))}
+                        <div className="p-2 border-b border-slate-200 bg-slate-100/70 flex gap-1.5 overflow-x-auto custom-scrollbar">
+                          {participants.filter(p => p.role === "Student").length === 0 ? (
+                            <span className="text-[11px] text-slate-400 px-2 py-1">No students joined yet</span>
+                          ) : (
+                            participants.filter(p => p.role === "Student").map(p => (
+                              <button
+                                key={p.id}
+                                onClick={() => setSelectedParticipantId(p.id)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                                  selectedParticipantId === p.id ? "bg-blue-600 text-white shadow" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                                }`}
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                {p.name}
+                              </button>
+                            ))
+                          )}
                         </div>
-                        <div className="p-2 bg-indigo-950/40 border-b border-indigo-500/20 text-[11px] text-indigo-300 flex items-center gap-1.5">
+                        <div className="p-2 bg-indigo-50 border-b border-indigo-100 text-[11px] text-indigo-800 flex items-center gap-1.5 font-medium">
                           <Lock size={12} /> Private 1-on-1 thread with {participants.find(p => p.id === selectedParticipantId)?.name || "Participant"}
                         </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white">
                           {notes.filter(n => n.type === "participant" && (n.participantId === selectedParticipantId || n.author === participants.find(p => p.id === selectedParticipantId)?.name)).length === 0 ? (
-                            <div className="text-center py-12 text-white/30 text-xs">
-                              <FileText size={24} className="mx-auto mb-2 opacity-40" />
+                            <div className="text-center py-12 text-slate-400 text-xs">
+                              <FileText size={24} className="mx-auto mb-2 opacity-50" />
                               No private messages with {participants.find(p => p.id === selectedParticipantId)?.name || "this student"} yet.
                             </div>
                           ) : (
                             notes.filter(n => n.type === "participant" && (n.participantId === selectedParticipantId || n.author === participants.find(p => p.id === selectedParticipantId)?.name)).map(n => (
-                              <div key={n.id} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1.5">
-                                <div className="flex items-center justify-between text-[10px] text-white/40">
-                                  <span className={`font-semibold ${n.author === "Host" ? "text-blue-400" : "text-indigo-400"}`}>{n.author}</span>
+                              <div key={n.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5 shadow-sm">
+                                <div className="flex items-center justify-between text-[10px] text-slate-500">
+                                  <span className={`font-bold ${n.author === "Host" ? "text-blue-600" : "text-indigo-600"}`}>{n.author}</span>
                                   <span>{new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                                <p className="text-xs text-white/90 leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                                <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                                {n.attachment && (
+                                  <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 shadow-sm">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                        <Paperclip size={13} />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-semibold text-slate-800 truncate">{n.attachment.name}</p>
+                                        <p className="text-[10px] text-slate-400">{(n.attachment.size / 1024).toFixed(1)} KB</p>
+                                      </div>
+                                    </div>
+                                    <a
+                                      href={n.attachment.dataUrl}
+                                      download={n.attachment.name}
+                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-colors shrink-0"
+                                      title="Download attachment"
+                                    >
+                                      <Download size={13} />
+                                    </a>
+                                  </div>
+                                )}
                               </div>
                             ))
                           )}
                         </div>
-                        <div className="p-3 border-t border-white/10 bg-[#242426] space-y-2">
+                        <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2">
+                          {noteAttachment && (
+                            <div className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900">
+                              <div className="flex items-center gap-1.5 truncate">
+                                <Paperclip size={13} className="text-blue-600 shrink-0" />
+                                <span className="font-semibold truncate">{noteAttachment.name}</span>
+                                <span className="text-[10px] text-blue-500 shrink-0">({(noteAttachment.size / 1024).toFixed(1)} KB)</span>
+                              </div>
+                              <button
+                                onClick={() => setNoteAttachment(null)}
+                                className="text-blue-400 hover:text-red-500 p-0.5"
+                                title="Remove attachment"
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                          )}
                           <textarea
                             value={newNote}
                             onChange={e => setNewNote(e.target.value)}
                             placeholder={`Reply privately to ${participants.find(p => p.id === selectedParticipantId)?.name || "Participant"}... (Ctrl+Enter)`}
                             onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) addNote(); }}
                             rows={3}
-                            className="w-full bg-white/10 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-white/40 focus:border-blue-500 outline-none resize-none"
+                            className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 outline-none resize-none shadow-sm"
                           />
-                          <button
-                            onClick={addNote}
-                            className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow"
-                          >
-                            Send Private Note to {participants.find(p => p.id === selectedParticipantId)?.name || "Participant"}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => noteFileInputRef.current?.click()}
+                              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
+                              title="Attach a file to this note"
+                            >
+                              <Paperclip size={13} />
+                              <span>Attach File</span>
+                            </button>
+                            <button
+                              onClick={addNote}
+                              className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow"
+                            >
+                              Send Private Note
+                            </button>
+                          </div>
                         </div>
                       </>
                     ) : (
                       <>
                         {/* Student only sees their private thread with Host */}
-                        <div className="p-2.5 bg-indigo-950/40 border-b border-indigo-500/20 text-[11px] text-indigo-300 flex items-center gap-1.5">
+                        <div className="p-2.5 bg-indigo-50 border-b border-indigo-100 text-[11px] text-indigo-800 flex items-center gap-1.5 font-medium">
                           <Lock size={12} /> Private 1-on-1 with Host (Invisible to other students)
                         </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-                          {notes.filter(n => n.type === "participant" && (n.participantId === (participants.find(p => p.name === studentName)?.id || "p1") || n.author === studentName)).length === 0 ? (
-                            <div className="text-center py-12 text-white/30 text-xs">
-                              <FileText size={24} className="mx-auto mb-2 opacity-40" />
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white">
+                          {notes.filter(n => n.type === "participant" && (n.participantId === (participants.find(p => p.name === studentName)?.id || myParticipantId) || n.author === studentName)).length === 0 ? (
+                            <div className="text-center py-12 text-slate-400 text-xs">
+                              <FileText size={24} className="mx-auto mb-2 opacity-50" />
                               No private messages sent to the host yet.
                             </div>
                           ) : (
-                            notes.filter(n => n.type === "participant" && (n.participantId === (participants.find(p => p.name === studentName)?.id || "p1") || n.author === studentName)).map(n => (
-                              <div key={n.id} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1.5">
-                                <div className="flex items-center justify-between text-[10px] text-white/40">
-                                  <span className={`font-semibold ${n.author === "Host" ? "text-blue-400" : "text-emerald-400"}`}>{n.author}</span>
+                            notes.filter(n => n.type === "participant" && (n.participantId === (participants.find(p => p.name === studentName)?.id || myParticipantId) || n.author === studentName)).map(n => (
+                              <div key={n.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5 shadow-sm">
+                                <div className="flex items-center justify-between text-[10px] text-slate-500">
+                                  <span className={`font-bold ${n.author === "Host" ? "text-blue-600" : "text-emerald-600"}`}>{n.author}</span>
                                   <span>{new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                                <p className="text-xs text-white/90 leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                                <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                                {n.attachment && (
+                                  <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 shadow-sm">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                        <Paperclip size={13} />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-semibold text-slate-800 truncate">{n.attachment.name}</p>
+                                        <p className="text-[10px] text-slate-400">{(n.attachment.size / 1024).toFixed(1)} KB</p>
+                                      </div>
+                                    </div>
+                                    <a
+                                      href={n.attachment.dataUrl}
+                                      download={n.attachment.name}
+                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-colors shrink-0"
+                                      title="Download attachment"
+                                    >
+                                      <Download size={13} />
+                                    </a>
+                                  </div>
+                                )}
                               </div>
                             ))
                           )}
                         </div>
-                        <div className="p-3 border-t border-white/10 bg-[#242426] space-y-2">
+                        <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2">
+                          {noteAttachment && (
+                            <div className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900">
+                              <div className="flex items-center gap-1.5 truncate">
+                                <Paperclip size={13} className="text-blue-600 shrink-0" />
+                                <span className="font-semibold truncate">{noteAttachment.name}</span>
+                                <span className="text-[10px] text-blue-500 shrink-0">({(noteAttachment.size / 1024).toFixed(1)} KB)</span>
+                              </div>
+                              <button
+                                onClick={() => setNoteAttachment(null)}
+                                className="text-blue-400 hover:text-red-500 p-0.5"
+                                title="Remove attachment"
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                          )}
                           <textarea
                             value={newNote}
                             onChange={e => setNewNote(e.target.value)}
                             placeholder="Send a private message to Host... (Ctrl+Enter)"
                             onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) addNote(); }}
                             rows={3}
-                            className="w-full bg-white/10 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-white/40 focus:border-blue-500 outline-none resize-none"
+                            className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 outline-none resize-none shadow-sm"
                           />
-                          <button
-                            onClick={addNote}
-                            className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow"
-                          >
-                            Send Private Message to Host
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => noteFileInputRef.current?.click()}
+                              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
+                              title="Attach a file to this note"
+                            >
+                              <Paperclip size={13} />
+                              <span>Attach File</span>
+                            </button>
+                            <button
+                              onClick={addNote}
+                              className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow"
+                            >
+                              Send Message to Host
+                            </button>
+                          </div>
                         </div>
                       </>
                     )}
@@ -1508,43 +2166,91 @@ export default function ClassRoomPage() {
                 {/* Sub-tab 3: GROUP (Everyone sees and has access) */}
                 {noteType === "group" && (
                   <>
-                    <div className="p-2.5 bg-emerald-950/40 border-b border-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-1.5">
+                    <div className="p-2.5 bg-emerald-50 border-b border-emerald-100 text-[11px] text-emerald-800 flex items-center gap-1.5 font-medium">
                       <Users size={12} /> Group Collaborative Notes (Everyone has access)
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white">
                       {notes.filter(n => n.type === "group").length === 0 ? (
-                        <div className="text-center py-12 text-white/30 text-xs">
-                          <FileText size={24} className="mx-auto mb-2 opacity-40" />
+                        <div className="text-center py-12 text-slate-400 text-xs">
+                          <FileText size={24} className="mx-auto mb-2 opacity-50" />
                           No group notes yet. Everyone in the meeting can read and post here.
                         </div>
                       ) : (
                         notes.filter(n => n.type === "group").map(n => (
-                          <div key={n.id} className="bg-white/5 border border-white/10 rounded-xl p-3 space-y-1.5">
-                            <div className="flex items-center justify-between text-[10px] text-white/40">
-                              <span className="font-semibold text-emerald-400">{n.author}</span>
+                          <div key={n.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5 shadow-sm">
+                            <div className="flex items-center justify-between text-[10px] text-slate-500">
+                              <span className="font-bold text-emerald-600">{n.author}</span>
                               <span>{new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
-                            <p className="text-xs text-white/90 leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                            <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                            {n.attachment && (
+                              <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 shadow-sm">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                    <Paperclip size={13} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-slate-800 truncate">{n.attachment.name}</p>
+                                    <p className="text-[10px] text-slate-400">{(n.attachment.size / 1024).toFixed(1)} KB</p>
+                                  </div>
+                                </div>
+                                <a
+                                  href={n.attachment.dataUrl}
+                                  download={n.attachment.name}
+                                  className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-colors shrink-0"
+                                  title="Download attachment"
+                                >
+                                  <Download size={13} />
+                                </a>
+                              </div>
+                            )}
                           </div>
                         ))
                       )}
                     </div>
                     {!isReadonly && (
-                      <div className="p-3 border-t border-white/10 bg-[#242426] space-y-2">
+                      <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2">
+                        {noteAttachment && (
+                          <div className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <Paperclip size={13} className="text-blue-600 shrink-0" />
+                              <span className="font-semibold truncate">{noteAttachment.name}</span>
+                              <span className="text-[10px] text-blue-500 shrink-0">({(noteAttachment.size / 1024).toFixed(1)} KB)</span>
+                            </div>
+                            <button
+                              onClick={() => setNoteAttachment(null)}
+                              className="text-blue-400 hover:text-red-500 p-0.5"
+                              title="Remove attachment"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        )}
                         <textarea
                           value={newNote}
                           onChange={e => setNewNote(e.target.value)}
                           placeholder="Post a note to group... (Ctrl+Enter)"
                           onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) addNote(); }}
                           rows={3}
-                          className="w-full bg-white/10 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-white/40 focus:border-blue-500 outline-none resize-none"
+                          className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-blue-500 outline-none resize-none shadow-sm"
                         />
-                        <button
-                          onClick={addNote}
-                          className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow"
-                        >
-                          Post to Group
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => noteFileInputRef.current?.click()}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
+                            title="Attach a file to this note"
+                          >
+                            <Paperclip size={13} />
+                            <span>Attach File</span>
+                          </button>
+                          <button
+                            onClick={addNote}
+                            className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow"
+                          >
+                            Post to Group
+                          </button>
+                        </div>
                       </div>
                     )}
                   </>

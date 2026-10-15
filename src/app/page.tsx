@@ -6,7 +6,7 @@ import {
   Search, Bell, Settings, Video, Folder, 
   Play, Share2, Users, Shield, Building,
   ChevronDown, Monitor, Camera, Mic, X,
-  Square, Pause, RotateCcw, Trash2, Home, Sparkles, Loader2, Bookmark
+  Square, Pause, RotateCcw, Trash2, Home, Zap, Loader2, Bookmark
 } from "lucide-react";
 import Image from "next/image";
 import { uploadVideo } from "../lib/api";
@@ -359,7 +359,7 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-5 ml-4 shrink-0">
             <button className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold tracking-wide transition-all flex items-center gap-2">
-              <Sparkles size={14} className="text-yellow-500" /> Upgrade
+              <Zap size={14} className="text-amber-500 fill-amber-500" /> Upgrade
             </button>
             <button className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-2 rounded-xl transition-colors relative">
               <Bell size={20} />

@@ -10,7 +10,7 @@ import {
   Trash2, Calendar,
   Eye, EyeOff, Share2, Mail,
   Monitor, Play,
-  HelpCircle, CheckCircle2, ChevronRight, Sparkles
+  HelpCircle, CheckCircle2, ChevronRight, Pause
 } from "lucide-react";
 
 import { getCourses } from "@/lib/api";
@@ -38,31 +38,31 @@ const DURATION_PRESETS = [
   { label: "3 hours", value: 180 },
 ];
 
-const TOUR_STEPS = [
+const AUTO_TOUR_STEPS = [
   {
     targetId: "tour-topic-folder",
     title: "1. Topic & Google Drive Folder",
-    desc: "Type your meeting topic and choose which Google Drive folder will store the recorded video, transcripts, and session notes.",
+    desc: "Set the meeting name and choose the Google Drive folder to store the recorded class and notes.",
   },
   {
     targetId: "tour-presets",
     title: "2. 1-Click Quick Presets",
-    desc: "In a hurry? Click 'In 15 mins' or 'In 1 hour' to automatically calculate the date, hour, minute, and AM/PM instantly.",
+    desc: "Quickly set start time in 15 mins, 30 mins, 1 hour, or tomorrow with a single click.",
   },
   {
     targetId: "tour-datetime",
-    title: "3. Custom Start Date & Time",
-    desc: "Pick your specific calendar date and exact 12-hour start time with AM/PM for upcoming scheduled sessions.",
+    title: "3. Start Date & Exact Time",
+    desc: "Pick your exact calendar date, hour, minute, and AM/PM time with plenty of spacing.",
   },
   {
     targetId: "tour-duration",
-    title: "4. Meeting Duration (Length of Session)",
-    desc: "Select how long the meeting will run (e.g. 1 hour). Note: This is your meeting length, distinct from the start countdown!",
+    title: "4. Meeting Duration (Session Length)",
+    desc: "Choose meeting length (15m, 1h, 2h) without any overlap or cramped dropdowns.",
   },
   {
     targetId: "tour-summary",
-    title: "5. Real-Time Schedule Overview",
-    desc: "Review your calculated end time, total session duration, and the countdown until start before confirming.",
+    title: "5. Live Schedule Overview",
+    desc: "Review meeting duration, start countdown, calculated end time, and destination folder in real-time.",
   },
 ];
 
@@ -131,7 +131,58 @@ export default function MeetingsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<"AM" | "PM">("PM");
   const [newDuration, setNewDuration] = useState(60);
   const [newCourse, setNewCourse] = useState("");
-  const [tourStep, setTourStep] = useState<number | null>(null);
+  const [autoStep, setAutoStep] = useState<number | null>(null);
+  const [isAutoPlaying, setIsAutoPlaying] = useState<boolean>(false);
+  const [autoProgress, setAutoProgress] = useState<number>(0);
+
+  const startAutoTour = useCallback(() => {
+    setAutoStep(0);
+    setIsAutoPlaying(true);
+    setAutoProgress(0);
+  }, []);
+
+  const stopAutoTour = useCallback(() => {
+    setAutoStep(null);
+    setIsAutoPlaying(false);
+    setAutoProgress(0);
+  }, []);
+
+  // Automatic tutorial transition effect: smoothly auto-advances through features
+  useEffect(() => {
+    if (autoStep === null || !isAutoPlaying) return;
+
+    // Smoothly scroll active feature into view inside the modal
+    const stepTargetId = AUTO_TOUR_STEPS[autoStep]?.targetId;
+    if (stepTargetId) {
+      const el = document.getElementById(stepTargetId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    }
+
+    const durationPerStep = 3400; // ~3.4s per feature
+    const intervalMs = 50;
+    const progressIncrement = (intervalMs / durationPerStep) * 100;
+    setAutoProgress(0);
+
+    const timer = setInterval(() => {
+      setAutoProgress(prev => {
+        if (prev >= 100) {
+          setAutoStep(curr => {
+            if (curr === null || curr >= AUTO_TOUR_STEPS.length - 1) {
+              setIsAutoPlaying(false);
+              return null; // Automatic walkthrough complete!
+            }
+            return curr + 1;
+          });
+          return 0;
+        }
+        return prev + progressIncrement;
+      });
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [autoStep, isAutoPlaying]);
 
   // Join Meeting Form
   const [joinId, setJoinId] = useState("");
@@ -858,67 +909,88 @@ export default function MeetingsPage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setTourStep(tourStep === null ? 0 : null)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
-                    tourStep !== null 
-                      ? "bg-amber-500 text-white shadow-amber-200" 
+                  onClick={autoStep === null ? startAutoTour : stopAutoTour}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
+                    autoStep !== null 
+                      ? "bg-slate-800 hover:bg-slate-900 text-white" 
                       : "bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
                   }`}
-                  title="Step-by-step feature walkthrough"
+                  title={autoStep !== null ? "Stop automatic tutorial" : "Watch automatic feature tutorial"}
                 >
-                  <Sparkles size={13} className={tourStep !== null ? "animate-spin" : "text-amber-500"} />
-                  {tourStep !== null ? "Exit Tutorial" : "✨ Feature Tutorial"}
+                  {autoStep !== null ? (
+                    <>
+                      <Pause size={12} />
+                      Stop Tutorial
+                    </>
+                  ) : (
+                    <>
+                      <Play size={12} className="fill-blue-700 text-blue-700" />
+                      Auto Tutorial
+                    </>
+                  )}
                 </button>
-                <button onClick={() => { setShowCreate(false); setTourStep(null); }} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer">
+                <button onClick={() => { setShowCreate(false); stopAutoTour(); }} className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer">
                   <X size={18} />
                 </button>
               </div>
             </div>
 
-            {/* Interactive Tutorial Guide Banner (if tour active) */}
-            {tourStep !== null && (
-              <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white px-6 py-3.5 shadow-inner flex items-center justify-between gap-4 animate-in slide-in-from-top-3 duration-200">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="w-6 h-6 rounded-full bg-white/20 text-white font-black text-xs flex items-center justify-center shrink-0 border border-white/30">
-                    {tourStep + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="font-bold text-xs uppercase tracking-wider text-blue-100">
-                      Feature Tutorial · Step {tourStep + 1} of {TOUR_STEPS.length}
-                    </p>
-                    <p className="text-xs font-semibold text-white truncate">
-                      {TOUR_STEPS[tourStep].title}
-                    </p>
-                  </div>
+            {/* Automatic Interactive Walkthrough Banner */}
+            {autoStep !== null && (
+              <div className="relative bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 text-white px-6 py-3 shadow-md animate-in slide-in-from-top-2 duration-300">
+                {/* Real-time animated progress bar */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-white/20 overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-300 transition-all duration-75 ease-linear"
+                    style={{ width: `${autoProgress}%` }}
+                  />
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  {tourStep > 0 && (
+                <div className="flex items-center justify-between gap-4 pt-1">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-6 h-6 rounded-full bg-white/20 text-white font-black text-xs flex items-center justify-center shrink-0 border border-white/30">
+                      {autoStep + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-200 bg-white/10 px-1.5 py-0.5 rounded">
+                          Feature {autoStep + 1} of {AUTO_TOUR_STEPS.length}
+                        </span>
+                        {isAutoPlaying ? (
+                          <span className="flex items-center gap-1 text-[10px] text-emerald-300 font-semibold animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            Auto-playing
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-amber-300 font-semibold">
+                            Paused
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs font-bold text-white truncate mt-0.5">
+                        {AUTO_TOUR_STEPS[autoStep].title}: <span className="font-normal text-blue-100">{AUTO_TOUR_STEPS[autoStep].desc}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
-                      onClick={() => setTourStep(tourStep - 1)}
-                      className="px-2.5 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                      onClick={() => setIsAutoPlaying(p => !p)}
+                      className="px-2.5 py-1 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer text-white"
+                      title={isAutoPlaying ? "Pause walkthrough" : "Resume walkthrough"}
                     >
-                      Back
+                      {isAutoPlaying ? <Pause size={12} /> : <Play size={12} className="fill-white" />}
+                      {isAutoPlaying ? "Pause" : "Resume"}
                     </button>
-                  )}
-                  {tourStep < TOUR_STEPS.length - 1 ? (
                     <button
                       type="button"
-                      onClick={() => setTourStep(tourStep + 1)}
-                      className="px-3 py-1 bg-white text-blue-700 hover:bg-blue-50 rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                      onClick={stopAutoTour}
+                      className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-blue-100 hover:text-white rounded-lg text-xs font-medium transition-colors cursor-pointer"
                     >
-                      Next <ChevronRight size={12} />
+                      Close
                     </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setTourStep(null)}
-                      className="px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1 cursor-pointer"
-                    >
-                      <Check size={12} /> Done
-                    </button>
-                  )}
+                  </div>
                 </div>
               </div>
             )}
@@ -929,15 +1001,16 @@ export default function MeetingsPage() {
               {/* STEP 1: Topic & Folder Row */}
               <div 
                 id="tour-topic-folder" 
-                className={`p-4 rounded-2xl border transition-all duration-300 ${
-                  tourStep === 0 
-                    ? "border-blue-500 bg-blue-50/40 ring-4 ring-blue-500/20 shadow-md scale-[1.01]" 
+                className={`p-4 rounded-2xl border transition-all duration-500 ${
+                  autoStep === 0 
+                    ? "border-blue-500 bg-blue-50/50 ring-4 ring-blue-500/20 shadow-md scale-[1.01]" 
                     : "border-slate-100 bg-white"
                 }`}
               >
-                {tourStep === 0 && (
-                  <div className="mb-3 flex items-center justify-between text-xs text-blue-700 font-bold bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200">
-                    <span>💡 {TOUR_STEPS[0].desc}</span>
+                {autoStep === 0 && (
+                  <div className="mb-3 flex items-center gap-2 text-xs text-blue-700 font-bold bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200 animate-in fade-in">
+                    <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                    <span>Auto-showing: {AUTO_TOUR_STEPS[0].title} — {AUTO_TOUR_STEPS[0].desc}</span>
                   </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -974,15 +1047,16 @@ export default function MeetingsPage() {
               {/* STEP 2 & 3: Date & Time Section (Full width, no cramped columns) */}
               <div 
                 id="tour-datetime" 
-                className={`p-4 rounded-2xl border transition-all duration-300 space-y-4 ${
-                  tourStep === 2 
-                    ? "border-blue-500 bg-blue-50/40 ring-4 ring-blue-500/20 shadow-md scale-[1.01]" 
+                className={`p-4 rounded-2xl border transition-all duration-500 space-y-4 ${
+                  autoStep === 2 
+                    ? "border-blue-500 bg-blue-50/50 ring-4 ring-blue-500/20 shadow-md scale-[1.01]" 
                     : "border-slate-100 bg-white"
                 }`}
               >
-                {tourStep === 2 && (
-                  <div className="flex items-center justify-between text-xs text-blue-700 font-bold bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200">
-                    <span>💡 {TOUR_STEPS[2].desc}</span>
+                {autoStep === 2 && (
+                  <div className="flex items-center gap-2 text-xs text-blue-700 font-bold bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200 animate-in fade-in">
+                    <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                    <span>Auto-showing: {AUTO_TOUR_STEPS[2].title} — {AUTO_TOUR_STEPS[2].desc}</span>
                   </div>
                 )}
                 
@@ -1044,19 +1118,22 @@ export default function MeetingsPage() {
                 {/* Quick Start Presets (Inside Step 2 container) */}
                 <div 
                   id="tour-presets" 
-                  className={`pt-3 border-t border-slate-100 transition-all duration-300 ${
-                    tourStep === 1 
-                      ? "p-2 rounded-xl border border-blue-500 bg-blue-100/40 ring-4 ring-blue-500/20" 
+                  className={`pt-3 border-t border-slate-100 transition-all duration-500 ${
+                    autoStep === 1 
+                      ? "p-2 rounded-xl border border-blue-500 bg-blue-100/40 ring-4 ring-blue-500/20 shadow-xs" 
                       : ""
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1">
-                      <Sparkles size={11} className="text-amber-500" />
+                    <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <Clock size={12} className="text-blue-600" />
                       1-Click Quick Start Presets:
                     </span>
-                    {tourStep === 1 && (
-                      <span className="text-[11px] text-blue-700 font-bold">💡 Try clicking one!</span>
+                    {autoStep === 1 && (
+                      <span className="text-[11px] text-blue-700 font-bold flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping" />
+                        Auto-highlighting quick presets
+                      </span>
                     )}
                   </div>
                   
@@ -1132,15 +1209,16 @@ export default function MeetingsPage() {
               {/* STEP 4: Meeting Duration (Full-width, zero overlap!) */}
               <div 
                 id="tour-duration" 
-                className={`p-4 rounded-2xl border transition-all duration-300 space-y-3 ${
-                  tourStep === 3 
-                    ? "border-blue-500 bg-blue-50/40 ring-4 ring-blue-500/20 shadow-md scale-[1.01]" 
+                className={`p-4 rounded-2xl border transition-all duration-500 space-y-3 ${
+                  autoStep === 3 
+                    ? "border-blue-500 bg-blue-50/50 ring-4 ring-blue-500/20 shadow-md scale-[1.01]" 
                     : "border-slate-100 bg-white"
                 }`}
               >
-                {tourStep === 3 && (
-                  <div className="flex items-center justify-between text-xs text-blue-700 font-bold bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200">
-                    <span>💡 {TOUR_STEPS[3].desc}</span>
+                {autoStep === 3 && (
+                  <div className="flex items-center gap-2 text-xs text-blue-700 font-bold bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200 animate-in fade-in">
+                    <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                    <span>Auto-showing: {AUTO_TOUR_STEPS[3].title} — {AUTO_TOUR_STEPS[3].desc}</span>
                   </div>
                 )}
                 
@@ -1218,15 +1296,16 @@ export default function MeetingsPage() {
                 return (
                   <div 
                     id="tour-summary" 
-                    className={`rounded-2xl border transition-all duration-300 p-4 ${
-                      tourStep === 4 
-                        ? "border-blue-500 bg-blue-50/60 ring-4 ring-blue-500/20 shadow-md scale-[1.01]" 
+                    className={`rounded-2xl border transition-all duration-500 p-4 ${
+                      autoStep === 4 
+                        ? "border-blue-500 bg-blue-50/70 ring-4 ring-blue-500/20 shadow-md scale-[1.01]" 
                         : "border-blue-200/80 bg-gradient-to-r from-blue-50/90 via-indigo-50/40 to-blue-50/90 shadow-xs"
                     }`}
                   >
-                    {tourStep === 4 && (
-                      <div className="mb-3 flex items-center justify-between text-xs text-blue-700 font-bold bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200">
-                        <span>💡 {TOUR_STEPS[4].desc}</span>
+                    {autoStep === 4 && (
+                      <div className="mb-3 flex items-center gap-2 text-xs text-blue-700 font-bold bg-blue-100/70 px-3 py-1.5 rounded-lg border border-blue-200 animate-in fade-in">
+                        <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping" />
+                        <span>Auto-showing: {AUTO_TOUR_STEPS[4].title} — {AUTO_TOUR_STEPS[4].desc}</span>
                       </div>
                     )}
                     
@@ -1301,17 +1380,17 @@ export default function MeetingsPage() {
             <div className="px-6 py-4 border-t border-slate-200 flex justify-between items-center bg-slate-50">
               <button
                 type="button"
-                onClick={() => setTourStep(tourStep === null ? 0 : null)}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
+                onClick={autoStep === null ? startAutoTour : stopAutoTour}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 cursor-pointer"
               >
-                <Sparkles size={13} className="text-amber-500" />
-                {tourStep !== null ? "Close Walkthrough" : "Need help? Take a tour"}
+                {autoStep !== null ? <Pause size={12} /> : <Play size={12} className="fill-blue-600" />}
+                {autoStep !== null ? "Stop Walkthrough" : "Watch Auto Tutorial"}
               </button>
 
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => { setShowCreate(false); setTourStep(null); }}
+                  onClick={() => { setShowCreate(false); stopAutoTour(); }}
                   className="px-4 py-2 bg-white border border-slate-300 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer"
                 >
                   Cancel

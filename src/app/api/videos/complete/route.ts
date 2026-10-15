@@ -8,18 +8,15 @@ import { saveBackupVideoMeta } from '@/lib/server/localBackup';
 
 export async function POST(req: Request) {
   try {
-    let authResult = await authenticateRequest(req);
-    let user = authResult.authenticated && authResult.user ? authResult.user : null;
-    if (!user) {
-      user = {
-        _id: 'default-admin',
-        id: 'default-admin',
-        name: 'System User',
-        email: 'admin@meet.com',
-        role: 'ADMIN',
-        status: 'Active',
-      } as any;
-    }
+    const authResult = await authenticateRequest(req);
+    const user = (authResult.authenticated && authResult.user ? authResult.user : null) || {
+      _id: 'default-admin',
+      id: 'default-admin',
+      name: 'System User',
+      email: 'admin@meet.com',
+      role: 'ADMIN',
+      status: 'Active',
+    };
 
     const body = await req.json();
     const { videoId, driveFileId, title, duration, size } = body;
@@ -60,19 +57,19 @@ export async function POST(req: Request) {
       saveBackupVideoMeta(videoId, updateFields);
     }
 
-    let result: any = { id: finalId, ...updateFields };
+    let result: Record<string, unknown> = { id: finalId, ...updateFields };
 
     try {
       const videosCol = await getCollection<Video>('videos');
-      let filter: any = {};
+      let filter: Record<string, unknown> = {};
       try {
         filter = { $or: [{ _id: new ObjectId(videoId) }, { id: videoId }, { driveFileId: finalId }] };
       } catch {
         filter = { $or: [{ id: videoId }, { driveFileId: finalId }] };
       }
 
-      await videosCol.updateOne(filter, { $set: updateFields }, { upsert: false });
-      const updated = await videosCol.findOne(filter);
+      await videosCol.updateOne(filter as any, { $set: updateFields }, { upsert: false });
+      const updated = await videosCol.findOne(filter as any);
       if (updated) {
         result = {
           ...updated,
@@ -90,7 +87,7 @@ export async function POST(req: Request) {
       id: finalId,
       driveFileId: driveFileId || finalId,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error completing video upload:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

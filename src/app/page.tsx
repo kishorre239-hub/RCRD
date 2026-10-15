@@ -9,7 +9,7 @@ import {
   Square, Pause, RotateCcw, Trash2, Home, Sparkles, Loader2, Bookmark
 } from "lucide-react";
 import Image from "next/image";
-import { API_URL } from "../lib/api";
+import { API_URL, uploadVideo } from "../lib/api";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 
@@ -65,28 +65,20 @@ export default function HomePage() {
               setRecordingState('uploading');
               const blob = new Blob(chunksRef.current, { type: 'video/webm' });
               
-              // Upload to backend which syncs to Google Drive
-              const formData = new FormData();
-              formData.append('file', blob, `RCRD-Loom-${Date.now()}.webm`);
+              const d = new Date();
+              const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+              const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+              const vidTitle = `Screen Recording · ${dateStr} (${timeStr})`;
               
               try {
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${API_URL}/videos/upload`, {
-                  method: 'POST',
-                  headers: token ? {
-                    'Authorization': `Bearer ${token}`
-                  } : {},
-                  body: formData
-                });
-                
-                if (res.ok) {
-                  alert("Success! Video successfully recorded and saved directly to Google Drive.");
-                } else {
-                  alert("Upload failed. Please check your backend.");
+                const uploadRes = await uploadVideo(blob, null, undefined, vidTitle);
+                alert("Success! Video successfully recorded and saved directly to Google Drive.");
+                if (uploadRes?.videoId) {
+                  router.push(`/video/${uploadRes.videoId}`);
                 }
               } catch (err) {
                 console.error(err);
-                alert("Error uploading video. Is the backend running?");
+                alert("Error uploading video to Google Drive. Please retry.");
               }
               
               // Stop all tracks

@@ -339,27 +339,23 @@ export default function LibraryPage() {
             recorder.onstop = async () => {
               setRecordingState('uploading');
               const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-              const formData = new FormData();
-              formData.append('file', blob, `RCRD-Loom-${Date.now()}.webm`);
-              if (activeTab.startsWith('folder-')) {
-                formData.append('courseId', activeTab.replace('folder-', ''));
-              }
+              const targetCourseId = activeTab.startsWith('folder-') ? activeTab.replace('folder-', '') : null;
+              const targetCourse = courses.find(c => c.id === targetCourseId);
+              const d = new Date();
+              const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+              const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+              const vidTitle = `Recording · ${dateStr} (${timeStr})`;
+
               try {
-                const token = localStorage.getItem('token');
-                const res = await fetch(`${API_URL}/videos/upload`, {
-                  method: 'POST',
-                  headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-                  body: formData
+                await uploadVideo(blob, targetCourseId, undefined, vidTitle, {
+                  folderName: targetCourse?.name,
+                  isMeeting: targetCourseId === 'MEETING' || targetCourseId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4'
                 });
-                if (res.ok) {
-                  showToast('✅ Video saved to Google Drive & Library!');
-                  fetchData();
-                } else {
-                  showToast('Upload failed. Check backend.');
-                }
+                showToast('✅ Video saved to Google Drive & Library!');
+                fetchData();
               } catch (err) {
                 console.error(err);
-                showToast('Error uploading. Is the backend running?');
+                showToast('Upload failed. Please check network/Drive.');
               }
               stream.getTracks().forEach(t => t.stop());
               if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());

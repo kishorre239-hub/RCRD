@@ -1,0 +1,92 @@
+import { NextResponse } from 'next/server';
+import { authenticateRequest } from '@/lib/server/auth';
+import { 
+  listDriveFolders, 
+  createDriveFolder, 
+  renameDriveFile, 
+  deleteDriveFile 
+} from '@/lib/server/drive';
+
+export async function GET(req: Request) {
+  try {
+    const folders = await listDriveFolders();
+    return NextResponse.json(folders);
+  } catch (error: any) {
+    console.error('Error fetching folders:', error);
+    return NextResponse.json([
+      { id: '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4', name: 'MEETING' },
+      { id: 'screen-shares', name: 'Screen Shares' },
+      { id: 'team-updates', name: 'Team Updates' }
+    ]);
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    await authenticateRequest(req);
+    const body = await req.json().catch(() => ({}));
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+    if (!name) {
+      return NextResponse.json({ error: 'Folder name is required' }, { status: 400 });
+    }
+
+    const folderId = await createDriveFolder(name);
+    if (!folderId) {
+      return NextResponse.json({ error: 'Failed to create folder on Google Drive' }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      id: folderId,
+      name,
+      success: true
+    });
+  } catch (error: any) {
+    console.error('Error creating folder:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    await authenticateRequest(req);
+    const body = await req.json().catch(() => ({}));
+    const { id, name } = body;
+    if (!id || !name || !name.trim()) {
+      return NextResponse.json({ error: 'Folder id and name are required' }, { status: 400 });
+    }
+
+    const success = await renameDriveFile(id, name.trim());
+    return NextResponse.json({
+      id,
+      name: name.trim(),
+      success,
+    });
+  } catch (error: any) {
+    console.error('Error renaming folder:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export const PATCH = PUT;
+
+export async function DELETE(req: Request) {
+  try {
+    await authenticateRequest(req);
+    const { searchParams } = new URL(req.url);
+    let id = searchParams.get('id');
+    if (!id) {
+      const body = await req.json().catch(() => ({}));
+      id = body.id;
+    }
+
+    if (!id) {
+      return NextResponse.json({ error: 'Folder ID is required' }, { status: 400 });
+    }
+
+    const success = await deleteDriveFile(id);
+    return NextResponse.json({ success, id });
+  } catch (error: any) {
+    console.error('Error deleting folder:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}

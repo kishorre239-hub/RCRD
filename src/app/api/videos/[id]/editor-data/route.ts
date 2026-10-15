@@ -22,10 +22,25 @@ export async function GET(
         filter = { $or: [{ id }, { driveFileId: id }] };
       }
       const video = await videosCol.findOne(filter);
-      const editorData = video?.editorData || backupMeta?.editorData || null;
+      let editorData = video?.editorData || backupMeta?.editorData || null;
+
+      if (!editorData && id && !id.startsWith('local:')) {
+        const { getFileMetadata } = await import('@/lib/server/drive');
+        const driveMeta = await getFileMetadata(id);
+        if (driveMeta?.editorData) editorData = driveMeta.editorData;
+      }
+
       return NextResponse.json({ success: true, editorData });
     } catch {
-      return NextResponse.json({ success: true, editorData: backupMeta?.editorData || null });
+      let editorData = backupMeta?.editorData || null;
+      if (!editorData && id && !id.startsWith('local:')) {
+        try {
+          const { getFileMetadata } = await import('@/lib/server/drive');
+          const driveMeta = await getFileMetadata(id);
+          if (driveMeta?.editorData) editorData = driveMeta.editorData;
+        } catch {}
+      }
+      return NextResponse.json({ success: true, editorData });
     }
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error)?.message }, { status: 500 });
@@ -59,6 +74,16 @@ export async function POST(
       }, { upsert: false });
     } catch (dbErr) {
       console.warn('MongoDB editor-data save warning:', (dbErr as Error)?.message);
+    }
+
+    // 3. Persist to Google Drive file description & properties
+    if (id && !id.startsWith('local:')) {
+      try {
+        const { updateDriveFileEditorData } = await import('@/lib/server/drive');
+        await updateDriveFileEditorData(id, body);
+      } catch (driveErr) {
+        console.warn('Google Drive editor-data save note:', driveErr);
+      }
     }
 
     return NextResponse.json({ success: true, editorData: body });

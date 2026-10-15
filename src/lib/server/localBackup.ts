@@ -6,9 +6,13 @@ interface StoredVideoMeta {
   views?: number;
   title?: string;
   courseId?: string;
+  driveFileId?: string;
+  size?: number;
+  status?: string;
   comments?: VideoComment[];
   editorData?: any;
   updatedAt?: number;
+  [key: string]: unknown;
 }
 
 const DATA_DIR = path.resolve(process.cwd(), '.data');

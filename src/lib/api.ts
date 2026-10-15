@@ -236,12 +236,27 @@ export const getDriveFolder = async () => {
 // Video Folder / Collection categories for Loom recordings
 export const getCourses = async (): Promise<Array<{ id: string; name: string }>> => {
   const meetingFolder = { id: '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4', name: 'MEETING' };
+  try {
+    const response = await fetchWithAuth('/folders');
+    if (response.ok) {
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 0) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('loom_video_folders', JSON.stringify(data));
+        }
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to load folders from Drive API, using local backup:', err);
+  }
+
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem('loom_video_folders');
       if (stored) {
         const parsed: Array<{ id: string; name: string }> = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           if (!parsed.some(f => f.id === meetingFolder.id || f.name === 'MEETING')) {
             parsed.unshift(meetingFolder);
           }
@@ -257,38 +272,96 @@ export const getCourses = async (): Promise<Array<{ id: string; name: string }>>
   ];
 };
 
-export const createCourse = async (name: string) => {
+export const createCourse = async (name: string): Promise<{ id: string; name: string }> => {
+  try {
+    const response = await fetchWithAuth('/folders', {
+      method: 'POST',
+      body: JSON.stringify({ name: name.trim() }),
+    });
+    if (response.ok) {
+      const created = await response.json();
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('loom_video_folders');
+          const folders = stored ? JSON.parse(stored) : [];
+          folders.push(created);
+          localStorage.setItem('loom_video_folders', JSON.stringify(folders));
+        } catch {}
+      }
+      return created;
+    }
+  } catch (err) {
+    console.error('Create folder API failed:', err);
+  }
+
+  // Fallback
+  const fallback = { id: `folder-${Date.now()}`, name: name.trim() };
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem('loom_video_folders');
-      const folders = stored ? JSON.parse(stored) : [
-        { id: 'all', name: 'All Recordings' },
-        { id: 'screen-shares', name: 'Screen Shares' },
-        { id: 'team-updates', name: 'Team Updates' }
-      ];
-      const newFolder = { id: `folder-${Date.now()}`, name };
-      folders.push(newFolder);
+      const folders = stored ? JSON.parse(stored) : [];
+      folders.push(fallback);
       localStorage.setItem('loom_video_folders', JSON.stringify(folders));
-      return newFolder;
     } catch {}
   }
-  return { id: `folder-${Date.now()}`, name };
+  return fallback;
 };
 
-export const renameCourse = async (id: string, name: string) => {
+export const renameCourse = async (id: string, name: string): Promise<{ id: string; name: string }> => {
+  try {
+    const response = await fetchWithAuth('/folders', {
+      method: 'PUT',
+      body: JSON.stringify({ id, name: name.trim() }),
+    });
+    if (response.ok) {
+      const updated = await response.json();
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('loom_video_folders');
+          const folders: Array<{ id: string; name: string }> = stored ? JSON.parse(stored) : [];
+          const item = folders.find((f) => f.id === id);
+          if (item) item.name = name.trim();
+          localStorage.setItem('loom_video_folders', JSON.stringify(folders));
+        } catch {}
+      }
+      return updated;
+    }
+  } catch (err) {
+    console.error('Rename folder API failed:', err);
+  }
+
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem('loom_video_folders');
       const folders: Array<{ id: string; name: string }> = stored ? JSON.parse(stored) : [];
       const item = folders.find((f) => f.id === id);
-      if (item) item.name = name;
+      if (item) item.name = name.trim();
       localStorage.setItem('loom_video_folders', JSON.stringify(folders));
     } catch {}
   }
-  return { id, name };
+  return { id, name: name.trim() };
 };
 
-export const deleteCourse = async (id: string) => {
+export const deleteCourse = async (id: string): Promise<boolean> => {
+  try {
+    const response = await fetchWithAuth(`/folders?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+    if (response.ok) {
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('loom_video_folders');
+          const folders: Array<{ id: string; name: string }> = stored ? JSON.parse(stored) : [];
+          const filtered = folders.filter((f) => f.id !== id);
+          localStorage.setItem('loom_video_folders', JSON.stringify(filtered));
+        } catch {}
+      }
+      return true;
+    }
+  } catch (err) {
+    console.error('Delete folder API failed:', err);
+  }
+
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem('loom_video_folders');

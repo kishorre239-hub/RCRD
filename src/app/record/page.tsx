@@ -62,10 +62,25 @@ export default function RecordPage() {
     setUploadError(null);
     setUploadProgress(0);
     
+    const selectedCourse = courses.find(c => c.id === selectedCourseId);
+    const d = new Date();
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const vidTitle = `Screen Recording · ${dateStr} (${timeStr})`;
+
     try {
-      const response = await uploadVideo(mediaBlob, selectedCourseId || null, (percent) => {
-        setUploadProgress(percent);
-      });
+      const response = await uploadVideo(
+        mediaBlob, 
+        selectedCourseId || null, 
+        (percent) => {
+          setUploadProgress(percent);
+        },
+        vidTitle,
+        {
+          folderName: selectedCourse?.name,
+          isMeeting: selectedCourseId === 'MEETING' || selectedCourseId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4'
+        }
+      );
       
       setUploadSuccess(true);
       setVideoId(response.videoId);

@@ -258,7 +258,7 @@ export async function getFileMetadata(fileId: string) {
   try {
     const res = await drive.files.get({
       fileId,
-      fields: 'id, name, mimeType, size, webViewLink, webContentLink, createdTime, thumbnailLink, videoMediaMetadata',
+      fields: 'id, name, mimeType, size, webViewLink, webContentLink, createdTime, thumbnailLink, videoMediaMetadata, description, properties, parents',
       supportsAllDrives: true,
     });
     const data = res.data;
@@ -267,12 +267,24 @@ export async function getFileMetadata(fileId: string) {
       : 0;
     const thumbnailUrl = formatDriveThumbnailUrl(data.thumbnailLink);
 
+    let editorData = null;
+    if (data.description) {
+      try {
+        const parsed = JSON.parse(data.description);
+        if (parsed && (parsed.completedCuts || parsed.cuts || parsed.textOverlays || parsed.audio || parsed.savedAt)) {
+          editorData = parsed;
+        }
+      } catch {}
+    }
+
     return {
       ...data,
       title: cleanVideoTitle(data.name || '', data.createdTime || undefined),
       duration,
       thumbnailUrl,
       thumbnailLink: thumbnailUrl,
+      editorData,
+      courseId: (data.parents && data.parents[0]) || '',
     };
   } catch (error: unknown) {
     console.error(`Failed to get Google Drive file ${fileId}:`, (error as Error)?.message);
@@ -335,6 +347,10 @@ export async function deleteDriveFile(fileId: string): Promise<boolean> {
       fileId,
       supportsAllDrives: true,
     });
+    // Invalidate driveCache
+    driveCache.timestamp = 0;
+    driveCache.videos = driveCache.videos.filter(v => v.id !== fileId && v.driveFileId !== fileId);
+    driveCache.folders = driveCache.folders.filter(f => f.id !== fileId);
     return true;
   } catch (error: unknown) {
     console.error(`Failed to delete Google Drive file ${fileId}:`, (error as Error)?.message);
@@ -343,7 +359,7 @@ export async function deleteDriveFile(fileId: string): Promise<boolean> {
 }
 
 /**
- * Rename a file in Google Drive
+ * Rename a file or folder in Google Drive
  */
 export async function renameDriveFile(fileId: string, newTitle: string): Promise<boolean> {
   const drive = getDriveClient();
@@ -351,16 +367,20 @@ export async function renameDriveFile(fileId: string, newTitle: string): Promise
 
   try {
     let finalName = newTitle.trim();
+    let isFolder = false;
     try {
       const existing = await drive.files.get({
         fileId,
-        fields: 'name',
+        fields: 'name, mimeType',
         supportsAllDrives: true,
       });
-      const oldName = existing.data.name || '';
-      const extMatch = oldName.match(/\.(mp4|webm|mov|mkv|avi|png|jpg|jpeg)$/i);
-      if (extMatch && !finalName.toLowerCase().endsWith(extMatch[0].toLowerCase())) {
-        finalName = `${finalName}${extMatch[0]}`;
+      isFolder = existing.data.mimeType === 'application/vnd.google-apps.folder';
+      if (!isFolder) {
+        const oldName = existing.data.name || '';
+        const extMatch = oldName.match(/\.(mp4|webm|mov|mkv|avi|png|jpg|jpeg)$/i);
+        if (extMatch && !finalName.toLowerCase().endsWith(extMatch[0].toLowerCase())) {
+          finalName = `${finalName}${extMatch[0]}`;
+        }
       }
     } catch {
       // ignore get error and proceed with finalName
@@ -381,6 +401,10 @@ export async function renameDriveFile(fileId: string, newTitle: string): Promise
       cached.title = newTitle.trim();
       cached.rawName = finalName;
     }
+    const cachedFolder = driveCache.folders.find(f => f.id === fileId);
+    if (cachedFolder) {
+      cachedFolder.name = newTitle.trim();
+    }
 
     return true;
   } catch (error: unknown) {
@@ -397,22 +421,196 @@ export async function createDriveFolder(name: string, parentId?: string): Promis
   if (!drive) return null;
 
   try {
+    const rootId = parentId || process.env.GOOGLE_DRIVE_FOLDER_ID;
     const metadata: { name: string; mimeType: string; parents?: string[] } = {
-      name,
+      name: name.trim(),
       mimeType: 'application/vnd.google-apps.folder',
     };
-    if (parentId) {
-      metadata.parents = [parentId];
+    if (rootId) {
+      metadata.parents = [rootId];
     }
 
     const res = await drive.files.create({
       requestBody: metadata,
-      fields: 'id',
+      fields: 'id, name',
       supportsAllDrives: true,
     });
+    driveCache.timestamp = 0;
+    if (res.data.id) {
+      driveCache.folders.push({ id: res.data.id, name: name.trim() });
+    }
     return res.data.id || null;
   } catch (error: unknown) {
     console.error('Failed to create Drive folder:', (error as Error)?.message);
+    return null;
+  }
+}
+
+/**
+ * List all folders in Google Drive (including MEETING, Screen Shares, Team Updates)
+ */
+export async function listDriveFolders(): Promise<Array<{ id: string; name: string }>> {
+  const drive = getDriveClient();
+  const rootId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  const defaultMeetingId = '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4';
+  const defaultFolders = [
+    { id: defaultMeetingId, name: 'MEETING' },
+    { id: 'screen-shares', name: 'Screen Shares' },
+    { id: 'team-updates', name: 'Team Updates' }
+  ];
+
+  if (!drive) return defaultFolders;
+
+  try {
+    let q = "mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+    if (rootId) {
+      q += ` and '${rootId}' in parents`;
+    }
+
+    const res = await drive.files.list({
+      q,
+      fields: 'files(id, name, createdTime)',
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true,
+      pageSize: 100,
+    });
+
+    const items = res.data.files || [];
+    const folders: Array<{ id: string; name: string }> = [];
+
+    for (const f of items) {
+      if (f.id && f.name) {
+        folders.push({ id: f.id, name: f.name });
+      }
+    }
+
+    // Ensure MEETING folder exists in Google Drive
+    const meetingFolder = folders.find(f => f.name.toUpperCase() === 'MEETING');
+    if (!meetingFolder) {
+      try {
+        const meetingId = await getMeetingFolderId();
+        folders.unshift({ id: meetingId, name: 'MEETING' });
+      } catch {
+        folders.unshift({ id: defaultMeetingId, name: 'MEETING' });
+      }
+    }
+
+    // Ensure Screen Shares and Team Updates exist if not already
+    if (!folders.some(f => f.name.toLowerCase() === 'screen shares' || f.id === 'screen-shares')) {
+      folders.push({ id: 'screen-shares', name: 'Screen Shares' });
+    }
+    if (!folders.some(f => f.name.toLowerCase() === 'team updates' || f.id === 'team-updates')) {
+      folders.push({ id: 'team-updates', name: 'Team Updates' });
+    }
+
+    return folders;
+  } catch (err) {
+    console.warn('Google Drive folder listing warning:', err);
+    return defaultFolders;
+  }
+}
+
+/**
+ * Persist video editor cuts, overlays, audio tracks directly onto the Google Drive file
+ */
+export async function updateDriveFileEditorData(fileId: string, editorData: unknown): Promise<boolean> {
+  const drive = getDriveClient();
+  if (!drive || !fileId || fileId.startsWith('local:')) return false;
+
+  try {
+    const jsonStr = typeof editorData === 'string' ? editorData : JSON.stringify(editorData);
+    await drive.files.update({
+      fileId,
+      requestBody: {
+        description: jsonStr,
+        properties: {
+          hasEditorData: 'true',
+          editorUpdatedAt: Date.now().toString(),
+        },
+      },
+      supportsAllDrives: true,
+    });
+
+    // Invalidate driveCache
+    driveCache.timestamp = 0;
+    const cached = driveCache.videos.find(v => v.id === fileId || v.driveFileId === fileId);
+    if (cached) {
+      (cached as any).editorData = typeof editorData === 'string' ? JSON.parse(editorData) : editorData;
+    }
+    return true;
+  } catch (error: unknown) {
+    console.error(`Failed to update editor data for Drive file ${fileId}:`, (error as Error)?.message);
+    return false;
+  }
+}
+
+/**
+ * Direct buffer upload to Google Drive for server-side multipart uploads
+ */
+export async function uploadBufferToDrive(params: {
+  buffer: Buffer;
+  name: string;
+  mimeType: string;
+  folderId?: string;
+  folderName?: string;
+  isMeeting?: boolean;
+}): Promise<{ id: string; webViewLink?: string; thumbnailLink?: string } | null> {
+  const drive = getDriveClient();
+  if (!drive) return null;
+
+  try {
+    let targetFolder: string | undefined = undefined;
+    if (params.folderId && params.folderId !== 'root' && params.folderId !== 'all') {
+      if (params.folderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || params.folderId === 'MEETING') {
+        targetFolder = await getMeetingFolderId();
+      } else if (params.folderId === 'screen-shares') {
+        targetFolder = await getOrCreateNamedDriveFolder('Screen Shares');
+      } else if (params.folderId === 'team-updates') {
+        targetFolder = await getOrCreateNamedDriveFolder('Team Updates');
+      } else if (params.folderName && params.folderName.trim()) {
+        targetFolder = await getOrCreateNamedDriveFolder(params.folderName.trim());
+      } else if (params.folderId.startsWith('folder-')) {
+        const cleanName = params.folderId.replace(/^folder-/, '');
+        targetFolder = await getOrCreateNamedDriveFolder(cleanName);
+      } else {
+        targetFolder = params.folderId;
+      }
+    } else if (params.isMeeting) {
+      targetFolder = await getMeetingFolderId();
+    } else {
+      targetFolder = process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.DRIVE_DEFAULT_FOLDER_ID;
+    }
+
+    const metadata: { name: string; mimeType: string; parents?: string[] } = {
+      name: params.name || `Recording-${Date.now()}.webm`,
+      mimeType: params.mimeType || 'video/webm',
+    };
+    if (targetFolder) {
+      metadata.parents = [targetFolder];
+    }
+
+    const { Readable } = await import('stream');
+    const stream = Readable.from(params.buffer);
+
+    const res = await drive.files.create({
+      requestBody: metadata,
+      media: {
+        mimeType: params.mimeType || 'video/webm',
+        body: stream,
+      },
+      fields: 'id, name, webViewLink, thumbnailLink',
+      supportsAllDrives: true,
+    });
+
+    driveCache.timestamp = 0;
+
+    return {
+      id: res.data.id || '',
+      webViewLink: res.data.webViewLink || undefined,
+      thumbnailLink: res.data.thumbnailLink || undefined,
+    };
+  } catch (err: unknown) {
+    console.error('Failed to upload buffer to Google Drive:', (err as Error)?.message);
     return null;
   }
 }
@@ -590,6 +788,7 @@ export interface DriveVideoItem {
   updatedAt: number;
   webViewLink?: string | null;
   webContentLink?: string | null;
+  editorData?: unknown;
 }
 
 export interface DriveFolderItem {
@@ -624,7 +823,7 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
   try {
     const res = await drive.files.list({
       q: "trashed = false",
-      fields: 'files(id, name, mimeType, size, webViewLink, webContentLink, createdTime, parents, thumbnailLink, videoMediaMetadata)',
+      fields: 'files(id, name, mimeType, size, webViewLink, webContentLink, createdTime, parents, thumbnailLink, videoMediaMetadata, description)',
       pageSize: 100,
       supportsAllDrives: true,
       includeItemsFromAllDrives: true,
@@ -650,6 +849,16 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
           : 0;
         const thumbnailUrl = formatDriveThumbnailUrl(f.thumbnailLink);
 
+        let editorData = null;
+        if (f.description) {
+          try {
+            const parsed = JSON.parse(f.description);
+            if (parsed && (parsed.completedCuts || parsed.cuts || parsed.textOverlays || parsed.audio || parsed.savedAt)) {
+              editorData = parsed;
+            }
+          } catch {}
+        }
+
         videos.push({
           id: f.id || '',
           driveFileId: f.id || '',
@@ -671,6 +880,7 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
           updatedAt: f.createdTime ? new Date(f.createdTime).getTime() : Date.now(),
           webViewLink: f.webViewLink,
           webContentLink: f.webContentLink,
+          editorData,
         });
       }
     }

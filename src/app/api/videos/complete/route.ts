@@ -4,6 +4,7 @@ import { authenticateRequest } from '@/lib/server/auth';
 import { getFileMetadata } from '@/lib/server/drive';
 import { Video } from '@/lib/server/types';
 import { ObjectId } from 'mongodb';
+import { saveBackupVideoMeta } from '@/lib/server/localBackup';
 
 export async function POST(req: Request) {
   try {
@@ -15,35 +16,25 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { videoId, driveFileId, title, duration, size } = body;
 
-    if (!videoId) {
-      return NextResponse.json({ error: 'videoId is required' }, { status: 400 });
+    if (!videoId && !driveFileId) {
+      return NextResponse.json({ error: 'videoId or driveFileId is required' }, { status: 400 });
     }
 
-    const videosCol = await getCollection<Video>('videos');
-    let filter: any = {};
-    try {
-      filter = { _id: new ObjectId(videoId) };
-    } catch {
-      filter = { id: videoId };
-    }
-
-    const existingVideo = await videosCol.findOne(filter);
-    if (!existingVideo) {
-      return NextResponse.json({ error: 'Video record not found' }, { status: 404 });
-    }
-
-    let webViewLink = existingVideo.webViewLink;
-    let thumbnailLink = existingVideo.thumbnailLink;
+    const finalId = driveFileId || videoId;
+    let webViewLink = '';
+    let thumbnailLink = '';
 
     if (driveFileId) {
-      const driveMeta = await getFileMetadata(driveFileId);
-      if (driveMeta) {
-        webViewLink = driveMeta.webViewLink || webViewLink;
-        thumbnailLink = driveMeta.thumbnailLink || thumbnailLink;
-      }
+      try {
+        const driveMeta = await getFileMetadata(driveFileId);
+        if (driveMeta) {
+          webViewLink = driveMeta.webViewLink || '';
+          thumbnailLink = driveMeta.thumbnailLink || '';
+        }
+      } catch {}
     }
 
-    const updateFields: Partial<Video> = {
+    const updateFields: Record<string, unknown> = {
       status: 'READY',
       updatedAt: Date.now(),
     };
@@ -55,18 +46,41 @@ export async function POST(req: Request) {
     if (webViewLink) updateFields.webViewLink = webViewLink;
     if (thumbnailLink) updateFields.thumbnailLink = thumbnailLink;
 
-    await videosCol.updateOne(filter, { $set: updateFields });
+    // Immediately persist to local backup
+    saveBackupVideoMeta(finalId, updateFields);
+    if (videoId && videoId !== finalId) {
+      saveBackupVideoMeta(videoId, updateFields);
+    }
 
-    const updated = await videosCol.findOne(filter);
-    const result = {
-      ...updated,
-      id: updated?.id || updated?._id?.toString(),
-    };
+    let result: any = { id: finalId, ...updateFields };
+
+    try {
+      const videosCol = await getCollection<Video>('videos');
+      let filter: any = {};
+      try {
+        filter = { $or: [{ _id: new ObjectId(videoId) }, { id: videoId }, { driveFileId: finalId }] };
+      } catch {
+        filter = { $or: [{ id: videoId }, { driveFileId: finalId }] };
+      }
+
+      await videosCol.updateOne(filter, { $set: updateFields }, { upsert: false });
+      const updated = await videosCol.findOne(filter);
+      if (updated) {
+        result = {
+          ...updated,
+          id: updated.id || updated._id?.toString() || finalId,
+        };
+      }
+    } catch (dbErr) {
+      console.warn('MongoDB note in /api/videos/complete:', dbErr);
+    }
 
     return NextResponse.json({
       success: true,
       video: result,
-      videoId: result.id,
+      videoId: finalId,
+      id: finalId,
+      driveFileId: driveFileId || finalId,
     });
   } catch (error: any) {
     console.error('Error completing video upload:', error);

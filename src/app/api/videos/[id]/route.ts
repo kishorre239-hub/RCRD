@@ -67,6 +67,10 @@ export async function GET(
           resolvedEditorData = backupMeta.editorData;
         }
       }
+      if (!resolvedEditorData && driveFileId && !driveFileId.startsWith('local:')) {
+        const driveMeta = await getFileMetadata(driveFileId);
+        if (driveMeta?.editorData) resolvedEditorData = driveMeta.editorData;
+      }
 
       const normalized = {
         ...video,
@@ -172,8 +176,8 @@ export async function PUT(
         saveBackupVideoMeta(video.driveFileId, updateFields);
       }
 
-      // If title changed and Google Drive file exists, rename Drive file (only if title actually changed)
-      if (newTitle && video?.title && newTitle !== video.title && targetDriveFileId && !targetDriveFileId.startsWith('local:')) {
+      // If title changed, rename Google Drive file
+      if (newTitle && targetDriveFileId && !targetDriveFileId.startsWith('local:')) {
         try {
           await renameDriveFile(targetDriveFileId, newTitle);
         } catch (driveErr) {
@@ -181,12 +185,22 @@ export async function PUT(
         }
       }
 
-      // If folder changed (video moved), move file in Google Drive too
+      // If folder changed (video moved), move file in Google Drive
       if (body.courseId !== undefined && targetDriveFileId && !targetDriveFileId.startsWith('local:')) {
         try {
           await moveDriveFile(targetDriveFileId, body.courseId, body.folderName);
         } catch (driveErr) {
           console.warn('Could not move Drive file:', driveErr);
+        }
+      }
+
+      // If editorData changed, persist directly to Google Drive file
+      if (body.editorData !== undefined && targetDriveFileId && !targetDriveFileId.startsWith('local:')) {
+        try {
+          const { updateDriveFileEditorData } = await import('@/lib/server/drive');
+          await updateDriveFileEditorData(targetDriveFileId, body.editorData);
+        } catch (driveErr) {
+          console.warn('Could not update Drive file editor data:', driveErr);
         }
       }
 

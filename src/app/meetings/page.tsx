@@ -28,6 +28,15 @@ const genPwd = () => {
 };
 const STORAGE_KEY = "rcrd_meetings";
 
+const DURATION_PRESETS = [
+  { label: "15 min", value: 15 },
+  { label: "30 min", value: 30 },
+  { label: "45 min", value: 45 },
+  { label: "1 hour", value: 60 },
+  { label: "1.5 hrs", value: 90 },
+  { label: "2 hours", value: 120 },
+];
+
 // Sidebar Item declared outside render
 function SidebarItem({ icon, label, active = false, external = false, href }: { icon: React.ReactNode, label: string, active?: boolean, external?: boolean, href?: string }) {
   const router = useRouter();
@@ -169,6 +178,37 @@ export default function MeetingsPage() {
     }
   };
 
+  const formatDuration = (mins: number) => {
+    if (!mins || mins <= 0) return "60 mins";
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h > 0 && m > 0) return `${h} hr ${m} min`;
+    if (h > 0) return `${h} ${h === 1 ? 'hour' : 'hours'}`;
+    return `${m} mins`;
+  };
+
+  const relCountdown = (iso: string) => {
+    if (!now) return "Upcoming";
+    try {
+      const d = now - new Date(iso).getTime();
+      if (d < 0) {
+        const f = -d;
+        if (f < 60000) return "< 1 min";
+        if (f < 3600000) return `${Math.floor(f / 60000)}m`;
+        if (f < 86400000) {
+          const h = Math.floor(f / 3600000);
+          const m = Math.floor((f % 3600000) / 60000);
+          return m > 0 ? `${h}h ${m}m` : `${h}h`;
+        }
+        const days = Math.floor(f / 86400000);
+        return days === 1 ? "1 day" : `${days} days`;
+      }
+      return "Now";
+    } catch {
+      return "Scheduled";
+    }
+  };
+
   const rel = (iso: string) => {
     if (!now) return "Upcoming";
     try {
@@ -176,9 +216,13 @@ export default function MeetingsPage() {
       if (d < 0) {
         const f = -d;
         if (f < 60000) return "Starts in <1m";
-        if (f < 3600000) return `in ${Math.floor(f / 60000)}m`;
-        if (f < 86400000) return `in ${Math.floor(f / 3600000)}h ${Math.floor((f % 3600000) / 60000)}m`;
-        return `in ${Math.floor(f / 86400000)}d`;
+        if (f < 3600000) return `Starts in ${Math.floor(f / 60000)}m`;
+        if (f < 86400000) {
+          const h = Math.floor(f / 3600000);
+          const m = Math.floor((f % 3600000) / 60000);
+          return m > 0 ? `Starts in ${h}h ${m}m` : `Starts in ${h}h`;
+        }
+        return `Starts in ${Math.floor(f / 86400000)}d`;
       }
       if (d < 3600000) return `${Math.floor(d / 60000)}m ago`;
       if (d < 86400000) return `${Math.floor(d / 3600000)}h ago`;
@@ -186,6 +230,70 @@ export default function MeetingsPage() {
     } catch {
       return "Scheduled";
     }
+  };
+
+  const getModalSummary = () => {
+    try {
+      const dateVal = newDate || getTodayString();
+      let h = parseInt(selectedHour, 10) || 12;
+      if (selectedPeriod === "PM" && h < 12) h += 12;
+      if (selectedPeriod === "AM" && h === 12) h = 0;
+      const timeVal = `${String(h).padStart(2, '0')}:${selectedMinute || '00'}:00`;
+      const startDate = new Date(`${dateVal}T${timeVal}`);
+      const endDate = new Date(startDate.getTime() + newDuration * 60000);
+
+      const startTimeStr = startDate.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
+      const endTimeStr = endDate.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit", hour12: true });
+      const dateStr = startDate.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+
+      const diffMs = startDate.getTime() - (now || Date.now());
+      let countdown = "";
+      if (diffMs <= 0) {
+        countdown = "Starting now / Past";
+      } else if (diffMs < 60000) {
+        countdown = "Starts in <1 min";
+      } else if (diffMs < 3600000) {
+        countdown = `Starts in ${Math.floor(diffMs / 60000)}m`;
+      } else if (diffMs < 86400000) {
+        const hrs = Math.floor(diffMs / 3600000);
+        const mins = Math.floor((diffMs % 3600000) / 60000);
+        countdown = mins > 0 ? `Starts in ${hrs}h ${mins}m` : `Starts in ${hrs}h`;
+      } else {
+        const days = Math.floor(diffMs / 86400000);
+        countdown = `Starts in ${days} ${days === 1 ? 'day' : 'days'}`;
+      }
+
+      return {
+        dateStr,
+        timeRange: `${startTimeStr} – ${endTimeStr}`,
+        durationStr: formatDuration(newDuration),
+        countdown,
+      };
+    } catch {
+      return {
+        dateStr: "Selected Date",
+        timeRange: `${selectedHour}:${selectedMinute} ${selectedPeriod}`,
+        durationStr: `${newDuration} mins`,
+        countdown: "Upcoming",
+      };
+    }
+  };
+
+  const openScheduleModal = () => {
+    const d = new Date(Date.now() + 15 * 60000);
+    const remainder = 15 - (d.getMinutes() % 15);
+    if (remainder < 15) {
+      d.setMinutes(d.getMinutes() + remainder);
+    }
+    setNewDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    let h = d.getHours();
+    const p = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    setSelectedHour(String(h).padStart(2, '0'));
+    setSelectedMinute(String(d.getMinutes()).padStart(2, '0'));
+    setSelectedPeriod(p);
+    setNewDuration(60);
+    setShowCreate(true);
   };
 
 
@@ -340,7 +448,7 @@ export default function MeetingsPage() {
         {/* Schedule Meeting Button */}
         <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           <button
-            onClick={() => setShowCreate(true)}
+            onClick={openScheduleModal}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all"
           >
             <Calendar size={15} className="text-white" />
@@ -391,7 +499,7 @@ export default function MeetingsPage() {
               
               {/* Card 1: Schedule Meeting */}
               <div
-                onClick={() => setShowCreate(true)}
+                onClick={openScheduleModal}
                 className="bg-white hover:bg-slate-50/60 rounded-2xl p-5 cursor-pointer transition-all duration-200 border border-slate-200/90 hover:border-blue-300 shadow-sm hover:shadow-md group flex flex-col justify-between"
               >
                 <div>
@@ -531,7 +639,7 @@ export default function MeetingsPage() {
                 {activeTab === "upcoming" && (
                   <div className="flex items-center gap-2.5">
                     <button
-                      onClick={() => setShowCreate(true)}
+                      onClick={openScheduleModal}
                       className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
                     >
                       <Calendar size={14} /> Schedule Meeting
@@ -598,23 +706,39 @@ export default function MeetingsPage() {
                         </div>
 
                         {/* Title & Timing */}
-                        <h3 className="text-sm font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors truncate" title={m.title}>
+                        <h3 className="text-sm font-bold text-slate-900 mb-1.5 group-hover:text-blue-600 transition-colors truncate" title={m.title}>
                           {m.title}
                         </h3>
-                        <div className="flex items-center gap-2 text-[11px] text-slate-500 mb-3 font-medium">
-                          <span className="flex items-center gap-1">
-                            <Clock size={11} className="text-slate-400" />
-                            {fmt(m.scheduledAt)} ({m.duration}m)
+                        <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium mb-2.5">
+                          <Calendar size={13} className="text-blue-600 shrink-0" />
+                          <span>{fmt(m.scheduledAt)}</span>
+                        </div>
+
+                        {/* Separate Duration & Countdown badges */}
+                        <div className="flex items-center gap-1.5 flex-wrap mb-3.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs">
+                            <Clock size={12} className="text-slate-500" />
+                            Duration: <strong className="text-slate-900">{formatDuration(m.duration)}</strong>
                           </span>
-                          <span className="text-slate-300">·</span>
-                          <span className="text-blue-600 font-semibold">{rel(m.scheduledAt)}</span>
+                          {!isPast && (
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border shadow-2xs ${
+                              isLive 
+                                ? "bg-red-50 text-red-600 border-red-200" 
+                                : "bg-blue-50 text-blue-700 border-blue-200"
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${isLive ? "bg-red-500 animate-ping" : "bg-blue-500 animate-pulse"}`} />
+                              {isLive ? "Live Now" : `Starts in: ${relCountdown(m.scheduledAt)}`}
+                            </span>
+                          )}
+                          {isPast && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-50 text-slate-500 border border-slate-200">
+                              Completed
+                            </span>
+                          )}
                           {m.attendees > 0 && (
-                            <>
-                              <span className="text-slate-300">·</span>
-                              <span className="flex items-center gap-0.5 text-slate-500">
-                                <Users size={11} /> {m.attendees}
-                              </span>
-                            </>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] text-slate-500 bg-slate-50 border border-slate-200">
+                              <Users size={11} /> {m.attendees}
+                            </span>
                           )}
                         </div>
 
@@ -734,49 +858,79 @@ export default function MeetingsPage() {
 
               {/* Dynamic Presets */}
               <div>
-                 <label className="block text-[13px] font-semibold text-slate-700 uppercase tracking-wider mb-3">Quick Presets</label>
-                 <div className="flex gap-3">
-                   <button 
-                     onClick={() => {
-                        const target = new Date(Date.now() + 15 * 60000);
-                        setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
-                        let h = target.getHours(); const p = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
-                        setSelectedHour(String(h).padStart(2, '0'));
-                        setSelectedMinute(String(Math.floor(target.getMinutes() / 15) * 15).padStart(2, '0'));
-                        setSelectedPeriod(p);
-                     }}
-                     className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 text-[13px] font-semibold rounded-lg transition-colors border border-blue-200"
-                   >
-                     In 15 mins
-                   </button>
-                   <button 
-                     onClick={() => {
-                        const target = new Date(Date.now() + 60 * 60000);
-                        setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
-                        let h = target.getHours(); const p = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
-                        setSelectedHour(String(h).padStart(2, '0'));
-                        setSelectedMinute("00");
-                        setSelectedPeriod(p);
-                     }}
-                     className="px-4 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 text-[13px] font-semibold rounded-lg transition-colors border border-blue-200"
-                   >
-                     In 1 hour
-                   </button>
-                   <button 
-                     onClick={() => {
-                        const target = new Date(); target.setDate(target.getDate() + 1); target.setHours(10, 0, 0, 0);
-                        setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
-                        setSelectedHour("10"); setSelectedMinute("00"); setSelectedPeriod("AM");
-                     }}
-                     className="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 text-[13px] font-bold rounded-lg transition-colors"
-                   >
-                     Tomorrow 10 AM
-                   </button>
-                 </div>
+                <label className="block text-[13px] font-semibold text-slate-700 uppercase tracking-wider mb-2.5">
+                  Quick Start Presets
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const target = new Date(Date.now() + 15 * 60000);
+                      setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
+                      let h = target.getHours(); const p = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
+                      setSelectedHour(String(h).padStart(2, '0'));
+                      setSelectedMinute(String(Math.floor(target.getMinutes() / 5) * 5).padStart(2, '0'));
+                      setSelectedPeriod(p);
+                    }}
+                    className="px-3.5 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 text-[13px] font-semibold rounded-xl transition-colors border border-blue-200"
+                  >
+                    In 15 mins
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const target = new Date(Date.now() + 30 * 60000);
+                      setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
+                      let h = target.getHours(); const p = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
+                      setSelectedHour(String(h).padStart(2, '0'));
+                      setSelectedMinute(String(Math.floor(target.getMinutes() / 5) * 5).padStart(2, '0'));
+                      setSelectedPeriod(p);
+                    }}
+                    className="px-3.5 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 text-[13px] font-semibold rounded-xl transition-colors border border-blue-200"
+                  >
+                    In 30 mins
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const target = new Date(Date.now() + 60 * 60000);
+                      setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
+                      let h = target.getHours(); const p = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
+                      setSelectedHour(String(h).padStart(2, '0'));
+                      setSelectedMinute(String(Math.floor(target.getMinutes() / 5) * 5).padStart(2, '0'));
+                      setSelectedPeriod(p);
+                    }}
+                    className="px-3.5 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 text-[13px] font-semibold rounded-xl transition-colors border border-blue-200"
+                  >
+                    In 1 hour
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const target = new Date(); target.setDate(target.getDate() + 1); target.setHours(10, 0, 0, 0);
+                      setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
+                      setSelectedHour("10"); setSelectedMinute("00"); setSelectedPeriod("AM");
+                    }}
+                    className="px-3.5 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 text-[13px] font-bold rounded-xl transition-colors border border-slate-200"
+                  >
+                    Tomorrow 10 AM
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const target = new Date(); target.setDate(target.getDate() + 1); target.setHours(14, 0, 0, 0);
+                      setNewDate(`${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}-${String(target.getDate()).padStart(2, '0')}`);
+                      setSelectedHour("02"); setSelectedMinute("00"); setSelectedPeriod("PM");
+                    }}
+                    className="px-3.5 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 text-[13px] font-bold rounded-xl transition-colors border border-slate-200"
+                  >
+                    Tomorrow 2 PM
+                  </button>
+                </div>
               </div>
 
-              {/* Date & Time */}
-              <div className="grid grid-cols-2 gap-6">
+              {/* Date & Time and Duration */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-[13px] font-semibold text-slate-700 uppercase tracking-wider mb-2">Start Time</label>
                   <div className="flex items-center gap-2">
@@ -789,7 +943,7 @@ export default function MeetingsPage() {
                     <select
                       value={selectedHour}
                       onChange={e => setSelectedHour(e.target.value)}
-                      className="px-3 py-3 border border-slate-200 hover:border-slate-300 rounded-xl text-[14px] bg-white focus:border-blue-600 outline-none shadow-sm transition-all"
+                      className="px-3 py-3 border border-slate-200 hover:border-slate-300 rounded-xl text-[14px] bg-white focus:border-blue-600 outline-none shadow-sm transition-all font-medium text-slate-800"
                     >
                       {["01","02","03","04","05","06","07","08","09","10","11","12"].map(h => (
                         <option key={h} value={h}>{h}</option>
@@ -799,7 +953,7 @@ export default function MeetingsPage() {
                     <select
                       value={selectedMinute}
                       onChange={e => setSelectedMinute(e.target.value)}
-                      className="px-3 py-3 border border-slate-200 hover:border-slate-300 rounded-xl text-[14px] bg-white focus:border-blue-600 outline-none shadow-sm transition-all"
+                      className="px-3 py-3 border border-slate-200 hover:border-slate-300 rounded-xl text-[14px] bg-white focus:border-blue-600 outline-none shadow-sm transition-all font-medium text-slate-800"
                     >
                       {["00","05","10","15","20","25","30","35","40","45","50","55"].map(m => (
                         <option key={m} value={m}>{m}</option>
@@ -815,8 +969,37 @@ export default function MeetingsPage() {
                     </select>
                   </div>
                 </div>
+
                 <div>
-                  <label className="block text-[13px] font-semibold text-slate-700 uppercase tracking-wider mb-2">Duration</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[13px] font-semibold text-slate-700 uppercase tracking-wider">Duration</label>
+                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                      {formatDuration(newDuration)}
+                    </span>
+                  </div>
+
+                  {/* 1-Click Duration Presets */}
+                  <div className="flex flex-wrap gap-1.5 mb-2.5">
+                    {DURATION_PRESETS.map(preset => {
+                      const isSelected = newDuration === preset.value;
+                      return (
+                        <button
+                          key={preset.value}
+                          type="button"
+                          onClick={() => setNewDuration(preset.value)}
+                          className={`px-2.5 py-1 text-xs rounded-lg transition-all ${
+                            isSelected
+                              ? "bg-blue-600 text-white font-bold shadow-xs ring-2 ring-blue-600/20"
+                              : "bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium"
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Custom Duration Dropdowns */}
                   <div className="flex items-center gap-2">
                     <select
                       value={newDuration >= 60 ? Math.floor(newDuration / 60) : 0}
@@ -825,7 +1008,7 @@ export default function MeetingsPage() {
                         const mins = newDuration % 60;
                         setNewDuration(hrs * 60 + mins);
                       }}
-                      className="w-full px-4 py-3 border border-slate-200 hover:border-slate-300 rounded-xl text-[14px] bg-white focus:border-blue-600 outline-none shadow-sm transition-all"
+                      className="w-full px-3 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-[13px] bg-white focus:border-blue-600 outline-none shadow-xs transition-all font-medium text-slate-800"
                     >
                       {[0,1,2,3,4,5,6].map(h => (
                         <option key={h} value={h}>{h} hr</option>
@@ -838,15 +1021,59 @@ export default function MeetingsPage() {
                         const mins = parseInt(e.target.value);
                         setNewDuration(hrs * 60 + mins);
                       }}
-                      className="w-full px-4 py-3 border border-slate-200 hover:border-slate-300 rounded-xl text-[14px] bg-white focus:border-blue-600 outline-none shadow-sm transition-all"
+                      className="w-full px-3 py-2.5 border border-slate-200 hover:border-slate-300 rounded-xl text-[13px] bg-white focus:border-blue-600 outline-none shadow-xs transition-all font-medium text-slate-800"
                     >
-                      {[0,15,30,45].map(m => (
+                      {[0,5,10,15,20,30,45].map(m => (
                         <option key={m} value={m}>{m} min</option>
                       ))}
                     </select>
                   </div>
                 </div>
               </div>
+
+              {/* Live Overview & Duration Clarity Box */}
+              {(() => {
+                const summary = getModalSummary();
+                return (
+                  <div className="rounded-2xl border border-blue-200/90 bg-gradient-to-r from-blue-50/90 via-indigo-50/40 to-white p-4 shadow-xs">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Calendar size={18} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-sm truncate max-w-[280px]">
+                            {newTitle.trim() || "Untitled Meeting"}
+                          </p>
+                          <p className="text-xs text-slate-600 mt-0.5 font-medium">
+                            📅 {summary.dateStr} · ⏰ {summary.timeRange}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-white text-blue-700 border border-blue-200 shadow-2xs">
+                          ⏳ {summary.countdown}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-blue-100 flex items-center justify-between text-xs">
+                      <span className="text-slate-700 font-semibold flex items-center gap-1.5">
+                        <Clock size={13} className="text-blue-600" />
+                        Meeting Duration: <span className="text-blue-700 font-bold bg-white px-2 py-0.5 rounded border border-blue-200">{summary.durationStr}</span>
+                      </span>
+                      {newCourse ? (
+                        <span className="text-slate-600 font-medium flex items-center gap-1 text-[11px]">
+                          <Folder size={12} className="text-emerald-600" />
+                          Folder: <strong className="text-slate-800">{courses.find(c => c.id === newCourse)?.name || 'Selected Folder'}</strong>
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-[11px]">📁 Save location: Root Library</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <hr className="border-slate-100" />
 
@@ -985,11 +1212,11 @@ export default function MeetingsPage() {
       {showShare && (() => {
         const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
         const joinUrl = `${origin}/meetings`;
-        const msgText = `🎓 *${showShare.title}*\n\n📋 *Meeting ID:* ${showShare.id}\n🔑 *Passcode:* ${showShare.password}\n⏰ *Time:* ${fmt(showShare.scheduledAt)} · ${showShare.duration} min\n\n👉 Join: ${joinUrl}\n(Enter Meeting ID & Passcode)`;
+        const msgText = `🎓 *${showShare.title}*\n\n📋 *Meeting ID:* ${showShare.id}\n🔑 *Passcode:* ${showShare.password}\n⏰ *Time:* ${fmt(showShare.scheduledAt)}\n⏱️ *Duration:* ${formatDuration(showShare.duration)}\n\n👉 Join: ${joinUrl}\n(Enter Meeting ID & Passcode)`;
         const waUrl = `https://wa.me/?text=${encodeURIComponent(msgText)}`;
         const emailSubject = encodeURIComponent(`Meeting Invite: ${showShare.title}`);
-        const emailBody = encodeURIComponent(`Hello,\n\nYou are invited to join the meeting session:\n\nTitle: ${showShare.title}\nMeeting ID: ${showShare.id}\nPasscode: ${showShare.password}\nTime: ${fmt(showShare.scheduledAt)} (${showShare.duration} min)\n\nJoin at: ${joinUrl}\n\nSee you there!`);
-        const allText = `🎓 ${showShare.title}\nMeeting ID: ${showShare.id}\nPasscode: ${showShare.password}\nTime: ${fmt(showShare.scheduledAt)} · ${showShare.duration} min\nJoin: ${joinUrl}`;
+        const emailBody = encodeURIComponent(`Hello,\n\nYou are invited to join the meeting session:\n\nTitle: ${showShare.title}\nMeeting ID: ${showShare.id}\nPasscode: ${showShare.password}\nTime: ${fmt(showShare.scheduledAt)}\nDuration: ${formatDuration(showShare.duration)}\n\nJoin at: ${joinUrl}\n\nSee you there!`);
+        const allText = `🎓 ${showShare.title}\nMeeting ID: ${showShare.id}\nPasscode: ${showShare.password}\nTime: ${fmt(showShare.scheduledAt)}\nDuration: ${formatDuration(showShare.duration)}\nJoin: ${joinUrl}`;
         const courseName = courses.find(c => c.id === showShare.courseId)?.name;
 
         return (
@@ -1052,8 +1279,11 @@ export default function MeetingsPage() {
 
                   <div className="h-px bg-slate-200" />
 
-                  <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-                    <span>{fmt(showShare.scheduledAt)}</span>
+                  <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <Clock size={12} className="text-slate-400" />
+                      {fmt(showShare.scheduledAt)} ({formatDuration(showShare.duration)})
+                    </span>
                     {courseName && <span className="text-emerald-600 font-semibold flex items-center gap-1"><Folder size={11} /> {courseName}</span>}
                   </div>
                 </div>

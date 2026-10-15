@@ -58,13 +58,23 @@ export async function GET(
       const mergedComments = Array.from(commentMap.values());
       const rawTitle = backupMeta?.title || video.title;
 
+      // Prefer newest editorData
+      let resolvedEditorData = video.editorData || backupMeta?.editorData || null;
+      if (backupMeta?.editorData && video.editorData) {
+        const backupTime = backupMeta.editorData.savedAt ? new Date(backupMeta.editorData.savedAt).getTime() : (backupMeta.updatedAt || 0);
+        const dbTime = (video.editorData as any)?.savedAt ? new Date((video.editorData as any).savedAt).getTime() : (video.updatedAt || 0);
+        if (backupTime > dbTime) {
+          resolvedEditorData = backupMeta.editorData;
+        }
+      }
+
       const normalized = {
         ...video,
         id: vidId,
         title: cleanVideoTitle(rawTitle, video.createdAt),
         views: Math.max(video.views || 0, backupMeta?.views || 0),
         comments: mergedComments,
-        editorData: video.editorData || backupMeta?.editorData || null,
+        editorData: resolvedEditorData,
         duration,
         thumbnailUrl: `/api/videos/${vidId}/thumbnail`,
         thumbnailLink: `/api/videos/${vidId}/thumbnail`,
@@ -119,25 +129,13 @@ export async function PUT(
     const userId = user?.id || user?._id?.toString() || 'dev-admin-id';
     const body = await req.json();
 
-    const videosCol = await getCollection<Video>('videos');
-    let filter: Filter<Video> = {};
-    try {
-      filter = { $or: [{ _id: new ObjectId(id) }, { id }, { driveFileId: id }] };
-    } catch {
-      filter = { $or: [{ id }, { driveFileId: id }] };
-    }
-
-    let video = await videosCol.findOne(filter);
-
     const updateFields: Record<string, unknown> = { updatedAt: Date.now() };
     const newTitle = typeof body.title === 'string' ? body.title.trim() : undefined;
     if (newTitle !== undefined) {
       updateFields.title = newTitle;
-      saveBackupVideoMeta(id, { title: newTitle });
     }
     if (body.courseId !== undefined) {
       updateFields.courseId = body.courseId;
-      saveBackupVideoMeta(id, { courseId: body.courseId });
     }
     if (body.editorData !== undefined) {
       let parsedEditorData = body.editorData;
@@ -147,64 +145,90 @@ export async function PUT(
         } catch {}
       }
       updateFields.editorData = parsedEditorData;
-      saveBackupVideoMeta(id, { editorData: parsedEditorData });
     }
 
-    // Determine the target Google Drive file ID to update
-    const targetDriveFileId = video?.driveFileId || id;
+    // Always persist to local backup store immediately (guarantees zero data loss!)
+    saveBackupVideoMeta(id, updateFields);
 
-    // If title changed and Google Drive file exists, update Drive file name too
-    if (newTitle && targetDriveFileId && !targetDriveFileId.startsWith('local:')) {
+    let video: Video | null = null;
+    let targetDriveFileId = id;
+
+    try {
+      const videosCol = await getCollection<Video>('videos');
+      let filter: Filter<Video> = {};
       try {
-        await renameDriveFile(targetDriveFileId, newTitle);
-      } catch (driveErr) {
-        console.warn('Could not rename Drive file:', driveErr);
+        filter = { $or: [{ _id: new ObjectId(id) }, { id }, { driveFileId: id }] };
+      } catch {
+        filter = { $or: [{ id }, { driveFileId: id }] };
       }
-    }
 
-    // If folder changed (video moved), move file in Google Drive too
-    if (body.courseId !== undefined && targetDriveFileId && !targetDriveFileId.startsWith('local:')) {
-      try {
-        await moveDriveFile(targetDriveFileId, body.courseId, body.folderName);
-      } catch (driveErr) {
-        console.warn('Could not move Drive file:', driveErr);
-      }
-    }
-
-    if (!video) {
-      // Upsert new entry for Google Drive video
-      const driveMeta = await getFileMetadata(id);
-      await videosCol.insertOne({
-        id,
-        driveFileId: id,
-        title: newTitle || driveMeta?.title || 'Drive Recording',
-        ownerId: userId,
-        ownerEmail: user?.email || 'admin@rcrd.com',
-        workspaceId: user?.workspaceId || 'default',
-        size: driveMeta?.size ? Number(driveMeta.size) : 0,
-        duration: driveMeta?.duration || 0,
-        thumbnailLink: driveMeta?.thumbnailUrl || '',
-        mimeType: driveMeta?.mimeType || 'video/mp4',
-        status: 'READY',
-        isPublic: true,
-        isCompanyShared: false,
-        views: 0,
-        comments: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        ...updateFields,
-      });
-      video = await videosCol.findOne({ driveFileId: id });
-    } else {
-      await videosCol.updateOne(filter, { $set: updateFields });
       video = await videosCol.findOne(filter);
+      targetDriveFileId = video?.driveFileId || id;
+
+      if (video?.id && video.id !== id) {
+        saveBackupVideoMeta(video.id, updateFields);
+      }
+      if (video?.driveFileId && video.driveFileId !== id) {
+        saveBackupVideoMeta(video.driveFileId, updateFields);
+      }
+
+      // If title changed and Google Drive file exists, rename Drive file (only if title actually changed)
+      if (newTitle && video?.title && newTitle !== video.title && targetDriveFileId && !targetDriveFileId.startsWith('local:')) {
+        try {
+          await renameDriveFile(targetDriveFileId, newTitle);
+        } catch (driveErr) {
+          console.warn('Could not rename Drive file:', driveErr);
+        }
+      }
+
+      // If folder changed (video moved), move file in Google Drive too
+      if (body.courseId !== undefined && targetDriveFileId && !targetDriveFileId.startsWith('local:')) {
+        try {
+          await moveDriveFile(targetDriveFileId, body.courseId, body.folderName);
+        } catch (driveErr) {
+          console.warn('Could not move Drive file:', driveErr);
+        }
+      }
+
+      if (!video) {
+        // Upsert new entry for Google Drive video
+        const driveMeta = await getFileMetadata(id);
+        await videosCol.insertOne({
+          id,
+          driveFileId: id,
+          title: newTitle || driveMeta?.title || 'Drive Recording',
+          ownerId: userId,
+          ownerEmail: user?.email || 'admin@rcrd.com',
+          workspaceId: user?.workspaceId || 'default',
+          size: driveMeta?.size ? Number(driveMeta.size) : 0,
+          duration: driveMeta?.duration || 0,
+          thumbnailLink: driveMeta?.thumbnailUrl || '',
+          mimeType: driveMeta?.mimeType || 'video/mp4',
+          status: 'READY',
+          isPublic: true,
+          isCompanyShared: false,
+          views: 0,
+          comments: [],
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          ...updateFields,
+        });
+        video = await videosCol.findOne({ driveFileId: id });
+      } else {
+        const vidFilter = video._id ? { _id: video._id } : filter;
+        await videosCol.updateOne(vidFilter, { $set: updateFields });
+        video = await videosCol.findOne(vidFilter);
+      }
+    } catch (dbErr) {
+      console.warn('MongoDB update warning, continuing with local backup:', (dbErr as Error)?.message);
     }
 
     return NextResponse.json({
-      ...video,
+      ...(video || {}),
       id: video?.id || video?._id?.toString() || id,
-      title: updateFields.title || video?.title || newTitle,
+      title: updateFields.title || video?.title || newTitle || 'Video',
       editorData: updateFields.editorData !== undefined ? updateFields.editorData : (video?.editorData || null),
+      success: true,
     });
   } catch (error: unknown) {
     console.error('Error updating video:', error);

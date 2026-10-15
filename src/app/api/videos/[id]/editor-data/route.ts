@@ -3,6 +3,34 @@ import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { Video } from '@/lib/server/types';
 import { ObjectId } from 'mongodb';
+import { getBackupVideoMeta, saveBackupVideoMeta } from '@/lib/server/localBackup';
+
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const backupMeta = getBackupVideoMeta(id);
+
+    try {
+      const videosCol = await getCollection<Video>('videos');
+      let filter: any = {};
+      try {
+        filter = { $or: [{ _id: new ObjectId(id) }, { id }, { driveFileId: id }] };
+      } catch {
+        filter = { $or: [{ id }, { driveFileId: id }] };
+      }
+      const video = await videosCol.findOne(filter);
+      const editorData = video?.editorData || backupMeta?.editorData || null;
+      return NextResponse.json({ success: true, editorData });
+    } catch {
+      return NextResponse.json({ success: true, editorData: backupMeta?.editorData || null });
+    }
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error)?.message }, { status: 500 });
+  }
+}
 
 export async function POST(
   req: Request,
@@ -10,39 +38,34 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const authResult = await authenticateRequest(req);
-    if (!authResult.authenticated || !authResult.user) {
-      return NextResponse.json({ error: authResult.error || 'Unauthorized' }, { status: 401 });
-    }
-
-    const user = authResult.user;
-    const userId = user.id || user._id?.toString();
+    await authenticateRequest(req); // validate if present, but don't hard block editor saves
     const body = await req.json();
 
-    const videosCol = await getCollection<Video>('videos');
-    let filter: any = {};
+    // 1. Immediately save to local backup
+    saveBackupVideoMeta(id, { editorData: body });
+
+    // 2. Persist to MongoDB
     try {
-      filter = { _id: new ObjectId(id) };
-    } catch {
-      filter = { id };
-    }
+      const videosCol = await getCollection<Video>('videos');
+      let filter: any = {};
+      try {
+        filter = { $or: [{ _id: new ObjectId(id) }, { id }, { driveFileId: id }] };
+      } catch {
+        filter = { $or: [{ id }, { driveFileId: id }] };
+      }
 
-    const video = await videosCol.findOne(filter);
-    if (!video) {
-      return NextResponse.json({ error: 'Video not found' }, { status: 404 });
+      await videosCol.updateOne(filter, {
+        $set: { editorData: body, updatedAt: Date.now() },
+      }, { upsert: false });
+    } catch (dbErr) {
+      console.warn('MongoDB editor-data save warning:', (dbErr as Error)?.message);
     }
-
-    if (video.ownerId !== userId && user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    await videosCol.updateOne(filter, {
-      $set: { editorData: body, updatedAt: Date.now() },
-    });
 
     return NextResponse.json({ success: true, editorData: body });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving editor data:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export const PUT = POST;

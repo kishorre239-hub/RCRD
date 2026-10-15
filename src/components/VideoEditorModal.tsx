@@ -5,6 +5,7 @@ import {
   RotateCw, Plus, CheckCircle2, Sliders, HelpCircle,
   ArrowRight, X
 } from 'lucide-react';
+import { updateVideo } from '@/lib/api';
 
 interface VideoEditorModalProps {
   isOpen: boolean;
@@ -18,6 +19,30 @@ interface VideoEditorModalProps {
 
 // Data Types
 export type CutRegion = { id: string; start: number; end: number };
+
+// Helper to sort and merge overlapping/adjacent cut intervals
+export function normalizeCuts(cuts: CutRegion[]): CutRegion[] {
+  if (!cuts || !Array.isArray(cuts) || cuts.length === 0) return [];
+  const sorted = cuts
+    .filter(c => c && typeof c.start === 'number' && typeof c.end === 'number' && c.end > c.start + 0.05)
+    .map(c => ({ id: c.id || `cut-${Math.random()}`, start: Math.max(0, c.start), end: Math.max(0, c.end) }))
+    .sort((a, b) => a.start - b.start);
+
+  const merged: CutRegion[] = [];
+  for (const cut of sorted) {
+    if (merged.length === 0) {
+      merged.push({ ...cut });
+    } else {
+      const prev = merged[merged.length - 1];
+      if (cut.start <= prev.end + 0.05) {
+        prev.end = Math.max(prev.end, cut.end);
+      } else {
+        merged.push({ ...cut });
+      }
+    }
+  }
+  return merged;
+}
 export type TextStylePreset = 'subtitle' | 'lowerThird' | 'badge' | 'minimal' | 'middleSlide';
 export type TextOverlay = { 
   id: string; 
@@ -57,6 +82,7 @@ export type VideoEditorData = {
   textOverlays: TextOverlay[];
   mediaOverlays: MediaOverlay[];
   completedCuts: CutRegion[];
+  cuts?: Array<{ start: number; end: number }>;
   audio: AudioSettings;
   duration: number;
   savedAt?: string;
@@ -199,7 +225,14 @@ export default function VideoEditorModal({
 
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
-      setDuration(videoRef.current.duration || 0);
+      const dur = videoRef.current.duration || 0;
+      setDuration(dur);
+      // If there's an intro cut starting at 0, immediately seek past it
+      const introCut = completedCuts.find(c => c.start <= 0.1 && c.end > 0);
+      if (introCut && videoRef.current.currentTime < introCut.end) {
+        videoRef.current.currentTime = introCut.end;
+        setCurrentTime(introCut.end);
+      }
     }
   };
 
@@ -210,14 +243,32 @@ export default function VideoEditorModal({
       if (audioRef.current) audioRef.current.pause();
       setIsPlaying(false);
     } else {
+      let targetTime = videoRef.current.currentTime;
+      const totalDur = duration || videoRef.current.duration || 1;
+
+      // Skip active cut if currently inside it
+      if (activeCut && targetTime >= activeCut.start && targetTime < activeCut.end) {
+        targetTime = activeCut.end;
+      }
+      // Skip completed cuts if currently inside one
+      for (const cut of completedCuts) {
+        if (targetTime >= cut.start && targetTime < cut.end) {
+          targetTime = cut.end < totalDur - 0.15 ? cut.end : 0;
+          break;
+        }
+      }
+
+      videoRef.current.currentTime = targetTime;
+      setCurrentTime(targetTime);
+
       videoRef.current.play().catch(() => {});
       if (audioRef.current && hasAudioTrack && audioUrl) {
-        audioRef.current.currentTime = videoRef.current.currentTime % (audioRef.current.duration || 1);
+        audioRef.current.currentTime = targetTime % (audioRef.current.duration || 1);
         audioRef.current.play().catch(() => {});
       }
       setIsPlaying(true);
     }
-  }, [isPlaying, hasAudioTrack, audioUrl]);
+  }, [isPlaying, hasAudioTrack, audioUrl, completedCuts, activeCut, duration]);
 
   // Restore saved data on open
   useEffect(() => {
@@ -394,6 +445,13 @@ export default function VideoEditorModal({
     // Auto-skip over completed cuts
     for (const cut of completedCuts) {
       if (ct >= cut.start && ct < cut.end) {
+        if (cut.end >= (duration || 1) - 0.15) {
+          videoRef.current.pause();
+          setIsPlaying(false);
+          videoRef.current.currentTime = cut.start;
+          setCurrentTime(cut.start);
+          return;
+        }
         videoRef.current.currentTime = cut.end;
         setCurrentTime(cut.end);
         if (audioRef.current && audioRef.current.duration) {
@@ -404,16 +462,63 @@ export default function VideoEditorModal({
     }
   };
 
+  // High-frequency 60fps cut checker during playback (ensures seamless jump with 0 audio/video leak)
+  useEffect(() => {
+    if (!isPlaying) return;
+    let animId: number;
+    const checkCuts = () => {
+      const vid = videoRef.current;
+      if (vid && !vid.paused) {
+        const ct = vid.currentTime;
+        const dur = duration || vid.duration || 1;
+
+        if (activeCut && ct >= activeCut.start && ct < activeCut.end) {
+          vid.currentTime = activeCut.end;
+          setCurrentTime(activeCut.end);
+          if (audioRef.current && audioRef.current.duration) {
+            audioRef.current.currentTime = activeCut.end % audioRef.current.duration;
+          }
+        }
+
+        for (const cut of completedCuts) {
+          if (ct >= cut.start && ct < cut.end) {
+            if (cut.end >= dur - 0.15) {
+              vid.pause();
+              setIsPlaying(false);
+              vid.currentTime = cut.start;
+              setCurrentTime(cut.start);
+              return;
+            }
+            vid.currentTime = cut.end;
+            setCurrentTime(cut.end);
+            if (audioRef.current && audioRef.current.duration) {
+              audioRef.current.currentTime = cut.end % audioRef.current.duration;
+            }
+            break;
+          }
+        }
+      }
+      animId = requestAnimationFrame(checkCuts);
+    };
+    animId = requestAnimationFrame(checkCuts);
+    return () => cancelAnimationFrame(animId);
+  }, [isPlaying, completedCuts, activeCut, duration]);
+
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!timelineRef.current || !videoRef.current || duration === 0 || dragHandle) return;
     const rect = timelineRef.current.getBoundingClientRect();
     const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     let clickTime = pos * duration;
     
+    // If clicked inside active cut, jump to cut.end
+    if (activeCut && clickTime >= activeCut.start && clickTime < activeCut.end) {
+      clickTime = activeCut.end;
+    }
+
     // If clicked inside a completed cut, jump to the end of that cut
     for (const cut of completedCuts) {
       if (clickTime >= cut.start && clickTime < cut.end) {
-        clickTime = cut.end;
+        clickTime = cut.end < duration - 0.15 ? cut.end : Math.max(0, cut.start - 0.1);
         break;
       }
     }
@@ -429,29 +534,51 @@ export default function VideoEditorModal({
   const initiateNewCut = () => {
     setActiveTab('cut');
     if (duration === 0) return;
-    const start = videoRef.current?.currentTime || 0;
+    const start = videoRef.current?.currentTime || currentTime || 0;
     const end = Math.min(start + 4, duration);
     setActiveCut({ start, end });
   };
 
   const cutFromStartToNow = () => {
     const end = videoRef.current?.currentTime || currentTime;
-    if (end > 0.2) {
-      setCompletedCuts(prev => [...prev, { id: Math.random().toString(), start: 0, end }]);
-      if (videoRef.current) videoRef.current.currentTime = end;
+    if (end > 0.15) {
+      setCompletedCuts(prev => {
+        const remaining = prev.filter(c => c.start >= end);
+        return normalizeCuts([{ id: `cut-intro-${Date.now()}`, start: 0, end }, ...remaining]);
+      });
+      if (videoRef.current) {
+        videoRef.current.currentTime = end;
+        setCurrentTime(end);
+      }
     }
   };
 
   const cutFromNowToEnd = () => {
     const start = videoRef.current?.currentTime || currentTime;
-    if (duration > start + 0.2) {
-      setCompletedCuts(prev => [...prev, { id: Math.random().toString(), start, end: duration }]);
+    const totalDur = duration || videoRef.current?.duration || 0;
+    if (totalDur > start + 0.15) {
+      setCompletedCuts(prev => {
+        const remaining = prev.filter(c => c.end <= start);
+        return normalizeCuts([...remaining, { id: `cut-outro-${Date.now()}`, start, end: totalDur }]);
+      });
+      if (videoRef.current) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+        const rewindTo = Math.max(0, start - 0.1);
+        videoRef.current.currentTime = rewindTo;
+        setCurrentTime(rewindTo);
+      }
     }
   };
 
   const confirmCut = () => {
     if (activeCut && activeCut.end > activeCut.start + 0.1) {
-      setCompletedCuts([...completedCuts, { id: Math.random().toString(), start: activeCut.start, end: activeCut.end }]);
+      const cutToAdd = { id: `cut-${Date.now()}`, start: activeCut.start, end: activeCut.end };
+      setCompletedCuts(prev => normalizeCuts([...prev, cutToAdd]));
+      if (videoRef.current && currentTime >= activeCut.start && currentTime < activeCut.end) {
+        videoRef.current.currentTime = activeCut.end;
+        setCurrentTime(activeCut.end);
+      }
       setActiveCut(null);
     }
   };
@@ -459,13 +586,14 @@ export default function VideoEditorModal({
   const trimToActiveSelection = () => {
     if (!activeCut) return;
     const newCuts: CutRegion[] = [];
+    const totalDur = duration || videoRef.current?.duration || 0;
     if (activeCut.start > 0.1) {
-      newCuts.push({ id: Math.random().toString(), start: 0, end: activeCut.start });
+      newCuts.push({ id: `cut-start-${Date.now()}`, start: 0, end: activeCut.start });
     }
-    if (activeCut.end < duration - 0.1) {
-      newCuts.push({ id: Math.random().toString(), start: activeCut.end, end: duration });
+    if (activeCut.end < totalDur - 0.1) {
+      newCuts.push({ id: `cut-end-${Date.now()}`, start: activeCut.end, end: totalDur });
     }
-    setCompletedCuts(prev => [...prev, ...newCuts]);
+    setCompletedCuts(normalizeCuts(newCuts));
     setActiveCut(null);
     if (videoRef.current) {
       videoRef.current.currentTime = activeCut.start;
@@ -622,10 +750,14 @@ export default function VideoEditorModal({
   // SAVE CHANGES
   const handleSaveChanges = async () => {
     setIsSaving(true);
+    const normalizedCuts = normalizeCuts(completedCuts);
+    setCompletedCuts(normalizedCuts);
+
     const editorData: VideoEditorData = {
       textOverlays,
       mediaOverlays,
-      completedCuts,
+      completedCuts: normalizedCuts,
+      cuts: normalizedCuts.map(c => ({ start: c.start, end: c.end })),
       audio: {
         enabled: hasAudioTrack,
         url: audioUrl,
@@ -637,7 +769,7 @@ export default function VideoEditorModal({
       savedAt: new Date().toISOString()
     };
 
-    // 1. Save locally
+    // 1. Save locally with robust key coverage
     try {
       localStorage.setItem(`video-edits-${videoId}`, JSON.stringify(editorData));
       const meta = JSON.parse(localStorage.getItem(`video-meta-${videoId}`) || '{}');
@@ -652,23 +784,25 @@ export default function VideoEditorModal({
       detail: { videoId, editorData } 
     }));
 
-    // 3. Persist to API
+    // 3. Persist to API via updateVideo (auto-authenticates)
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      await fetch(`${API_URL}/videos/${videoId}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ 
-          title: videoTitle,
-          editorData: editorData
-        })
-      });
+      await updateVideo(videoId, { editorData });
     } catch (err) {
-      console.warn('API save warning:', err);
+      console.warn('Primary updateVideo failed, trying fallback API route:', err);
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        await fetch(`${API_URL}/videos/${videoId}`, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ editorData })
+        });
+      } catch (fallbackErr) {
+        console.warn('Fallback save warning:', fallbackErr);
+      }
     }
 
     setIsSaving(false);
@@ -678,7 +812,7 @@ export default function VideoEditorModal({
     setTimeout(() => {
       setSaveSuccess(false);
       onClose();
-    }, 1000);
+    }, 700);
   };
 
   const activeText = textOverlays.find(t => t.id === selectedTextId);
@@ -1602,15 +1736,33 @@ export default function VideoEditorModal({
                             {cutDuration.toFixed(1)}s removed & skipped during playback
                           </p>
                         </div>
-                        <button 
-                          type="button"
-                          onClick={() => setCompletedCuts(prev => prev.filter(c => c.id !== cut.id))}
-                          className="px-2.5 py-1.5 bg-white hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
-                          title="Restore this cut"
-                        >
-                          <RotateCcw className="w-3 h-3" />
-                          <span>Restore</span>
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              if (!videoRef.current) return;
+                              const seekTo = Math.max(0, cut.start - 1.2);
+                              videoRef.current.currentTime = seekTo;
+                              setCurrentTime(seekTo);
+                              videoRef.current.play().catch(() => {});
+                              setIsPlaying(true);
+                            }}
+                            className="px-2.5 py-1.5 bg-white hover:bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                            title="Play 1.2s before cut to preview how it skips"
+                          >
+                            <Play className="w-3 h-3 fill-current" />
+                            <span>Preview</span>
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={() => setCompletedCuts(prev => prev.filter(c => c.id !== cut.id))}
+                            className="px-2.5 py-1.5 bg-white hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                            title="Restore this cut"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Restore</span>
+                          </button>
+                        </div>
                       </div>
                     );
                   })
@@ -2452,8 +2604,13 @@ export default function VideoEditorModal({
               </span>
             )}
           </div>
-          <div className="text-xs font-bold font-mono text-blue-700 bg-white border border-blue-200 px-2.5 py-1 rounded-md shadow-sm">
-            Total Length: {formatTimeStr(duration)}
+          <div className="text-xs font-bold font-mono text-blue-700 bg-white border border-blue-200 px-2.5 py-1 rounded-md shadow-sm flex items-center gap-2">
+            <span>Total: {formatTimeStr(duration)}</span>
+            {completedCuts.length > 0 && (
+              <span className="text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                ✂️ Trimmed: {formatTimeStr(Math.max(0, duration - completedCuts.reduce((acc, c) => acc + Math.max(0, c.end - c.start), 0)))}
+              </span>
+            )}
           </div>
         </div>
 

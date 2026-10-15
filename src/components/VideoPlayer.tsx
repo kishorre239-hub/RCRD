@@ -145,6 +145,9 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
     const video = videoRef.current;
     if (!video) return;
 
+    const cuts = ((editorData?.completedCuts || editorData?.cuts || []) as CutRegion[])
+      .filter(c => typeof c.start === 'number' && typeof c.end === 'number' && c.end > c.start);
+
     const updateProgress = () => {
       const ct = video.currentTime;
       setCurrentTime(ct);
@@ -154,15 +157,19 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
       }
 
       // Check cuts: skip over cut regions automatically!
-      if (editorData?.completedCuts && Array.isArray(editorData.completedCuts)) {
-        for (const cut of editorData.completedCuts) {
-          if (ct >= cut.start && ct < cut.end) {
-            video.currentTime = cut.end;
-            if (bgAudioRef.current && bgAudioRef.current.duration) {
-              bgAudioRef.current.currentTime = cut.end % bgAudioRef.current.duration;
-            }
-            break;
+      for (const cut of cuts) {
+        if (ct >= cut.start && ct < cut.end) {
+          if (cut.end >= (video.duration || 1) - 0.15) {
+            video.pause();
+            setIsPlaying(false);
+            video.currentTime = video.duration || cut.start;
+            return;
           }
+          video.currentTime = cut.end;
+          if (bgAudioRef.current && bgAudioRef.current.duration) {
+            bgAudioRef.current.currentTime = cut.end % bgAudioRef.current.duration;
+          }
+          break;
         }
       }
     };
@@ -170,6 +177,15 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
     const handleLoadedMetadata = () => {
       setDuration(video.duration);
       setIsBuffering(false);
+      // If there is an intro cut starting at 0, jump past it immediately
+      for (const cut of cuts) {
+        if (cut.start <= 0.1 && cut.end > 0) {
+          video.currentTime = cut.end;
+          setCurrentTime(cut.end);
+          setProgress((cut.end / (video.duration || 1)) * 100);
+          break;
+        }
+      }
     };
 
     const handleWaiting = () => setIsBuffering(true);
@@ -203,6 +219,15 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
     video.addEventListener('pause', handlePause);
     video.addEventListener('error', handleError);
 
+    // Initial check for intro cut
+    for (const cut of cuts) {
+      if (cut.start <= 0.1 && cut.end > 0 && video.currentTime < cut.end) {
+        video.currentTime = cut.end;
+        setCurrentTime(cut.end);
+        break;
+      }
+    }
+
     return () => {
       video.removeEventListener('timeupdate', updateProgress);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
@@ -211,7 +236,43 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
       video.removeEventListener('pause', handlePause);
       video.removeEventListener('error', handleError);
     };
-  }, [onError, onTimeUpdate, editorData?.completedCuts, editorData?.audio]);
+  }, [onError, onTimeUpdate, editorData?.completedCuts, editorData?.cuts, editorData?.audio]);
+
+  // High-frequency 60fps cut checker during playback (zero audio/video leakage)
+  useEffect(() => {
+    if (!isPlaying) return;
+    const cuts = ((editorData?.completedCuts || editorData?.cuts || []) as CutRegion[])
+      .filter(c => typeof c.start === 'number' && typeof c.end === 'number' && c.end > c.start);
+    if (cuts.length === 0) return;
+
+    let animId: number;
+    const checkCutsLoop = () => {
+      const vid = videoRef.current;
+      if (vid && !vid.paused) {
+        const ct = vid.currentTime;
+        const dur = vid.duration || 1;
+        for (const cut of cuts) {
+          if (ct >= cut.start && ct < cut.end) {
+            if (cut.end >= dur - 0.15) {
+              vid.pause();
+              setIsPlaying(false);
+              vid.currentTime = dur;
+              return;
+            }
+            vid.currentTime = cut.end;
+            setCurrentTime(cut.end);
+            if (bgAudioRef.current && bgAudioRef.current.duration) {
+              bgAudioRef.current.currentTime = cut.end % bgAudioRef.current.duration;
+            }
+            break;
+          }
+        }
+      }
+      animId = requestAnimationFrame(checkCutsLoop);
+    };
+    animId = requestAnimationFrame(checkCutsLoop);
+    return () => cancelAnimationFrame(animId);
+  }, [isPlaying, editorData?.completedCuts, editorData?.cuts]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -224,18 +285,41 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
+        setIsPlaying(false);
       } else {
-        videoRef.current.play();
+        const cuts = ((editorData?.completedCuts || editorData?.cuts || []) as CutRegion[])
+          .filter(c => typeof c.start === 'number' && typeof c.end === 'number' && c.end > c.start);
+        
+        let startAt = videoRef.current.currentTime;
+        const dur = videoRef.current.duration || 1;
+        for (const cut of cuts) {
+          if (startAt >= cut.start && startAt < cut.end) {
+            startAt = cut.end < dur - 0.15 ? cut.end : 0;
+            break;
+          }
+        }
+        videoRef.current.currentTime = startAt;
+        setCurrentTime(startAt);
+        videoRef.current.play().catch(() => {});
+        setIsPlaying(true);
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const seekTime = (parseFloat(e.target.value) / 100) * duration;
+    let seekTime = (parseFloat(e.target.value) / 100) * duration;
+    const cuts = ((editorData?.completedCuts || editorData?.cuts || []) as CutRegion[])
+      .filter(c => typeof c.start === 'number' && typeof c.end === 'number' && c.end > c.start);
+    for (const cut of cuts) {
+      if (seekTime >= cut.start && seekTime < cut.end) {
+        seekTime = cut.end < duration - 0.15 ? cut.end : Math.max(0, cut.start - 0.1);
+        break;
+      }
+    }
     if (videoRef.current) {
       videoRef.current.currentTime = seekTime;
-      setProgress(parseFloat(e.target.value));
+      setProgress((seekTime / (duration || 1)) * 100);
+      setCurrentTime(seekTime);
     }
   };
 

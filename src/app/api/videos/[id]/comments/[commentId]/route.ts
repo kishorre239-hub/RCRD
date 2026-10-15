@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { Video } from '@/lib/server/types';
-import { ObjectId } from 'mongodb';
+import { ObjectId, Filter } from 'mongodb';
 
 export async function PUT(
   req: Request,
@@ -15,7 +15,6 @@ export async function PUT(
       return NextResponse.json({ error: authResult.error || 'Unauthorized' }, { status: 401 });
     }
 
-    const user = authResult.user;
     const body = await req.json();
     const { text } = body;
 
@@ -24,15 +23,15 @@ export async function PUT(
     }
 
     const videosCol = await getCollection<Video>('videos');
-    let filter: any = {};
+    let filter: Filter<Video> = {};
     try {
-      filter = { _id: new ObjectId(id) };
+      filter = { _id: new ObjectId(id) as unknown as string };
     } catch {
       filter = { id };
     }
 
     await videosCol.updateOne(
-      { ...filter, 'comments.id': commentId },
+      { ...filter, 'comments.id': commentId } as Filter<Video>,
       {
         $set: {
           'comments.$.text': text.trim(),
@@ -42,7 +41,7 @@ export async function PUT(
     );
 
     return NextResponse.json({ success: true, text });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating comment:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -60,20 +59,20 @@ export async function DELETE(
     }
 
     const videosCol = await getCollection<Video>('videos');
-    let filter: any = {};
+    let filter: Filter<Video> = {};
     try {
-      filter = { _id: new ObjectId(id) };
+      filter = { _id: new ObjectId(id) as unknown as string };
     } catch {
       filter = { id };
     }
 
     await videosCol.updateOne(filter, {
-      $pull: { comments: { id: commentId } } as any,
+      $pull: { comments: { id: commentId } as unknown as never },
       $set: { updatedAt: Date.now() },
     });
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting comment:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

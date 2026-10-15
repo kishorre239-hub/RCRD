@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Scissors, Play, Pause, ChevronLeft, Volume2, VolumeX, MousePointer2, 
   Type, Image as ImageIcon, Music, Download, Check, Trash2, RotateCcw, 
-  RotateCw, Plus, Clock, Sparkles, CheckCircle2, Sliders, Eye, HelpCircle,
-  ArrowRight, ArrowLeft, X
+  RotateCw, Plus, CheckCircle2, Sliders, HelpCircle,
+  ArrowRight, X
 } from 'lucide-react';
 
 interface VideoEditorModalProps {
@@ -155,14 +155,16 @@ export default function VideoEditorModal({
 
   // Auto-prompt tutorial on first visit
   useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) return;
+    const timer = setTimeout(() => {
       try {
         const hasSeen = localStorage.getItem('rcrd_video_editor_tutorial_seen');
         if (!hasSeen) {
           setShowTutorial(true);
         }
       } catch {}
-    }
+    }, 50);
+    return () => clearTimeout(timer);
   }, [isOpen]);
 
   // CUT FEATURE STATE
@@ -195,54 +197,84 @@ export default function VideoEditorModal({
   const timelineRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  const handleLoadedMetadata = () => {
+    if (videoRef.current) {
+      setDuration(videoRef.current.duration || 0);
+    }
+  };
+
+  const handlePlayPause = useCallback(() => {
+    if (!videoRef.current) return;
+    if (isPlaying) {
+      videoRef.current.pause();
+      if (audioRef.current) audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      videoRef.current.play().catch(() => {});
+      if (audioRef.current && hasAudioTrack && audioUrl) {
+        audioRef.current.currentTime = videoRef.current.currentTime % (audioRef.current.duration || 1);
+        audioRef.current.play().catch(() => {});
+      }
+      setIsPlaying(true);
+    }
+  }, [isPlaying, hasAudioTrack, audioUrl]);
+
   // Restore saved data on open
   useEffect(() => {
     if (!isOpen) return;
 
-    let loaded = false;
-    // 1. Try initialEditorData
-    if (initialEditorData) {
-      try {
-        const parsed = typeof initialEditorData === 'string' ? JSON.parse(initialEditorData) : initialEditorData;
-        if (parsed) {
-          if (Array.isArray(parsed.textOverlays)) setTextOverlays(parsed.textOverlays);
-          if (Array.isArray(parsed.mediaOverlays)) setMediaOverlays(parsed.mediaOverlays);
-          if (Array.isArray(parsed.completedCuts)) setCompletedCuts(parsed.completedCuts);
-          if (parsed.audio) {
-            setHasAudioTrack(!!parsed.audio.enabled);
-            if (parsed.audio.url) setAudioUrl(parsed.audio.url);
-            if (parsed.audio.volume !== undefined) setAudioVolume(parsed.audio.volume);
-            if (parsed.audio.title) setAudioTrackTitle(parsed.audio.title);
-            if (parsed.audio.muteOriginalAudio !== undefined) setMuteOriginalAudio(parsed.audio.muteOriginalAudio);
+    const timer = setTimeout(() => {
+      let loaded = false;
+      // 1. Try initialEditorData
+      if (initialEditorData) {
+        try {
+          const parsed = typeof initialEditorData === 'string' ? JSON.parse(initialEditorData) : initialEditorData;
+          if (parsed && typeof parsed === 'object') {
+            const p = parsed as Record<string, unknown>;
+            if (Array.isArray(p.textOverlays)) setTextOverlays(p.textOverlays as TextOverlay[]);
+            if (Array.isArray(p.mediaOverlays)) setMediaOverlays(p.mediaOverlays as MediaOverlay[]);
+            if (Array.isArray(p.completedCuts)) setCompletedCuts(p.completedCuts as CutRegion[]);
+            if (p.audio && typeof p.audio === 'object') {
+              const a = p.audio as Record<string, unknown>;
+              setHasAudioTrack(!!a.enabled);
+              if (typeof a.url === 'string') setAudioUrl(a.url);
+              if (typeof a.volume === 'number') setAudioVolume(a.volume);
+              if (typeof a.title === 'string') setAudioTrackTitle(a.title);
+              if (typeof a.muteOriginalAudio === 'boolean') setMuteOriginalAudio(a.muteOriginalAudio);
+            }
+            loaded = true;
           }
-          loaded = true;
+        } catch (e) {
+          console.warn('Could not parse initialEditorData', e);
         }
-      } catch (e) {
-        console.warn('Could not parse initialEditorData', e);
       }
-    }
 
-    // 2. Try localStorage if not yet loaded
-    if (!loaded && videoId) {
-      try {
-        const local = localStorage.getItem(`video-edits-${videoId}`);
-        if (local) {
-          const parsed = JSON.parse(local);
-          if (Array.isArray(parsed.textOverlays)) setTextOverlays(parsed.textOverlays);
-          if (Array.isArray(parsed.mediaOverlays)) setMediaOverlays(parsed.mediaOverlays);
-          if (Array.isArray(parsed.completedCuts)) setCompletedCuts(parsed.completedCuts);
-          if (parsed.audio) {
-            setHasAudioTrack(!!parsed.audio.enabled);
-            if (parsed.audio.url) setAudioUrl(parsed.audio.url);
-            if (parsed.audio.volume !== undefined) setAudioVolume(parsed.audio.volume);
-            if (parsed.audio.title) setAudioTrackTitle(parsed.audio.title);
-            if (parsed.audio.muteOriginalAudio !== undefined) setMuteOriginalAudio(parsed.audio.muteOriginalAudio);
+      // 2. Try localStorage if not yet loaded
+      if (!loaded && videoId) {
+        try {
+          const local = localStorage.getItem(`video-edits-${videoId}`);
+          if (local) {
+            const parsed = JSON.parse(local);
+            if (parsed && typeof parsed === 'object') {
+              if (Array.isArray(parsed.textOverlays)) setTextOverlays(parsed.textOverlays as TextOverlay[]);
+              if (Array.isArray(parsed.mediaOverlays)) setMediaOverlays(parsed.mediaOverlays as MediaOverlay[]);
+              if (Array.isArray(parsed.completedCuts)) setCompletedCuts(parsed.completedCuts as CutRegion[]);
+              if (parsed.audio) {
+                setHasAudioTrack(!!parsed.audio.enabled);
+                if (parsed.audio.url) setAudioUrl(parsed.audio.url);
+                if (parsed.audio.volume !== undefined) setAudioVolume(parsed.audio.volume);
+                if (parsed.audio.title) setAudioTrackTitle(parsed.audio.title);
+                if (parsed.audio.muteOriginalAudio !== undefined) setMuteOriginalAudio(parsed.audio.muteOriginalAudio);
+              }
+            }
           }
+        } catch (e) {
+          console.warn('Could not load localStorage edits', e);
         }
-      } catch (e) {
-        console.warn('Could not load localStorage edits', e);
       }
-    }
+    }, 10);
+
+    return () => clearTimeout(timer);
   }, [isOpen, videoId, initialEditorData]);
 
   // Lock body scroll
@@ -282,7 +314,7 @@ export default function VideoEditorModal({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isPlaying]);
+  }, [isOpen, handlePlayPause]);
 
   // Cut Drag Handler
   useEffect(() => {
@@ -311,29 +343,6 @@ export default function VideoEditorModal({
     };
   }, [dragHandle, activeCut, duration]);
 
-  if (!isOpen) return null;
-
-  const handleLoadedMetadata = () => {
-    if (videoRef.current) {
-      setDuration(videoRef.current.duration || 0);
-    }
-  };
-
-  const handlePlayPause = () => {
-    if (!videoRef.current) return;
-    if (isPlaying) {
-      videoRef.current.pause();
-      if (audioRef.current) audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      videoRef.current.play().catch(() => {});
-      if (audioRef.current && hasAudioTrack && audioUrl) {
-        audioRef.current.currentTime = videoRef.current.currentTime % (audioRef.current.duration || 1);
-        audioRef.current.play().catch(() => {});
-      }
-      setIsPlaying(true);
-    }
-  };
 
   const handleRewind = () => {
     if (!videoRef.current) return;
@@ -674,6 +683,8 @@ export default function VideoEditorModal({
 
   const activeText = textOverlays.find(t => t.id === selectedTextId);
   const activeMedia = mediaOverlays.find(m => m.id === selectedMediaId);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-[#f0f5fa] text-[#0f172a] font-sans animate-in fade-in duration-200">
@@ -1934,7 +1945,7 @@ export default function VideoEditorModal({
                   {textOverlays.length === 0 ? (
                     <div className="p-6 bg-slate-50 rounded-xl text-center text-slate-400">
                       <Type className="w-6 h-6 mx-auto mb-2 text-indigo-300" />
-                      <p className="text-xs">No text overlays yet. Click "+ Add" above.</p>
+                      <p className="text-xs">No text overlays yet. Click &quot;+ Add&quot; above.</p>
                     </div>
                   ) : (
                     textOverlays.map(text => (
@@ -2273,7 +2284,7 @@ export default function VideoEditorModal({
                   {mediaOverlays.length === 0 ? (
                     <div className="p-6 bg-slate-50 rounded-xl text-center text-slate-400">
                       <ImageIcon className="w-6 h-6 mx-auto mb-2 text-purple-300" />
-                      <p className="text-xs">No media overlays yet. Click "+ Add" above.</p>
+                      <p className="text-xs">No media overlays yet. Click &quot;+ Add&quot; above.</p>
                     </div>
                   ) : (
                     mediaOverlays.map(media => (

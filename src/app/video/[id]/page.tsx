@@ -4,7 +4,7 @@ import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Share, Link as LinkIcon, MoreHorizontal, Search, HelpCircle, Bell, 
-  MessageSquare, Edit2, ChevronRight, Scissors, VolumeX, Type, Sparkles, Download, CheckCircle2, Video as VideoIcon,
+  MessageSquare, Edit2, ChevronRight, Scissors, VolumeX, Type, Zap, Download, CheckCircle2, Video as VideoIcon,
   AtSign, Smile, Mic, Trash2, Link2, CornerDownRight, Bookmark
 } from 'lucide-react';
 import { getVideo, updateVideo, incrementVideoView, addVideoComment, deleteVideoComment, updateVideoComment, API_URL } from '@/lib/api';
@@ -571,7 +571,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
               <div>
                 <h3 className="font-semibold text-lg text-gray-900 mb-3 flex items-center gap-2">
                   Summary
-                  <Sparkles className="w-4 h-4 text-purple-500" />
+                  <Zap className="w-4 h-4 text-purple-500" />
                 </h3>
                 <div className="p-4 border border-dashed border-gray-300 rounded-lg text-gray-500 text-sm hover:border-gray-400 transition-colors cursor-pointer bg-gray-50 hover:bg-white group">
                   <span className="group-hover:text-gray-700">Add a summary...</span>
@@ -639,7 +639,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <div className="flex justify-between items-center mb-1">
                     <h4 className="font-bold text-gray-900 flex items-center gap-1">
-                      RCRD AI <Sparkles className="w-3 h-3 text-blue-600" />
+                      RCRD AI <Zap className="w-3 h-3 text-blue-600" />
                     </h4>
                     <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
                   </div>
@@ -651,7 +651,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-bold text-gray-900">Make edits</h3>
-                    <span className="text-xs text-gray-400 flex items-center gap-1"><Sparkles className="w-3 h-3"/> Auto-applied</span>
+                    <span className="text-xs text-gray-400 flex items-center gap-1"><Zap className="w-3 h-3"/> Auto-applied</span>
                   </div>
                   
                   <div className="space-y-4">
@@ -1272,7 +1272,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
               <div className="flex flex-col h-full animate-in fade-in duration-300">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-600" /> AI Document
+                    <Zap className="w-4 h-4 text-purple-600" /> AI Document
                   </h3>
                   <button 
                     onClick={() => {
@@ -1286,7 +1286,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                     disabled={isProcessingAI}
                     className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors flex items-center gap-1"
                   >
-                    {isProcessingAI ? <div className="w-3 h-3 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div> : <Sparkles className="w-3 h-3" />}
+                    {isProcessingAI ? <div className="w-3 h-3 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div> : <Zap className="w-3 h-3" />}
                     {isProcessingAI ? "Generating..." : "Regenerate"}
                   </button>
                 </div>

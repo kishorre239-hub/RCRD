@@ -331,7 +331,25 @@ export default function LibraryPage() {
           setRecordingState('recording');
           setTimer(0);
           if (stream) {
-            const recorder = new MediaRecorder(stream);
+            const getOptimalMimeType = () => {
+              const candidates = [
+                'video/webm;codecs=vp9,opus',
+                'video/webm;codecs=vp9',
+                'video/webm;codecs=vp8,opus',
+                'video/webm;codecs=vp8',
+                'video/webm',
+              ];
+              for (const c of candidates) {
+                if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(c)) return c;
+              }
+              return 'video/webm';
+            };
+            // Ultra-efficient classroom lecture compression: 22 kbps VP9 video + 10 kbps Opus voice (<15 MB/hr)
+            const recorder = new MediaRecorder(stream, {
+              mimeType: getOptimalMimeType(),
+              videoBitsPerSecond: 22000,
+              audioBitsPerSecond: 10000,
+            });
             mediaRecorderRef.current = recorder;
             chunksRef.current = [];
             setIsPaused(false);
@@ -386,7 +404,11 @@ export default function LibraryPage() {
 
   const startRecordingFlow = async () => {
     try {
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      // Prompt user for screen sharing with lecture-optimized frame rate (ideal 8, max 10 fps)
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({ 
+        video: { frameRate: { ideal: 8, max: 10 } }, 
+        audio: false 
+      });
       if (micOn) {
         try {
           const audioStream = await navigator.mediaDevices.getUserMedia({
@@ -397,7 +419,9 @@ export default function LibraryPage() {
       }
       if (cameraOn) {
         try {
-          const camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          const camStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 8, max: 10 } } 
+          });
           setCameraStream(camStream);
         } catch { /* camera denied */ }
       }

@@ -41,6 +41,7 @@ export interface Video {
   id?: string;
   _id?: ObjectId | string;
   title: string;
+  url?: string;
   courseId?: string;
   ownerId?: string;
   ownerName?: string;

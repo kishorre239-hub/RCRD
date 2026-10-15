@@ -1,12 +1,26 @@
 import { google, drive_v3 } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
-import defaultServiceAccountKey from '../../../geonixa-loom-1acdad37ffd0.json';
 
 let driveClient: drive_v3.Drive | null = null;
 
+// Embedded fallback credentials for seamless Vercel serverless deployment
+const DEFAULT_SERVICE_ACCOUNT = {
+  type: "service_account",
+  project_id: "geonixa-loom",
+  private_key_id: "1acdad37ffd06023837c951b0eb8b8d0fe19d841",
+  private_key: "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC28GBEyEIweMYr\nVAuLeWVfTYGkNUhPcr+bp7QznEjokNeB0AkdNIvP5RIqFZAzQ2infoulks4DTlSw\n0B31E4x3KcPlHU0DdWllhw+IWHrfPb3+vqPMJucwy71jlfN+F19oqse7FmJD8DXZ\nrEWz/cbm6QJwNa0wLGZKl4v+dDjoqCrXubJgVSqt6IgyxCnVJat9zjHfW9E0/nE1\nTsV849ACN2BQAkNnyByacbeMM2lSZFh6m0yzVToW3p3gt0kg6Qgr+L9PVx/zMfe5\nG7+2ocO/0+ONV6nAIpkrKqWVVZBsI+vyXKx9PJ2dDul6KM33WW9daejYV9WvH16G\nE1iF8XrBAgMBAAECggEAG9Jc4bkPD+4ePVKv2stglmjkMYQE9kg+Sb7skfjPwcbd\nb5mi+TUXmkt9Qrc60gELdoWxWUIFYM1V5foQxEfv0eOhLkQRhVgi6lTrENJcBX2P\nWqHFqXO1L1+c8vtIJ8IIOZPXgmV6Flj+55bilugeitmfDE+tgikOeYOov88PJJrE\n7iz1FiIxhKvjUAwjoe/9y7/P/y+yObKG6UTEGm5G+NcX+gzQhmmaa/K/5xKzjrgs\nkxbtYqmNTaPmYsvOjRd+kHefnpxO25SFkP+2hXOl3MHHmjK0xpWtaqsKwq6DDD04\nic7lpwY8kajCeLGO9A+Dby2wnA8dIbMDw8M2H8EX7QKBgQDYdqVfzrC3+ZqM9Lvl\nHoTKNCwBzL8oW+9WxEuc6Ay8qghIGy5+qeMHJUTpt/PJW0ZweKfcyyFeEPslb+S/\nraa/OHe7Zs8AE0CmL+KKM6M3EFQ37kn4zX6tI5oAZpatJYEir2PBRP9BKFOB3gKb\n18HX7mg2fVG1ft/y1mC/h0YICwKBgQDYWjLhc24OgvQphyUsB0M27WJKZk0AI+km\nuVlSQ0FtAcdbx34YVv+YQYtT6Hj9CTtBpAJFTnscIJHei6HhjTMJfDGEydceaeLA\nYMnaLCZaVUBs377W9Ct13uuBxTnFSFL9RcLDdjG18cHMAALCiGzkCJKXAftidb83\nUiDxOQur4wKBgQCTYFQ/4q2W1K5RAd9bo2etc8/yecA8bjuJy6PfdG4XlXyF+1uw\niWI03z8IEWI92ZMfyEYhoXtaXB1h48jOaCB7WKrMQLb2yiTeAQQwK/AX8Volqmta\npi51GyQi2bYEtOAzCU7Vq3BOoHIanVkRWdh0d7EkSDZ1Z6h54VOFk0gu+QKBgDHl\n47RBlhF8vGlThQw5hJQHfdLg80NkBOLsfqBNaKqGbX9KbFeawQpRm5u3kyfw2BzU\ngb2QUy5yiJIGLEjD8xBt91HD53xZOXXbHNLXueS9osU5eV9EIz3lMvXUEfXhL1rA\nmyHPgbmPz32IRxqsskiJfZ2cVGkp9PcCVxyrZni3AoGBAKRhooOkAPVFoaX/BXnN\nQvpLqm7kIF0xwMoutTteEJ/V1B0TRjL8fe76X8oqdL018nUGaqNGH6GskjHNOSX8\ngnsgxJNQYJNv+9cOBBlvfMkoQGoINoqkDrHHCD6O1mkJkjNXWrMW1RR2CzkbbEwp\nncWj8LeA6i8nscg5Dnts9+Rs\n-----END PRIVATE KEY-----\n",
+  client_email: "loom-uploader@geonixa-loom.iam.gserviceaccount.com",
+  client_id: "103877261286633100088",
+  auth_uri: "https://accounts.google.com/o/oauth2/auth",
+  token_uri: "https://oauth2.googleapis.com/token",
+  auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
+  client_x509_cert_url: "https://www.googleapis.com/robot/v1/metadata/x509/loom-uploader%40geonixa-loom.iam.gserviceaccount.com",
+  universe_domain: "googleapis.com"
+};
+
 function getServiceAccountCredentials(): Record<string, unknown> | null {
-  // Check environment variable first
+  // 1. Check environment variable first (Vercel production standard)
   if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
     try {
       const parsed = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
@@ -22,12 +36,7 @@ function getServiceAccountCredentials(): Record<string, unknown> | null {
     }
   }
 
-  // Use bundled service account key file directly (ensures Vercel serverless bundling works!)
-  if (defaultServiceAccountKey && (defaultServiceAccountKey as any).client_email) {
-    return defaultServiceAccountKey as unknown as Record<string, unknown>;
-  }
-
-  // Look for service account json files on disk
+  // 2. Look for service account json files on disk (local development)
   const possiblePaths = [
     path.resolve(process.cwd(), 'geonixa-loom-1acdad37ffd0.json'),
     path.resolve(process.cwd(), '../../geonixa-loom-1acdad37ffd0.json'),
@@ -36,14 +45,19 @@ function getServiceAccountCredentials(): Record<string, unknown> | null {
   ];
 
   for (const p of possiblePaths) {
-    if (fs.existsSync(/*turbopackIgnore: true*/ p)) {
-      try {
+    try {
+      if (fs.existsSync(/*turbopackIgnore: true*/ p)) {
         const content = fs.readFileSync(/*turbopackIgnore: true*/ p, 'utf-8');
         return JSON.parse(content);
-      } catch {
-        // continue
       }
+    } catch {
+      // continue
     }
+  }
+
+  // 3. Fallback to embedded default service account credentials
+  if (DEFAULT_SERVICE_ACCOUNT && DEFAULT_SERVICE_ACCOUNT.client_email) {
+    return DEFAULT_SERVICE_ACCOUNT as unknown as Record<string, unknown>;
   }
 
   return null;

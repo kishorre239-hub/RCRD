@@ -85,8 +85,8 @@ export async function GET(
       }
       const localRelPath = video.url.replace(/^\//, '');
       const candidatePaths = [
-        path.join(process.cwd(), 'public', localRelPath),
-        path.join(process.cwd(), localRelPath),
+        path.join(/*turbopackIgnore: true*/ process.cwd(), 'public', localRelPath),
+        path.join(/*turbopackIgnore: true*/ process.cwd(), localRelPath),
       ];
       for (const p of candidatePaths) {
         if (fs.existsSync(p) && fs.statSync(p).isFile()) {
@@ -164,7 +164,7 @@ export async function GET(
     }
 
     // 4. Local file fallback: public/logo.mp4
-    const logoPath = path.join(process.cwd(), 'public', 'logo.mp4');
+    const logoPath = path.join(/*turbopackIgnore: true*/ process.cwd(), 'public', 'logo.mp4');
     if (fs.existsSync(logoPath)) {
       return streamLocalFile(logoPath, rangeHeader, 'video/mp4');
     }

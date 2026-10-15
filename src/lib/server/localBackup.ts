@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { VideoComment } from './types';
 
-interface StoredVideoMeta {
+export interface StoredVideoMeta {
   views?: number;
   title?: string;
   courseId?: string;

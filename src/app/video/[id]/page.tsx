@@ -91,7 +91,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
       // Update in localStorage everywhere
       try {
         const savedWL = JSON.parse(localStorage.getItem('watchLaterVideos') || '[]');
-        const updatedWL = savedWL.map((v: any) => v.id === id ? { ...v, title: newTitle } : v);
+        const updatedWL = savedWL.map((v: { id?: string; title?: string; [key: string]: unknown }) => v.id === id ? { ...v, title: newTitle } : v);
         localStorage.setItem('watchLaterVideos', JSON.stringify(updatedWL));
 
         const meta = JSON.parse(localStorage.getItem(`video-meta-${id}`) || '{}');
@@ -122,9 +122,9 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
     setTimeout(() => setActiveReactionEmoji(null), 500);
 
     // 3. Trigger floating burst of emojis over video
-    const batchId = Date.now();
+    const baseId = Math.floor(Math.random() * 1000000);
     const newReactions = Array.from({ length: 6 }).map((_, i) => ({
-      id: batchId + i,
+      id: baseId + i,
       emoji,
       left: Math.floor(25 + Math.random() * 50),
       size: Math.floor(28 + Math.random() * 24),
@@ -138,7 +138,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
 
     // 4. Immediately add to comments list
     const optimisticComment: VideoComment = {
-      id: `reaction-${Date.now()}`,
+      id: `reaction-${baseId}`,
       userId: 'user-current',
       userName: video?.ownerName || 'You',
       text: emoji,
@@ -192,9 +192,9 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
           try {
             const meta = JSON.parse(localStorage.getItem(`video-meta-${id}`) || '{}');
             if (meta.comments && Array.isArray(meta.comments)) {
-              const commentMap = new Map();
-              finalComments.forEach((c: any) => { if (c && c.id) commentMap.set(c.id, c); });
-              meta.comments.forEach((c: any) => {
+              const commentMap = new Map<string, VideoComment>();
+              finalComments.forEach((c: VideoComment) => { if (c && c.id) commentMap.set(c.id, c); });
+              meta.comments.forEach((c: VideoComment) => {
                 if (c && c.id && !commentMap.has(c.id)) {
                   commentMap.set(c.id, c);
                 }

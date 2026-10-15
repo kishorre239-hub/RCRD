@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { getDriveFileStream } from '@/lib/server/drive';
 import { Video } from '@/lib/server/types';
-import { ObjectId, Filter } from 'mongodb';
+import { ObjectId, Filter, Collection } from 'mongodb';
 import { Readable } from 'stream';
 import fs from 'fs';
 import path from 'path';
@@ -24,9 +24,9 @@ function streamLocalFile(filePath: string, rangeHeader: string | null, contentTy
     const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
     const chunksize = (end - start) + 1;
     const fileStream = fs.createReadStream(filePath, { start, end });
-    const webStream = Readable.toWeb(fileStream as any);
+    const webStream = Readable.toWeb(fileStream);
 
-    return new Response(webStream as any, {
+    return new Response(webStream as unknown as BodyInit, {
       status: 206,
       headers: {
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
@@ -39,8 +39,8 @@ function streamLocalFile(filePath: string, rangeHeader: string | null, contentTy
   }
 
   const fileStream = fs.createReadStream(filePath);
-  const webStream = Readable.toWeb(fileStream as any);
-  return new Response(webStream as any, {
+  const webStream = Readable.toWeb(fileStream);
+  return new Response(webStream as unknown as BodyInit, {
     status: 200,
     headers: {
       'Content-Length': fileSize.toString(),
@@ -64,7 +64,7 @@ export async function GET(
     const rangeHeader = req.headers.get('range');
 
     let video: Video | null = null;
-    let videosCol: any = null;
+    let videosCol: Collection<Video> | null = null;
     try {
       videosCol = await getCollection<Video>('videos');
       let filter: Filter<Video> = {};
@@ -116,8 +116,8 @@ export async function GET(
           responseHeaders['Content-Length'] = streamResult.headers['content-length'] as string;
         }
 
-        const webStream = Readable.toWeb(streamResult.stream as any);
-        return new Response(webStream as any, {
+        const webStream = Readable.toWeb(streamResult.stream as Readable);
+        return new Response(webStream as unknown as BodyInit, {
           status: streamResult.status || 200,
           headers: responseHeaders,
         });
@@ -152,8 +152,8 @@ export async function GET(
             responseHeaders['Content-Length'] = fallbackResult.headers['content-length'] as string;
           }
 
-          const webStream = Readable.toWeb(fallbackResult.stream as any);
-          return new Response(webStream as any, {
+          const webStream = Readable.toWeb(fallbackResult.stream as Readable);
+          return new Response(webStream as unknown as BodyInit, {
             status: fallbackResult.status || 200,
             headers: responseHeaders,
           });

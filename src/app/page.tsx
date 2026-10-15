@@ -9,7 +9,7 @@ import {
   Square, Pause, RotateCcw, Trash2, Home, Sparkles, Loader2, Bookmark
 } from "lucide-react";
 import Image from "next/image";
-import { API_URL, uploadVideo } from "../lib/api";
+import { uploadVideo } from "../lib/api";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 
@@ -97,7 +97,7 @@ export default function HomePage() {
       }
     }
     return () => clearTimeout(countdownTimer);
-  }, [recordingState, countdown, stream, cameraStream]);
+  }, [recordingState, countdown, stream, cameraStream, router]);
 
   // Handle Timer during recording
   useEffect(() => {

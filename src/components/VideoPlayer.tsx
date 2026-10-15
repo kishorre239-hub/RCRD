@@ -77,10 +77,6 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
   const [hasError, setHasError] = useState(false);
   const [isBuffering, setIsBuffering] = useState(true);
 
-  useEffect(() => {
-    setHasError(false);
-  }, [src]);
-
   const [editorData, setEditorData] = useState<EditorData | null>(null);
 
   useEffect(() => {
@@ -105,11 +101,13 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
     handleData();
 
     // Listen to real-time editor updates
-    const handleEditorUpdated = (e: any) => {
-      if (e?.detail?.editorData) {
-        if (!videoId || !e.detail.videoId || e.detail.videoId === videoId) {
-          const updated = typeof e.detail.editorData === 'string' ? JSON.parse(e.detail.editorData) : e.detail.editorData;
-          setEditorData(updated);
+    const handleEditorUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent<{ videoId?: string; editorData?: unknown }>;
+      if (customEvent?.detail?.editorData) {
+        if (!videoId || !customEvent.detail.videoId || customEvent.detail.videoId === videoId) {
+          const rawData = customEvent.detail.editorData;
+          const updated = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+          setEditorData(updated as EditorData);
         }
       }
     };
@@ -390,12 +388,17 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
       }}
     >
       <video
+        key={src}
         id="main-video-player"
         ref={videoRef}
         src={src}
         className="w-full h-full object-contain"
         onClick={togglePlay}
         controlsList={downloadEnabled ? "" : "nodownload"}
+        onError={() => {
+          setHasError(true);
+          onError?.('Failed to load video stream');
+        }}
       />
       
       {isBuffering && (

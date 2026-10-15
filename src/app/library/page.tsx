@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { getVideos, getCourses, createCourse, renameCourse, deleteCourse, deleteVideo, updateVideo, syncVideos, addVideoComment, uploadVideo, API_URL } from "@/lib/api";
+import RecordingSetupModal from "@/components/RecordingSetupModal";
 
 interface CommentData {
   id: string;
@@ -48,20 +49,15 @@ export default function LibraryPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- Recording Modal State ---
-  const [recordingState, setRecordingState] = useState<'idle' | 'configuring' | 'countdown' | 'recording' | 'uploading'>('idle');
-  const [countdown, setCountdown] = useState(3);
-  const [isPaused, setIsPaused] = useState(false);
-  const [screenType, setScreenType] = useState('Full Screen');
-  const [showScreenOptions, setShowScreenOptions] = useState(false);
-  const [cameraOn, setCameraOn] = useState(true);
-  const [micOn, setMicOn] = useState(true);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<BlobPart[]>([]);
-  const [timer, setTimer] = useState(0);
+  // --- Recording Setup Modal State ---
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [now, setNow] = useState<number>(0);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('record=true')) {
+      setIsRecordModalOpen(true);
+    }
+  }, []);
 
   // UI States
   const [activeTab, setActiveTab] = useState('videos');
@@ -320,142 +316,7 @@ export default function LibraryPage() {
     };
   }, [loadData, enrichVideoMeta]);
 
-  // Handle countdown & recording init
-  useEffect(() => {
-    let countdownTimer: NodeJS.Timeout;
-    if (recordingState === 'countdown') {
-      if (countdown > 0) {
-        countdownTimer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      } else {
-        setTimeout(() => {
-          setRecordingState('recording');
-          setTimer(0);
-          if (stream) {
-            const getOptimalMimeType = () => {
-              const candidates = [
-                'video/webm;codecs=vp9,opus',
-                'video/webm;codecs=vp9',
-                'video/webm;codecs=vp8,opus',
-                'video/webm;codecs=vp8',
-                'video/webm',
-              ];
-              for (const c of candidates) {
-                if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(c)) return c;
-              }
-              return 'video/webm';
-            };
-            // Ultra-efficient classroom lecture compression: 22 kbps VP9 video + 10 kbps Opus voice (<15 MB/hr)
-            const recorder = new MediaRecorder(stream, {
-              mimeType: getOptimalMimeType(),
-              videoBitsPerSecond: 22000,
-              audioBitsPerSecond: 10000,
-            });
-            mediaRecorderRef.current = recorder;
-            chunksRef.current = [];
-            setIsPaused(false);
-            recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-            recorder.onstop = async () => {
-              setRecordingState('uploading');
-              const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-              const targetCourseId = activeTab.startsWith('folder-') ? activeTab.replace('folder-', '') : null;
-              const targetCourse = courses.find(c => c.id === targetCourseId);
-              const d = new Date();
-              const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-              const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-              const vidTitle = `Recording · ${dateStr} (${timeStr})`;
 
-              try {
-                await uploadVideo(blob, targetCourseId, undefined, vidTitle, {
-                  folderName: targetCourse?.name,
-                  isMeeting: targetCourseId === 'MEETING' || targetCourseId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4'
-                });
-                showToast('✅ Video saved to Google Drive & Library!');
-                fetchData();
-              } catch (err) {
-                console.error(err);
-                showToast('Upload failed. Please check network/Drive.');
-              }
-              stream.getTracks().forEach(t => t.stop());
-              if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
-              setStream(null); setCameraStream(null);
-              setRecordingState('idle');
-            };
-            recorder.start(1000);
-          }
-        }, 0);
-      }
-    }
-    return () => clearTimeout(countdownTimer);
-  }, [recordingState, countdown, stream, cameraStream, fetchData, showToast, activeTab]);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (recordingState === 'recording' && !isPaused) {
-      interval = setInterval(() => setTimer(prev => prev + 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [recordingState, isPaused]);
-
-  const formatRecTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
-  const startRecordingFlow = async () => {
-    try {
-      // Prompt user for screen sharing with lecture-optimized frame rate (ideal 8, max 10 fps)
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({ 
-        video: { frameRate: { ideal: 8, max: 10 } }, 
-        audio: false 
-      });
-      if (micOn) {
-        try {
-          const audioStream = await navigator.mediaDevices.getUserMedia({
-            audio: { noiseSuppression: true, echoCancellation: true, autoGainControl: true }
-          });
-          audioStream.getAudioTracks().forEach(t => displayStream.addTrack(t));
-        } catch { /* mic denied */ }
-      }
-      if (cameraOn) {
-        try {
-          const camStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 8, max: 10 } } 
-          });
-          setCameraStream(camStream);
-        } catch { /* camera denied */ }
-      }
-      setStream(displayStream);
-      setRecordingState('countdown');
-      setCountdown(3);
-      displayStream.getVideoTracks()[0].onended = () => cancelRecording();
-    } catch {
-      showToast('Grant screen recording permissions to proceed.');
-    }
-  };
-
-  const cancelRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.onstop = null;
-      mediaRecorderRef.current.stop();
-    }
-    if (stream) { stream.getTracks().forEach(t => t.stop()); setStream(null); }
-    if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); setCameraStream(null); }
-    setRecordingState('idle'); setIsPaused(false); setTimer(0);
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-  };
-
-  const togglePause = () => {
-    if (mediaRecorderRef.current) {
-      if (isPaused) { mediaRecorderRef.current.resume(); setIsPaused(false); }
-      else { mediaRecorderRef.current.pause(); setIsPaused(true); }
-    }
-  };
 
   const handleCreateFolder = async () => {
     const defaultName = `Untitled Folder ${courses.length > 0 ? courses.length + 1 : ''}`.trim();
@@ -747,7 +608,7 @@ export default function LibraryPage() {
 
         <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           <button 
-            onClick={() => router.push('/record')}
+            onClick={() => setIsRecordModalOpen(true)}
             className="w-full bg-[#1A68FF] hover:bg-[#1557D6] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(26,104,255,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(26,104,255,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <Video size={20} className="stroke-[2.2]" />
@@ -840,7 +701,7 @@ export default function LibraryPage() {
                 </button>
                 <div className="relative flex items-center bg-[#0E71EB] hover:bg-[#1655B8] rounded-lg transition-colors text-white shadow-xs">
                   <button 
-                    onClick={() => router.push('/record')}
+                    onClick={() => setIsRecordModalOpen(true)}
                     className="px-4 py-2 text-[13px] font-semibold border-r border-blue-500 hover:bg-blue-600 transition-colors rounded-l-lg"
                   >
                     New video
@@ -863,7 +724,7 @@ export default function LibraryPage() {
                       onClick={e => e.stopPropagation()}
                     >
                       <button 
-                        onClick={() => { setShowNewVideoMenu(false); router.push('/record'); }}
+                        onClick={() => { setShowNewVideoMenu(false); setIsRecordModalOpen(true); }}
                         className="w-full text-left px-4 py-2 text-[13px] font-medium hover:bg-slate-50 flex items-center gap-2.5 text-slate-700"
                       >
                         <Video size={16} className="text-blue-600" />
@@ -1551,7 +1412,7 @@ export default function LibraryPage() {
                 </p>
                 <div className="flex items-center gap-3">
                   <button 
-                    onClick={() => router.push('/record')}
+                    onClick={() => setIsRecordModalOpen(true)}
                     className="bg-[#1A68FF] hover:bg-[#1557D6] text-white py-3 px-6 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2 shadow-[0_10px_25px_-5px_rgba(26,104,255,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(26,104,255,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
                   >
                     <Video size={18} className="stroke-[2.2]" />
@@ -1759,122 +1620,14 @@ export default function LibraryPage() {
           </div>
         )}
 
-        {/* DIM OVERLAY for Recording */}
-        {recordingState !== 'idle' && (
-          <div className="fixed inset-0 bg-slate-900/40  z-40" />
-        )}
-
         {/* RECORDING SETUP MODAL */}
-        {recordingState === 'configuring' && (
-          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] z-50 border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="h-1 w-full bg-blue-600" />
-            <div className="flex items-center justify-between p-5 border-b border-slate-100">
-              <div className="flex items-center gap-3 font-bold text-lg text-slate-900">
-                <div className="bg-blue-50 text-blue-600 p-1.5 rounded-lg border border-blue-100"><Video size={16} /></div>
-                Recording Setup
-              </div>
-              <button onClick={() => setRecordingState('idle')} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-700 transition-colors">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="p-5 space-y-5">
-              {/* Screen */}
-              <div className="relative">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Screen</label>
-                <button
-                  onClick={() => setShowScreenOptions(!showScreenOptions)}
-                  className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-medium text-sm text-slate-700"
-                >
-                  <div className="flex items-center gap-3"><Monitor size={18} className="text-blue-600" />{screenType}</div>
-                  <ChevronDown size={16} className="text-slate-400" />
-                </button>
-                {showScreenOptions && (
-                  <div className="absolute top-full left-0 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden z-50">
-                    {['Full Screen', 'Window', 'Current tab', 'Camera only'].map(opt => (
-                      <button key={opt} onClick={() => { setScreenType(opt); setShowScreenOptions(false); }}
-                        className="w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-blue-50 hover:text-blue-700 transition-colors text-slate-700">
-                        {opt}{screenType === opt && <div className="w-2 h-2 bg-blue-600 rounded-full" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {/* Camera */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Camera</label>
-                <button onClick={() => setCameraOn(!cameraOn)}
-                  className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-medium text-sm text-slate-700">
-                  <div className="flex items-center gap-3 truncate pr-2">
-                    <Camera size={18} className={`${cameraOn ? 'text-blue-600' : 'text-slate-400'} shrink-0`} />
-                    <span className="truncate">HD Pro Webcam C920</span>
-                  </div>
-                  <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${cameraOn ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm ${cameraOn ? 'left-6' : 'left-1'}`} />
-                  </div>
-                </button>
-              </div>
-              {/* Mic */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">Microphone</label>
-                <button onClick={() => setMicOn(!micOn)}
-                  className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-medium text-sm text-slate-700">
-                  <div className="flex items-center gap-3 truncate pr-2">
-                    <Mic size={18} className={`${micOn ? 'text-blue-600' : 'text-slate-400'} shrink-0`} />
-                    <span className="truncate">Default - Microphone Array</span>
-                  </div>
-                  <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${micOn ? 'bg-blue-600' : 'bg-slate-300'}`}>
-                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm ${micOn ? 'left-6' : 'left-1'}`} />
-                  </div>
-                </button>
-              </div>
-              {/* Start Button */}
-              <button onClick={startRecordingFlow}
-                className="w-full bg-[#FF5A26] hover:bg-[#E04B1D] text-white py-3.5 mt-2 rounded-xl font-bold transition-all shadow-[0_4px_14px_rgba(255,90,38,0.3)] hover:shadow-[0_6px_20px_rgba(255,90,38,0.4)] transform hover:-translate-y-0.5 text-base">
-                Start Recording
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* COUNTDOWN OVERLAY */}
-        {recordingState === 'countdown' && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="text-[120px] font-black text-white drop-shadow-2xl animate-pulse">{countdown || '▶'}</div>
-          </div>
-        )}
-
-        {/* RECORDING HUD */}
-        {recordingState === 'recording' && (
-          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-white rounded-2xl shadow-2xl border border-slate-200 px-6 py-4">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-              <span className="font-mono font-bold text-slate-900 text-lg">{formatRecTime(timer)}</span>
-            </div>
-            <button onClick={togglePause}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-colors">
-              {isPaused ? 'Resume' : 'Pause'}
-            </button>
-            <button onClick={stopRecording}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold text-sm transition-colors">
-              Stop & Save
-            </button>
-            <button onClick={cancelRecording}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl font-semibold text-sm transition-colors">
-              Cancel
-            </button>
-          </div>
-        )}
-
-        {/* UPLOADING STATE */}
-        {recordingState === 'uploading' && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-8 flex flex-col items-center gap-4">
-              <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
-              <div className="text-lg font-bold text-slate-900">Uploading to Google Drive...</div>
-              <div className="text-sm text-slate-500">Your video will appear in the Library shortly.</div>
-            </div>
-          </div>
-        )}
+        <RecordingSetupModal
+          isOpen={isRecordModalOpen}
+          onClose={() => setIsRecordModalOpen(false)}
+          onRecordingComplete={fetchData}
+          showToast={showToast}
+          defaultFolderId={activeTab.startsWith('folder-') ? activeTab.replace('folder-', '') : undefined}
+        />
 
         {/* SHARE MODAL */}
         {shareModalVideoId && (() => {

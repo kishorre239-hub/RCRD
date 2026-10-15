@@ -44,7 +44,7 @@ export const useRecorder = () => {
 
       // 1. Get Screen Stream
       if (options.screen) {
-        const displayMediaOptions: any = {
+        const displayMediaOptions = {
           video: {
             displaySurface: 'monitor',
             frameRate: { ideal: 30, max: 60 },
@@ -53,7 +53,7 @@ export const useRecorder = () => {
           selfBrowserSurface: 'include',
           surfaceSwitching: 'include',
           systemAudio: 'include',
-        };
+        } as unknown as DisplayMediaStreamOptions;
 
         const screenStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
         

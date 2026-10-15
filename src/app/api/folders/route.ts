@@ -7,11 +7,11 @@ import {
   deleteDriveFile 
 } from '@/lib/server/drive';
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const folders = await listDriveFolders();
     return NextResponse.json(folders);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching folders:', error);
     return NextResponse.json([]);
   }
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       name,
       success: true
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating folder:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -57,7 +57,7 @@ export async function PUT(req: Request) {
       name: name.trim(),
       success,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error renaming folder:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -81,7 +81,7 @@ export async function DELETE(req: Request) {
 
     const success = await deleteDriveFile(id);
     return NextResponse.json({ success, id });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting folder:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

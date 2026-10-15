@@ -1009,8 +1009,10 @@ export default function ClassRoomPage() {
             try {
               historyRef.current = [ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height)];
               redoRef.current = [];
-              setCanUndo(false);
-              setCanRedo(false);
+              setTimeout(() => {
+                setCanUndo(false);
+                setCanRedo(false);
+              }, 0);
             } catch {}
           }
         }
@@ -1213,8 +1215,9 @@ export default function ClassRoomPage() {
               {textBox && (
                 <div
                   style={{
-                    left: `${Math.max(8, Math.min(textBox.x, (canvasRef.current?.clientWidth || window.innerWidth) - 320))}px`,
-                    top: `${Math.max(8, Math.min(textBox.y, (canvasRef.current?.clientHeight || window.innerHeight) - 160))}px`,
+                    left: `${Math.max(8, textBox.x)}px`,
+                    top: `${Math.max(8, textBox.y)}px`,
+                    maxWidth: 'calc(100% - 24px)',
                   }}
                   className="absolute z-[110] flex flex-col items-start select-text"
                   onClick={e => e.stopPropagation()}

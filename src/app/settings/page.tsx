@@ -13,6 +13,7 @@ import {
 } from '@/lib/api';
 import BillingTab from '@/components/BillingTab';
 import UsersTab from '@/components/UsersTab';
+import RecordingSetupModal from '@/components/RecordingSetupModal';
 
 interface PushDeviceSetting {
   email?: boolean;
@@ -90,6 +91,7 @@ function PushRow({
 
 export default function SettingsPage() {
   const router = useRouter();
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   
   // Tab State
   const [activeTab, setActiveTab] = useState(() => {
@@ -412,7 +414,7 @@ export default function SettingsPage() {
 
         <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           <button 
-            onClick={() => router.push('/record')}
+            onClick={() => setIsRecordModalOpen(true)}
             className="w-full bg-[#1A68FF] hover:bg-[#1557D6] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(26,104,255,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(26,104,255,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <Video size={20} className="stroke-[2.2]" />
@@ -1028,6 +1030,12 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
+
+      <RecordingSetupModal
+        isOpen={isRecordModalOpen}
+        onClose={() => setIsRecordModalOpen(false)}
+        onRecordingComplete={() => router.push('/library')}
+      />
     </div>
   );
 }

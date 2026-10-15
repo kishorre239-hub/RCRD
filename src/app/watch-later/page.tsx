@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { getVideos, deleteVideo, updateVideo, syncVideos, addVideoComment, API_URL } from "@/lib/api";
+import RecordingSetupModal from "@/components/RecordingSetupModal";
 
 interface Comment {
   id: string;
@@ -40,6 +41,7 @@ interface Course {
 
 export default function WatchLaterPage() {
   const router = useRouter();
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [courses] = useState<Course[]>([]);
@@ -328,7 +330,7 @@ export default function WatchLaterPage() {
 
         <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           <button 
-            onClick={() => router.push('/record')}
+            onClick={() => setIsRecordModalOpen(true)}
             className="w-full bg-[#1A68FF] hover:bg-[#1557D6] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(26,104,255,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(26,104,255,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <Video size={20} className="stroke-[2.2]" />
@@ -933,6 +935,12 @@ export default function WatchLaterPage() {
         )}
 
       </main>
+
+      <RecordingSetupModal
+        isOpen={isRecordModalOpen}
+        onClose={() => setIsRecordModalOpen(false)}
+        onRecordingComplete={() => router.push('/library')}
+      />
     </div>
   );
 }

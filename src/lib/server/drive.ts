@@ -520,7 +520,7 @@ export async function updateDriveFileEditorData(fileId: string, editorData: unkn
     driveCache.timestamp = 0;
     const cached = driveCache.videos.find(v => v.id === fileId || v.driveFileId === fileId);
     if (cached) {
-      (cached as any).editorData = typeof editorData === 'string' ? JSON.parse(editorData) : editorData;
+      (cached as unknown as Record<string, unknown>).editorData = typeof editorData === 'string' ? JSON.parse(editorData) : editorData;
     }
     return true;
   } catch (error: unknown) {

@@ -648,7 +648,7 @@ export async function moveDriveFile(fileId: string, targetFolderId?: string, tar
       supportsAllDrives: true,
     });
 
-    const rootId = process.env.GOOGLE_DRIVE_FOLDER_ID || '';
+    const rootId = getRootFolderId();
     
     let destinationFolderId = targetFolderId;
     if (!destinationFolderId || destinationFolderId === 'root' || destinationFolderId === 'workspace' || destinationFolderId === 'folder-all' || destinationFolderId === 'all') {
@@ -657,8 +657,8 @@ export async function moveDriveFile(fileId: string, targetFolderId?: string, tar
       destinationFolderId = await getOrCreateNamedDriveFolder('Screen Shares');
     } else if (destinationFolderId === 'team-updates') {
       destinationFolderId = await getOrCreateNamedDriveFolder('Team Updates');
-    } else if (destinationFolderId === 'MEETING') {
-      destinationFolderId = '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4';
+    } else if (destinationFolderId === 'MEETING' || destinationFolderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4') {
+      destinationFolderId = await getMeetingFolderId();
     } else if (targetFolderName && targetFolderName.trim()) {
       destinationFolderId = await getOrCreateNamedDriveFolder(targetFolderName.trim());
     } else if (destinationFolderId.startsWith('folder-')) {

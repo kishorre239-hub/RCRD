@@ -13,11 +13,7 @@ export async function GET(req: Request) {
     return NextResponse.json(folders);
   } catch (error: any) {
     console.error('Error fetching folders:', error);
-    return NextResponse.json([
-      { id: '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4', name: 'MEETING' },
-      { id: 'screen-shares', name: 'Screen Shares' },
-      { id: 'team-updates', name: 'Team Updates' }
-    ]);
+    return NextResponse.json([]);
   }
 }
 

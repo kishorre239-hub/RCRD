@@ -3,20 +3,13 @@ import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { getFileMetadata } from '@/lib/server/drive';
 import { Video } from '@/lib/server/types';
-import { ObjectId } from 'mongodb';
+import { ObjectId, Filter } from 'mongodb';
 import { saveBackupVideoMeta } from '@/lib/server/localBackup';
 
 export async function POST(req: Request) {
   try {
     const authResult = await authenticateRequest(req);
-    const user = (authResult.authenticated && authResult.user ? authResult.user : null) || {
-      _id: 'default-admin',
-      id: 'default-admin',
-      name: 'System User',
-      email: 'admin@meet.com',
-      role: 'ADMIN',
-      status: 'Active',
-    };
+    const user = authResult.authenticated && authResult.user ? authResult.user : null;
 
     const body = await req.json();
     const { videoId, driveFileId, title, duration, size } = body;
@@ -44,6 +37,12 @@ export async function POST(req: Request) {
       updatedAt: Date.now(),
     };
 
+    if (user) {
+      updateFields.ownerId = user.id || user._id?.toString();
+      if (user.name) updateFields.ownerName = user.name;
+      if (user.email) updateFields.ownerEmail = user.email;
+    }
+
     if (driveFileId) updateFields.driveFileId = driveFileId;
     if (title) updateFields.title = title;
     if (duration) updateFields.duration = Number(duration);
@@ -61,15 +60,15 @@ export async function POST(req: Request) {
 
     try {
       const videosCol = await getCollection<Video>('videos');
-      let filter: Record<string, unknown> = {};
+      let filter: Filter<Video> = {};
       try {
         filter = { $or: [{ _id: new ObjectId(videoId) }, { id: videoId }, { driveFileId: finalId }] };
       } catch {
         filter = { $or: [{ id: videoId }, { driveFileId: finalId }] };
       }
 
-      await videosCol.updateOne(filter as any, { $set: updateFields }, { upsert: false });
-      const updated = await videosCol.findOne(filter as any);
+      await videosCol.updateOne(filter, { $set: updateFields as Partial<Video> }, { upsert: false });
+      const updated = await videosCol.findOne(filter);
       if (updated) {
         result = {
           ...updated,

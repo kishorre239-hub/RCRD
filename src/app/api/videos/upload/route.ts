@@ -3,7 +3,7 @@ import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { Video } from '@/lib/server/types';
 import { uploadBufferToDrive } from '@/lib/server/drive';
-import { saveBackupVideoMeta } from '@/lib/server/localBackup';
+import { saveBackupVideoMeta, StoredVideoMeta } from '@/lib/server/localBackup';
 
 export async function POST(req: Request) {
   try {
@@ -104,13 +104,14 @@ export async function POST(req: Request) {
     }
 
     // Persist to local backup
-    saveBackupVideoMeta(driveFileId || videoId, {
+    const backupMeta: Partial<StoredVideoMeta> = {
       title,
       courseId: finalCourseId || undefined,
       driveFileId: driveFileId || undefined,
       size: file ? file.size : 0,
       status: 'READY',
-    });
+    };
+    saveBackupVideoMeta(driveFileId || videoId, backupMeta);
 
     return NextResponse.json({
       videoId: driveFileId || videoId,

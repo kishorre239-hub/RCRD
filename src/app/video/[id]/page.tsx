@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use, useCallback } from 'react';
+import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Share, Link as LinkIcon, MoreHorizontal, Search, HelpCircle, Bell, 
@@ -111,6 +111,8 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
+  const reactionCounterRef = useRef(0);
+
   const handleEmojiReaction = async (emoji: string) => {
     // 1. Calculate video timestamp string
     const minutes = Math.floor(currentVideoTime / 60);
@@ -122,12 +124,13 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
     setTimeout(() => setActiveReactionEmoji(null), 500);
 
     // 3. Trigger floating burst of emojis over video
-    const baseId = Math.floor(Math.random() * 1000000);
+    reactionCounterRef.current += 1;
+    const baseId = reactionCounterRef.current;
     const newReactions = Array.from({ length: 6 }).map((_, i) => ({
-      id: baseId + i,
+      id: baseId * 10 + i,
       emoji,
-      left: Math.floor(25 + Math.random() * 50),
-      size: Math.floor(28 + Math.random() * 24),
+      left: 25 + ((i * 13) % 50),
+      size: 28 + ((i * 7) % 24),
       delay: i * 75,
     }));
 

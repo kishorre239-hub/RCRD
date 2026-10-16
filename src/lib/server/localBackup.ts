@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { VideoComment } from './types';
+import { VideoComment, VideoEditorData } from './types';
 
 export interface StoredVideoMeta {
   views?: number;
@@ -10,7 +10,7 @@ export interface StoredVideoMeta {
   size?: number;
   status?: string;
   comments?: VideoComment[];
-  editorData?: any;
+  editorData?: VideoEditorData | Record<string, unknown>;
   updatedAt?: number;
   [key: string]: unknown;
 }

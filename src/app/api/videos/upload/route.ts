@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
-import { Video } from '@/lib/server/types';
+import { Video, User } from '@/lib/server/types';
 import { uploadBufferToDrive } from '@/lib/server/drive';
 import { saveBackupVideoMeta, StoredVideoMeta } from '@/lib/server/localBackup';
 
 export async function POST(req: Request) {
   try {
     const authResult = await authenticateRequest(req);
-    const user: any = (authResult.authenticated && authResult.user ? authResult.user : null) || {
+    const user: User = (authResult.authenticated && authResult.user ? authResult.user : null) || {
       _id: 'default-admin',
       id: 'default-admin',
       name: 'System User',
@@ -149,8 +149,8 @@ export async function POST(req: Request) {
       status: 'READY',
       title,
     });
-  } catch (error: any) {
-    console.error('Error in video upload route:', error);
+  } catch (error: unknown) {
+    console.error('Error in video upload route:', (error as Error)?.message || error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

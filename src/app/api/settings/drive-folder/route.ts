@@ -30,7 +30,12 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const folderId = body.folderId || body.driveFolderLink || body.link;
+    let raw = body.folderId || body.driveFolderLink || body.link || '';
+    
+    // Extract actual Google Drive folder ID if a URL was pasted
+    const folderMatch = String(raw).match(/folders\/([a-zA-Z0-9_-]+)/);
+    const idMatch = String(raw).match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    const folderId = folderMatch ? folderMatch[1] : (idMatch ? idMatch[1] : String(raw).trim());
 
     if (!folderId) {
       return NextResponse.json({ error: 'Folder ID or link is required' }, { status: 400 });

@@ -209,7 +209,9 @@ export default function SettingsPage() {
       try {
         const data = await getDriveFolder();
         if (data && data.folderId) {
-          setDriveLink(`https://drive.google.com/drive/folders/${data.folderId}`);
+          const match = String(data.folderId).match(/folders\/([a-zA-Z0-9_-]+)/);
+          const rawId = match ? match[1] : data.folderId.replace(/^https?:\/\/.*folders\//, '').trim();
+          setDriveLink(`https://drive.google.com/drive/folders/${rawId}`);
         }
       } catch {}
 

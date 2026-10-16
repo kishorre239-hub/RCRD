@@ -51,19 +51,36 @@ export async function POST(req: Request) {
       }
     } catch {}
 
-    const isMeeting = Boolean(formData.get('isMeeting') === 'true' || courseId === 'MEETING' || courseId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || (title && title.toLowerCase().includes('meeting')));
-    const finalCourseId = courseId || (isMeeting ? '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' : null);
+    const isMeeting = Boolean(formData.get('isMeeting') === 'true' || courseId === 'MEETING' || courseId === '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S' || (title && title.toLowerCase().includes('meeting')));
+    const finalCourseId = courseId || (isMeeting ? '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S' : null);
 
     const now = Date.now();
     let driveFileId = '';
     let webViewLink = '';
     let thumbnailLink = '';
+    let videoId = `vid_${now}_${Math.random().toString(36).substring(2, 9)}`;
 
     // Direct Google Drive Upload (Google Drive is the primary persistent storage)
     if (file) {
       try {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
+
+        // Always save locally to ensure video can be streamed and downloaded smoothly
+        try {
+          const fs = await import('fs');
+          const path = await import('path');
+          const localDir = path.join(process.cwd(), '.data', 'videos');
+          if (!fs.existsSync(localDir)) fs.mkdirSync(localDir, { recursive: true });
+          fs.writeFileSync(path.join(localDir, `${videoId}.webm`), buffer);
+
+          const publicDir = path.join(process.cwd(), 'public', 'uploads');
+          if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
+          fs.writeFileSync(path.join(publicDir, `${videoId}.webm`), buffer);
+        } catch (localSaveErr) {
+          console.warn('Local video backup save notice:', localSaveErr);
+        }
+
         const driveUpload = await uploadBufferToDrive({
           buffer,
           name: `${title}.webm`,
@@ -76,6 +93,7 @@ export async function POST(req: Request) {
           driveFileId = driveUpload.id;
           webViewLink = driveUpload.webViewLink || '';
           thumbnailLink = driveUpload.thumbnailLink || '';
+          videoId = driveFileId;
         }
       } catch (driveErr) {
         console.error('Google Drive direct buffer upload warning:', driveErr);
@@ -85,6 +103,7 @@ export async function POST(req: Request) {
     const videoDoc: Video = {
       title,
       driveFileId: driveFileId || undefined,
+      url: `/uploads/${videoId}.webm`,
       courseId: finalCourseId || undefined,
       ownerId: user.id || user._id?.toString(),
       workspaceId: user.workspaceId || 'default',
@@ -100,11 +119,15 @@ export async function POST(req: Request) {
       updatedAt: now,
     };
 
-    let videoId = driveFileId || `vid-${Date.now()}`;
+    if (driveFileId) {
+      videoId = driveFileId;
+    }
     try {
       const videosCol = await getCollection<Video>('videos');
       const res = await videosCol.insertOne(videoDoc);
-      videoId = res.insertedId.toString();
+      if (res?.insertedId) {
+        videoId = res.insertedId.toString();
+      }
     } catch (dbErr) {
       console.warn('MongoDB insert note in /api/videos/upload:', dbErr);
     }

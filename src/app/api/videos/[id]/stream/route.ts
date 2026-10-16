@@ -90,6 +90,19 @@ export async function GET(
       }
     }
 
+    // Direct check for local storage video files
+    const directLocalPaths = [
+      path.join(process.cwd(), 'public', 'uploads', `${id}.webm`),
+      path.join(process.cwd(), '.data', 'videos', `${id}.webm`),
+      path.join(process.cwd(), 'public', 'uploads', `${id}.mp4`),
+    ];
+    for (const p of directLocalPaths) {
+      if (fs.existsSync(/*turbopackIgnore: true*/ p) && fs.statSync(/*turbopackIgnore: true*/ p).isFile()) {
+        const isWebm = p.endsWith('.webm');
+        return streamLocalFile(p, rangeHeader, isWebm ? 'video/webm' : 'video/mp4');
+      }
+    }
+
     // 2. Determine target Google Drive file ID
     const primaryDriveId = video?.driveFileId || (!id.startsWith('vid_') && !id.startsWith('local:') ? id : null);
 

@@ -2,17 +2,27 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
-  Video, 
   Monitor, 
-  Camera, 
+  Video, 
   Mic, 
+  HelpCircle, 
+  Home, 
+  Globe, 
+  Lock, 
+  Unlock, 
+  Check, 
   X, 
   ChevronDown, 
+  Square, 
+  Pause, 
+  Play, 
+  RotateCcw, 
+  Trash2, 
   Loader2, 
   Upload, 
   Folder, 
-  Check, 
-  AlertCircle 
+  ExternalLink,
+  Download
 } from 'lucide-react';
 import { uploadVideo, getCourses } from '@/lib/api';
 
@@ -39,15 +49,23 @@ export default function RecordingSetupModal({
   // Modal flow states: 'configuring' | 'countdown' | 'recording' | 'saving' | 'uploading'
   const [phase, setPhase] = useState<'configuring' | 'countdown' | 'recording' | 'saving' | 'uploading'>('configuring');
 
-  // Configuration options
+  // Configuration options matching Loom
   const [screenType, setScreenType] = useState<'Full Screen' | 'Window' | 'Current tab' | 'Camera only'>('Full Screen');
   const [showScreenOptions, setShowScreenOptions] = useState(false);
   const [cameraOn, setCameraOn] = useState(true);
   const [micOn, setMicOn] = useState(true);
 
+  // Access options (Public, Open, Restricted)
+  const [videoAccess, setVideoAccess] = useState<'Public' | 'Open' | 'Restricted'>('Public');
+  const [showAccessMenu, setShowAccessMenu] = useState(false);
+
   // Dynamic device detection
-  const [cameraDeviceName, setCameraDeviceName] = useState('HD Pro Webcam C920');
+  const [cameraDeviceName, setCameraDeviceName] = useState('HP Wide Vision HD Camera');
   const [micDeviceName, setMicDeviceName] = useState('Default - Microphone Array');
+  const [audioLevel, setAudioLevel] = useState(0); // For live microphone volume meter
+
+  // Tip banner visibility
+  const [showTip, setShowTip] = useState(true);
 
   // Media recording state
   const [countdown, setCountdown] = useState(3);
@@ -64,15 +82,21 @@ export default function RecordingSetupModal({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const pipCameraVideoRef = useRef<HTMLVideoElement | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animFrameRef = useRef<number | null>(null);
 
   // Save / Upload settings
   const [videoTitle, setVideoTitle] = useState('');
   const [folders, setFolders] = useState<FolderOption[]>([]);
-  const [selectedFolderId, setSelectedFolderId] = useState<string>('');
+  const [selectedFolderId, setSelectedFolderId] = useState<string>('1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [savedVideoId, setSavedVideoId] = useState<string | null>(null);
 
   // Auto-detect user's actual audio and camera hardware names dynamically
   useEffect(() => {
@@ -100,13 +124,75 @@ export default function RecordingSetupModal({
     // Fetch dynamic folders from Google Drive
     getCourses()
       .then(res => {
-        setFolders(res);
+        if (Array.isArray(res) && res.length > 0) {
+          setFolders(res);
+        } else {
+          setFolders([
+            { id: '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S', name: 'MEETING' },
+            { id: '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7', name: 'GEONIXA LOOM' }
+          ]);
+        }
         if (defaultFolderId) {
           setSelectedFolderId(defaultFolderId);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setFolders([
+          { id: '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S', name: 'MEETING' },
+          { id: '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7', name: 'GEONIXA LOOM' }
+        ]);
+      });
   }, [isOpen, defaultFolderId]);
+
+  // Live Microphone Activity Monitor for audio meter bar
+  useEffect(() => {
+    if (!isOpen || !micOn || phase !== 'configuring') {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      setAudioLevel(0);
+      return;
+    }
+
+    let audioTrack: MediaStreamTrack | null = null;
+    let micStreamLocal: MediaStream | null = null;
+
+    navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+    }).then(stream => {
+      micStreamLocal = stream;
+      audioTrack = stream.getAudioTracks()[0];
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AudioCtx();
+      audioContextRef.current = ctx;
+      const src = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 64;
+      src.connect(analyser);
+      analyserRef.current = analyser;
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const checkAudio = () => {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        const avg = sum / dataArray.length;
+        const norm = Math.min(100, Math.round((avg / 128) * 100));
+        setAudioLevel(norm);
+        animFrameRef.current = requestAnimationFrame(checkAudio);
+      };
+      checkAudio();
+    }).catch(() => {
+      setAudioLevel(0);
+    });
+
+    return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (audioTrack) audioTrack.stop();
+      if (micStreamLocal) micStreamLocal.getTracks().forEach(t => t.stop());
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+      }
+    };
+  }, [isOpen, micOn, phase]);
 
   // Clean up streams & URLs on unmount or reset
   const cleanupStreams = useCallback(() => {
@@ -121,6 +207,10 @@ export default function RecordingSetupModal({
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
+    }
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
     }
   }, [displayStream, cameraStream]);
 
@@ -143,7 +233,26 @@ export default function RecordingSetupModal({
     try {
       let dispStream: MediaStream | null = null;
       let camStream: MediaStream | null = null;
+      let micStream: MediaStream | null = null;
       const combinedStream = new MediaStream();
+
+      // Set up Studio Web Audio pipeline to eliminate noise and mix mic + system audio seamlessly
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const audioCtx = new AudioCtx();
+      const dest = audioCtx.createMediaStreamDestination();
+
+      // 1. High-pass filter to strip low-end background fan rumble (<85Hz)
+      const highpass = audioCtx.createBiquadFilter();
+      highpass.type = 'highpass';
+      highpass.frequency.setValueAtTime(85, audioCtx.currentTime);
+
+      // 2. Dynamics Compressor for broadcast vocal clarity and smooth volume leveling
+      const compressor = audioCtx.createDynamicsCompressor();
+      compressor.threshold.setValueAtTime(-24, audioCtx.currentTime);
+      compressor.knee.setValueAtTime(30, audioCtx.currentTime);
+      compressor.ratio.setValueAtTime(4, audioCtx.currentTime);
+      compressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
+      compressor.release.setValueAtTime(0.25, audioCtx.currentTime);
 
       // 1. Screen capture (unless Camera only)
       if (screenType === 'Camera only') {
@@ -152,10 +261,17 @@ export default function RecordingSetupModal({
           audio: micOn ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false,
         };
         camStream = await navigator.mediaDevices.getUserMedia(camConstraints);
-        camStream.getTracks().forEach(t => combinedStream.addTrack(t));
+        camStream.getVideoTracks().forEach(t => combinedStream.addTrack(t));
         setCameraStream(camStream);
+
+        if (micOn && camStream.getAudioTracks().length > 0) {
+          const micSource = audioCtx.createMediaStreamSource(new MediaStream(camStream.getAudioTracks()));
+          micSource.connect(highpass);
+          highpass.connect(compressor);
+          compressor.connect(dest);
+        }
       } else {
-        // Screen capture: Full Screen / Window / Current tab
+        // Screen capture: Configure browser to prioritize Entire Screen
         const surface = screenType === 'Window' ? 'window' : screenType === 'Current tab' ? 'browser' : 'monitor';
         
         try {
@@ -163,11 +279,22 @@ export default function RecordingSetupModal({
             video: {
               displaySurface: surface,
               frameRate: { ideal: 30, max: 60 },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
             } as MediaTrackConstraints,
-            audio: true, // System / tab audio
-          });
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+            // Prioritize entire screen and prevent defaulting to current tab
+            preferCurrentTab: screenType === 'Current tab',
+            selfBrowserSurface: screenType === 'Current tab' ? 'include' : 'exclude',
+            systemAudio: 'include',
+            surfaceSwitching: 'include',
+          } as DisplayMediaStreamOptions);
         } catch {
-          // If displaySurface causes constraint error, fallback to standard displayMedia
+          // Fallback if browser doesn't accept extended constraints
           dispStream = await navigator.mediaDevices.getDisplayMedia({
             video: true,
             audio: true,
@@ -175,27 +302,46 @@ export default function RecordingSetupModal({
         }
 
         dispStream.getVideoTracks().forEach(t => combinedStream.addTrack(t));
-        dispStream.getAudioTracks().forEach(t => combinedStream.addTrack(t));
         setDisplayStream(dispStream);
 
         // When user clicks "Stop sharing" from browser chrome banner
-        dispStream.getVideoTracks()[0].onended = () => {
-          stopRecording();
-        };
+        if (dispStream.getVideoTracks()[0]) {
+          dispStream.getVideoTracks()[0].onended = () => {
+            stopRecording();
+          };
+        }
 
-        // Microphone audio track
+        // Connect system audio to Web Audio destination
+        if (dispStream.getAudioTracks().length > 0) {
+          const sysSource = audioCtx.createMediaStreamSource(new MediaStream(dispStream.getAudioTracks()));
+          const sysGain = audioCtx.createGain();
+          sysGain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+          sysSource.connect(sysGain);
+          sysGain.connect(dest);
+        }
+
+        // Microphone audio track with broadcast noise suppression & compression
         if (micOn) {
           try {
-            const micStream = await navigator.mediaDevices.getUserMedia({
-              audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            micStream = await navigator.mediaDevices.getUserMedia({
+              audio: { 
+                echoCancellation: true, 
+                noiseSuppression: true, 
+                autoGainControl: true,
+                channelCount: 1,
+                sampleRate: 48000,
+              },
             });
-            micStream.getAudioTracks().forEach(t => combinedStream.addTrack(t));
-          } catch {
-            // Mic denied or unavailable
+            const micSource = audioCtx.createMediaStreamSource(micStream);
+            micSource.connect(highpass);
+            highpass.connect(compressor);
+            compressor.connect(dest);
+          } catch (micErr) {
+            console.warn('Microphone permission notice:', micErr);
           }
         }
 
-        // Camera feed for PIP bubble
+        // Camera feed for circular PIP bubble
         if (cameraOn) {
           try {
             camStream = await navigator.mediaDevices.getUserMedia({
@@ -207,6 +353,9 @@ export default function RecordingSetupModal({
           }
         }
       }
+
+      // Add the master filtered, mixed audio track to recorder stream
+      dest.stream.getAudioTracks().forEach(t => combinedStream.addTrack(t));
 
       // Check optimal supported MIME type
       const mimeCandidates = [
@@ -257,24 +406,17 @@ export default function RecordingSetupModal({
         cleanupStreams();
       };
 
-      // Start countdown (3, 2, 1)
+      // Start countdown (3, 2, 1) as seen in Image 4
       setPhase('countdown');
       setCountdown(3);
 
       let currentCount = 3;
-      const countInterval = setInterval(() => {
+      countdownIntervalRef.current = setInterval(() => {
         currentCount -= 1;
         if (currentCount > 0) {
           setCountdown(currentCount);
         } else {
-          clearInterval(countInterval);
-          setPhase('recording');
-          recorder.start(1000);
-
-          setTimer(0);
-          timerIntervalRef.current = setInterval(() => {
-            setTimer(prev => prev + 1);
-          }, 1000);
+          skipCountdown(recorder);
         }
       }, 1000);
 
@@ -283,6 +425,23 @@ export default function RecordingSetupModal({
       showToast('Screen or media permissions required to record.');
       setPhase('configuring');
       cleanupStreams();
+    }
+  };
+
+  // Skip countdown immediately
+  const skipCountdown = (recorderInstance?: MediaRecorder | null) => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    const rec = recorderInstance || mediaRecorderRef.current;
+    if (rec && rec.state === 'inactive') {
+      rec.start(1000);
+      setPhase('recording');
+      setTimer(0);
+      timerIntervalRef.current = setInterval(() => {
+        setTimer(prev => prev + 1);
+      }, 1000);
     }
   };
 
@@ -321,7 +480,7 @@ export default function RecordingSetupModal({
     handleClose();
   };
 
-  // Handle local file selection replacement if user selects a pre-recorded video file
+  // Handle local file selection
   const handleFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -334,7 +493,7 @@ export default function RecordingSetupModal({
     }
   };
 
-  // Handle saving to Google Drive
+  // Handle saving to Google Drive & auto-save
   const handleSaveToDrive = async () => {
     if (!recordedBlob) return;
 
@@ -346,24 +505,30 @@ export default function RecordingSetupModal({
     const finalTitle = videoTitle.trim() || `Recording · ${new Date().toLocaleDateString('en-US')}`;
 
     try {
-      await uploadVideo(
+      const res = await uploadVideo(
         recordedBlob,
-        selectedFolderId || null,
+        selectedFolderId || '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S',
         (percent) => {
           setUploadProgress(percent);
         },
         finalTitle,
         {
-          folderName: targetCourse?.name,
-          isMeeting: selectedFolderId === 'MEETING',
+          folderName: targetCourse?.name || 'MEETING',
+          isMeeting: selectedFolderId === 'MEETING' || selectedFolderId === '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S',
         }
       );
 
+      if (res?.videoId) {
+        setSavedVideoId(res.videoId);
+      }
       showToast('Video saved to Google Drive!');
       if (onRecordingComplete) {
         onRecordingComplete();
       }
-      handleClose();
+      // Wait a moment so user sees 100% complete
+      setTimeout(() => {
+        handleClose();
+      }, 1000);
     } catch (err: unknown) {
       console.error('Failed to upload video to Drive:', err);
       setUploadError(err instanceof Error ? err.message : 'Upload failed. Check Google Drive connection.');
@@ -371,10 +536,11 @@ export default function RecordingSetupModal({
     }
   };
 
-  // Attach camera stream to PIP video element
+  // Attach camera stream to PIP video elements
   useEffect(() => {
-    if (cameraVideoRef.current && cameraStream) {
-      cameraVideoRef.current.srcObject = cameraStream;
+    if (pipCameraVideoRef.current && cameraStream) {
+      pipCameraVideoRef.current.srcObject = cameraStream;
+      pipCameraVideoRef.current.play().catch(() => {});
     }
   }, [cameraStream, phase]);
 
@@ -397,324 +563,492 @@ export default function RecordingSetupModal({
         className="hidden" 
       />
 
-      {/* DIM OVERLAY */}
-      <div 
-        className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 transition-opacity" 
-        onClick={() => {
-          if (phase === 'configuring' || phase === 'saving') handleClose();
-        }}
-      />
-
-      {/* ── PHASE 1: RECORDING SETUP MODAL (EXACT VISUAL REPLICA) ── */}
+      {/* ── PHASE 1: RECORDING SETUP WIDGET (EXACT LOOM POPUP AS SEEN IN IMAGE 2 & 3) ── */}
       {phase === 'configuring' && (
-        <div 
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] bg-white rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.25)] z-50 border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
-          onClick={e => e.stopPropagation()}
-        >
-          {/* Blue top accent bar */}
-          <div className="h-1 w-full bg-[#AE2448]" />
+        <>
+          {/* Subtle click-outside backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/10 z-50 transition-opacity" 
+            onClick={handleClose}
+          />
 
-          {/* Modal Header */}
-          <div className="flex items-center justify-between p-5 border-b border-slate-100">
-            <div className="flex items-center gap-3 font-bold text-lg text-slate-900">
-              <div className="bg-[#D5E7B5] text-[#AE2448] p-1.5 rounded-lg border border-[#AE2448]/20">
-                <Video size={16} />
+          {/* Floating Widget Card at Top-Right */}
+          <div 
+            className="fixed top-14 right-8 w-[320px] bg-white rounded-[26px] shadow-[0_20px_50px_rgba(0,0,0,0.18)] z-50 border border-slate-200/90 p-5 overflow-visible animate-in fade-in zoom-in-95 duration-200 select-none font-sans"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header: Loom Brand Icon + Title + Help & Home Actions */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                {/* Loom blue sunburst icon */}
+                <div className="w-7 h-7 rounded-lg bg-[#2F70F2] flex items-center justify-center text-white shadow-xs">
+                  <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 stroke-white stroke-[2.5]" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" />
+                  </svg>
+                </div>
+                <span className="text-[17px] font-bold text-slate-900 tracking-tight">Loom</span>
               </div>
-              <span>Recording Setup</span>
-            </div>
-            <button 
-              onClick={handleClose} 
-              className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-700 transition-colors"
-            >
-              <X size={18} />
-            </button>
-          </div>
 
-          {/* Modal Body */}
-          <div className="p-5 space-y-5">
-            {/* Screen Selection */}
-            <div className="relative">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">
-                SCREEN
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowScreenOptions(!showScreenOptions)}
-                className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <Monitor size={18} className="text-[#AE2448]" />
-                  <span>{screenType}</span>
-                </div>
-                <ChevronDown size={16} className="text-slate-400" />
-              </button>
-
-              {showScreenOptions && (
-                <div className="absolute top-full left-0 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
-                  {(['Full Screen', 'Window', 'Current tab', 'Camera only'] as const).map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => {
-                        setScreenType(opt);
-                        setShowScreenOptions(false);
-                      }}
-                      className="w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-[#D5E7B5] hover:text-[#6E1A37] transition-colors text-slate-700"
-                    >
-                      <span>{opt}</span>
-                      {screenType === opt && <div className="w-2 h-2 bg-[#AE2448] rounded-full" />}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="flex items-center gap-1">
+                <button 
+                  type="button"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Help & Shortcuts"
+                >
+                  <HelpCircle size={18} />
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleClose}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                  title="Close widget"
+                >
+                  <Home size={18} />
+                </button>
+                <button 
+                  type="button"
+                  onClick={handleClose}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ml-1"
+                  title="Dismiss"
+                >
+                  <X size={17} />
+                </button>
+              </div>
             </div>
 
-            {/* Camera Toggle */}
-            <div>
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">
-                CAMERA
-              </label>
+            {/* Controls Stack */}
+            <div className="space-y-2.5">
+              
+              {/* 1. Screen Picker Pill */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowScreenOptions(!showScreenOptions)}
+                  className="w-full h-12 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-2xl flex items-center justify-between cursor-pointer transition-colors text-slate-800 text-[13.5px] font-medium"
+                >
+                  <div className="flex items-center gap-3">
+                    <Monitor size={18} className="text-slate-800 stroke-[2.2]" />
+                    <span>{screenType}</span>
+                  </div>
+                  <ChevronDown size={16} className={`text-slate-500 transition-transform ${showScreenOptions ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showScreenOptions && (
+                  <div className="absolute top-full left-0 w-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150 py-1">
+                    {(['Full Screen', 'Window', 'Current tab', 'Camera only'] as const).map((opt) => (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => {
+                          setScreenType(opt);
+                          setShowScreenOptions(false);
+                        }}
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                      >
+                        <span>{opt}</span>
+                        {screenType === opt && <Check size={14} className="text-[#2F70F2]" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 2. Camera Selector Pill */}
               <button
                 type="button"
                 onClick={() => setCameraOn(!cameraOn)}
-                className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 transition-colors"
+                className="w-full h-12 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-2xl flex items-center justify-between cursor-pointer transition-colors text-slate-800 text-[13.5px] font-medium"
               >
                 <div className="flex items-center gap-3 truncate pr-2">
-                  <Camera size={18} className={`${cameraOn ? 'text-[#AE2448]' : 'text-slate-400'} shrink-0`} />
-                  <span className="truncate">{cameraDeviceName}</span>
+                  <Video size={18} className="text-slate-800 stroke-[2.2] shrink-0" />
+                  <span className="truncate text-slate-800">
+                    {cameraDeviceName.length > 18 ? cameraDeviceName.substring(0, 18) + '...' : cameraDeviceName}
+                  </span>
                 </div>
-                <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${cameraOn ? 'bg-[#AE2448]' : 'bg-slate-300'}`}>
-                  <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm ${cameraOn ? 'left-6' : 'left-1'}`} />
-                </div>
+                <span className={`px-2.5 py-0.5 rounded-md font-bold text-xs ${cameraOn ? 'bg-[#D5F5C6] text-[#2C7717]' : 'bg-slate-200 text-slate-500'}`}>
+                  {cameraOn ? 'On' : 'Off'}
+                </span>
               </button>
-            </div>
 
-            {/* Microphone Toggle */}
-            <div>
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block">
-                MICROPHONE
-              </label>
+              {/* 3. Microphone Selector Pill with Live Audio Meter Bar */}
               <button
                 type="button"
                 onClick={() => setMicOn(!micOn)}
-                className="w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-medium text-sm text-slate-700 transition-colors"
+                className="w-full h-12 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-2xl flex items-center justify-between cursor-pointer transition-colors text-slate-800 text-[13.5px] font-medium relative overflow-hidden"
               >
-                <div className="flex items-center gap-3 truncate pr-2">
-                  <Mic size={18} className={`${micOn ? 'text-[#AE2448]' : 'text-slate-400'} shrink-0`} />
-                  <span className="truncate">{micDeviceName}</span>
+                {/* Live audio volume wave bar at bottom of pill */}
+                {micOn && audioLevel > 5 && (
+                  <div 
+                    className="absolute bottom-0 left-0 h-1 bg-[#2F70F2] transition-all duration-75 ease-out opacity-90 rounded-full"
+                    style={{ width: `${Math.min(100, audioLevel * 1.5)}%` }}
+                  />
+                )}
+                <div className="flex items-center gap-3 truncate pr-2 relative z-10">
+                  <Mic size={18} className="text-slate-800 stroke-[2.2] shrink-0" />
+                  <span className="truncate text-slate-800">
+                    {micDeviceName.length > 18 ? micDeviceName.substring(0, 18) + '...' : micDeviceName}
+                  </span>
                 </div>
-                <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${micOn ? 'bg-[#AE2448]' : 'bg-slate-300'}`}>
-                  <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm ${micOn ? 'left-6' : 'left-1'}`} />
+                <span className={`px-2.5 py-0.5 rounded-md font-bold text-xs relative z-10 ${micOn ? 'bg-[#D5F5C6] text-[#2C7717]' : 'bg-slate-200 text-slate-500'}`}>
+                  {micOn ? 'On' : 'Off'}
+                </span>
+              </button>
+
+              {/* 4. Video access row & Destination Folder */}
+              <div className="pt-1.5 space-y-2">
+                <div className="flex items-center justify-between relative">
+                  <span className="text-[13.5px] font-semibold text-slate-700">Video access</span>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setShowAccessMenu(!showAccessMenu)}
+                    className="h-8 px-3 rounded-xl border border-slate-300 hover:border-slate-400 bg-white flex items-center gap-1.5 text-xs font-semibold text-slate-700 shadow-xs cursor-pointer transition-colors"
+                  >
+                    {videoAccess === 'Public' && <Globe size={14} className="text-slate-600" />}
+                    {videoAccess === 'Open' && <Unlock size={14} className="text-slate-600" />}
+                    {videoAccess === 'Restricted' && <Lock size={14} className="text-slate-600" />}
+                    <span>{videoAccess}</span>
+                  </button>
+
+                  {/* Popover Menu matching Image 3 */}
+                  {showAccessMenu && (
+                    <div 
+                      className="absolute right-0 top-10 w-[240px] bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-50 animate-in fade-in zoom-in-95 duration-150"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <div className="px-3 py-2 text-xs font-bold text-slate-900 border-b border-slate-100">
+                        Change video access
+                      </div>
+                      <div className="py-1">
+                        {[
+                          { id: 'Public', label: 'Public', icon: <Globe size={16} className="text-[#2F70F2]" /> },
+                          { id: 'Open', label: 'Open', icon: <Unlock size={16} className="text-slate-700" /> },
+                          { id: 'Restricted', label: 'Restricted', icon: <Lock size={16} className="text-slate-700" /> },
+                        ].map((opt) => (
+                          <div
+                            key={opt.id}
+                            onClick={() => {
+                              setVideoAccess(opt.id as any);
+                              setShowAccessMenu(false);
+                            }}
+                            className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-colors ${videoAccess === opt.id ? 'bg-blue-50/70 text-[#2F70F2]' : 'hover:bg-slate-50 text-slate-700'}`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              {opt.icon}
+                              <span>{opt.label}</span>
+                            </div>
+                            {videoAccess === opt.id && <Check size={16} className="text-[#2F70F2]" />}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </button>
-            </div>
 
-            {/* File selection option */}
-            <div className="pt-1 flex items-center justify-between text-xs text-slate-500">
-              <span>Or choose existing video:</span>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="text-[#AE2448] hover:text-[#6E1A37] font-semibold flex items-center gap-1 hover:underline"
-              >
-                <Upload size={12} />
-                Select File
-              </button>
-            </div>
+                {/* Destination Folder Selector */}
+                <div className="flex items-center justify-between text-xs text-slate-600 pt-0.5">
+                  <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Folder size={14} className="text-amber-500" />
+                    <span>Drive Folder:</span>
+                  </span>
+                  <select 
+                    value={selectedFolderId}
+                    onChange={e => setSelectedFolderId(e.target.value)}
+                    className="max-w-[170px] text-xs font-semibold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 outline-none cursor-pointer truncate"
+                  >
+                    <option value="1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S">MEETING</option>
+                    <option value="1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7">GEONIXA LOOM</option>
+                    {folders
+                      .filter(f => f.id !== '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S' && f.id !== '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7' && f.name !== 'MEETING')
+                      .map(f => (
+                        <option key={f.id} value={f.id}>{f.name}</option>
+                      ))}
+                  </select>
+                </div>
+              </div>
 
-            {/* Start Recording Button */}
+              {/* 5. Start Recording Button in Sunset Orange */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={startRecordingFlow}
+                  className="w-full h-12 bg-[#FF5841] hover:bg-[#E04833] text-white font-bold rounded-2xl text-[15px] shadow-[0_4px_14px_rgba(255,88,65,0.35)] transition-all transform hover:-translate-y-0.5 active:scale-98 cursor-pointer flex items-center justify-center tracking-wide"
+                >
+                  Start recording
+                </button>
+                <p className="text-[11px] text-slate-400 text-center mt-2 font-medium">
+                  5 minute recording limit
+                </p>
+              </div>
+
+              {/* 6. Footer Tip Banner */}
+              {showTip && (
+                <div className="bg-[#F0F6FF] border border-[#DCEBFF] rounded-2xl p-3 mt-3.5 text-[11px] text-slate-600 leading-snug">
+                  <p>Get the <span className="text-[#2F70F2] underline cursor-pointer">Chrome extension</span> or <span className="text-[#2F70F2] underline cursor-pointer">Desktop app</span> to use Loom anywhere.</p>
+                  <button 
+                    type="button"
+                    onClick={() => setShowTip(false)}
+                    className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 cursor-pointer mt-1.5 block underline"
+                  >
+                    Dismiss tip
+                  </button>
+                </div>
+              )}
+
+              {/* File upload fallback link */}
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs font-semibold text-slate-400 hover:text-slate-700 inline-flex items-center gap-1.5 hover:underline cursor-pointer"
+                >
+                  <Upload size={12} />
+                  <span>Upload existing video</span>
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── PHASE 2: COUNTDOWN SCREEN (EXACT REPLICA AS SEEN IN IMAGE 4) ── */}
+      {phase === 'countdown' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-xs select-none">
+          {/* Big Blue Countdown Circle */}
+          <div className="w-48 h-48 rounded-full bg-[#2F70F2] flex flex-col items-center justify-center text-white shadow-2xl animate-in zoom-in-75 duration-300">
+            <span className="text-7xl font-extrabold tracking-tight">{countdown}</span>
             <button
               type="button"
-              onClick={startRecordingFlow}
-              className="w-full bg-[#FF5A26] hover:bg-[#E04B1D] text-white py-3.5 mt-2 rounded-xl font-bold transition-all shadow-[0_4px_14px_rgba(255,90,38,0.3)] hover:shadow-[0_6px_20px_rgba(255,90,38,0.4)] transform hover:-translate-y-0.5 active:scale-98 text-base cursor-pointer"
+              onClick={() => skipCountdown()}
+              className="mt-1 text-sm font-bold text-white/90 hover:text-white hover:underline cursor-pointer tracking-wide"
             >
-              Start Recording
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── PHASE 2: COUNTDOWN OVERLAY ── */}
-      {phase === 'countdown' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-          <div className="text-[120px] font-black text-white drop-shadow-2xl animate-pulse">
-            {countdown}
-          </div>
-        </div>
-      )}
-
-      {/* ── FLOATING CAMERA PIP BUBBLE (During recording/countdown) ── */}
-      {(phase === 'recording' || phase === 'countdown') && cameraOn && cameraStream && screenType !== 'Camera only' && (
-        <div className="fixed bottom-24 right-8 z-50 w-44 h-44 rounded-full overflow-hidden shadow-2xl border-4 border-white bg-black">
-          <video 
-            ref={cameraVideoRef} 
-            autoPlay 
-            muted 
-            playsInline 
-            className="w-full h-full object-cover scale-x-[-1]" 
-          />
-        </div>
-      )}
-
-      {/* ── PHASE 3: RECORDING HUD BAR ── */}
-      {phase === 'recording' && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-white rounded-2xl shadow-2xl border border-slate-200 px-6 py-4 animate-in slide-in-from-bottom-5">
-          <div className="flex items-center gap-2 pr-2 border-r border-slate-200">
-            <div className="w-3.5 h-3.5 bg-[#AE2448] rounded-full animate-pulse" />
-            <span className="font-mono font-bold text-slate-900 text-lg">
-              {formatRecTime(timer)}
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={togglePause}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-colors"
-          >
-            {isPaused ? 'Resume' : 'Pause'}
-          </button>
-
-          <button
-            type="button"
-            onClick={stopRecording}
-            className="px-5 py-2 bg-[#AE2448] hover:bg-[#6E1A37] text-white rounded-xl font-semibold text-sm transition-all shadow-md hover:shadow-lg active:scale-95"
-          >
-            Stop & Save
-          </button>
-
-          <button
-            type="button"
-            onClick={cancelRecording}
-            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl font-semibold text-sm transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {/* ── PHASE 4: POST-RECORDING SAVE MODAL (Name & Drive Folder Selection) ── */}
-      {phase === 'saving' && (
-        <div 
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[460px] max-w-[92vw] bg-white rounded-2xl shadow-2xl z-50 border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
-          onClick={e => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
-            <div className="flex items-center gap-2.5">
-              <div className="bg-[#D5E7B5] text-[#6E1A37] p-2 rounded-xl">
-                <Check size={18} className="stroke-[2.5]" />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-900 text-base">Recording Completed</h3>
-                <p className="text-xs text-slate-500">Save your recording to Google Drive</p>
-              </div>
-            </div>
-            <button 
-              onClick={handleClose} 
-              className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-700 transition-colors"
-            >
-              <X size={18} />
+              Skip
             </button>
           </div>
 
-          <div className="p-6 space-y-4">
-            {/* Video preview */}
-            {recordedVideoUrl && (
-              <div className="w-full h-40 bg-slate-950 rounded-xl overflow-hidden relative border border-slate-200">
-                <video 
-                  src={recordedVideoUrl} 
-                  controls 
-                  className="w-full h-full object-contain" 
-                />
-              </div>
-            )}
-
-            {/* Error banner */}
-            {uploadError && (
-              <div className="p-3 bg-[#AE2448]/10 border border-[#AE2448]/20 rounded-xl flex items-center gap-2 text-xs font-medium text-[#AE2448]">
-                <AlertCircle size={16} className="shrink-0" />
-                <span>{uploadError}</span>
-              </div>
-            )}
-
-            {/* Video File Name */}
-            <div>
-              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1.5">
-                Video Title / File Name
-              </label>
-              <input 
-                type="text" 
-                value={videoTitle} 
-                onChange={e => setVideoTitle(e.target.value)} 
-                placeholder="Enter video title..." 
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-[#AE2448] focus:ring-1 focus:ring-[#AE2448] outline-none transition-all"
+          {/* Webcam bubble in bottom-left during countdown (as seen in Image 4!) */}
+          {cameraOn && (
+            <div className="fixed bottom-6 left-6 z-50 w-36 h-36 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-slate-950">
+              <video 
+                ref={pipCameraVideoRef} 
+                autoPlay 
+                muted 
+                playsInline 
+                className="w-full h-full object-cover -scale-x-100" 
               />
             </div>
+          )}
+        </div>
+      )}
 
-            {/* Target Google Drive Folder */}
-            <div>
-              <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1.5">
-                Google Drive Destination Folder
-              </label>
-              <div className="relative">
-                <select 
-                  value={selectedFolderId} 
-                  onChange={e => setSelectedFolderId(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-[#AE2448] focus:ring-1 focus:ring-[#AE2448] outline-none transition-all appearance-none cursor-pointer"
-                >
-                  <option value="">GEONIXA LOOM (Root)</option>
-                  <option value="MEETING">MEETING (Google Drive)</option>
-                  {folders
-                    .filter(f => f.id !== 'MEETING' && f.name !== 'MEETING')
-                    .map(f => (
-                      <option key={f.id} value={f.id}>
-                        {f.name}
-                      </option>
-                    ))}
-                </select>
-                <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+      {/* ── PHASE 3: RECORDING IN PROGRESS FLOATING TOOLBAR + WEBCAM BUBBLE ── */}
+      {phase === 'recording' && (
+        <>
+          {/* Floating dark vertical toolbar on left screen edge (as seen in Image 2 & 4) */}
+          <div className="fixed left-4 top-1/2 -translate-y-1/2 z-50 bg-[#1E1E24]/95 backdrop-blur-md text-white rounded-2xl p-2.5 flex flex-col items-center gap-3 shadow-2xl border border-white/10 select-none">
+            {/* Red Stop Recording Button */}
+            <button
+              type="button"
+              onClick={stopRecording}
+              className="w-9 h-9 rounded-xl bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-transform active:scale-90 cursor-pointer shadow-md"
+              title="Stop Recording"
+            >
+              <Square size={16} fill="white" />
+            </button>
+
+            {/* Timer Display */}
+            <span className="text-xs font-mono font-bold text-white/90 px-1 py-0.5 rounded bg-white/10">
+              {formatRecTime(timer)}
+            </span>
+
+            {/* Pause / Resume Button */}
+            <button
+              type="button"
+              onClick={togglePause}
+              className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/90 hover:text-white transition-colors cursor-pointer"
+              title={isPaused ? "Resume" : "Pause"}
+            >
+              {isPaused ? <Play size={16} fill="white" /> : <Pause size={16} />}
+            </button>
+
+            {/* Restart Button */}
+            <button
+              type="button"
+              onClick={() => {
+                cancelRecording();
+                setTimeout(() => startRecordingFlow(), 400);
+              }}
+              className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/70 hover:text-white transition-colors cursor-pointer"
+              title="Restart Recording"
+            >
+              <RotateCcw size={15} />
+            </button>
+
+            {/* Cancel / Trash Button */}
+            <button
+              type="button"
+              onClick={cancelRecording}
+              className="w-8 h-8 rounded-lg hover:bg-red-500/20 text-white/60 hover:text-red-400 transition-colors cursor-pointer"
+              title="Delete / Cancel"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+
+          {/* Floating camera circle in bottom-left corner */}
+          {cameraOn && (
+            <div className="fixed bottom-6 left-6 z-50 w-36 h-36 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-slate-950">
+              <video 
+                ref={pipCameraVideoRef} 
+                autoPlay 
+                muted 
+                playsInline 
+                className="w-full h-full object-cover -scale-x-100" 
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── PHASE 4: RECORDING COMPLETED / SAVING OVERLAY ── */}
+      {phase === 'saving' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div 
+            className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="bg-[#D5F5C6] text-[#2C7717] p-2 rounded-xl">
+                  <Check size={18} className="stroke-[2.5]" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Recording Completed</h3>
+                  <p className="text-xs text-slate-500">Auto-routed to Google Drive</p>
+                </div>
               </div>
+              <button 
+                onClick={handleClose} 
+                className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-3 pt-3">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-colors"
-              >
-                Discard
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveToDrive}
-                className="flex-[2] py-3 px-4 bg-[#AE2448] hover:bg-[#6E1A37] text-white rounded-xl font-bold text-sm transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 active:scale-98"
-              >
-                <Folder size={16} />
-                Save to Google Drive
-              </button>
+            <div className="p-6 space-y-4">
+              {/* Video preview */}
+              {recordedVideoUrl && (
+                <div className="w-full h-44 bg-slate-950 rounded-2xl overflow-hidden relative border border-slate-200 shadow-inner">
+                  <video 
+                    src={recordedVideoUrl} 
+                    controls 
+                    className="w-full h-full object-contain" 
+                  />
+                </div>
+              )}
+
+              {/* Error banner */}
+              {uploadError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs font-medium text-red-600">
+                  <X size={16} className="shrink-0" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
+
+              {/* Video Title */}
+              <div>
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
+                  Video Title
+                </label>
+                <input 
+                  type="text" 
+                  value={videoTitle} 
+                  onChange={e => setVideoTitle(e.target.value)} 
+                  placeholder="Enter video title..." 
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-[#2F70F2] focus:ring-1 focus:ring-[#2F70F2] outline-none transition-all"
+                />
+              </div>
+
+              {/* Destination Folder */}
+              <div>
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
+                  Google Drive Folder
+                </label>
+                <div className="relative">
+                  <select 
+                    value={selectedFolderId} 
+                    onChange={e => setSelectedFolderId(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-[#2F70F2] outline-none transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S">MEETING (Google Drive)</option>
+                    <option value="1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7">GEONIXA LOOM (Root)</option>
+                    {folders
+                      .filter(f => f.id !== '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S' && f.id !== '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7' && f.name !== 'MEETING')
+                      .map(f => (
+                        <option key={f.id} value={f.id}>{f.name}</option>
+                      ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-3 pt-3">
+                {recordedVideoUrl && (
+                  <a
+                    href={recordedVideoUrl}
+                    download={`${videoTitle || 'recording'}.webm`}
+                    className="py-3 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    title="Download locally"
+                  >
+                    <Download size={15} />
+                    <span>Download</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="flex-1 py-3 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveToDrive}
+                  className="flex-[2] py-3 px-4 bg-[#FF5841] hover:bg-[#E04833] text-white rounded-xl font-bold text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+                >
+                  <Folder size={15} />
+                  <span>Save to Google Drive</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── PHASE 5: UPLOADING PROGRESS OVERLAY ── */}
+      {/* ── PHASE 5: UPLOADING TO GOOGLE DRIVE OVERLAY ── */}
       {phase === 'uploading' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-8 flex flex-col items-center gap-4 max-w-sm w-full animate-in zoom-in-95">
-            <Loader2 className="w-12 h-12 text-[#AE2448] animate-spin" />
-            <div className="text-lg font-bold text-slate-900">Uploading to Google Drive...</div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 p-8 flex flex-col items-center gap-4 max-w-sm w-full animate-in zoom-in-95">
+            <Loader2 className="w-12 h-12 text-[#FF5841] animate-spin" />
+            <div className="text-lg font-bold text-slate-900">Saving to Google Drive...</div>
             <div className="text-xs text-slate-500 text-center">
-              Saving to {folders.find(f => f.id === selectedFolderId)?.name || 'GEONIXA LOOM'} folder
+              Target folder: {folders.find(f => f.id === selectedFolderId)?.name || 'MEETING'}
             </div>
             {uploadProgress > 0 && (
               <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden mt-2">
                 <div 
-                  className="bg-[#AE2448] h-full transition-all duration-300"
+                  className="bg-[#FF5841] h-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
             )}
+            <div className="text-xs font-mono font-bold text-slate-600">
+              {uploadProgress}%
+            </div>
           </div>
         </div>
       )}

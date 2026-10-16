@@ -67,13 +67,13 @@ export async function GET(req: Request) {
           continue; // DO NOT add to videoMap!
         }
 
-        // If the video is purely a local upload that hasn't finished yet or exists locally
-        if (!driveId && (v.status === 'UPLOADING' || v.status === 'PROCESSING')) {
+        // If the video is a local upload or completed recording
+        if (!driveId) {
           const createdAt = v.createdAt || Date.now();
           videoMap.set(vidId, {
             ...v,
             id: vidId,
-            title: cleanVideoTitle(v.title || 'Uploading Video...', createdAt),
+            title: cleanVideoTitle(v.title || 'Screen Recording', createdAt),
             courseId: v.courseId || '',
             views: v.views || 0,
             comments: Array.isArray(v.comments) ? v.comments : [],
@@ -81,7 +81,7 @@ export async function GET(req: Request) {
             thumbnailLink: `/api/videos/${vidId}/thumbnail`,
             directThumbnailUrl: '',
             duration: v.duration || 0,
-            status: v.status,
+            status: v.status || 'READY',
             editorData: v.editorData || null,
           });
         } else if (driveId && driveIdSet.has(driveId)) {

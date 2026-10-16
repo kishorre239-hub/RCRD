@@ -29,7 +29,7 @@ export async function POST(req: Request) {
 
     const isMeeting = Boolean(body.isMeeting || body.source === 'meeting' || courseId === 'MEETING' || courseId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || (title && title.toLowerCase().includes('meeting')));
     // Only default to MEETING folder if the user did NOT choose a specific folder
-    const finalCourseId = courseId || (isMeeting ? '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' : null);
+    const finalCourseId = courseId || (isMeeting ? '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S' : null);
 
     const videoDoc: Video = {
       title,
@@ -46,9 +46,14 @@ export async function POST(req: Request) {
       updatedAt: now,
     };
 
-    const videosCol = await getCollection<Video>('videos');
-    const insertRes = await videosCol.insertOne(videoDoc);
-    const videoId = insertRes.insertedId.toString();
+    let videoId = `vid_${now}_${Math.random().toString(36).substring(2, 9)}`;
+    try {
+      const videosCol = await getCollection<Video>('videos');
+      const insertRes = await videosCol.insertOne(videoDoc);
+      videoId = insertRes.insertedId.toString();
+    } catch (dbErr) {
+      console.warn('MongoDB upload-session insert note:', dbErr);
+    }
 
     const origin = req.headers.get('origin') || undefined;
     let sessionResult = null;

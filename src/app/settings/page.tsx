@@ -114,6 +114,7 @@ export default function SettingsPage() {
   const [driveLink, setDriveLink] = useState("");
   const [isSavingDrive, setIsSavingDrive] = useState(false);
   const [driveSaveMessage, setDriveSaveMessage] = useState("");
+  const [googleConnected, setGoogleConnected] = useState(false);
   
   // Integrations State
   const [integrations, setIntegrations] = useState<Record<string, boolean>>({
@@ -211,6 +212,14 @@ export default function SettingsPage() {
           setDriveLink(`https://drive.google.com/drive/folders/${data.folderId}`);
         }
       } catch {}
+
+      try {
+        const statusRes = await fetch('/api/auth/google/status');
+        const statusData = await statusRes.json();
+        if (statusData?.connected) {
+          setGoogleConnected(true);
+        }
+      } catch {}
     };
     fetchDriveInfo();
 
@@ -219,6 +228,11 @@ export default function SettingsPage() {
       const tabParam = params.get('tab');
       if (tabParam) {
         setTimeout(() => setActiveTab(tabParam), 0);
+      }
+      if (params.get('google_connected') === 'true') {
+        setGoogleConnected(true);
+        setDriveSaveMessage("✓ Successfully connected to your 5 TB Google Drive account!");
+        setTimeout(() => setDriveSaveMessage(""), 5000);
       }
     }
 
@@ -878,12 +892,32 @@ export default function SettingsPage() {
                   <p className="text-[14px] text-slate-600 mb-4">Authenticate your Google account and connect your Google Drive folder to sync recorded videos seamlessly.</p>
                   
                   <div className="flex flex-col gap-4">
-                    <button 
-                      onClick={() => window.open(`${API_URL}/api/auth/google/login`, '_blank')}
-                      className="w-fit bg-[#AE2448] hover:bg-[#6E1A37] text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2"
-                    >
-                      Authenticate with Google Drive
-                    </button>
+                    {googleConnected ? (
+                      <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-300 text-emerald-800 px-4 py-3 rounded-lg text-sm font-medium">
+                        <Check className="w-5 h-5 text-emerald-600 shrink-0" />
+                        <div>
+                          <p className="font-bold">5 TB Google Drive Account Connected</p>
+                          <p className="text-xs text-emerald-700">All recorded videos and courses will upload directly into your personal Google One Drive without quota limits.</p>
+                        </div>
+                        <button 
+                          onClick={() => { window.location.href = '/api/auth/google?redirect=/settings'; }}
+                          className="ml-auto text-xs underline text-emerald-900 hover:text-emerald-950"
+                        >
+                          Reconnect
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => { window.location.href = '/api/auth/google?redirect=/settings'; }}
+                          className="w-fit bg-[#AE2448] hover:bg-[#6E1A37] text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2 shadow-sm"
+                        >
+                          <Cloud className="w-4 h-4" />
+                          Connect 5 TB Google Drive (kishorre239@gmail.com)
+                        </button>
+                        <span className="text-xs text-slate-500">Sign in once to authorize video uploads to your 5 TB storage.</span>
+                      </div>
+                    )}
                     
                     <div className="flex items-center gap-3">
                       <input 
@@ -903,7 +937,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   {driveSaveMessage && (
-                    <p className={`text-sm mt-3 font-medium ${driveSaveMessage.includes("success") ? "text-[#AE2448]" : "text-[#AE2448]"}`}>
+                    <p className={`text-sm mt-3 font-medium ${driveSaveMessage.includes("success") || driveSaveMessage.includes("✓") ? "text-emerald-700" : "text-[#AE2448]"}`}>
                       {driveSaveMessage}
                     </p>
                   )}

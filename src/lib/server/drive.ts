@@ -70,9 +70,88 @@ function getServiceAccountCredentials(): Record<string, unknown> | null {
   return null;
 }
 
+let cachedOAuthTokens: any = null;
+
+export async function saveOAuthTokens(tokens: any) {
+  cachedOAuthTokens = tokens;
+  driveClient = null;
+
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const dir = path.join(process.cwd(), '.data');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'google_tokens.json'), JSON.stringify(tokens, null, 2));
+  } catch (err) {
+    console.warn('Local token save error:', err);
+  }
+
+  try {
+    const { getCollection } = await import('@/lib/server/db');
+    const tokensCol = await getCollection('system_settings');
+    await tokensCol.updateOne(
+      { key: 'google_oauth_tokens' },
+      { $set: { key: 'google_oauth_tokens', tokens, updatedAt: Date.now() } },
+      { upsert: true }
+    );
+  } catch (err) {
+    console.warn('DB token save error:', err);
+  }
+}
+
+export async function getOAuthTokens(): Promise<any> {
+  if (cachedOAuthTokens) return cachedOAuthTokens;
+
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const tokenPath = path.join(process.cwd(), '.data', 'google_tokens.json');
+    if (fs.existsSync(tokenPath)) {
+      const data = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
+      cachedOAuthTokens = data;
+      return data;
+    }
+  } catch {}
+
+  try {
+    const { getCollection } = await import('@/lib/server/db');
+    const tokensCol = await getCollection('system_settings');
+    const doc = await tokensCol.findOne({ key: 'google_oauth_tokens' });
+    if (doc && (doc as any).tokens) {
+      cachedOAuthTokens = (doc as any).tokens;
+      return cachedOAuthTokens;
+    }
+  } catch {}
+
+  return null;
+}
+
+export async function getOAuth2Client(): Promise<any> {
+  const tokens = await getOAuthTokens();
+  if (!tokens) return null;
+
+  const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+  oauth2Client.setCredentials(tokens);
+  return oauth2Client;
+}
+
 export function getDriveClient(): drive_v3.Drive | null {
   if (driveClient) return driveClient;
 
+  // 1. If OAuth tokens exist in memory, use OAuth client
+  if (cachedOAuthTokens) {
+    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+    oauth2Client.setCredentials(cachedOAuthTokens);
+    driveClient = google.drive({ version: 'v3', auth: oauth2Client });
+    return driveClient;
+  }
+
+  // 2. Otherwise use Service Account
   const credentials = getServiceAccountCredentials();
   if (!credentials) {
     console.warn('Google Drive Service Account credentials not found.');
@@ -124,17 +203,31 @@ export async function createResumableUploadSession(params: {
   isMeeting?: boolean;
   origin?: string;
 }): Promise<{ uploadUrl: string } | null> {
-  const credentials = getServiceAccountCredentials();
-  if (!credentials) return null;
+  let token: string | null | undefined = null;
 
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/drive'],
-  });
+  try {
+    const oauthClient = await getOAuth2Client();
+    if (oauthClient) {
+      const tokenRes = await oauthClient.getAccessToken();
+      token = tokenRes.token;
+    }
+  } catch (oauthErr) {
+    console.warn('OAuth token fetch warning:', oauthErr);
+  }
 
-  const client = await auth.getClient();
-  const tokenResponse = await client.getAccessToken();
-  const token = tokenResponse.token;
+  if (!token) {
+    const credentials = getServiceAccountCredentials();
+    if (!credentials) return null;
+
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: ['https://www.googleapis.com/auth/drive'],
+    });
+
+    const client = await auth.getClient();
+    const tokenResponse = await client.getAccessToken();
+    token = tokenResponse.token;
+  }
 
   if (!token) {
     throw new Error('Failed to acquire Google Drive access token');

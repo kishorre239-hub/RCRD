@@ -44,3 +44,4 @@ Thumbs.db
 
 # Local storage runtime data
 .data/
+public/uploads/

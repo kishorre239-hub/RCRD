@@ -35,6 +35,7 @@ export interface VideoEditorData {
   transcription?: string;
   speed?: number;
   updatedAt?: number;
+  savedAt?: string | number;
 }
 
 export interface Video {

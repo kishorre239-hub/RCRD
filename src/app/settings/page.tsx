@@ -6,7 +6,7 @@ import Image from "next/image";
 import { 
   Search, ExternalLink, 
   ChevronDown, Info, Download, Globe, HardDrive,
-  Shield, Share2, Bell
+  Shield, Share2, Bell, Cloud, Check
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,

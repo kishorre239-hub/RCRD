@@ -13,14 +13,20 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get('courseId');
 
+    const isMeetingFilter = courseId === 'MEETING' || courseId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || courseId === '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S';
+
     let dbVideos: Video[] = [];
     try {
       const videosCol = await getCollection<Video>('videos');
       const query: Record<string, unknown> = {};
       if (courseId) {
-        query.courseId = courseId;
+        if (isMeetingFilter) {
+          query.courseId = { $in: ['MEETING', '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg', '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S'] };
+        } else {
+          query.courseId = courseId;
+        }
       } else if (userId && user?.email) {
-        query.$or = [{ ownerId: userId }, { ownerEmail: user.email }, { isPublic: true }];
+        query.$or = [{ ownerId: userId }, { ownerEmail: user.email }, { isPublic: true }, { isCompanyShared: true }];
       }
       dbVideos = await videosCol.find(query).sort({ createdAt: -1 }).toArray();
     } catch (dbErr: unknown) {
@@ -34,11 +40,20 @@ export async function GET(req: Request) {
     // Merge database videos and Google Drive videos, avoiding duplicates by driveFileId / id
     const videoMap = new Map<string, Record<string, any>>();
 
+    // Helper to test if a video matches the requested courseId
+    const matchesCourse = (videoCourseId?: string) => {
+      if (!courseId) return true;
+      if (isMeetingFilter) {
+        return videoCourseId === 'MEETING' || videoCourseId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || videoCourseId === '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S';
+      }
+      return videoCourseId === courseId;
+    };
+
     // 1. First add live Google Drive videos (Google Drive is the single source of truth)
     for (const dv of driveVideos) {
       const backupMeta = getBackupVideoMeta(dv.id);
       const effectiveCourseId = (backupMeta?.courseId !== undefined) ? backupMeta.courseId : (dv.courseId || '');
-      if (courseId && effectiveCourseId !== courseId) continue;
+      if (!matchesCourse(effectiveCourseId)) continue;
       videoMap.set(dv.id, {
         ...dv,
         courseId: effectiveCourseId,
@@ -69,6 +84,7 @@ export async function GET(req: Request) {
 
         // If the video is a local upload or completed recording
         if (!driveId) {
+          if (!matchesCourse(v.courseId)) continue;
           const createdAt = v.createdAt || Date.now();
           videoMap.set(vidId, {
             ...v,
@@ -107,6 +123,7 @@ export async function GET(req: Request) {
         if (!v.id || v.id.startsWith('local:')) return false;
         if (v.mimeType && v.mimeType.startsWith('image/')) return false;
         if (typeof v.title === 'string' && /\.(png|jpg|jpeg|gif|webp)$/i.test(v.title)) return false;
+        if (!matchesCourse(v.courseId)) return false;
         return true;
       })
       .sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));

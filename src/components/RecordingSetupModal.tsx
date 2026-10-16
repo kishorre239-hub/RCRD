@@ -22,7 +22,8 @@ import {
   Upload, 
   Folder, 
   ExternalLink,
-  Download
+  Download,
+  AlertCircle
 } from 'lucide-react';
 import { uploadVideo, getCourses } from '@/lib/api';
 
@@ -46,8 +47,8 @@ export default function RecordingSetupModal({
   defaultFolderId,
   showToast = () => {},
 }: RecordingSetupModalProps) {
-  // Modal flow states: 'configuring' | 'countdown' | 'recording' | 'saving' | 'uploading'
-  const [phase, setPhase] = useState<'configuring' | 'countdown' | 'recording' | 'saving' | 'uploading'>('configuring');
+  // Modal flow states: 'configuring' | 'requesting' | 'countdown' | 'recording' | 'saving' | 'uploading'
+  const [phase, setPhase] = useState<'configuring' | 'requesting' | 'countdown' | 'recording' | 'saving' | 'uploading'>('configuring');
 
   // Configuration options matching Loom
   const [screenType, setScreenType] = useState<'Full Screen' | 'Window' | 'Current tab' | 'Camera only'>('Full Screen');
@@ -62,7 +63,7 @@ export default function RecordingSetupModal({
   // Dynamic device detection
   const [cameraDeviceName, setCameraDeviceName] = useState('HP Wide Vision HD Camera');
   const [micDeviceName, setMicDeviceName] = useState('Default - Microphone Array');
-  const [audioLevel, setAudioLevel] = useState(0); // For live microphone volume meter
+  const [audioLevel, setAudioLevel] = useState(0);
 
   // Tip banner visibility
   const [showTip, setShowTip] = useState(true);
@@ -81,19 +82,21 @@ export default function RecordingSetupModal({
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
-  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
   const pipCameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const bottomPipCameraVideoRef = useRef<HTMLVideoElement | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number | null>(null);
+  const activeStreamsRef = useRef<{ disp?: MediaStream | null; cam?: MediaStream | null; mic?: MediaStream | null }>({});
 
   // Save / Upload settings
   const [videoTitle, setVideoTitle] = useState('');
   const [folders, setFolders] = useState<FolderOption[]>([]);
-  const [selectedFolderId, setSelectedFolderId] = useState<string>('1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S');
+  // Use real MEETING folder ID discovered on user's Google Drive
+  const [selectedFolderId, setSelectedFolderId] = useState<string>('16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [savedVideoId, setSavedVideoId] = useState<string | null>(null);
@@ -116,7 +119,7 @@ export default function RecordingSetupModal({
           setMicDeviceName(audioInput.label);
         }
       } catch {
-        // Fallback to default labels
+        // Fallback to defaults
       }
     }
     detectDevices();
@@ -128,7 +131,7 @@ export default function RecordingSetupModal({
           setFolders(res);
         } else {
           setFolders([
-            { id: '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S', name: 'MEETING' },
+            { id: '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg', name: 'MEETING' },
             { id: '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7', name: 'GEONIXA LOOM' }
           ]);
         }
@@ -138,7 +141,7 @@ export default function RecordingSetupModal({
       })
       .catch(() => {
         setFolders([
-          { id: '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S', name: 'MEETING' },
+          { id: '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg', name: 'MEETING' },
           { id: '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7', name: 'GEONIXA LOOM' }
         ]);
       });
@@ -196,6 +199,18 @@ export default function RecordingSetupModal({
 
   // Clean up streams & URLs on unmount or reset
   const cleanupStreams = useCallback(() => {
+    if (activeStreamsRef.current.disp) {
+      activeStreamsRef.current.disp.getTracks().forEach(t => t.stop());
+      activeStreamsRef.current.disp = null;
+    }
+    if (activeStreamsRef.current.cam) {
+      activeStreamsRef.current.cam.getTracks().forEach(t => t.stop());
+      activeStreamsRef.current.cam = null;
+    }
+    if (activeStreamsRef.current.mic) {
+      activeStreamsRef.current.mic.getTracks().forEach(t => t.stop());
+      activeStreamsRef.current.mic = null;
+    }
     if (displayStream) {
       displayStream.getTracks().forEach(t => t.stop());
       setDisplayStream(null);
@@ -214,8 +229,13 @@ export default function RecordingSetupModal({
     }
   }, [displayStream, cameraStream]);
 
-  // Handle modal close
+  // Handle modal close safely (only when NOT recording)
   const handleClose = () => {
+    if (phase === 'recording' || phase === 'countdown') {
+      if (!confirm('Are you sure you want to stop and discard this recording?')) {
+        return;
+      }
+    }
     cleanupStreams();
     if (recordedVideoUrl) {
       URL.revokeObjectURL(recordedVideoUrl);
@@ -228,31 +248,69 @@ export default function RecordingSetupModal({
     onClose();
   };
 
+  // Stop recording and transition to Save screen
+  const stopRecording = useCallback(() => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (err) {
+        console.warn('Error stopping MediaRecorder:', err);
+      }
+    }
+  }, []);
+
+  // Cancel recording and close
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.onstop = null;
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {}
+    }
+    cleanupStreams();
+    setPhase('configuring');
+    setIsPaused(false);
+    setTimer(0);
+    onClose();
+  };
+
   // Start recording flow
   const startRecordingFlow = async () => {
+    // 1. Immediately switch to requesting phase: Hides setup popup and eliminates backdrop click-outside!
+    setPhase('requesting');
+
     try {
       let dispStream: MediaStream | null = null;
       let camStream: MediaStream | null = null;
       let micStream: MediaStream | null = null;
       const combinedStream = new MediaStream();
 
-      // Set up Studio Web Audio pipeline to eliminate noise and mix mic + system audio seamlessly
+      // Set up Studio Web Audio pipeline
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const audioCtx = new AudioCtx();
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume().catch(() => {});
+      }
       const dest = audioCtx.createMediaStreamDestination();
 
-      // 1. High-pass filter to strip low-end background fan rumble (<85Hz)
       const highpass = audioCtx.createBiquadFilter();
       highpass.type = 'highpass';
       highpass.frequency.setValueAtTime(85, audioCtx.currentTime);
 
-      // 2. Dynamics Compressor for broadcast vocal clarity and smooth volume leveling
       const compressor = audioCtx.createDynamicsCompressor();
       compressor.threshold.setValueAtTime(-24, audioCtx.currentTime);
       compressor.knee.setValueAtTime(30, audioCtx.currentTime);
       compressor.ratio.setValueAtTime(4, audioCtx.currentTime);
       compressor.attack.setValueAtTime(0.003, audioCtx.currentTime);
       compressor.release.setValueAtTime(0.25, audioCtx.currentTime);
+
+      // Connect filter pipeline to destination
+      highpass.connect(compressor);
+      compressor.connect(dest);
 
       // 1. Screen capture (unless Camera only)
       if (screenType === 'Camera only') {
@@ -261,14 +319,13 @@ export default function RecordingSetupModal({
           audio: micOn ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false,
         };
         camStream = await navigator.mediaDevices.getUserMedia(camConstraints);
+        activeStreamsRef.current.cam = camStream;
         camStream.getVideoTracks().forEach(t => combinedStream.addTrack(t));
         setCameraStream(camStream);
 
         if (micOn && camStream.getAudioTracks().length > 0) {
           const micSource = audioCtx.createMediaStreamSource(new MediaStream(camStream.getAudioTracks()));
           micSource.connect(highpass);
-          highpass.connect(compressor);
-          compressor.connect(dest);
         }
       } else {
         // Screen capture: Configure browser to prioritize Entire Screen
@@ -287,37 +344,40 @@ export default function RecordingSetupModal({
               noiseSuppression: true,
               autoGainControl: true,
             },
-            // Prioritize entire screen and prevent defaulting to current tab
             preferCurrentTab: screenType === 'Current tab',
             selfBrowserSurface: screenType === 'Current tab' ? 'include' : 'exclude',
             systemAudio: 'include',
             surfaceSwitching: 'include',
           } as DisplayMediaStreamOptions);
         } catch {
-          // Fallback if browser doesn't accept extended constraints
           dispStream = await navigator.mediaDevices.getDisplayMedia({
             video: true,
             audio: true,
           });
         }
 
+        activeStreamsRef.current.disp = dispStream;
         dispStream.getVideoTracks().forEach(t => combinedStream.addTrack(t));
         setDisplayStream(dispStream);
 
-        // When user clicks "Stop sharing" from browser chrome banner
+        // When user clicks "Stop sharing" from Chrome's bottom banner
         if (dispStream.getVideoTracks()[0]) {
           dispStream.getVideoTracks()[0].onended = () => {
             stopRecording();
           };
         }
 
-        // Connect system audio to Web Audio destination
+        // Connect system audio to Web Audio destination if available
         if (dispStream.getAudioTracks().length > 0) {
-          const sysSource = audioCtx.createMediaStreamSource(new MediaStream(dispStream.getAudioTracks()));
-          const sysGain = audioCtx.createGain();
-          sysGain.gain.setValueAtTime(0.8, audioCtx.currentTime);
-          sysSource.connect(sysGain);
-          sysGain.connect(dest);
+          try {
+            const sysSource = audioCtx.createMediaStreamSource(new MediaStream(dispStream.getAudioTracks()));
+            const sysGain = audioCtx.createGain();
+            sysGain.gain.setValueAtTime(0.85, audioCtx.currentTime);
+            sysSource.connect(sysGain);
+            sysGain.connect(dest);
+          } catch (e) {
+            console.warn('System audio mix note:', e);
+          }
         }
 
         // Microphone audio track with broadcast noise suppression & compression
@@ -332,12 +392,11 @@ export default function RecordingSetupModal({
                 sampleRate: 48000,
               },
             });
+            activeStreamsRef.current.mic = micStream;
             const micSource = audioCtx.createMediaStreamSource(micStream);
             micSource.connect(highpass);
-            highpass.connect(compressor);
-            compressor.connect(dest);
           } catch (micErr) {
-            console.warn('Microphone permission notice:', micErr);
+            console.warn('Microphone stream optional note:', micErr);
           }
         }
 
@@ -347,14 +406,15 @@ export default function RecordingSetupModal({
             camStream = await navigator.mediaDevices.getUserMedia({
               video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 30 } },
             });
+            activeStreamsRef.current.cam = camStream;
             setCameraStream(camStream);
           } catch {
-            // Camera denied
+            // Camera optional
           }
         }
       }
 
-      // Add the master filtered, mixed audio track to recorder stream
+      // Add filtered audio track to recorder stream if available
       dest.stream.getAudioTracks().forEach(t => combinedStream.addTrack(t));
 
       // Check optimal supported MIME type
@@ -377,7 +437,6 @@ export default function RecordingSetupModal({
       const recorder = new MediaRecorder(combinedStream, {
         mimeType: selectedMime,
         videoBitsPerSecond: 2500000,
-        audioBitsPerSecond: 128000,
       });
 
       mediaRecorderRef.current = recorder;
@@ -395,18 +454,16 @@ export default function RecordingSetupModal({
         setRecordedBlob(blob);
         setRecordedVideoUrl(url);
 
-        // Pre-fill smart title with formatted date/time
         const now = new Date();
         const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
         setVideoTitle(`Recording · ${dateStr} (${timeStr})`);
 
-        // Switch to saving phase
         setPhase('saving');
         cleanupStreams();
       };
 
-      // Start countdown (3, 2, 1) as seen in Image 4
+      // Start countdown (3, 2, 1) then transition to recording
       setPhase('countdown');
       setCountdown(3);
 
@@ -422,7 +479,7 @@ export default function RecordingSetupModal({
 
     } catch (err: unknown) {
       console.error('Error starting recording:', err);
-      showToast('Screen or media permissions required to record.');
+      showToast('Screen share was cancelled or permission denied.');
       setPhase('configuring');
       cleanupStreams();
     }
@@ -436,12 +493,19 @@ export default function RecordingSetupModal({
     }
     const rec = recorderInstance || mediaRecorderRef.current;
     if (rec && rec.state === 'inactive') {
-      rec.start(1000);
+      try {
+        rec.start(1000);
+      } catch (e) {
+        console.warn('Recorder start fallback:', e);
+        rec.start();
+      }
       setPhase('recording');
       setTimer(0);
       timerIntervalRef.current = setInterval(() => {
         setTimer(prev => prev + 1);
       }, 1000);
+    } else {
+      setPhase('recording');
     }
   };
 
@@ -464,22 +528,6 @@ export default function RecordingSetupModal({
     }
   };
 
-  // Stop recording
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-  };
-
-  // Cancel recording
-  const cancelRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.onstop = null;
-      mediaRecorderRef.current.stop();
-    }
-    handleClose();
-  };
-
   // Handle local file selection
   const handleFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -488,12 +536,15 @@ export default function RecordingSetupModal({
       const url = URL.createObjectURL(file);
       setRecordedBlob(file);
       setRecordedVideoUrl(url);
-      setVideoTitle(file.name.replace(/\.[^/.]+$/, ''));
+
+      const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+      setVideoTitle(nameWithoutExt);
+
       setPhase('saving');
     }
   };
 
-  // Handle saving to Google Drive & auto-save
+  // Save video to Google Drive / Course folder
   const handleSaveToDrive = async () => {
     if (!recordedBlob) return;
 
@@ -507,31 +558,30 @@ export default function RecordingSetupModal({
     try {
       const res = await uploadVideo(
         recordedBlob,
-        selectedFolderId || '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S',
+        selectedFolderId || '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg',
         (percent) => {
           setUploadProgress(percent);
         },
         finalTitle,
         {
           folderName: targetCourse?.name || 'MEETING',
-          isMeeting: selectedFolderId === 'MEETING' || selectedFolderId === '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S',
+          isMeeting: selectedFolderId === 'MEETING' || selectedFolderId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg',
         }
       );
 
       if (res?.videoId) {
         setSavedVideoId(res.videoId);
       }
-      showToast('Video saved to Google Drive!');
+      showToast('Video saved to Library & Course folder!');
       if (onRecordingComplete) {
         onRecordingComplete();
       }
-      // Wait a moment so user sees 100% complete
       setTimeout(() => {
         handleClose();
-      }, 1000);
+      }, 1200);
     } catch (err: unknown) {
       console.error('Failed to upload video to Drive:', err);
-      setUploadError(err instanceof Error ? err.message : 'Upload failed. Check Google Drive connection.');
+      setUploadError(err instanceof Error ? err.message : 'Save failed. Video is kept in preview to download locally.');
       setPhase('saving');
     }
   };
@@ -541,6 +591,10 @@ export default function RecordingSetupModal({
     if (pipCameraVideoRef.current && cameraStream) {
       pipCameraVideoRef.current.srcObject = cameraStream;
       pipCameraVideoRef.current.play().catch(() => {});
+    }
+    if (bottomPipCameraVideoRef.current && cameraStream) {
+      bottomPipCameraVideoRef.current.srcObject = cameraStream;
+      bottomPipCameraVideoRef.current.play().catch(() => {});
     }
   }, [cameraStream, phase]);
 
@@ -563,24 +617,23 @@ export default function RecordingSetupModal({
         className="hidden" 
       />
 
-      {/* ── PHASE 1: RECORDING SETUP WIDGET (EXACT LOOM POPUP AS SEEN IN IMAGE 2 & 3) ── */}
+      {/* ── PHASE 1: CONFIGURING (LOOM POPUP AT TOP-RIGHT) ── */}
       {phase === 'configuring' && (
         <>
-          {/* Subtle click-outside backdrop */}
+          {/* Subtle click-outside backdrop ONLY in configuring phase */}
           <div 
-            className="fixed inset-0 bg-black/10 z-50 transition-opacity" 
+            className="fixed inset-0 bg-black/10 z-[9990] transition-opacity" 
             onClick={handleClose}
           />
 
           {/* Floating Widget Card at Top-Right */}
           <div 
-            className="fixed top-14 right-8 w-[320px] bg-white rounded-[26px] shadow-[0_20px_50px_rgba(0,0,0,0.18)] z-50 border border-slate-200/90 p-5 overflow-visible animate-in fade-in zoom-in-95 duration-200 select-none font-sans"
+            className="fixed top-14 right-8 w-[320px] bg-white rounded-[26px] shadow-[0_20px_50px_rgba(0,0,0,0.18)] z-[9995] border border-slate-200/90 p-5 overflow-visible animate-in fade-in zoom-in-95 duration-200 select-none font-sans"
             onClick={e => e.stopPropagation()}
           >
             {/* Header: Loom Brand Icon + Title + Help & Home Actions */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                {/* Loom blue sunburst icon */}
                 <div className="w-7 h-7 rounded-lg bg-[#2F70F2] flex items-center justify-center text-white shadow-xs">
                   <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 stroke-white stroke-[2.5]" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="3" />
@@ -635,7 +688,7 @@ export default function RecordingSetupModal({
                 </button>
 
                 {showScreenOptions && (
-                  <div className="absolute top-full left-0 w-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150 py-1">
+                  <div className="absolute top-full left-0 w-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-[9999] animate-in fade-in zoom-in-95 duration-150 py-1">
                     {(['Full Screen', 'Window', 'Current tab', 'Camera only'] as const).map((opt) => (
                       <button
                         key={opt}
@@ -677,7 +730,6 @@ export default function RecordingSetupModal({
                 onClick={() => setMicOn(!micOn)}
                 className="w-full h-12 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-2xl flex items-center justify-between cursor-pointer transition-colors text-slate-800 text-[13.5px] font-medium relative overflow-hidden"
               >
-                {/* Live audio volume wave bar at bottom of pill */}
                 {micOn && audioLevel > 5 && (
                   <div 
                     className="absolute bottom-0 left-0 h-1 bg-[#2F70F2] transition-all duration-75 ease-out opacity-90 rounded-full"
@@ -711,10 +763,9 @@ export default function RecordingSetupModal({
                     <span>{videoAccess}</span>
                   </button>
 
-                  {/* Popover Menu matching Image 3 */}
                   {showAccessMenu && (
                     <div 
-                      className="absolute right-0 top-10 w-[240px] bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-50 animate-in fade-in zoom-in-95 duration-150"
+                      className="absolute right-0 top-10 w-[240px] bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-[9999] animate-in fade-in zoom-in-95 duration-150"
                       onClick={e => e.stopPropagation()}
                     >
                       <div className="px-3 py-2 text-xs font-bold text-slate-900 border-b border-slate-100">
@@ -757,10 +808,10 @@ export default function RecordingSetupModal({
                     onChange={e => setSelectedFolderId(e.target.value)}
                     className="max-w-[170px] text-xs font-semibold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 outline-none cursor-pointer truncate"
                   >
-                    <option value="1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S">MEETING</option>
+                    <option value="16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg">MEETING</option>
                     <option value="1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7">GEONIXA LOOM</option>
                     {folders
-                      .filter(f => f.id !== '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S' && f.id !== '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7' && f.name !== 'MEETING')
+                      .filter(f => f.id !== '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' && f.id !== '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7' && f.name !== 'MEETING')
                       .map(f => (
                         <option key={f.id} value={f.id}>{f.name}</option>
                       ))}
@@ -768,7 +819,7 @@ export default function RecordingSetupModal({
                 </div>
               </div>
 
-              {/* 5. Start Recording Button in Sunset Orange */}
+              {/* 5. Start Recording Button */}
               <div className="pt-2">
                 <button
                   type="button"
@@ -813,11 +864,27 @@ export default function RecordingSetupModal({
         </>
       )}
 
-      {/* ── PHASE 2: COUNTDOWN SCREEN (EXACT REPLICA AS SEEN IN IMAGE 4) ── */}
+      {/* ── PHASE 1.5: REQUESTING PERMISSION NOTIFICATION ── */}
+      {phase === 'requesting' && (
+        <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[99999] bg-[#1E1E24]/95 text-white px-6 py-3.5 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+          <Loader2 className="w-5 h-5 text-[#FF5841] animate-spin shrink-0" />
+          <div className="text-sm font-semibold">
+            Choose what to share in the browser popup...
+          </div>
+          <button
+            type="button"
+            onClick={cancelRecording}
+            className="ml-3 text-xs text-white/60 hover:text-white underline cursor-pointer"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* ── PHASE 2: COUNTDOWN SCREEN (3-2-1) ── */}
       {phase === 'countdown' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-xs select-none">
-          {/* Big Blue Countdown Circle */}
-          <div className="w-48 h-48 rounded-full bg-[#2F70F2] flex flex-col items-center justify-center text-white shadow-2xl animate-in zoom-in-75 duration-300">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/40 backdrop-blur-xs select-none">
+          <div className="w-48 h-48 rounded-full bg-[#2F70F2] flex flex-col items-center justify-center text-white shadow-2xl animate-in zoom-in-75 duration-300 border-4 border-white/30">
             <span className="text-7xl font-extrabold tracking-tight">{countdown}</span>
             <button
               type="button"
@@ -828,9 +895,9 @@ export default function RecordingSetupModal({
             </button>
           </div>
 
-          {/* Webcam bubble in bottom-left during countdown (as seen in Image 4!) */}
+          {/* Webcam bubble in bottom-left during countdown */}
           {cameraOn && (
-            <div className="fixed bottom-6 left-6 z-50 w-36 h-36 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-slate-950">
+            <div className="fixed bottom-8 left-8 z-[99999] w-36 h-36 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-slate-950">
               <video 
                 ref={pipCameraVideoRef} 
                 autoPlay 
@@ -843,23 +910,84 @@ export default function RecordingSetupModal({
         </div>
       )}
 
-      {/* ── PHASE 3: RECORDING IN PROGRESS FLOATING TOOLBAR + WEBCAM BUBBLE ── */}
+      {/* ── PHASE 3: RECORDING IN PROGRESS FLOATING DOCK & CONTROLS ── */}
       {phase === 'recording' && (
         <>
-          {/* Floating dark vertical toolbar on left screen edge (as seen in Image 2 & 4) */}
-          <div className="fixed left-4 top-1/2 -translate-y-1/2 z-50 bg-[#1E1E24]/95 backdrop-blur-md text-white rounded-2xl p-2.5 flex flex-col items-center gap-3 shadow-2xl border border-white/10 select-none">
+          {/* PRIMARY: Floating Bottom Control Dock Bar (Centered, Ultra-Visible) */}
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[99999] bg-[#1E1E24]/95 backdrop-blur-xl border border-white/15 shadow-[0_20px_60px_rgba(0,0,0,0.5)] px-5 py-3 rounded-2xl flex items-center gap-4 text-white select-none animate-in fade-in slide-in-from-bottom-4 duration-300">
+            
+            {/* Live recording indicator & Time */}
+            <div className="flex items-center gap-2.5 pr-2 border-r border-white/15">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+              <span className="text-xs font-bold tracking-wider text-red-400 uppercase">REC</span>
+              <span className="text-sm font-mono font-bold text-white/90 min-w-[44px]">
+                {formatRecTime(timer)}
+              </span>
+            </div>
+
+            {/* Pause / Resume Button */}
+            <button
+              type="button"
+              onClick={togglePause}
+              className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 flex items-center gap-2 text-xs font-bold transition-all cursor-pointer active:scale-95"
+              title={isPaused ? "Resume Recording" : "Pause Recording"}
+            >
+              {isPaused ? <Play size={15} fill="white" /> : <Pause size={15} fill="white" />}
+              <span>{isPaused ? "Resume" : "Pause"}</span>
+            </button>
+
+            {/* BIG RED STOP & FINISH BUTTON */}
+            <button
+              type="button"
+              onClick={stopRecording}
+              className="px-4 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 active:bg-red-700 flex items-center gap-2 text-xs font-extrabold text-white transition-all shadow-[0_4px_16px_rgba(239,68,68,0.5)] transform hover:scale-105 active:scale-95 cursor-pointer tracking-wide"
+              title="Finish and Save Recording"
+            >
+              <Square size={14} fill="white" />
+              <span>Stop & Save</span>
+            </button>
+
+            {/* Restart Button */}
+            <button
+              type="button"
+              onClick={() => {
+                cancelRecording();
+                setTimeout(() => startRecordingFlow(), 400);
+              }}
+              className="p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              title="Restart Recording"
+            >
+              <RotateCcw size={16} />
+            </button>
+
+            {/* Discard / Trash Button */}
+            <button
+              type="button"
+              onClick={cancelRecording}
+              className="p-2.5 rounded-xl text-white/60 hover:text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
+              title="Discard Recording"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+
+          {/* SECONDARY: Left-edge vertical pill bar for Loom-style muscle memory */}
+          <div className="fixed left-5 top-1/2 -translate-y-1/2 z-[99999] bg-[#1E1E24]/95 backdrop-blur-xl text-white rounded-2xl p-2.5 flex flex-col items-center gap-3 shadow-2xl border border-white/15 select-none">
             {/* Red Stop Recording Button */}
             <button
               type="button"
               onClick={stopRecording}
-              className="w-9 h-9 rounded-xl bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-transform active:scale-90 cursor-pointer shadow-md"
-              title="Stop Recording"
+              className="w-10 h-10 rounded-xl bg-red-500 hover:bg-red-600 flex items-center justify-center text-white transition-transform active:scale-90 cursor-pointer shadow-lg"
+              title="Stop & Save Recording"
             >
               <Square size={16} fill="white" />
             </button>
 
             {/* Timer Display */}
-            <span className="text-xs font-mono font-bold text-white/90 px-1 py-0.5 rounded bg-white/10">
+            <span className="text-[11px] font-mono font-bold text-white/90 px-1 py-0.5 rounded bg-white/10">
               {formatRecTime(timer)}
             </span>
 
@@ -886,7 +1014,7 @@ export default function RecordingSetupModal({
               <RotateCcw size={15} />
             </button>
 
-            {/* Cancel / Trash Button */}
+            {/* Discard / Trash Button */}
             <button
               type="button"
               onClick={cancelRecording}
@@ -897,11 +1025,11 @@ export default function RecordingSetupModal({
             </button>
           </div>
 
-          {/* Floating camera circle in bottom-left corner */}
+          {/* Circular webcam bubble in bottom-left corner */}
           {cameraOn && (
-            <div className="fixed bottom-6 left-6 z-50 w-36 h-36 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-slate-950">
+            <div className="fixed bottom-8 left-8 z-[99999] w-36 h-36 rounded-full border-4 border-white shadow-2xl overflow-hidden bg-slate-950">
               <video 
-                ref={pipCameraVideoRef} 
+                ref={bottomPipCameraVideoRef} 
                 autoPlay 
                 muted 
                 playsInline 
@@ -914,7 +1042,7 @@ export default function RecordingSetupModal({
 
       {/* ── PHASE 4: RECORDING COMPLETED / SAVING OVERLAY ── */}
       {phase === 'saving' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
           <div 
             className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95"
             onClick={e => e.stopPropagation()}
@@ -927,7 +1055,7 @@ export default function RecordingSetupModal({
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-900 text-base">Recording Completed</h3>
-                  <p className="text-xs text-slate-500">Auto-routed to Google Drive</p>
+                  <p className="text-xs text-slate-500">Ready to save and organize</p>
                 </div>
               </div>
               <button 
@@ -939,7 +1067,7 @@ export default function RecordingSetupModal({
             </div>
 
             <div className="p-6 space-y-4">
-              {/* Video preview */}
+              {/* Video preview playback */}
               {recordedVideoUrl && (
                 <div className="w-full h-44 bg-slate-950 rounded-2xl overflow-hidden relative border border-slate-200 shadow-inner">
                   <video 
@@ -950,11 +1078,16 @@ export default function RecordingSetupModal({
                 </div>
               )}
 
-              {/* Error banner */}
+              {/* Error banner if upload encountered an issue */}
               {uploadError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs font-medium text-red-600">
-                  <X size={16} className="shrink-0" />
-                  <span>{uploadError}</span>
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs font-medium text-amber-800 space-y-1">
+                  <div className="flex items-center gap-2 font-bold">
+                    <AlertCircle size={15} className="shrink-0 text-amber-600" />
+                    <span>Upload Notice:</span>
+                  </div>
+                  <p className="pl-6 text-[11px] leading-relaxed text-amber-700">
+                    {uploadError}
+                  </p>
                 </div>
               )}
 
@@ -968,25 +1101,36 @@ export default function RecordingSetupModal({
                   value={videoTitle} 
                   onChange={e => setVideoTitle(e.target.value)} 
                   placeholder="Enter video title..." 
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-[#2F70F2] focus:ring-1 focus:ring-[#2F70F2] outline-none transition-all"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-[#2F70F2] focus:ring-1 focus:ring-[#2F70F2] outline-none transition-all font-medium"
                 />
               </div>
 
-              {/* Destination Folder */}
+              {/* Target Folder Selector */}
               <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
-                  Google Drive Folder
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Target Course / Drive Folder
+                  </label>
+                  <a
+                    href={`https://drive.google.com/drive/folders/${selectedFolderId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-[#2F70F2] hover:underline inline-flex items-center gap-1 font-semibold"
+                  >
+                    <span>Open Drive Folder</span>
+                    <ExternalLink size={11} />
+                  </a>
+                </div>
                 <div className="relative">
                   <select 
                     value={selectedFolderId} 
                     onChange={e => setSelectedFolderId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-[#2F70F2] outline-none transition-all appearance-none cursor-pointer"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-[#2F70F2] outline-none transition-all appearance-none cursor-pointer font-medium"
                   >
-                    <option value="1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S">MEETING (Google Drive)</option>
-                    <option value="1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7">GEONIXA LOOM (Root)</option>
+                    <option value="16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg">MEETING (Google Drive)</option>
+                    <option value="1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7">GEONIXA LOOM (Root Drive)</option>
                     {folders
-                      .filter(f => f.id !== '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S' && f.id !== '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7' && f.name !== 'MEETING')
+                      .filter(f => f.id !== '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' && f.id !== '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7' && f.name !== 'MEETING')
                       .map(f => (
                         <option key={f.id} value={f.id}>{f.name}</option>
                       ))}
@@ -1021,7 +1165,7 @@ export default function RecordingSetupModal({
                   className="flex-[2] py-3 px-4 bg-[#FF5841] hover:bg-[#E04833] text-white rounded-xl font-bold text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
                 >
                   <Folder size={15} />
-                  <span>Save to Google Drive</span>
+                  <span>Save to Course Folder</span>
                 </button>
               </div>
             </div>
@@ -1031,10 +1175,10 @@ export default function RecordingSetupModal({
 
       {/* ── PHASE 5: UPLOADING TO GOOGLE DRIVE OVERLAY ── */}
       {phase === 'uploading' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 p-8 flex flex-col items-center gap-4 max-w-sm w-full animate-in zoom-in-95">
             <Loader2 className="w-12 h-12 text-[#FF5841] animate-spin" />
-            <div className="text-lg font-bold text-slate-900">Saving to Google Drive...</div>
+            <div className="text-lg font-bold text-slate-900">Saving to Course Folder...</div>
             <div className="text-xs text-slate-500 text-center">
               Target folder: {folders.find(f => f.id === selectedFolderId)?.name || 'MEETING'}
             </div>

@@ -106,7 +106,7 @@ export async function getMeetingFolderId(): Promise<string> {
     const createdId = await createDriveFolder('MEETING', rootId);
     return createdId || rootId;
   } catch {
-    return rootId;
+    return '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg';
   }
 }
 

@@ -30,9 +30,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} ${outfit.className} h-full w-full antialiased font-outfit overflow-hidden`}
     >
-      <body className="h-full w-full overflow-hidden flex flex-col m-0 p-0">{children}</body>
+      <body suppressHydrationWarning className="h-full w-full overflow-hidden flex flex-col m-0 p-0">{children}</body>
     </html>
   );
 }

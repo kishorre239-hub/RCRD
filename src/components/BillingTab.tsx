@@ -112,7 +112,7 @@ export default function BillingTab({
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-in fade-in slide-in-from-top-4 duration-200">
-          <Check size={18} className="text-emerald-400" />
+          <Check size={18} className="text-[#72BAA9]" />
           <span className="text-sm font-semibold">{toastMessage}</span>
         </div>
       )}
@@ -123,14 +123,14 @@ export default function BillingTab({
           {/* Loom Flower Logo */}
           <div className="relative w-8 h-8 flex items-center justify-center">
             <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="16" cy="7" r="4.5" fill="#6554C0" />
-              <circle cx="23.5" cy="11.5" r="4.5" fill="#5E4DB2" opacity="0.9" />
-              <circle cx="25" cy="20" r="4.5" fill="#5544A5" opacity="0.8" />
-              <circle cx="19.5" cy="26" r="4.5" fill="#4C3A98" opacity="0.75" />
-              <circle cx="11.5" cy="25" r="4.5" fill="#44328C" opacity="0.7" />
-              <circle cx="7" cy="18" r="4.5" fill="#3E2B80" opacity="0.8" />
-              <circle cx="8.5" cy="10" r="4.5" fill="#52419F" opacity="0.9" />
-              <circle cx="16" cy="16" r="4" fill="#625DF5" />
+              <circle cx="16" cy="7" r="4.5" fill="#6E1A37" />
+              <circle cx="23.5" cy="11.5" r="4.5" fill="#AE2448" opacity="0.9" />
+              <circle cx="25" cy="20" r="4.5" fill="#72BAA9" opacity="0.8" />
+              <circle cx="19.5" cy="26" r="4.5" fill="#D5E7B5" opacity="0.75" />
+              <circle cx="11.5" cy="25" r="4.5" fill="#6E1A37" opacity="0.7" />
+              <circle cx="7" cy="18" r="4.5" fill="#AE2448" opacity="0.8" />
+              <circle cx="8.5" cy="10" r="4.5" fill="#72BAA9" opacity="0.9" />
+              <circle cx="16" cy="16" r="4" fill="#AE2448" />
             </svg>
           </div>
           <span className="text-2xl font-bold tracking-tight text-slate-900">loom</span>
@@ -162,7 +162,7 @@ export default function BillingTab({
               max={500}
               value={people}
               onChange={(e) => handlePeopleChange(parseInt(e.target.value, 10))}
-              className="w-24 px-3 py-1.5 border border-slate-300 rounded-md text-sm font-semibold text-slate-900 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all bg-white"
+              className="w-24 px-3 py-1.5 border border-slate-300 rounded-md text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#AE2448] focus:ring-1 focus:ring-[#AE2448] transition-all bg-white"
             />
           </div>
           <div className="relative">
@@ -195,7 +195,7 @@ export default function BillingTab({
               value="MONTHLY"
               checked={billingCycle === 'MONTHLY'}
               onChange={() => setBillingCycle('MONTHLY')}
-              className="w-4 h-4 text-[#0052CC] border-slate-300 focus:ring-[#0052CC]"
+              className="w-4 h-4 text-[#AE2448] border-slate-300 focus:ring-[#AE2448]"
             />
             <span>Monthly</span>
           </label>
@@ -206,7 +206,7 @@ export default function BillingTab({
               value="ANNUAL"
               checked={billingCycle === 'ANNUAL'}
               onChange={() => setBillingCycle('ANNUAL')}
-              className="w-4 h-4 text-[#0052CC] border-slate-300 focus:ring-[#0052CC]"
+              className="w-4 h-4 text-[#AE2448] border-slate-300 focus:ring-[#AE2448]"
             />
             <span>Annual</span>
           </label>
@@ -265,7 +265,7 @@ export default function BillingTab({
           <div>
             <div className="h-5 mb-2">
               {currentPlanId === 'business' && (
-                <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-[#AE2448] uppercase tracking-wider">
                   CURRENT
                 </span>
               )}
@@ -310,19 +310,19 @@ export default function BillingTab({
         </div>
 
         {/* CARD 3: Business + AI (RECOMMENDED) */}
-        <div className="border-2 border-[#0052CC] rounded-xl p-8 flex flex-col justify-between bg-white relative shadow-sm hover:shadow-md transition-all">
+        <div className="border-2 border-[#AE2448] rounded-xl p-8 flex flex-col justify-between bg-white relative shadow-sm hover:shadow-md transition-all">
           <div>
             <div className="h-5 mb-2 flex items-center justify-between">
-              <span className="border border-[#0052CC] text-[#0052CC] text-[10px] font-bold px-2 py-0.5 rounded tracking-wide uppercase">
+              <span className="border border-[#AE2448] text-[#AE2448] text-[10px] font-bold px-2 py-0.5 rounded tracking-wide uppercase">
                 RECOMMENDED
               </span>
               {currentPlanId === 'business_ai' && (
-                <span className="text-[11px] font-bold text-[#0052CC] uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-[#AE2448] uppercase tracking-wider">
                   CURRENT
                 </span>
               )}
             </div>
-            <h3 className="text-2xl font-bold text-[#0052CC] mb-2">
+            <h3 className="text-2xl font-bold text-[#AE2448] mb-2">
               Business + AI
             </h3>
             <p className="text-sm text-slate-600 mb-8 min-h-[42px] leading-relaxed">
@@ -353,7 +353,7 @@ export default function BillingTab({
               <button
                 onClick={() => handleUpgrade('business_ai')}
                 disabled={upgradingId === 'business_ai'}
-                className="w-full py-2.5 px-4 bg-[#0052CC] hover:bg-[#0047B3] active:bg-[#00388A] text-white font-semibold text-sm rounded-md transition-all text-center shadow-sm"
+                className="w-full py-2.5 px-4 bg-[#AE2448] hover:bg-[#6E1A37] active:bg-[#6E1A37] text-white font-semibold text-sm rounded-md transition-all text-center shadow-sm"
               >
                 {upgradingId === 'business_ai' ? 'Processing...' : 'Upgrade now'}
               </button>
@@ -372,7 +372,7 @@ export default function BillingTab({
           <span>Unlock advanced security, compliance, scale, and support for your teams with Enterprise plans.</span>
           <a
             href="mailto:enterprise-sales@rcrd.com?subject=Inquiry%20about%20Enterprise%20Plan"
-            className="text-[#0052CC] hover:underline font-semibold inline-flex items-center gap-1 transition-colors"
+            className="text-[#AE2448] hover:underline font-semibold inline-flex items-center gap-1 transition-colors"
           >
             Contact sales for pricing <ExternalLink size={13} className="shrink-0" />
           </a>

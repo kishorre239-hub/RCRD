@@ -4,10 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { 
-  Search, Bell, Settings, Users, ExternalLink, Video, 
+  Search, ExternalLink, 
   ChevronDown, Info, Download, Globe, HardDrive,
-  Home, Folder, Bookmark, Building, Shield, Share2
+  Shield, Share2, Bell
 } from "lucide-react";
+import {
+  HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
+  UsersIcon, UserIcon, WorkspaceIcon, NotificationIcon
+} from "@/components/CustomIcons";
 import { 
   saveDriveFolder, getDriveFolder, API_URL 
 } from '@/lib/api';
@@ -70,7 +74,7 @@ function PushRow({
     return (
       <button 
         onClick={() => onToggle(category, item, device)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-blue-600' : 'bg-slate-300'}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-[#AE2448]' : 'bg-slate-300'}`}
       >
         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isActive ? 'translate-x-6' : 'translate-x-1'}`} />
       </button>
@@ -352,41 +356,41 @@ export default function SettingsPage() {
       <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-slate-200 bg-white z-20 h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden">
         <div className="h-16 flex items-center px-6 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-center justify-center w-full cursor-pointer group" onClick={() => router.push('/')}>
-            <Image src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." width={120} height={48} className="h-12 w-auto object-contain transition-transform group-hover:scale-105" />
+            <Image src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." width={120} height={48} className="h-12 w-auto object-contain transition-transform group-hover:scale-105"  style={{ filter: "hue-rotate(131deg) saturate(1.4)" }}/>
           </div>
         </div>
 
         <div className="p-5 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl cursor-pointer transition-all border border-slate-100 hover:border-slate-200 group">
             <div>
-              <div className="text-sm font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">RCRD Workspace</div>
+              <div className="text-sm font-semibold text-slate-800 group-hover:text-[#6E1A37] transition-colors">RCRD Workspace</div>
               <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] uppercase tracking-wider bg-blue-100 px-2 py-0.5 rounded text-blue-700 font-bold border border-blue-200">Settings</span>
+                <span className="text-[10px] uppercase tracking-wider bg-[#D5E7B5] px-2 py-0.5 rounded text-[#6E1A37] font-bold border border-[#AE2448]/30">Settings</span>
                 <span className="text-xs text-slate-500">Admin Config</span>
               </div>
             </div>
             <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
           </div>
           <button className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 transition-all shadow-sm hover:shadow-md">
-            <Users className="w-4 h-4 text-blue-600" />
+            <UsersIcon size={16} className="text-[#AE2448]" />
             Invite Teammates
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto py-5 px-4 custom-scrollbar min-h-0">
           <nav className="space-y-1">
-            <SidebarItem icon={<Home size={18} />} label="For You" href="/" />
-            <SidebarItem icon={<Folder size={18} />} label="Library" href="/library" />
-            <SidebarItem icon={<Video size={18} />} label="Meetings" href="/meetings" />
-            <SidebarItem icon={<Bookmark size={18} />} label="Watch Later" href="/watch-later" />
-            <SidebarItem icon={<Settings size={18} />} label="Settings" active href="/settings" />
+            <SidebarItem icon={<HomeIcon size={18} />} label="For You" href="/" />
+            <SidebarItem icon={<LibraryIcon size={18} />} label="Library" href="/library" />
+            <SidebarItem icon={<VideoCameraIcon size={18} />} label="Meetings" href="/meetings" />
+            <SidebarItem icon={<CalendarIcon size={18} />} label="Calendar" href="/calendar" />
+            <SidebarItem icon={<SettingsIcon size={18} />} label="Settings" active href="/settings" />
           </nav>
 
           <div className="mt-10">
             <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Workspace Admin</h3>
             <nav className="space-y-1">
               <SidebarItem 
-                icon={<Settings size={18} />} 
+                icon={<UserIcon size={18} />} 
                 label="Manage Users" 
                 active={activeTab === 'users'} 
                 onClick={() => {
@@ -396,7 +400,7 @@ export default function SettingsPage() {
                   }
                 }}
               />
-              <SidebarItem icon={<Building size={18} />} label="Workspace Info" />
+              <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" />
               <SidebarItem 
                 icon={<Shield size={18} />} 
                 label="Billing & Plans" 
@@ -415,9 +419,9 @@ export default function SettingsPage() {
         <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           <button 
             onClick={() => setIsRecordModalOpen(true)}
-            className="w-full bg-[#1A68FF] hover:bg-[#1557D6] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(26,104,255,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(26,104,255,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+            className="w-full bg-[#AE2448] hover:bg-[#6E1A37] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(174, 36, 72,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(174, 36, 72,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
-            <Video size={20} className="stroke-[2.2]" />
+            <VideoCameraIcon size={20} />
             <span>Record Video</span>
           </button>
         </div>
@@ -432,20 +436,20 @@ export default function SettingsPage() {
             <input 
               type="text" 
               placeholder="Search for people, tags, folders, Spaces, and RCRDs"
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-lg text-[14px] focus:outline-none focus:ring-2 focus:ring-blue-100 transition-shadow"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border-none rounded-lg text-[14px] focus:outline-none focus:ring-2 focus:ring-[#AE2448]/20 transition-shadow"
             />
           </div>
           <div className="flex items-center gap-4 ml-4">
             <button 
               onClick={() => setActiveTab('billing')}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-bold px-4 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+              className="bg-[#AE2448] hover:bg-[#6E1A37] text-white text-[13px] font-bold px-4 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
             >
               <span>Upgrade</span>
               <span className="bg-white/20 text-[10px] px-1.5 py-0.5 rounded font-mono font-bold">PRO</span>
             </button>
             <button className="text-slate-500 hover:text-slate-700 w-8 h-8 flex items-center justify-center border border-slate-300 rounded-full">?</button>
-            <button className="text-slate-500 hover:text-slate-700"><Bell size={20} /></button>
-            <div className="w-8 h-8 bg-blue-600 text-white font-bold text-[12px] flex items-center justify-center rounded-full">HR</div>
+            <button className="text-slate-500 hover:text-slate-700"><NotificationIcon size={20} /></button>
+            <div className="w-8 h-8 bg-[#AE2448] text-white font-bold text-[12px] flex items-center justify-center rounded-full">HR</div>
           </div>
         </header>
 
@@ -491,7 +495,7 @@ export default function SettingsPage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`pb-3 text-[14px] font-medium whitespace-nowrap border-b-2 transition-colors ${
                       activeTab === tab.id 
-                        ? 'border-blue-600 text-blue-600 font-bold' 
+                        ? 'border-[#AE2448] text-[#AE2448] font-bold' 
                         : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
                     }`}
                   >
@@ -510,7 +514,7 @@ export default function SettingsPage() {
                 {/* Manage on RCRD (Restored Atlassian equivalent) */}
                 <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
                   <div className="border-b border-slate-200 p-6 flex items-center gap-4">
-                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-[18px]">
+                    <div className="w-8 h-8 bg-[#AE2448] rounded-full flex items-center justify-center text-white font-bold text-[18px]">
                       A
                     </div>
                     <h2 className="text-[20px] font-bold text-slate-900">Manage on RCRD</h2>
@@ -521,7 +525,7 @@ export default function SettingsPage() {
                     <p className="text-[14px] text-slate-600 mb-6">Change your name and photo on RCRD</p>
                     
                     <div className="flex items-center gap-6 pb-8 border-b border-slate-100">
-                      <div className="w-24 h-24 bg-[#0E71EB] rounded-full flex items-center justify-center text-white text-[40px] font-bold shadow-sm">
+                      <div className="w-24 h-24 bg-[#AE2448] rounded-full flex items-center justify-center text-white text-[40px] font-bold shadow-sm">
                         HR
                       </div>
                       <div>
@@ -547,7 +551,7 @@ export default function SettingsPage() {
 
                   <div className="bg-slate-50 border-t border-slate-200 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <p className="text-[14px] text-slate-600">To make changes visit your RCRD profile or contact your RCRD Admin.</p>
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-bold px-4 py-2 rounded transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <button className="bg-[#AE2448] hover:bg-[#6E1A37] text-white text-[13px] font-bold px-4 py-2 rounded transition-colors flex items-center gap-2 whitespace-nowrap">
                       View on RCRD <ExternalLink size={14} />
                     </button>
                   </div>
@@ -556,7 +560,7 @@ export default function SettingsPage() {
                 {/* Manage on RCRD (Loom) Card */}
                 <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
                   <div className="border-b border-slate-200 p-6 flex items-center gap-4">
-                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white">
+                    <div className="w-8 h-8 bg-[#AE2448] rounded-full flex items-center justify-center text-white">
                       * 
                     </div>
                     <h2 className="text-[20px] font-bold text-slate-900">Manage on RCRD</h2>
@@ -570,7 +574,7 @@ export default function SettingsPage() {
                       <div className="w-[280px] mb-4">
                         <button className="w-full flex items-center justify-between border border-slate-300 rounded-lg p-3 hover:border-slate-400 transition-colors bg-white">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+                            <div className="w-8 h-8 bg-[#D5E7B5] rounded-full flex items-center justify-center text-[#72BAA9]">
                               <Globe size={16} />
                             </div>
                             <div className="text-left">
@@ -617,7 +621,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="p-6 flex items-center justify-between border-b border-slate-100">
                     <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 flex items-center justify-center font-bold text-xl"><Globe className="w-5 h-5 text-blue-500"/></div>
+                      <div className="w-6 h-6 flex items-center justify-center font-bold text-xl"><Globe className="w-5 h-5 text-[#AE2448]"/></div>
                       <span className="text-[14px] font-bold text-slate-900">Google Calendar</span>
                     </div>
                     <button className="bg-[#c53030] hover:bg-[#9b2c2c] text-white text-[13px] font-bold px-4 py-1.5 rounded transition-colors">
@@ -626,7 +630,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="p-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 flex items-center justify-center font-bold text-xl"><Globe className="w-5 h-5 text-blue-600"/></div>
+                      <div className="w-6 h-6 flex items-center justify-center font-bold text-xl"><Globe className="w-5 h-5 text-[#AE2448]"/></div>
                       <span className="text-[14px] font-bold text-slate-900">Outlook Calendar</span>
                     </div>
                     <button className="border border-slate-300 hover:bg-slate-50 text-slate-700 text-[13px] font-bold px-4 py-1.5 rounded transition-colors">
@@ -648,8 +652,8 @@ export default function SettingsPage() {
                       { val: 'Manually-selected meetings', title: 'Manually-selected meetings', desc: 'Select meetings you want to record after setup.' }
                     ].map(opt => (
                       <div key={opt.val} className="flex items-start gap-3 cursor-pointer group" onClick={() => setMeetingSetting('autoRecording', opt.val)}>
-                        <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.autoRecording === opt.val ? 'border-blue-600' : 'border-slate-400 group-hover:border-slate-600'}`}>
-                          {meetingRecordings.autoRecording === opt.val && <div className="w-2 h-2 bg-blue-600 rounded-full" />}
+                        <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.autoRecording === opt.val ? 'border-[#AE2448]' : 'border-slate-400 group-hover:border-slate-600'}`}>
+                          {meetingRecordings.autoRecording === opt.val && <div className="w-2 h-2 bg-[#AE2448] rounded-full" />}
                         </div>
                         <div>
                           <div className="text-[14px] font-bold text-slate-900">{opt.title}</div>
@@ -675,8 +679,8 @@ export default function SettingsPage() {
                         { val: 'Just me', title: 'Just me', desc: '' }
                       ].map(opt => (
                         <div key={opt.val} className="flex items-start gap-3 cursor-pointer group" onClick={() => setMeetingSetting('meetingRecap', opt.val)}>
-                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.meetingRecap === opt.val ? 'border-blue-600' : 'border-slate-400 group-hover:border-slate-600'}`}>
-                            {meetingRecordings.meetingRecap === opt.val && <div className="w-2 h-2 bg-blue-600 rounded-full" />}
+                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.meetingRecap === opt.val ? 'border-[#AE2448]' : 'border-slate-400 group-hover:border-slate-600'}`}>
+                            {meetingRecordings.meetingRecap === opt.val && <div className="w-2 h-2 bg-[#AE2448] rounded-full" />}
                           </div>
                           <div>
                             <div className="text-[14px] font-bold text-slate-900">{opt.title}</div>
@@ -698,8 +702,8 @@ export default function SettingsPage() {
                         { val: 'Private', title: 'Private', desc: '' }
                       ].map(opt => (
                         <div key={opt.val} className="flex items-start gap-3 cursor-pointer group" onClick={() => setMeetingSetting('linkAccess', opt.val)}>
-                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.linkAccess === opt.val ? 'border-blue-600' : 'border-slate-400 group-hover:border-slate-600'}`}>
-                            {meetingRecordings.linkAccess === opt.val && <div className="w-2 h-2 bg-blue-600 rounded-full" />}
+                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.linkAccess === opt.val ? 'border-[#AE2448]' : 'border-slate-400 group-hover:border-slate-600'}`}>
+                            {meetingRecordings.linkAccess === opt.val && <div className="w-2 h-2 bg-[#AE2448] rounded-full" />}
                           </div>
                           <div>
                             <div className="text-[14px] font-bold text-slate-900">{opt.title}</div>
@@ -720,8 +724,8 @@ export default function SettingsPage() {
                         { val: 'Set default language', title: 'Set default language' }
                       ].map(opt => (
                         <div key={opt.val} className="flex items-start gap-3 cursor-pointer group" onClick={() => setMeetingSetting('languageSetting', opt.val)}>
-                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.languageSetting === opt.val ? 'border-blue-600' : 'border-slate-400 group-hover:border-slate-600'}`}>
-                            {meetingRecordings.languageSetting === opt.val && <div className="w-2 h-2 bg-blue-600 rounded-full" />}
+                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.languageSetting === opt.val ? 'border-[#AE2448]' : 'border-slate-400 group-hover:border-slate-600'}`}>
+                            {meetingRecordings.languageSetting === opt.val && <div className="w-2 h-2 bg-[#AE2448] rounded-full" />}
                           </div>
                           <div className="text-[14px] font-bold text-slate-900">{opt.title}</div>
                         </div>
@@ -738,8 +742,8 @@ export default function SettingsPage() {
                 {/* Banner */}
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-                      <Bell size={24} className="text-blue-600" />
+                    <div className="w-16 h-16 bg-[#D5E7B5] rounded-full flex items-center justify-center shrink-0">
+                      <Bell size={24} className="text-[#AE2448]" />
                     </div>
                     <div>
                       <h2 className="text-[16px] font-bold text-slate-900 mb-1">Turn on push notifications</h2>
@@ -763,7 +767,7 @@ export default function SettingsPage() {
                         <div className="text-[13px] font-bold text-slate-900 mb-1">Email</div>
                         <button 
                           onClick={() => toggleAllPushDevice('email', !isAllDeviceOn('email'))}
-                          className="text-[12px] text-blue-600 hover:underline"
+                          className="text-[12px] text-[#AE2448] hover:underline"
                         >
                           {isAllDeviceOn('email') ? 'Turn off all email' : 'Turn on all email'}
                         </button>
@@ -773,7 +777,7 @@ export default function SettingsPage() {
                         <div className="text-[11px] text-slate-500 mb-1">Push notification</div>
                         <button 
                           onClick={() => toggleAllPushDevice('desktop', !isAllDeviceOn('desktop'))}
-                          className="text-[12px] text-blue-600 hover:underline"
+                          className="text-[12px] text-[#AE2448] hover:underline"
                         >
                           {isAllDeviceOn('desktop') ? 'Turn off all desktop' : 'Turn on all desktop'}
                         </button>
@@ -783,7 +787,7 @@ export default function SettingsPage() {
                         <div className="text-[11px] text-slate-500 mb-1">Push notification</div>
                         <button 
                           onClick={() => toggleAllPushDevice('mobile', !isAllDeviceOn('mobile'))}
-                          className="text-[12px] text-blue-600 hover:underline"
+                          className="text-[12px] text-[#AE2448] hover:underline"
                         >
                           {isAllDeviceOn('mobile') ? 'Turn off all mobile' : 'Turn on all mobile'}
                         </button>
@@ -866,9 +870,9 @@ export default function SettingsPage() {
 
             {activeTab === "integrations" && (
               <div className="space-y-6 pb-20">
-                <div className="p-6 bg-blue-50 border border-blue-100 rounded-xl">
+                <div className="p-6 bg-[#D5E7B5] border border-[#AE2448]/20 rounded-xl">
                   <h2 className="text-[16px] font-bold text-slate-900 mb-2 flex items-center gap-2">
-                    <HardDrive className="w-5 h-5 text-blue-600" />
+                    <HardDrive className="w-5 h-5 text-[#AE2448]" />
                     Google Drive Integration
                   </h2>
                   <p className="text-[14px] text-slate-600 mb-4">Authenticate your Google account and connect your Google Drive folder to sync recorded videos seamlessly.</p>
@@ -876,7 +880,7 @@ export default function SettingsPage() {
                   <div className="flex flex-col gap-4">
                     <button 
                       onClick={() => window.open(`${API_URL}/api/auth/google/login`, '_blank')}
-                      className="w-fit bg-[#0E71EB] hover:bg-[#1655B8] text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2"
+                      className="w-fit bg-[#AE2448] hover:bg-[#6E1A37] text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2"
                     >
                       Authenticate with Google Drive
                     </button>
@@ -887,19 +891,19 @@ export default function SettingsPage() {
                         value={driveLink}
                         onChange={(e) => setDriveLink(e.target.value)}
                         placeholder="Paste your Google Drive folder link here"
-                        className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#AE2448]"
                       />
                       <button 
                         onClick={handleSaveDriveFolder}
                         disabled={isSavingDrive || !driveLink}
-                        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-5 py-2 rounded-lg font-semibold text-sm transition-colors whitespace-nowrap"
+                        className="bg-[#AE2448] hover:bg-[#6E1A37] disabled:opacity-50 text-white px-5 py-2 rounded-lg font-semibold text-sm transition-colors whitespace-nowrap"
                       >
                         {isSavingDrive ? "Saving..." : "Set Folder"}
                       </button>
                     </div>
                   </div>
                   {driveSaveMessage && (
-                    <p className={`text-sm mt-3 font-medium ${driveSaveMessage.includes("success") ? "text-blue-600" : "text-red-600"}`}>
+                    <p className={`text-sm mt-3 font-medium ${driveSaveMessage.includes("success") ? "text-[#AE2448]" : "text-[#AE2448]"}`}>
                       {driveSaveMessage}
                     </p>
                   )}
@@ -930,7 +934,7 @@ export default function SettingsPage() {
                       
                       <button 
                         onClick={() => toggleIntegration(intg.key)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ml-4 shrink-0 ${integrations[intg.key] ? 'bg-blue-600' : 'bg-slate-300'}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ml-4 shrink-0 ${integrations[intg.key] ? 'bg-[#AE2448]' : 'bg-slate-300'}`}
                       >
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${integrations[intg.key] ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
@@ -949,7 +953,7 @@ export default function SettingsPage() {
                   </div>
                   <button 
                     onClick={() => setQuickRecordEnabled(!quickRecordEnabled)}
-                    className={`${quickRecordEnabled ? 'bg-[#c53030] hover:bg-[#9b2c2c]' : 'bg-blue-600 hover:bg-blue-700'} text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-colors shadow-sm`}
+                    className={`${quickRecordEnabled ? 'bg-[#c53030] hover:bg-[#9b2c2c]' : 'bg-[#AE2448] hover:bg-[#6E1A37]'} text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-colors shadow-sm`}
                   >
                     {quickRecordEnabled ? 'Turn off Quick Record' : 'Turn on Quick Record'}
                   </button>
@@ -965,7 +969,7 @@ export default function SettingsPage() {
                   
                   <div className="flex items-center gap-3 mb-8 cursor-pointer" onClick={() => setUseShortcuts(!useShortcuts)}>
                     <button 
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${useShortcuts ? 'bg-blue-600' : 'bg-slate-300'}`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${useShortcuts ? 'bg-[#AE2448]' : 'bg-slate-300'}`}
                     >
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useShortcuts ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
@@ -1019,7 +1023,7 @@ export default function SettingsPage() {
             {/* Fallback for other tabs */}
             {!["my-account", "billing", "meeting-recordings", "push-notifications", "integrations", "quick-record", "keyboard-shortcuts"].includes(activeTab) && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
-                <Settings size={48} className="text-slate-300 mb-4" />
+                <SettingsIcon size={48} className="text-slate-300 mb-4" />
                 <h2 className="text-[18px] font-bold text-slate-700 mb-2">Coming Soon</h2>
                 <p className="text-[14px] text-slate-500 max-w-sm">
                   The {activeTab.replace('-', ' ')} settings will be available in a future update.
@@ -1071,15 +1075,15 @@ function SidebarItem({
         fontStyle: 'normal',
         lineHeight: '14px',
         letterSpacing: 'normal',
-        color: active ? '#1D4ED8' : '#292A2E'
+        color: active ? '#AE2448' : '#292A2E'
       }}
       className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold cursor-pointer transition-all ${
       active 
-        ? "bg-blue-50 shadow-sm" 
+        ? "bg-[#D5E7B5] shadow-sm" 
         : "hover:bg-slate-50"
     }`}>
       <div className="flex items-center gap-3">
-        <div className={`${active ? "text-blue-600" : "text-slate-400"}`}>
+        <div className={`${active ? "text-[#AE2448]" : "text-slate-400"}`}>
           {icon}
         </div>
         <span className="text-sm tracking-wide">{label}</span>

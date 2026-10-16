@@ -234,12 +234,12 @@ export default function RecordPage() {
           >
             {isFullscreen ? (
               <>
-                <Minimize2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <Minimize2 className="w-4 h-4 text-[#6E1A37] dark:text-indigo-400" />
                 <span>Exit Full Screen</span>
               </>
             ) : (
               <>
-                <Maximize2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                <Maximize2 className="w-4 h-4 text-[#6E1A37] dark:text-indigo-400" />
                 <span>Switch to Full Screen</span>
               </>
             )}
@@ -249,14 +249,14 @@ export default function RecordPage() {
         <div className="bg-white dark:bg-[#16181d] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 sm:p-8">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold">Recording Studio</h1>
-            <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full border border-indigo-100 dark:border-indigo-800/50">
+            <div className="flex items-center gap-2 text-xs font-semibold px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-[#6E1A37] dark:text-indigo-400 rounded-full border border-indigo-100 dark:border-indigo-800/50">
               <HardDrive className="w-3.5 h-3.5" />
               <span>Google Drive Connected</span>
             </div>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium">
+            <div className="mb-6 p-4 bg-[#AE2448]/10 dark:bg-red-900/20 text-[#AE2448] dark:text-[#AE2448] rounded-lg text-sm font-medium">
               {error}
             </div>
           )}
@@ -293,7 +293,7 @@ export default function RecordPage() {
                   <div className="flex flex-col items-center gap-5 w-full max-w-md">
                     <button 
                       onClick={handleStart}
-                      className="w-full flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-indigo-600/30 transition-all active:scale-95 cursor-pointer"
+                      className="w-full flex items-center justify-center gap-3 bg-[#6E1A37] hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-indigo-600/30 transition-all active:scale-95 cursor-pointer"
                     >
                       <Play className="fill-white w-5 h-5" />
                       Start Recording
@@ -309,21 +309,21 @@ export default function RecordPage() {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full flex items-center justify-center gap-2.5 bg-white dark:bg-[#16181d] border-2 border-indigo-200 dark:border-indigo-900/60 hover:border-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 py-3.5 px-6 rounded-2xl text-sm font-bold transition-all shadow-xs cursor-pointer"
+                      className="w-full flex items-center justify-center gap-2.5 bg-white dark:bg-[#16181d] border-2 border-indigo-200 dark:border-indigo-900/60 hover:border-[#72BAA9] hover:bg-indigo-50/50 dark:hover:bg-indigo-950/20 text-[#6E1A37] dark:text-indigo-400 py-3.5 px-6 rounded-2xl text-sm font-bold transition-all shadow-xs cursor-pointer"
                     >
-                      <FileVideo className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                      <FileVideo className="w-5 h-5 text-[#6E1A37] dark:text-indigo-400" />
                       Select Video File from Computer
                     </button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
                     <div className="text-4xl font-mono font-bold mb-6 flex items-center gap-4">
-                      <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                      <div className="w-4 h-4 bg-[#AE2448] rounded-full animate-pulse"></div>
                       {formatTime(recordingTime)}
                     </div>
                     <button 
                       onClick={handleStop}
-                      className="flex items-center gap-3 bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg shadow-red-600/30 transition-all active:scale-95 cursor-pointer"
+                      className="flex items-center gap-3 bg-[#AE2448] hover:bg-[#6E1A37] text-white px-8 py-4 rounded-full font-bold text-lg shadow-lg shadow-red-600/30 transition-all active:scale-95 cursor-pointer"
                     >
                       <Square className="fill-white w-6 h-6" />
                       Stop Recording
@@ -347,7 +347,7 @@ export default function RecordPage() {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[#6E1A37] dark:text-indigo-400 hover:underline cursor-pointer disabled:opacity-50"
                   >
                     <Upload className="w-3.5 h-3.5" />
                     Select a Different Video File
@@ -364,10 +364,10 @@ export default function RecordPage() {
               </div>
               
               {uploadSuccess ? (
-                <div className="flex flex-col items-center justify-center p-8 border-2 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 rounded-2xl mb-6 text-center animate-in fade-in zoom-in-95 duration-200">
-                  <CheckCircle className="w-14 h-14 text-emerald-500 mb-4" />
+                <div className="flex flex-col items-center justify-center p-8 border-2 border-[#72BAA9]/30 bg-[#D5E7B5]/40 dark:bg-emerald-950/20 dark:border-emerald-800 rounded-2xl mb-6 text-center animate-in fade-in zoom-in-95 duration-200">
+                  <CheckCircle className="w-14 h-14 text-[#72BAA9] mb-4" />
                   <h3 className="text-xl font-bold text-emerald-800 dark:text-emerald-300 mb-2">Saved to Google Drive Successfully!</h3>
-                  <p className="text-emerald-700 dark:text-emerald-400 max-w-md mb-2 text-sm">
+                  <p className="text-[#6E1A37] dark:text-[#D5E7B5] max-w-md mb-2 text-sm">
                     <span className="font-semibold">{videoTitle}</span> has been uploaded directly to Google Drive under folder <span className="font-semibold">&quot;{currentFolderName}&quot;</span>.
                   </p>
                   <p className="text-slate-500 dark:text-slate-400 text-xs mb-6">Your video is immediately accessible in your library and ready to share.</p>
@@ -375,7 +375,7 @@ export default function RecordPage() {
                   <div className="flex flex-wrap gap-3 justify-center">
                     <button 
                       onClick={() => router.push(videoId ? `/video/${videoId}` : '/library')}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                      className="bg-[#72BAA9] hover:bg-[#6E1A37] text-white px-6 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2 cursor-pointer"
                     >
                       <ExternalLink className="w-4 h-4" />
                       View Video
@@ -393,7 +393,7 @@ export default function RecordPage() {
                         setVideoTitle('');
                         setSelectedFileName(null);
                       }}
-                      className="bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 px-6 py-2.5 rounded-xl font-bold text-sm transition-colors cursor-pointer"
+                      className="bg-[#D5E7B5] hover:bg-emerald-200 dark:bg-emerald-900/40 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 px-6 py-2.5 rounded-xl font-bold text-sm transition-colors cursor-pointer"
                     >
                       Record / Upload Another
                     </button>
@@ -402,7 +402,7 @@ export default function RecordPage() {
               ) : (
                 <>
                   {uploadError && (
-                    <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-red-200 dark:border-red-800">
+                    <div className="mb-6 p-4 bg-[#AE2448]/10 dark:bg-red-900/20 text-[#AE2448] dark:text-[#AE2448] rounded-xl text-sm font-medium flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border border-[#AE2448]/30 dark:border-red-800">
                       <div className="flex items-center gap-2">
                         <AlertCircle className="w-5 h-5 flex-shrink-0" />
                         <span>{uploadError}</span>
@@ -411,14 +411,14 @@ export default function RecordPage() {
                         {uploadError.toLowerCase().includes('storage limit') && (
                           <button
                             onClick={() => router.push('/settings?tab=billing')}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap shadow-sm"
+                            className="bg-[#AE2448] hover:bg-[#6E1A37] text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap shadow-sm"
                           >
                             Upgrade Plan 💳
                           </button>
                         )}
                         <button 
                           onClick={handleUpload}
-                          className="text-red-700 dark:text-red-300 hover:underline font-bold text-xs cursor-pointer"
+                          className="text-[#6E1A37] dark:text-red-300 hover:underline font-bold text-xs cursor-pointer"
                           disabled={isUploading}
                         >
                           Retry Upload
@@ -439,7 +439,7 @@ export default function RecordPage() {
                       </div>
                       <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-3 overflow-hidden">
                         <div 
-                          className="bg-indigo-600 h-3 rounded-full transition-all duration-300 shadow-sm"
+                          className="bg-[#6E1A37] h-3 rounded-full transition-all duration-300 shadow-sm"
                           style={{ width: `${uploadProgress}%` }}
                         ></div>
                       </div>
@@ -467,14 +467,14 @@ export default function RecordPage() {
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                          <Folder className="w-3.5 h-3.5 text-indigo-500" />
+                          <Folder className="w-3.5 h-3.5 text-[#72BAA9]" />
                           Google Drive Destination Folder
                         </label>
                         {!isCreatingFolder && !isUploading && (
                           <button
                             type="button"
                             onClick={() => setIsCreatingFolder(true)}
-                            className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+                            className="text-xs font-bold text-[#6E1A37] dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             New Folder
@@ -502,7 +502,7 @@ export default function RecordPage() {
                             type="button"
                             onClick={handleCreateNewFolder}
                             disabled={!newFolderName.trim() || isFolderSubmitting}
-                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                            className="px-3 py-1.5 bg-[#6E1A37] hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
                           >
                             <Check className="w-3.5 h-3.5" />
                             Create
@@ -549,7 +549,7 @@ export default function RecordPage() {
                     <button 
                       onClick={handleUpload}
                       disabled={isUploading}
-                      className="flex-1 flex justify-center items-center gap-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3.5 rounded-xl font-bold text-sm transition-all shadow-md shadow-indigo-600/30 cursor-pointer active:scale-[0.98]"
+                      className="flex-1 flex justify-center items-center gap-2.5 bg-[#6E1A37] hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3.5 rounded-xl font-bold text-sm transition-all shadow-md shadow-indigo-600/30 cursor-pointer active:scale-[0.98]"
                     >
                       <UploadCloud className="w-5 h-5" />
                       {isUploading ? 'Uploading to Google Drive...' : 'Save to Google Drive'}
@@ -594,15 +594,15 @@ function OptionCard({ icon, title, active, onClick, disabled }: { icon: React.Re
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-md'
       } ${
         active 
-          ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 dark:border-indigo-500' 
+          ? 'border-indigo-600 bg-indigo-50 dark:bg-[#6E1A37]/10 dark:border-[#72BAA9]' 
           : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-[#16181d]'
       }`}
     >
-      <div className={`p-2 rounded-lg ${active ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+      <div className={`p-2 rounded-lg ${active ? 'bg-indigo-100 dark:bg-indigo-900/50 text-[#6E1A37] dark:text-indigo-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
         {icon}
       </div>
       <div className="font-semibold">{title}</div>
-      <div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center ${active ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300 dark:border-slate-600'}`}>
+      <div className={`ml-auto w-5 h-5 rounded-full border-2 flex items-center justify-center ${active ? 'border-indigo-600 bg-[#6E1A37]' : 'border-slate-300 dark:border-slate-600'}`}>
         {active && <div className="w-2 h-2 bg-white rounded-full"></div>}
       </div>
     </button>

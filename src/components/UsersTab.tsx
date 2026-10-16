@@ -331,7 +331,7 @@ export default function UsersTab() {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Enter a name or email address"
-                className="w-full px-3.5 py-2 bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-[13px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 transition-all"
+                className="w-full px-3.5 py-2 bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-[13px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#AE2448] focus:ring-2 focus:ring-[#AE2448]/10 transition-all"
               />
               {searchQuery && (
                 <button
@@ -351,7 +351,7 @@ export default function UsersTab() {
                   setIsRoleDropdownOpen(!isRoleDropdownOpen);
                   setIsMemberDropdownOpen(false);
                 }}
-                className="h-[38px] px-3.5 bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-[13px] font-medium text-slate-700 flex items-center gap-2 transition-colors focus:outline-none focus:border-blue-600"
+                className="h-[38px] px-3.5 bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-[13px] font-medium text-slate-700 flex items-center gap-2 transition-colors focus:outline-none focus:border-[#AE2448]"
               >
                 <span>{roleFilter}</span>
                 <ChevronDown size={14} className={`text-slate-400 transition-transform ${isRoleDropdownOpen ? "rotate-180" : ""}`} />
@@ -368,12 +368,12 @@ export default function UsersTab() {
                       }}
                       className={`w-full px-3.5 py-2 text-left text-[13px] flex items-center justify-between transition-colors ${
                         roleFilter === option 
-                          ? "bg-blue-50 text-blue-700 font-semibold" 
+                          ? "bg-[#D5E7B5] text-[#6E1A37] font-semibold" 
                           : "text-slate-700 hover:bg-slate-50"
                       }`}
                     >
                       <span>{option}</span>
-                      {roleFilter === option && <Check size={14} className="text-blue-600" />}
+                      {roleFilter === option && <Check size={14} className="text-[#AE2448]" />}
                     </button>
                   ))}
                 </div>
@@ -388,7 +388,7 @@ export default function UsersTab() {
                   setIsMemberDropdownOpen(!isMemberDropdownOpen);
                   setIsRoleDropdownOpen(false);
                 }}
-                className="h-[38px] px-3.5 bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-[13px] font-medium text-slate-700 flex items-center gap-2 transition-colors focus:outline-none focus:border-blue-600"
+                className="h-[38px] px-3.5 bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-[13px] font-medium text-slate-700 flex items-center gap-2 transition-colors focus:outline-none focus:border-[#AE2448]"
               >
                 <span>{memberFilter}</span>
                 <ChevronDown size={14} className={`text-slate-400 transition-transform ${isMemberDropdownOpen ? "rotate-180" : ""}`} />
@@ -405,12 +405,12 @@ export default function UsersTab() {
                       }}
                       className={`w-full px-3.5 py-2 text-left text-[13px] flex items-center justify-between transition-colors ${
                         memberFilter === option 
-                          ? "bg-blue-50 text-blue-700 font-semibold" 
+                          ? "bg-[#D5E7B5] text-[#6E1A37] font-semibold" 
                           : "text-slate-700 hover:bg-slate-50"
                       }`}
                     >
                       <span>{option}</span>
-                      {memberFilter === option && <Check size={14} className="text-blue-600" />}
+                      {memberFilter === option && <Check size={14} className="text-[#AE2448]" />}
                     </button>
                   ))}
                 </div>
@@ -426,11 +426,11 @@ export default function UsersTab() {
               title="Refresh users"
               className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-lg transition-colors"
             >
-              <RefreshCw size={15} className={loading ? "animate-spin text-blue-600" : ""} />
+              <RefreshCw size={15} className={loading ? "animate-spin text-[#AE2448]" : ""} />
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-all shadow-sm flex items-center gap-1.5"
+              className="bg-[#AE2448] hover:bg-[#6E1A37] text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-all shadow-sm flex items-center gap-1.5"
             >
               <Plus size={16} />
               <span>Add user</span>
@@ -456,7 +456,7 @@ export default function UsersTab() {
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-400">
                     <div className="flex items-center justify-center gap-2 text-xs font-medium">
-                      <RefreshCw size={15} className="animate-spin text-blue-600" />
+                      <RefreshCw size={15} className="animate-spin text-[#AE2448]" />
                       <span>Loading workspace users...</span>
                     </div>
                   </td>
@@ -472,8 +472,8 @@ export default function UsersTab() {
                 filteredUsers.map(user => {
                   const isAdmin = user.role.toLowerCase() === "admin";
                   const avatarColor = isAdmin 
-                    ? "bg-[#00875A] text-white" // Emerald Green matching Loom's admin badge
-                    : "bg-blue-600 text-white";
+                    ? "bg-[#72BAA9] text-white" // Emerald Green matching Loom's admin badge
+                    : "bg-[#AE2448] text-white";
 
                   return (
                     <tr 
@@ -490,7 +490,7 @@ export default function UsersTab() {
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold ${avatarColor} shrink-0`}>
                             {getInitials(user.name)}
                           </div>
-                          <span className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
+                          <span className="font-semibold text-slate-900 group-hover:text-[#AE2448] transition-colors">
                             {user.name}
                           </span>
                         </div>
@@ -515,8 +515,8 @@ export default function UsersTab() {
 
                       {/* Status */}
                       <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#6E1A37] bg-[#D5E7B5] px-2 py-0.5 rounded-full border border-[#72BAA9]/30/60">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#72BAA9]" />
                           {user.status}
                         </span>
                       </td>
@@ -543,7 +543,7 @@ export default function UsersTab() {
             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                <div className="w-9 h-9 rounded-xl bg-[#D5E7B5] border border-[#AE2448]/20 flex items-center justify-center text-[#AE2448]">
                   <UserPlus size={18} />
                 </div>
                 <div>
@@ -570,7 +570,7 @@ export default function UsersTab() {
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   placeholder="e.g. Alex Morgan"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-600/10 transition-all font-medium"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#AE2448] focus:bg-white focus:ring-2 focus:ring-[#AE2448]/10 transition-all font-medium"
                 />
               </div>
 
@@ -584,7 +584,7 @@ export default function UsersTab() {
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
                   placeholder="colleague@company.com"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white focus:ring-2 focus:ring-blue-600/10 transition-all font-medium"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#AE2448] focus:bg-white focus:ring-2 focus:ring-[#AE2448]/10 transition-all font-medium"
                 />
               </div>
 
@@ -597,13 +597,13 @@ export default function UsersTab() {
                     onClick={() => setNewRole("Creator")}
                     className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
                       newRole === "Creator"
-                        ? "border-blue-600 bg-blue-50/50 ring-1 ring-blue-600/20"
+                        ? "border-[#AE2448] bg-[#D5E7B5]/50 ring-1 ring-[#AE2448]/20"
                         : "border-slate-200 hover:border-slate-300 bg-white"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-sm text-slate-900">Creator</span>
-                      {newRole === "Creator" && <Check size={14} className="text-blue-600" />}
+                      {newRole === "Creator" && <Check size={14} className="text-[#AE2448]" />}
                     </div>
                     <p className="text-[11px] text-slate-500 leading-snug">Can record, edit, and share videos in the workspace</p>
                   </div>
@@ -612,13 +612,13 @@ export default function UsersTab() {
                     onClick={() => setNewRole("Admin")}
                     className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
                       newRole === "Admin"
-                        ? "border-blue-600 bg-blue-50/50 ring-1 ring-blue-600/20"
+                        ? "border-[#AE2448] bg-[#D5E7B5]/50 ring-1 ring-[#AE2448]/20"
                         : "border-slate-200 hover:border-slate-300 bg-white"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-sm text-slate-900">Admin</span>
-                      {newRole === "Admin" && <Check size={14} className="text-blue-600" />}
+                      {newRole === "Admin" && <Check size={14} className="text-[#AE2448]" />}
                     </div>
                     <p className="text-[11px] text-slate-500 leading-snug">Full workspace access, user management, and billing</p>
                   </div>
@@ -637,7 +637,7 @@ export default function UsersTab() {
                 <button
                   type="submit"
                   disabled={isSubmitting || !newEmail.trim()}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="px-5 py-2 bg-[#AE2448] hover:bg-[#6E1A37] disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
                 >
                   {isSubmitting ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
                   <span>{isSubmitting ? "Adding..." : "Add user"}</span>
@@ -658,7 +658,7 @@ export default function UsersTab() {
             <div className="p-6 border-b border-slate-100 flex items-start justify-between">
               <div className="flex items-center gap-3.5">
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold ${
-                  selectedUser.role.toLowerCase() === "admin" ? "bg-[#00875A] text-white" : "bg-blue-600 text-white"
+                  selectedUser.role.toLowerCase() === "admin" ? "bg-[#72BAA9] text-white" : "bg-[#AE2448] text-white"
                 }`}>
                   {getInitials(selectedUser.name)}
                 </div>
@@ -681,7 +681,7 @@ export default function UsersTab() {
               <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-2.5 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-500 font-medium">Status</span>
-                  <span className="font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                  <span className="font-semibold text-[#6E1A37] bg-[#D5E7B5] px-2 py-0.5 rounded-full border border-[#72BAA9]/30/60">
                     {selectedUser.status}
                   </span>
                 </div>
@@ -706,7 +706,7 @@ export default function UsersTab() {
                     onClick={() => handleChangeRole(selectedUser.id, "Admin")}
                     className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
                       selectedUser.role === "Admin"
-                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                        ? "bg-[#AE2448] text-white border-[#AE2448] shadow-xs"
                         : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                     }`}
                   >
@@ -717,7 +717,7 @@ export default function UsersTab() {
                     onClick={() => handleChangeRole(selectedUser.id, "Creator")}
                     className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
                       selectedUser.role === "Creator"
-                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                        ? "bg-[#AE2448] text-white border-[#AE2448] shadow-xs"
                         : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
                     }`}
                   >
@@ -731,7 +731,7 @@ export default function UsersTab() {
                 <div className="pt-2 border-t border-slate-100">
                   <button
                     onClick={() => handleRemoveUser(selectedUser.id)}
-                    className="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 border border-red-200/60"
+                    className="w-full py-2.5 bg-[#AE2448]/10 hover:bg-[#AE2448]/20 text-[#AE2448] font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 border border-[#AE2448]/30/60"
                   >
                     <Trash2 size={14} /> Remove User from Workspace
                   </button>
@@ -759,9 +759,9 @@ export default function UsersTab() {
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 z-[100] border animate-in slide-in-from-bottom-5 duration-150 ${
           toastMessage.ok 
             ? "bg-slate-900 text-white border-slate-800" 
-            : "bg-red-600 text-white border-red-500"
+            : "bg-[#AE2448] text-white border-[#6E1A37]"
         }`}>
-          {toastMessage.ok ? <Check size={15} className="text-emerald-400" /> : <AlertCircle size={15} className="text-white" />}
+          {toastMessage.ok ? <Check size={15} className="text-[#D5E7B5]" /> : <AlertCircle size={15} className="text-white" />}
           <span className="text-xs font-semibold">{toastMessage.text}</span>
         </div>
       )}

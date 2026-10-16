@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { Video } from '@/lib/server/types';
-import { ObjectId } from 'mongodb';
+import { ObjectId, Filter } from 'mongodb';
 import { getBackupVideoMeta, saveBackupVideoMeta } from '@/lib/server/localBackup';
 
 export async function GET(
@@ -15,7 +15,7 @@ export async function GET(
 
     try {
       const videosCol = await getCollection<Video>('videos');
-      let filter: any = {};
+      let filter: Filter<Video> = {};
       try {
         filter = { $or: [{ _id: new ObjectId(id) }, { id }, { driveFileId: id }] };
       } catch {
@@ -62,7 +62,7 @@ export async function POST(
     // 2. Persist to MongoDB
     try {
       const videosCol = await getCollection<Video>('videos');
-      let filter: any = {};
+      let filter: Filter<Video> = {};
       try {
         filter = { $or: [{ _id: new ObjectId(id) }, { id }, { driveFileId: id }] };
       } catch {

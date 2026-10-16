@@ -3,12 +3,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Search, Bell, Settings, Video, Folder, 
-  Share2, Users, Building, Shield,
+  Search, Video, Folder, 
+  Share2, Shield,
   ChevronDown, MessageSquare, Eye, Link as LinkIcon,
   Pin, Archive, Globe, Lock, CheckCircle2,
-  X, Home, Bookmark, MoreVertical, MoreHorizontal, Plus
+  X, MoreHorizontal, Plus
 } from "lucide-react";
+import {
+  HomeIcon, LibraryIcon, VideoCameraIcon, SavedIcon, SettingsIcon,
+  UsersIcon, UserIcon, WorkspaceIcon, NotificationIcon
+} from "@/components/CustomIcons";
 import Image from "next/image";
 import { getVideos, deleteVideo, updateVideo, syncVideos, addVideoComment, API_URL } from "@/lib/api";
 import RecordingSetupModal from "@/components/RecordingSetupModal";
@@ -41,6 +45,11 @@ interface Course {
 
 export default function WatchLaterPage() {
   const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/calendar');
+  }, [router]);
+
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   
   const [videos, setVideos] = useState<VideoData[]>([]);
@@ -221,7 +230,7 @@ export default function WatchLaterPage() {
       localStorage.setItem(`video-meta-${id}`, JSON.stringify(meta));
 
       const savedWL = JSON.parse(localStorage.getItem('watchLaterVideos') || '[]');
-      const updatedWL = savedWL.map((v: any) => v.id === id ? { ...v, title: newTitle } : v);
+      const updatedWL = savedWL.map((v: VideoData) => v.id === id ? { ...v, title: newTitle } : v);
       localStorage.setItem('watchLaterVideos', JSON.stringify(updatedWL));
     } catch {}
 
@@ -288,41 +297,41 @@ export default function WatchLaterPage() {
       <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-slate-200 bg-white z-20 h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden">
         <div className="h-16 flex items-center px-6 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-center justify-center w-full cursor-pointer group" onClick={() => router.push('/')}>
-            <Image src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." width={120} height={48} className="h-12 w-auto object-contain transition-transform group-hover:scale-105" />
+            <Image src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." width={120} height={48} className="h-12 w-auto object-contain transition-transform group-hover:scale-105"  style={{ filter: "hue-rotate(131deg) saturate(1.4)" }}/>
           </div>
         </div>
 
         <div className="p-5 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl cursor-pointer transition-all border border-slate-100 hover:border-slate-200 group">
             <div>
-              <div className="text-sm font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">RCRD Workspace</div>
+              <div className="text-sm font-semibold text-slate-800 group-hover:text-[#6E1A37] transition-colors">RCRD Workspace</div>
               <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] uppercase tracking-wider bg-blue-100 px-2 py-0.5 rounded text-blue-700 font-bold border border-blue-200">Watch Later</span>
+                <span className="text-[10px] uppercase tracking-wider bg-[#D5E7B5] px-2 py-0.5 rounded text-[#6E1A37] font-bold border border-[#AE2448]/30">Watch Later</span>
                 <span className="text-xs text-slate-500">Saved Queue</span>
               </div>
             </div>
             <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
           </div>
           <button className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 transition-all shadow-sm hover:shadow-md">
-            <Users className="w-4 h-4 text-blue-600" />
+            <UsersIcon size={16} className="text-[#AE2448]" />
             Invite Teammates
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto py-5 px-4 custom-scrollbar min-h-0">
           <nav className="space-y-1">
-            <SidebarItem icon={<Home size={18} />} label="For You" href="/" />
-            <SidebarItem icon={<Folder size={18} />} label="Library" href="/library" />
-            <SidebarItem icon={<Video size={18} />} label="Meetings" href="/meetings" />
-            <SidebarItem icon={<Bookmark size={18} />} label="Watch Later" active href="/watch-later" />
-            <SidebarItem icon={<Settings size={18} />} label="Settings" href="/settings" />
+            <SidebarItem icon={<HomeIcon size={18} />} label="For You" href="/" />
+            <SidebarItem icon={<LibraryIcon size={18} />} label="Library" href="/library" />
+            <SidebarItem icon={<VideoCameraIcon size={18} />} label="Meetings" href="/meetings" />
+            <SidebarItem icon={<SavedIcon size={18} />} label="Watch Later" active href="/watch-later" />
+            <SidebarItem icon={<SettingsIcon size={18} />} label="Settings" href="/settings" />
           </nav>
 
           <div className="mt-10">
             <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Workspace Admin</h3>
             <nav className="space-y-1">
-              <SidebarItem icon={<Settings size={18} />} label="Manage Users" href="/settings?tab=users" />
-              <SidebarItem icon={<Building size={18} />} label="Workspace Info" />
+              <SidebarItem icon={<UserIcon size={18} />} label="Manage Users" href="/settings?tab=users" />
+              <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" />
               <SidebarItem icon={<Shield size={18} />} label="Billing & Plans" href="/settings?tab=billing" />
             </nav>
           </div>
@@ -331,9 +340,9 @@ export default function WatchLaterPage() {
         <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           <button 
             onClick={() => setIsRecordModalOpen(true)}
-            className="w-full bg-[#1A68FF] hover:bg-[#1557D6] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(26,104,255,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(26,104,255,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+            className="w-full bg-[#AE2448] hover:bg-[#6E1A37] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(174, 36, 72,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(174, 36, 72,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
-            <Video size={20} className="stroke-[2.2]" />
+            <VideoCameraIcon size={20} />
             <span>Record Video</span>
           </button>
         </div>
@@ -349,20 +358,20 @@ export default function WatchLaterPage() {
             <input 
               type="text" 
               placeholder="Search for people, tags, folders, Spaces, and Looms" 
-              className="w-full pl-9 pr-4 py-1.5 bg-[#F2F5F7] border border-transparent rounded-lg text-[13px] text-slate-900 focus:bg-white focus:border-[#0E71EB] focus:ring-1 focus:ring-[#0E71EB] outline-none transition-all placeholder:text-slate-500 font-medium"
+              className="w-full pl-9 pr-4 py-1.5 bg-[#F2F5F7] border border-transparent rounded-lg text-[13px] text-slate-900 focus:bg-white focus:border-[#AE2448] focus:ring-1 focus:ring-[#AE2448] outline-none transition-all placeholder:text-slate-500 font-medium"
             />
           </div>
           <div className="flex items-center gap-4 ml-4 shrink-0">
-            <button className="bg-[#0E71EB] hover:bg-[#1655B8] text-white px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all">
+            <button className="bg-[#AE2448] hover:bg-[#6E1A37] text-white px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all">
               Upgrade
             </button>
             <button className="text-slate-500 hover:bg-slate-100 p-1.5 rounded-md transition-colors">
               <div className="w-5 h-5 border-2 border-slate-500 rounded-full flex items-center justify-center text-[11px] font-bold">?</div>
             </button>
             <button className="text-slate-500 hover:bg-slate-100 p-1.5 rounded-md transition-colors">
-              <Bell size={18} />
+              <NotificationIcon size={18} />
             </button>
-            <div className="w-7 h-7 rounded-full bg-[#0E71EB] text-white flex items-center justify-center text-[11px] font-bold cursor-pointer">
+            <div className="w-7 h-7 rounded-full bg-[#AE2448] text-white flex items-center justify-center text-[11px] font-bold cursor-pointer">
               HR
             </div>
           </div>
@@ -398,7 +407,7 @@ export default function WatchLaterPage() {
             {/* Video Grid */}
             {isLoading ? (
               <div className="flex items-center justify-center py-20">
-                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-4 border-[#AE2448] border-t-transparent rounded-full animate-spin"></div>
               </div>
             ) : videos.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -406,7 +415,7 @@ export default function WatchLaterPage() {
                   <div className="w-16 h-16 bg-[#76A838] rounded shadow-md flex items-center justify-center transform -rotate-12 translate-x-4">
                     <CheckCircle2 size={32} className="text-white opacity-80" />
                   </div>
-                  <div className="w-16 h-16 bg-[#0E71EB] rounded shadow-md flex items-center justify-center absolute top-2 right-4 transform rotate-6 z-10">
+                  <div className="w-16 h-16 bg-[#AE2448] rounded shadow-md flex items-center justify-center absolute top-2 right-4 transform rotate-6 z-10">
                     <X size={32} className="text-white opacity-80" />
                   </div>
                   <div className="w-16 h-16 bg-[#76A838] rounded shadow-md flex items-center justify-center absolute top-8 left-2 z-20">
@@ -424,7 +433,7 @@ export default function WatchLaterPage() {
                   <div 
                     key={video.id} 
                     className={`bg-white rounded-xl shadow-sm border group cursor-pointer hover:shadow-md transition-all relative ${
-                      activeVideoMenu === video.id ? 'z-40 border-2 border-blue-600 ring-2 ring-blue-500/20' : 'z-10 border-slate-200'
+                      activeVideoMenu === video.id ? 'z-40 border-2 border-[#AE2448] ring-2 ring-[#AE2448]/20' : 'z-10 border-slate-200'
                     }`}
                     onMouseEnter={() => {
                       setVideoHoverId(video.id);
@@ -599,7 +608,7 @@ export default function WatchLaterPage() {
                                   setActiveVideoMenu(null);
                                   handleDeleteVideo(video.id);
                                 }}
-                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-slate-800 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
+                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-slate-800 hover:bg-[#AE2448]/10 hover:text-[#AE2448] transition-colors cursor-pointer"
                               >
                                 Delete
                               </button>
@@ -612,7 +621,7 @@ export default function WatchLaterPage() {
                     {/* Card Details */}
                     <div className="p-4 relative bg-white border-t border-slate-100 flex flex-col gap-2">
                       <div className="flex items-start gap-3 mb-2">
-                        <div className="w-9 h-9 rounded-full bg-[#0E71EB] text-white flex items-center justify-center text-[12px] font-bold shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-[#AE2448] text-white flex items-center justify-center text-[12px] font-bold shrink-0">
                           {video.ownerName ? video.ownerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'HR'}
                         </div>
                         <div className="flex-1 min-w-0 pt-0.5">
@@ -639,12 +648,12 @@ export default function WatchLaterPage() {
                               if (e.key === 'Escape') setEditingTitleId(null);
                             }}
                             onBlur={() => handleSaveRename(video.id)}
-                            className="font-semibold text-[16px] text-slate-900 w-full border-b-2 border-blue-600 focus:outline-none bg-transparent pb-0.5"
+                            className="font-semibold text-[16px] text-slate-900 w-full border-b-2 border-[#AE2448] focus:outline-none bg-transparent pb-0.5"
                           />
                         </div>
                       ) : (
                         <h3 
-                          className="font-medium text-[15px] text-slate-900 truncate mb-3 cursor-pointer hover:text-blue-600 transition-colors"
+                          className="font-medium text-[15px] text-slate-900 truncate mb-3 cursor-pointer hover:text-[#AE2448] transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(`/video/${video.id}`);
@@ -732,7 +741,7 @@ export default function WatchLaterPage() {
                                 }
                               }
                             }}
-                            className="flex-1 bg-white border border-slate-200 rounded-full px-4 py-2 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow shadow-sm"
+                            className="flex-1 bg-white border border-slate-200 rounded-full px-4 py-2 text-[13px] focus:outline-none focus:border-[#AE2448] focus:ring-1 focus:ring-[#AE2448] transition-shadow shadow-sm"
                           />
                           <button 
                             onClick={async () => {
@@ -755,7 +764,7 @@ export default function WatchLaterPage() {
                               }
                             }}
                             disabled={!newCommentText.trim()}
-                            className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-full px-4 py-2 text-[13px] font-semibold transition-colors shadow-sm"
+                            className="bg-[#AE2448] hover:bg-[#6E1A37] disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-full px-4 py-2 text-[13px] font-semibold transition-colors shadow-sm"
                           >
                             Post
                           </button>
@@ -797,7 +806,7 @@ export default function WatchLaterPage() {
                     <input 
                       type="text" 
                       placeholder="Add names, emails, or Space" 
-                      className="w-full pl-4 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg text-[14px] text-slate-900 focus:border-[#0E71EB] focus:ring-1 focus:ring-[#0E71EB] outline-none"
+                      className="w-full pl-4 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg text-[14px] text-slate-900 focus:border-[#AE2448] focus:ring-1 focus:ring-[#AE2448] outline-none"
                     />
                   </div>
                   <div className="flex items-center gap-1 text-[13px] font-medium text-slate-500 cursor-pointer hover:text-slate-700 whitespace-nowrap">
@@ -834,7 +843,7 @@ export default function WatchLaterPage() {
                     <LinkIcon size={16} /> Copy link
                   </button>
                   <label className="flex items-center gap-2 cursor-pointer group">
-                    <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#0E71EB] focus:ring-[#0E71EB] group-hover:border-slate-400 transition-colors" />
+                    <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#AE2448] focus:ring-[#AE2448] group-hover:border-slate-400 transition-colors" />
                     <span className="text-[13px] font-medium text-slate-700">Share video at 0:00</span>
                   </label>
                 </div>
@@ -914,7 +923,7 @@ export default function WatchLaterPage() {
                   </button>
                   <button 
                     onClick={confirmMoveVideo}
-                    className="px-5 py-2 bg-[#0E71EB] hover:bg-[#1655B8] text-white rounded-lg text-[13px] font-semibold transition-colors shadow-sm"
+                    className="px-5 py-2 bg-[#AE2448] hover:bg-[#6E1A37] text-white rounded-lg text-[13px] font-semibold transition-colors shadow-sm"
                   >
                     Move
                   </button>
@@ -959,32 +968,21 @@ function SidebarItem({ icon, label, active = false, external = false, href }: { 
         fontStyle: 'normal',
         lineHeight: '14px',
         letterSpacing: 'normal',
-        color: active ? '#1D4ED8' : '#292A2E'
+        color: active ? '#AE2448' : '#292A2E'
       }}
       className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold cursor-pointer transition-all ${
       active 
-        ? "bg-blue-50 shadow-sm" 
+        ? "bg-[#D5E7B5] shadow-sm" 
         : "hover:bg-slate-50"
     }`}>
       <div className="flex items-center gap-3">
-        <div className={`${active ? "text-blue-600" : "text-slate-400"}`}>
+        <div className={`${active ? "text-[#AE2448]" : "text-slate-400"}`}>
           {icon}
         </div>
         <span className="text-sm tracking-wide">{label}</span>
       </div>
       {external && <div className="text-slate-400"><Share2 size={12} className="rotate-45" /></div>}
     </div>
-  );
-}
-
-function DropdownItem({ label, onClick }: { label: string, onClick?: () => void }) {
-  return (
-    <button 
-      onClick={(e) => { e.stopPropagation(); onClick?.(); }}
-      className="w-full text-left px-4 py-1.5 text-[13px] font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-    >
-      {label}
-    </button>
   );
 }
 

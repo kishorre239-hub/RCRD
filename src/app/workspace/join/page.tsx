@@ -36,7 +36,7 @@ export default function JoinWorkspacePage() {
         </Link>
         
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-amber-50 dark:bg-amber-500/10 rounded-xl text-amber-600 dark:text-amber-400">
+          <div className="p-3 bg-[#D5E7B5]/40 dark:bg-[#D5E7B5]/10 rounded-xl text-[#AE2448] dark:text-[#D5E7B5]">
             <KeyRound className="w-6 h-6" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Join Workspace</h1>
@@ -48,7 +48,7 @@ export default function JoinWorkspacePage() {
 
         <form onSubmit={handleJoin} className="space-y-4">
           {error && (
-            <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm">
+            <div className="p-3 bg-[#AE2448]/10 text-[#6E1A37] border border-[#AE2448]/30 rounded-lg text-sm">
               {error}
             </div>
           )}
@@ -68,7 +68,7 @@ export default function JoinWorkspacePage() {
           <button 
             type="submit" 
             disabled={loading || !workspaceId.trim()}
-            className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-medium rounded-lg disabled:opacity-50 transition-colors mt-6"
+            className="w-full py-2.5 bg-[#AE2448] hover:bg-[#6E1A37] text-white font-medium rounded-lg disabled:opacity-50 transition-colors mt-6"
           >
             {loading ? "Joining..." : "Join Workspace"}
           </button>

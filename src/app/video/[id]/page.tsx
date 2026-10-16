@@ -295,7 +295,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
   if (isLoading) {
     return (
       <div className="h-full w-full bg-white flex flex-col items-center justify-center space-y-4 font-jost">
-        <div className="w-12 h-12 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin"></div>
+        <div className="w-12 h-12 rounded-full border-4 border-[#AE2448]/20 border-t-[#AE2448] animate-spin"></div>
         <p className="text-gray-500 font-medium animate-pulse">Loading workspace...</p>
       </div>
     );
@@ -308,7 +308,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
       <header className="h-14 border-b border-gray-200 bg-white flex items-center justify-between px-4 shrink-0 sticky top-0 z-50">
         <div className="flex items-center justify-center cursor-pointer group pl-12" onClick={() => router.push('/')}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." className="h-12 w-auto object-contain transition-transform group-hover:scale-105" />
+          <img src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." className="h-12 w-auto object-contain transition-transform group-hover:scale-105"  style={{ filter: "hue-rotate(131deg) saturate(1.4)" }}/>
         </div>
         
         <div className="flex items-center gap-3">
@@ -348,11 +348,11 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
               } catch {}
             }}
             className={`hidden md:flex items-center gap-2 p-1.5 px-3 rounded-full transition-all text-sm font-medium ${
-              isSaved ? "bg-blue-50 text-blue-600 border border-blue-200" : "bg-[#F3F4F6] hover:bg-gray-200 text-gray-700"
+              isSaved ? "bg-[#D5E7B5] text-[#AE2448] border border-[#AE2448]/30" : "bg-[#F3F4F6] hover:bg-gray-200 text-gray-700"
             }`}
             title="Save to Watch Later"
           >
-            <Bookmark className={`w-4 h-4 ${isSaved ? "fill-blue-600 text-blue-600" : ""}`} /> {isSaved ? "Saved" : "Save"}
+            <Bookmark className={`w-4 h-4 ${isSaved ? "fill-[#AE2448] text-[#AE2448]" : ""}`} /> {isSaved ? "Saved" : "Save"}
           </button>
 
           <button className="p-1.5 hover:bg-gray-100 rounded-full text-gray-600 transition-colors">
@@ -544,7 +544,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         onClick={() => handleEmojiReaction(emoji)}
                         title={`React with ${emoji} at ${Math.floor(currentVideoTime / 60)}:${Math.floor(currentVideoTime % 60).toString().padStart(2, '0')}`}
                         className={`p-1.5 hover:bg-gray-100 hover:scale-125 rounded-full transition-transform text-lg cursor-pointer active:scale-95 ${
-                          activeReactionEmoji === emoji ? 'scale-150 bg-amber-50 ring-2 ring-amber-300' : ''
+                          activeReactionEmoji === emoji ? 'scale-150 bg-[#D5E7B5]/40 ring-2 ring-amber-300' : ''
                         }`}
                       >
                         {emoji}
@@ -571,7 +571,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
               <div>
                 <h3 className="font-semibold text-lg text-gray-900 mb-3 flex items-center gap-2">
                   Summary
-                  <Zap className="w-4 h-4 text-purple-500" />
+                  <Zap className="w-4 h-4 text-[#AE2448]" />
                 </h3>
                 <div className="p-4 border border-dashed border-gray-300 rounded-lg text-gray-500 text-sm hover:border-gray-400 transition-colors cursor-pointer bg-gray-50 hover:bg-white group">
                   <span className="group-hover:text-gray-700">Add a summary...</span>
@@ -617,13 +617,13 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                 onClick={() => setActiveTab(tab.id as 'edit'|'activity'|'generate'|'transcript'|'settings')}
                 className={`px-4 py-4 text-sm font-medium whitespace-nowrap relative transition-colors ${
                   activeTab === tab.id 
-                    ? 'text-blue-600' 
+                    ? 'text-[#AE2448]' 
                     : 'text-gray-500 hover:text-gray-900'
                 }`}
               >
                 {tab.label}
                 {activeTab === tab.id && (
-                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full layout-id-active-tab"></div>
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#AE2448] rounded-t-full layout-id-active-tab"></div>
                 )}
               </button>
             ))}
@@ -635,16 +635,16 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
             {activeTab === 'edit' && (
               <div className="space-y-8">
                 {/* Promo Card */}
-                <div className="p-4 rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-white hover:shadow-md transition-shadow cursor-pointer relative group overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="p-4 rounded-xl border border-[#AE2448]/30 bg-gradient-to-r from-[#D5E7B5] to-white hover:shadow-md transition-shadow cursor-pointer relative group overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#AE2448]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <div className="flex justify-between items-center mb-1">
                     <h4 className="font-bold text-gray-900 flex items-center gap-1">
-                      RCRD AI <Zap className="w-3 h-3 text-blue-600" />
+                      RCRD AI <Zap className="w-3 h-3 text-[#AE2448]" />
                     </h4>
-                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#AE2448] group-hover:translate-x-1 transition-all" />
                   </div>
                   <p className="text-xs text-gray-600 mb-2">Try out RCRD AI on your next few videos.</p>
-                  <span className="text-xs text-blue-600 font-medium hover:underline">Upgrade to keep access</span>
+                  <span className="text-xs text-[#AE2448] font-medium hover:underline">Upgrade to keep access</span>
                 </div>
 
                 {/* Make Edits */}
@@ -658,17 +658,17 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                     {/* Trimming (Active) */}
                     <div 
                       onClick={() => setIsEditorOpen(true)}
-                      className="flex items-center justify-between p-3 rounded-lg border border-blue-600/20 bg-blue-600/5 hover:bg-blue-600/10 transition-colors cursor-pointer group shadow-sm"
+                      className="flex items-center justify-between p-3 rounded-lg border border-[#AE2448]/20 bg-[#AE2448]/5 hover:bg-[#AE2448]/10 transition-colors cursor-pointer group shadow-sm"
                     >
                       <div className="flex gap-3 items-center">
-                        <div className="w-8 h-8 rounded bg-white shadow-sm flex items-center justify-center text-blue-600 transition-colors">
+                        <div className="w-8 h-8 rounded bg-white shadow-sm flex items-center justify-center text-[#AE2448] transition-colors">
                           <Scissors className="w-4 h-4" />
                         </div>
                         <div className="text-sm text-gray-800 font-bold max-w-[200px]">
                           Open Video Editor
                         </div>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
+                      <ChevronRight className="w-4 h-4 text-[#AE2448] group-hover:translate-x-1 transition-transform" />
                     </div>
 
                     {/* Toggles */}
@@ -693,7 +693,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                           }
                         }}
                         disabled={isProcessingAI}
-                        className={`w-9 h-5 rounded-full relative transition-colors ${silences ? 'bg-blue-600' : 'bg-gray-200'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-9 h-5 rounded-full relative transition-colors ${silences ? 'bg-[#AE2448]' : 'bg-gray-200'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <span className={`absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform ${silences ? 'translate-x-4' : 'translate-x-0'}`}></span>
                       </button>
@@ -720,7 +720,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                           }
                         }}
                         disabled={isProcessingAI}
-                        className={`w-9 h-5 rounded-full relative transition-colors ${fillerWords ? 'bg-blue-600' : 'bg-gray-200'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-9 h-5 rounded-full relative transition-colors ${fillerWords ? 'bg-[#AE2448]' : 'bg-gray-200'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <span className={`absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform ${fillerWords ? 'translate-x-4' : 'translate-x-0'}`}></span>
                       </button>
@@ -740,9 +740,9 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                 ) : (
                   <>
                 {/* New Comment Input Box */}
-                <div className="border border-blue-600 rounded-lg p-3 mb-6 bg-white shadow-sm">
+                <div className="border border-[#AE2448] rounded-lg p-3 mb-6 bg-white shadow-sm">
                   <div className="flex gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold shrink-0">HR</div>
+                    <div className="w-8 h-8 rounded-full bg-[#AE2448] text-white flex items-center justify-center text-sm font-bold shrink-0">HR</div>
                     <textarea 
                       id="main-comment-input"
                       placeholder="Leave a comment..."
@@ -803,7 +803,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                           console.error("Failed to add comment", err);
                         }
                       }}
-                      className="bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
+                      className="bg-[#AE2448] text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-[#6E1A37] transition-colors disabled:opacity-50"
                       disabled={!commentText.trim()}
                     >
                       Comment at {Math.floor(currentVideoTime / 60)}:{Math.floor(currentVideoTime % 60).toString().padStart(2, '0')}
@@ -813,9 +813,9 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
 
                 {(!video?.comments || video.comments.length === 0) ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center p-6 mt-10 group">
-                    <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4 relative group-hover:scale-110 transition-transform">
+                    <div className="w-16 h-16 bg-[#D5E7B5] text-[#AE2448] rounded-full flex items-center justify-center mb-4 relative group-hover:scale-110 transition-transform">
                       <MessageSquare className="w-8 h-8" />
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-lg font-bold border-2 border-white">+</div>
+                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#AE2448] text-white rounded-full flex items-center justify-center text-lg font-bold border-2 border-white">+</div>
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 mb-2">Be the first to comment</h3>
                     <p className="text-sm text-gray-500">Hit <kbd className="bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 mx-1 font-mono text-xs shadow-sm">C</kbd> to reply to {video?.ownerName?.split(' ')[0] || 'User'} or leave a comment above.</p>
@@ -826,7 +826,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                     <div className="space-y-4">
                       {video.comments.map((comment) => (
                         <div key={comment.id} className="relative group flex gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
-                          <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-sm mt-1">
+                          <div className="w-8 h-8 bg-[#AE2448] text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-sm mt-1">
                             {comment.userName ? comment.userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
                           </div>
                           <div className="flex-1">
@@ -834,14 +834,14 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                               <span className="font-bold text-sm text-gray-900 truncate shrink-0 max-w-[120px]">{comment.userName || 'User'}</span>
                               <span 
                                 onClick={() => handleTimeClick(comment.videoTime)}
-                                className="text-sm text-blue-600 cursor-pointer hover:underline font-medium shrink-0"
+                                className="text-sm text-[#AE2448] cursor-pointer hover:underline font-medium shrink-0"
                               >
                                 {comment.videoTime}
                               </span>
                               <span className="text-xs text-gray-500 shrink-0">Just now</span>
                               
                               {/* Actions - Horizontal on the right corner */}
-                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 text-blue-500 p-1.5 bg-gray-50/90 rounded-md">
+                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 text-[#AE2448] p-1.5 bg-gray-50/90 rounded-md">
                                 {recordReply && (
                                 <Mic 
                                   onClick={() => {
@@ -860,7 +860,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                                     }
                                     setTimeout(() => document.getElementById('main-comment-input')?.focus(), 100);
                                   }} 
-                                  className="w-4 h-4 cursor-pointer hover:text-blue-700 transition-colors"
+                                  className="w-4 h-4 cursor-pointer hover:text-[#6E1A37] transition-colors"
                                 />
                                 )}
                                 {emojiReactions && (
@@ -877,7 +877,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                                       console.error(e);
                                     }
                                   }} 
-                                  className="w-4 h-4 cursor-pointer hover:text-blue-700 transition-colors"
+                                  className="w-4 h-4 cursor-pointer hover:text-[#6E1A37] transition-colors"
                                 />
                                 )}
                                 <Edit2 
@@ -885,7 +885,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                                     setEditingCommentId(comment.id);
                                     setEditCommentText(comment.text);
                                   }} 
-                                  className="w-4 h-4 cursor-pointer hover:text-blue-700 transition-colors"
+                                  className="w-4 h-4 cursor-pointer hover:text-[#6E1A37] transition-colors"
                                 />
                                 <Trash2 
                                   onClick={async () => {
@@ -901,21 +901,21 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                                       });
                                     }
                                   }}
-                                  className="w-4 h-4 cursor-pointer text-red-500 hover:text-red-700 transition-colors"
+                                  className="w-4 h-4 cursor-pointer text-[#AE2448] hover:text-[#6E1A37] transition-colors"
                                 />
                                 <Link2 
                                   onClick={() => {
                                     navigator.clipboard.writeText(window.location.href);
                                     alert('Link to video copied!');
                                   }}
-                                  className="w-4 h-4 cursor-pointer hover:text-blue-700 transition-colors"
+                                  className="w-4 h-4 cursor-pointer hover:text-[#6E1A37] transition-colors"
                                 />
                               </div>
                             </div>
                             {editingCommentId === comment.id ? (
                               <div className="mt-2 pr-8">
                                 <textarea 
-                                  className="w-full text-sm text-gray-800 p-2 border border-blue-500 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                  className="w-full text-sm text-gray-800 p-2 border border-[#AE2448] rounded-md focus:outline-none focus:ring-2 focus:ring-[#AE2448] resize-none"
                                   value={editCommentText}
                                   onChange={(e) => setEditCommentText(e.target.value)}
                                   rows={2}
@@ -950,7 +950,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                                       });
                                       setEditingCommentId(null);
                                     }}
-                                    className="text-xs bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 font-medium transition-colors"
+                                    className="text-xs bg-[#AE2448] text-white px-3 py-1 rounded-md hover:bg-[#6E1A37] font-medium transition-colors"
                                   >
                                     Save
                                   </button>
@@ -988,11 +988,11 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                 <div className="flex rounded-lg bg-gray-50 p-1 mb-4 border border-gray-100">
                   <button 
                     onClick={() => setSettingsTab('enhancements')}
-                    className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${settingsTab === 'enhancements' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
+                    className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${settingsTab === 'enhancements' ? 'bg-white shadow-sm text-[#AE2448]' : 'text-gray-500 hover:text-gray-900'}`}
                   >Enhancements</button>
                   <button 
                     onClick={() => setSettingsTab('audience')}
-                    className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${settingsTab === 'audience' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-900'}`}
+                    className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${settingsTab === 'audience' ? 'bg-white shadow-sm text-[#AE2448]' : 'text-gray-500 hover:text-gray-900'}`}
                   >Audience</button>
                 </div>
                 
@@ -1047,7 +1047,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                             }
                           }}
                           disabled={isProcessingAI}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${noiseFilter ? 'bg-blue-600' : 'bg-gray-500'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${noiseFilter ? 'bg-[#AE2448]' : 'bg-gray-500'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${noiseFilter ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1061,7 +1061,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setAnimatedThumb(!animatedThumb)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${animatedThumb ? 'bg-blue-600' : 'bg-gray-500'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${animatedThumb ? 'bg-[#AE2448]' : 'bg-gray-500'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${animatedThumb ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1089,7 +1089,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                             }
                           }}
                           disabled={isProcessingAI}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${turnOnCaptions ? 'bg-blue-600' : 'bg-gray-500'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${turnOnCaptions ? 'bg-[#AE2448]' : 'bg-gray-500'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${turnOnCaptions ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1122,7 +1122,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setAllowComments(!allowComments)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${allowComments ? 'bg-blue-600' : 'bg-gray-500'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${allowComments ? 'bg-[#AE2448]' : 'bg-gray-500'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${allowComments ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1136,7 +1136,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setCommentNotification(!commentNotification)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${commentNotification ? 'bg-blue-600' : 'bg-gray-500'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${commentNotification ? 'bg-[#AE2448]' : 'bg-gray-500'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${commentNotification ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1150,7 +1150,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setRecordReply(!recordReply)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${recordReply ? 'bg-blue-600' : 'bg-gray-500'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${recordReply ? 'bg-[#AE2448]' : 'bg-gray-500'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${recordReply ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1164,7 +1164,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setEmojiReactions(!emojiReactions)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${emojiReactions ? 'bg-blue-600' : 'bg-gray-500'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${emojiReactions ? 'bg-[#AE2448]' : 'bg-gray-500'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${emojiReactions ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1178,7 +1178,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setDownloadEnabled(!downloadEnabled)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${downloadEnabled ? 'bg-blue-600' : 'bg-gray-500'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${downloadEnabled ? 'bg-[#AE2448]' : 'bg-gray-500'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${downloadEnabled ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1192,7 +1192,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setStitchEnabled(!stitchEnabled)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${stitchEnabled ? 'bg-blue-600' : 'bg-gray-500'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${stitchEnabled ? 'bg-[#AE2448]' : 'bg-gray-500'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${stitchEnabled ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1206,7 +1206,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setAnalyticsEnabled(!analyticsEnabled)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${analyticsEnabled ? 'bg-blue-600' : 'bg-gray-500'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${analyticsEnabled ? 'bg-[#AE2448]' : 'bg-gray-500'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${analyticsEnabled ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1222,7 +1222,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                           onClick={() => {
                             setTranscriptEnabled(!transcriptEnabled);
                           }}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${transcriptEnabled ? 'bg-blue-600' : 'bg-gray-500'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${transcriptEnabled ? 'bg-[#AE2448]' : 'bg-gray-500'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${transcriptEnabled ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1272,7 +1272,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
               <div className="flex flex-col h-full animate-in fade-in duration-300">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-purple-600" /> AI Document
+                    <Zap className="w-4 h-4 text-[#AE2448]" /> AI Document
                   </h3>
                   <button 
                     onClick={() => {
@@ -1284,7 +1284,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                       }, 2000);
                     }}
                     disabled={isProcessingAI}
-                    className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors flex items-center gap-1"
+                    className="text-xs font-medium text-[#AE2448] hover:text-purple-800 transition-colors flex items-center gap-1"
                   >
                     {isProcessingAI ? <div className="w-3 h-3 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div> : <Zap className="w-3 h-3" />}
                     {isProcessingAI ? "Generating..." : "Regenerate"}
@@ -1349,7 +1349,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
 
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+          <CheckCircle2 className="w-4 h-4 text-[#D5E7B5]" />
           <span>{toastMessage}</span>
         </div>
       )}

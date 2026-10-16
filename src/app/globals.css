@@ -5,8 +5,9 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-outfit), Arial, Helvetica, sans-serif;
   --font-outfit: var(--font-outfit), sans-serif;
-  --color-primary: #FF5A1F;
-  --color-primary-light: #FFF3EC;
+  --color-primary: #AE2448;
+  --color-primary-hover: #6E1A37;
+  --color-primary-light: #D5E7B5;
   --color-surface: #FFFFFF;
   --color-border: #E2E8F0;
   --color-text-primary: #0F172A;

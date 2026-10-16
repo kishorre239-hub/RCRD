@@ -62,7 +62,8 @@ export async function GET(
       let resolvedEditorData = video.editorData || backupMeta?.editorData || null;
       if (backupMeta?.editorData && video.editorData) {
         const backupTime = backupMeta.editorData.savedAt ? new Date(backupMeta.editorData.savedAt).getTime() : (backupMeta.updatedAt || 0);
-        const dbTime = (video.editorData as any)?.savedAt ? new Date((video.editorData as any).savedAt).getTime() : (video.updatedAt || 0);
+        const dbData = video.editorData as Record<string, unknown> | null | undefined;
+        const dbTime = dbData?.savedAt ? new Date(String(dbData.savedAt)).getTime() : (video.updatedAt || 0);
         if (backupTime > dbTime) {
           resolvedEditorData = backupMeta.editorData;
         }

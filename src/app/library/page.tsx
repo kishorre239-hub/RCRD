@@ -3,12 +3,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Search, Bell, Settings, Video, Folder, Plus, MoreVertical, MoreHorizontal,
-  Share2, Users, Building, Shield,
+  Search, Video, Folder, Plus, MoreVertical, MoreHorizontal,
+  Share2, Shield,
   ChevronDown, MessageSquare, Eye, Link as LinkIcon,
-  Pin, Globe, Lock, Home, ArrowLeft, Bookmark,
-  Monitor, Camera, Mic, Loader2, RefreshCw, X, Upload, Check, Cloud
+  Pin, Globe, Lock, ArrowLeft,
+  RefreshCw, X, Upload, Check, Cloud
 } from "lucide-react";
+import {
+  HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
+  UsersIcon, UserIcon, WorkspaceIcon, NotificationIcon
+} from "@/components/CustomIcons";
 import Image from "next/image";
 import { getVideos, getCourses, createCourse, renameCourse, deleteCourse, deleteVideo, updateVideo, syncVideos, addVideoComment, uploadVideo, API_URL } from "@/lib/api";
 import RecordingSetupModal from "@/components/RecordingSetupModal";
@@ -34,6 +38,7 @@ interface VideoData {
   mimeType?: string;
   isDrive?: boolean;
   driveFileId?: string;
+  driveFolderId?: string;
 }
 
 
@@ -55,7 +60,8 @@ export default function LibraryPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.search.includes('record=true')) {
-      setIsRecordModalOpen(true);
+      const t = setTimeout(() => setIsRecordModalOpen(true), 0);
+      return () => clearTimeout(t);
     }
   }, []);
 
@@ -73,17 +79,20 @@ export default function LibraryPage() {
   const [moveTargetFolderId, setMoveTargetFolderId] = useState<string>('root');
   
   // Pinned and Archived Video States (Image 3)
-  const [pinnedVideoIds, setPinnedVideoIds] = useState<string[]>([]);
-  const [archivedVideoIds, setArchivedVideoIds] = useState<string[]>([]);
-
-  useEffect(() => {
+  const [pinnedVideoIds, setPinnedVideoIds] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
     try {
       const savedPins = localStorage.getItem('pinnedVideoIds');
-      if (savedPins) setPinnedVideoIds(JSON.parse(savedPins));
+      return savedPins ? JSON.parse(savedPins) : [];
+    } catch { return []; }
+  });
+  const [archivedVideoIds, setArchivedVideoIds] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
       const savedArchived = localStorage.getItem('archivedVideos');
-      if (savedArchived) setArchivedVideoIds(JSON.parse(savedArchived));
-    } catch {}
-  }, []);
+      return savedArchived ? JSON.parse(savedArchived) : [];
+    } catch { return []; }
+  });
 
   const togglePinVideo = (id: string) => {
     setPinnedVideoIds(prev => {
@@ -181,8 +190,8 @@ export default function LibraryPage() {
       }, file.name);
       showToast(`"${file.name}" uploaded to Google Drive!`);
       await fetchData();
-    } catch (err: any) {
-      console.warn("Upload response note:", err?.message);
+    } catch (err: unknown) {
+      console.warn("Upload response note:", (err as Error)?.message);
       showToast(`"${file.name}" synced with Google Drive!`);
       await fetchData();
     } finally {
@@ -387,7 +396,7 @@ export default function LibraryPage() {
       localStorage.setItem(`video-meta-${id}`, JSON.stringify(meta));
 
       const savedWL = JSON.parse(localStorage.getItem('watchLaterVideos') || '[]');
-      const updatedWL = savedWL.map((v: any) => v.id === id ? { ...v, title: newTitle } : v);
+      const updatedWL = savedWL.map((v: VideoData) => v.id === id ? { ...v, title: newTitle } : v);
       localStorage.setItem('watchLaterVideos', JSON.stringify(updatedWL));
     } catch {}
 
@@ -497,7 +506,7 @@ export default function LibraryPage() {
       const targetFolderId = activeTab.replace('folder-', '');
       const targetCourse = courses.find(c => c.id === targetFolderId);
       const courseMatch = video.courseId === targetFolderId || 
-        (video as any).driveFolderId === targetFolderId ||
+        video.driveFolderId === targetFolderId ||
         (targetCourse && (video.courseId === targetCourse.name || video.courseId === targetCourse.id));
       if (!courseMatch) return false;
     }
@@ -506,7 +515,7 @@ export default function LibraryPage() {
     if (videoTypeFilter === 'meetings') {
       const isMeeting = video.title.toLowerCase().includes('meet') || 
         video.courseId === 'MEETING' || 
-        (video as any).driveFolderId === 'MEETING';
+        video.driveFolderId === 'MEETING';
       if (!isMeeting) return false;
     } else if (videoTypeFilter === 'screen') {
       const isScreen = video.title.toLowerCase().includes('recording') || 
@@ -566,41 +575,41 @@ export default function LibraryPage() {
       <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-slate-200 bg-white z-20 h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden">
         <div className="h-16 flex items-center px-6 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-center justify-center w-full cursor-pointer group" onClick={() => router.push('/')}>
-            <Image src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." width={120} height={48} className="h-12 w-auto object-contain transition-transform group-hover:scale-105" />
+            <Image src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." width={120} height={48} className="h-12 w-auto object-contain transition-transform group-hover:scale-105"  style={{ filter: "hue-rotate(131deg) saturate(1.4)" }}/>
           </div>
         </div>
 
         <div className="p-5 border-b border-slate-100 flex-shrink-0">
           <div className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl cursor-pointer transition-all border border-slate-100 hover:border-slate-200 group">
             <div>
-              <div className="text-sm font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">RCRD Workspace</div>
+              <div className="text-sm font-semibold text-slate-800 group-hover:text-[#6E1A37] transition-colors">RCRD Workspace</div>
               <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] uppercase tracking-wider bg-blue-100 px-2 py-0.5 rounded text-blue-700 font-bold border border-blue-200">Video Library</span>
+                <span className="text-[10px] uppercase tracking-wider bg-[#D5E7B5] px-2 py-0.5 rounded text-[#6E1A37] font-bold border border-[#AE2448]/30">Video Library</span>
                 <span className="text-xs text-slate-500">Pro Plan</span>
               </div>
             </div>
             <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
           </div>
           <button className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 transition-all shadow-sm hover:shadow-md">
-            <Users className="w-4 h-4 text-blue-600" />
+            <UsersIcon size={16} className="text-[#AE2448]" />
             Invite Teammates
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto py-5 px-4 custom-scrollbar min-h-0">
           <nav className="space-y-1">
-            <SidebarItem icon={<Home size={18} />} label="For You" href="/" />
-            <SidebarItem icon={<Folder size={18} />} label="Library" active href="/library" />
-            <SidebarItem icon={<Video size={18} />} label="Meetings" href="/meetings" />
-            <SidebarItem icon={<Bookmark size={18} />} label="Watch Later" href="/watch-later" />
-            <SidebarItem icon={<Settings size={18} />} label="Settings" href="/settings" />
+            <SidebarItem icon={<HomeIcon size={18} />} label="For You" href="/" />
+            <SidebarItem icon={<LibraryIcon size={18} />} label="Library" active href="/library" />
+            <SidebarItem icon={<VideoCameraIcon size={18} />} label="Meetings" href="/meetings" />
+            <SidebarItem icon={<CalendarIcon size={18} />} label="Calendar" href="/calendar" />
+            <SidebarItem icon={<SettingsIcon size={18} />} label="Settings" href="/settings" />
           </nav>
 
           <div className="mt-10">
             <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Workspace Admin</h3>
             <nav className="space-y-1">
-              <SidebarItem icon={<Settings size={18} />} label="Manage Users" href="/settings?tab=users" />
-              <SidebarItem icon={<Building size={18} />} label="Workspace Info" />
+              <SidebarItem icon={<UserIcon size={18} />} label="Manage Users" href="/settings?tab=users" />
+              <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" />
               <SidebarItem icon={<Shield size={18} />} label="Billing & Plans" href="/settings?tab=billing" />
             </nav>
           </div>
@@ -609,9 +618,9 @@ export default function LibraryPage() {
         <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
           <button 
             onClick={() => setIsRecordModalOpen(true)}
-            className="w-full bg-[#1A68FF] hover:bg-[#1557D6] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(26,104,255,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(26,104,255,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+            className="w-full bg-[#AE2448] hover:bg-[#6E1A37] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(174, 36, 72,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(174, 36, 72,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
-            <Video size={20} className="stroke-[2.2]" />
+            <VideoCameraIcon size={20} />
             <span>Record Video</span>
           </button>
         </div>
@@ -627,20 +636,20 @@ export default function LibraryPage() {
             <input 
               type="text" 
               placeholder="Search for people, tags, folders, Spaces, and Looms" 
-              className="w-full pl-9 pr-4 py-1.5 bg-[#F2F5F7] border border-transparent rounded-lg text-[13px] text-slate-900 focus:bg-white focus:border-[#0E71EB] focus:ring-1 focus:ring-[#0E71EB] outline-none transition-all placeholder:text-slate-500 font-medium"
+              className="w-full pl-9 pr-4 py-1.5 bg-[#F2F5F7] border border-transparent rounded-lg text-[13px] text-slate-900 focus:bg-white focus:border-[#AE2448] focus:ring-1 focus:ring-[#AE2448] outline-none transition-all placeholder:text-slate-500 font-medium"
             />
           </div>
           <div className="flex items-center gap-4 ml-4 shrink-0">
-            <button className="bg-[#0E71EB] hover:bg-[#1655B8] text-white px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all">
+            <button className="bg-[#AE2448] hover:bg-[#6E1A37] text-white px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all">
               Upgrade
             </button>
             <button className="text-slate-500 hover:bg-slate-100 p-1.5 rounded-md transition-colors">
               <div className="w-5 h-5 border-2 border-slate-500 rounded-full flex items-center justify-center text-[11px] font-bold">?</div>
             </button>
             <button className="text-slate-500 hover:bg-slate-100 p-1.5 rounded-md transition-colors">
-              <Bell size={18} />
+              <NotificationIcon size={18} />
             </button>
-            <div className="w-7 h-7 rounded-full bg-[#0E71EB] text-white flex items-center justify-center text-[11px] font-bold cursor-pointer">
+            <div className="w-7 h-7 rounded-full bg-[#AE2448] text-white flex items-center justify-center text-[11px] font-bold cursor-pointer">
               HR
             </div>
           </div>
@@ -681,9 +690,9 @@ export default function LibraryPage() {
                 <div>
                   <div className="flex items-center gap-2.5 mb-1">
                     <span className="text-[13px] text-slate-500 font-medium">Library</span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-xs">
-                      <Cloud size={13} className="text-emerald-600" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#D5E7B5]/40 text-[#6E1A37] border border-[#72BAA9]/30 shadow-xs">
+                      <Cloud size={13} className="text-[#72BAA9]" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#72BAA9] animate-pulse"></span>
                       Google Drive Connected
                     </span>
                   </div>
@@ -699,10 +708,10 @@ export default function LibraryPage() {
                 >
                   New folder
                 </button>
-                <div className="relative flex items-center bg-[#0E71EB] hover:bg-[#1655B8] rounded-lg transition-colors text-white shadow-xs">
+                <div className="relative flex items-center bg-[#AE2448] hover:bg-[#6E1A37] rounded-lg transition-colors text-white shadow-xs">
                   <button 
                     onClick={() => setIsRecordModalOpen(true)}
-                    className="px-4 py-2 text-[13px] font-semibold border-r border-blue-500 hover:bg-blue-600 transition-colors rounded-l-lg"
+                    className="px-4 py-2 text-[13px] font-semibold border-r border-[#AE2448] hover:bg-[#AE2448] transition-colors rounded-l-lg"
                   >
                     New video
                   </button>
@@ -711,7 +720,7 @@ export default function LibraryPage() {
                       e.stopPropagation(); 
                       setShowNewVideoMenu(!showNewVideoMenu); 
                     }}
-                    className="px-2 py-2 hover:bg-blue-600 transition-colors rounded-r-lg"
+                    className="px-2 py-2 hover:bg-[#AE2448] transition-colors rounded-r-lg"
                     title="Video creation options"
                   >
                     <ChevronDown size={16} />
@@ -727,14 +736,14 @@ export default function LibraryPage() {
                         onClick={() => { setShowNewVideoMenu(false); setIsRecordModalOpen(true); }}
                         className="w-full text-left px-4 py-2 text-[13px] font-medium hover:bg-slate-50 flex items-center gap-2.5 text-slate-700"
                       >
-                        <Video size={16} className="text-blue-600" />
+                        <Video size={16} className="text-[#AE2448]" />
                         Record screen & camera
                       </button>
                       <button 
                         onClick={() => { setShowNewVideoMenu(false); fileInputRef.current?.click(); }}
                         className="w-full text-left px-4 py-2 text-[13px] font-medium hover:bg-slate-50 flex items-center gap-2.5 text-slate-700"
                       >
-                        <Upload size={16} className="text-emerald-600" />
+                        <Upload size={16} className="text-[#72BAA9]" />
                         Upload video file to Drive
                       </button>
                     </div>
@@ -750,11 +759,11 @@ export default function LibraryPage() {
                   <button 
                     key={tab}
                     onClick={() => setActiveTab(tab.toLowerCase())}
-                    className={`pb-3 text-[14px] font-medium transition-colors relative ${activeTab === tab.toLowerCase() ? 'text-[#0E71EB]' : 'text-slate-600 hover:text-slate-900'}`}
+                    className={`pb-3 text-[14px] font-medium transition-colors relative ${activeTab === tab.toLowerCase() ? 'text-[#AE2448]' : 'text-slate-600 hover:text-slate-900'}`}
                   >
                     {tab}
                     {activeTab === tab.toLowerCase() && (
-                      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#0E71EB]"></div>
+                      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#AE2448]"></div>
                     )}
                   </button>
                 ))}
@@ -772,14 +781,14 @@ export default function LibraryPage() {
                   {courses.map(folder => {
                     const count = folder.id === 'all'
                       ? videos.length
-                      : videos.filter(v => v.courseId === folder.id || (v as any).driveFolderId === folder.id).length;
+                      : videos.filter(v => v.courseId === folder.id || v.driveFolderId === folder.id).length;
                     
                     return (
                       <div 
                         key={folder.id} 
                         onClick={() => setActiveTab(`folder-${folder.id}`)}
                         className={`group relative flex items-center justify-between w-[240px] p-3 bg-white border hover:border-slate-300 hover:shadow-sm rounded-xl cursor-pointer transition-all ${
-                          activeTab === `folder-${folder.id}` ? 'border-blue-500 ring-2 ring-blue-100' : 'border-slate-200'
+                          activeTab === `folder-${folder.id}` ? 'border-[#AE2448] ring-2 ring-[#AE2448]/20' : 'border-slate-200'
                         }`}
                       >
                         <div className="flex items-center gap-3 overflow-hidden">
@@ -834,7 +843,7 @@ export default function LibraryPage() {
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-[13px] font-medium transition-colors shadow-2xs ${
                     videoTypeFilter !== 'all' 
-                      ? 'bg-blue-50 border-blue-400 text-blue-700 font-semibold' 
+                      ? 'bg-[#D5E7B5] border-[#AE2448] text-[#6E1A37] font-semibold' 
                       : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
                   }`}
                 >
@@ -866,17 +875,17 @@ export default function LibraryPage() {
                         <button
                           key={opt.id}
                           onClick={() => {
-                            setVideoTypeFilter(opt.id as any);
+                            setVideoTypeFilter(opt.id as 'all' | 'screen' | 'meetings' | 'upload');
                             setShowVideoTypeFilter(false);
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg text-[13px] font-medium transition-colors flex items-center justify-between ${
                             videoTypeFilter === opt.id 
-                              ? 'bg-blue-50 text-blue-700 font-semibold' 
+                              ? 'bg-[#D5E7B5] text-[#6E1A37] font-semibold' 
                               : 'text-slate-700 hover:bg-slate-50'
                           }`}
                         >
                           <span>{opt.label}</span>
-                          {videoTypeFilter === opt.id && <Check size={14} className="text-blue-600" />}
+                          {videoTypeFilter === opt.id && <Check size={14} className="text-[#AE2448]" />}
                         </button>
                       ))}
                     </div>
@@ -905,7 +914,7 @@ export default function LibraryPage() {
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-[13px] font-medium transition-colors shadow-2xs ${
                     dateFilter !== 'all' 
-                      ? 'bg-blue-50 border-blue-400 text-blue-700 font-semibold' 
+                      ? 'bg-[#D5E7B5] border-[#AE2448] text-[#6E1A37] font-semibold' 
                       : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
                   }`}
                 >
@@ -939,17 +948,17 @@ export default function LibraryPage() {
                         <button
                           key={opt.id}
                           onClick={() => {
-                            setDateFilter(opt.id as any);
+                            setDateFilter(opt.id as 'all' | 'today' | '7days' | '30days' | 'year');
                             setShowDateFilter(false);
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg text-[13px] font-medium transition-colors flex items-center justify-between ${
                             dateFilter === opt.id 
-                              ? 'bg-blue-50 text-blue-700 font-semibold' 
+                              ? 'bg-[#D5E7B5] text-[#6E1A37] font-semibold' 
                               : 'text-slate-700 hover:bg-slate-50'
                           }`}
                         >
                           <span>{opt.label}</span>
-                          {dateFilter === opt.id && <Check size={14} className="text-blue-600" />}
+                          {dateFilter === opt.id && <Check size={14} className="text-[#AE2448]" />}
                         </button>
                       ))}
                     </div>
@@ -1008,17 +1017,17 @@ export default function LibraryPage() {
                         <button
                           key={opt.id}
                           onClick={() => {
-                            setSortOrder(opt.id as any);
+                            setSortOrder(opt.id as 'newest' | 'oldest' | 'title-asc' | 'title-desc' | 'views');
                             setShowSortFilter(false);
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg text-[13px] font-medium transition-colors flex items-center justify-between ${
                             sortOrder === opt.id 
-                              ? 'bg-blue-50 text-blue-700 font-semibold' 
+                              ? 'bg-[#D5E7B5] text-[#6E1A37] font-semibold' 
                               : 'text-slate-700 hover:bg-slate-50'
                           }`}
                         >
                           <span>{opt.label}</span>
-                          {sortOrder === opt.id && <Check size={14} className="text-blue-600" />}
+                          {sortOrder === opt.id && <Check size={14} className="text-[#AE2448]" />}
                         </button>
                       ))}
                     </div>
@@ -1036,7 +1045,7 @@ export default function LibraryPage() {
                   <div 
                     key={video.id} 
                     className={`bg-white rounded-xl shadow-sm border group cursor-pointer hover:shadow-md transition-all relative ${
-                      activeVideoMenu === video.id ? 'z-40 border-2 border-blue-600 ring-2 ring-blue-500/20' : 'z-10 border-slate-200'
+                      activeVideoMenu === video.id ? 'z-40 border-2 border-[#AE2448] ring-2 ring-[#AE2448]/20' : 'z-10 border-slate-200'
                     }`}
                     onMouseEnter={() => {
                       setVideoHoverId(video.id);
@@ -1091,7 +1100,7 @@ export default function LibraryPage() {
 
                     {/* Top Left Pinned Badge */}
                     {pinnedVideoIds.includes(video.id) && (
-                      <div className="absolute top-2.5 left-2.5 z-30 px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded-md flex items-center gap-1 shadow-md">
+                      <div className="absolute top-2.5 left-2.5 z-30 px-2 py-0.5 bg-[#AE2448] text-white text-[10px] font-bold rounded-md flex items-center gap-1 shadow-md">
                         <Pin size={10} className="fill-white rotate-45" />
                         PINNED
                       </div>
@@ -1111,7 +1120,7 @@ export default function LibraryPage() {
                           onClick={(e) => { e.stopPropagation(); togglePinVideo(video.id); }}
                           className={`w-[28px] h-[28px] rounded shadow-sm flex items-center justify-center transition-colors cursor-pointer border ${
                             pinnedVideoIds.includes(video.id) 
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-blue-500/20' 
+                              ? 'bg-[#AE2448] text-white border-[#AE2448] shadow-[rgba(174, 36, 72,0.2)]' 
                               : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-100'
                           }`}
                           title={pinnedVideoIds.includes(video.id) ? "Unpin video" : "Pin video"}
@@ -1206,7 +1215,7 @@ export default function LibraryPage() {
                               {activeTab === 'archived' ? (
                                 <button
                                   onClick={() => unarchiveVideo(video.id, video.title)}
-                                  className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
+                                  className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#AE2448] hover:bg-[#D5E7B5] transition-colors cursor-pointer"
                                 >
                                   Restore from Archive
                                 </button>
@@ -1223,7 +1232,7 @@ export default function LibraryPage() {
                                   setActiveVideoMenu(null);
                                   handleDeleteVideo(video.id);
                                 }}
-                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-slate-800 hover:bg-red-50 hover:text-red-600 transition-colors cursor-pointer"
+                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-slate-800 hover:bg-[#AE2448]/10 hover:text-[#AE2448] transition-colors cursor-pointer"
                               >
                                 Delete
                               </button>
@@ -1236,7 +1245,7 @@ export default function LibraryPage() {
                     {/* Card Details (Image 3) */}
                     <div className="p-4 relative bg-white border-t border-slate-100 flex flex-col gap-2">
                       <div className="flex items-start gap-3 mb-2">
-                        <div className="w-9 h-9 rounded-full bg-[#0E71EB] text-white flex items-center justify-center text-[12px] font-bold shrink-0 shadow-sm">
+                        <div className="w-9 h-9 rounded-full bg-[#AE2448] text-white flex items-center justify-center text-[12px] font-bold shrink-0 shadow-sm">
                           {video.isDrive ? 'GD' : (video.ownerName ? video.ownerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'HR')}
                         </div>
                         <div className="flex-1 min-w-0 pt-0.5">
@@ -1269,12 +1278,12 @@ export default function LibraryPage() {
                               if (e.key === 'Escape') setEditingTitleId(null);
                             }}
                             onBlur={() => handleSaveRename(video.id)}
-                            className="font-semibold text-[16px] text-slate-900 w-full border-b-2 border-blue-600 focus:outline-none bg-transparent pb-0.5"
+                            className="font-semibold text-[16px] text-slate-900 w-full border-b-2 border-[#AE2448] focus:outline-none bg-transparent pb-0.5"
                           />
                         </div>
                       ) : (
                         <h3 
-                          className="font-medium text-[15px] text-slate-900 truncate mb-3 cursor-pointer hover:text-blue-600 transition-colors"
+                          className="font-medium text-[15px] text-slate-900 truncate mb-3 cursor-pointer hover:text-[#AE2448] transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(`/video/${video.id}`);
@@ -1363,7 +1372,7 @@ export default function LibraryPage() {
                                 }
                               }
                             }}
-                            className="flex-1 bg-white border border-slate-200 rounded-full px-4 py-2 text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-shadow shadow-sm"
+                            className="flex-1 bg-white border border-slate-200 rounded-full px-4 py-2 text-[13px] focus:outline-none focus:border-[#AE2448] focus:ring-1 focus:ring-[#AE2448] transition-shadow shadow-sm"
                           />
                           <button 
                             onClick={async () => {
@@ -1386,7 +1395,7 @@ export default function LibraryPage() {
                               }
                             }}
                             disabled={!newCommentText.trim()}
-                            className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-full px-4 py-2 text-[13px] font-semibold transition-colors shadow-sm"
+                            className="bg-[#AE2448] hover:bg-[#6E1A37] disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-full px-4 py-2 text-[13px] font-semibold transition-colors shadow-sm"
                           >
                             Post
                           </button>
@@ -1413,14 +1422,14 @@ export default function LibraryPage() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setIsRecordModalOpen(true)}
-                    className="bg-[#1A68FF] hover:bg-[#1557D6] text-white py-3 px-6 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2 shadow-[0_10px_25px_-5px_rgba(26,104,255,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(26,104,255,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+                    className="bg-[#AE2448] hover:bg-[#6E1A37] text-white py-3 px-6 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2 shadow-[0_10px_25px_-5px_rgba(174, 36, 72,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(174, 36, 72,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
                   >
                     <Video size={18} className="stroke-[2.2]" />
                     <span>Record Video</span>
                   </button>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition-colors flex items-center gap-2 shadow-sm text-[14px]"
+                    className="px-5 py-2.5 bg-[#72BAA9] hover:bg-[#6E1A37] text-white rounded-lg font-semibold transition-colors flex items-center gap-2 shadow-sm text-[14px]"
                   >
                     <Upload size={16} />
                     Upload to Drive
@@ -1465,7 +1474,7 @@ export default function LibraryPage() {
                     <input 
                       type="text" 
                       placeholder="Add names, emails, or Space" 
-                      className="w-full pl-4 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg text-[14px] text-slate-900 focus:border-[#0E71EB] focus:ring-1 focus:ring-[#0E71EB] outline-none"
+                      className="w-full pl-4 pr-4 py-2.5 bg-white border border-slate-300 rounded-lg text-[14px] text-slate-900 focus:border-[#AE2448] focus:ring-1 focus:ring-[#AE2448] outline-none"
                     />
                   </div>
                   <div className="flex items-center gap-1 text-[13px] font-medium text-slate-500 cursor-pointer hover:text-slate-700 whitespace-nowrap">
@@ -1507,7 +1516,7 @@ export default function LibraryPage() {
                     <LinkIcon size={16} /> Copy link
                   </button>
                   <label className="flex items-center gap-2 cursor-pointer group">
-                    <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#0E71EB] focus:ring-[#0E71EB] group-hover:border-slate-400 transition-colors" />
+                    <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-[#AE2448] focus:ring-[#AE2448] group-hover:border-slate-400 transition-colors" />
                     <span className="text-[13px] font-medium text-slate-700">Share video at 0:00</span>
                   </label>
                 </div>
@@ -1527,7 +1536,7 @@ export default function LibraryPage() {
                       showToast("Link shared & copied to clipboard!");
                       setShareModalVideoId(null);
                     }}
-                    className="px-4 py-2 bg-[#0E71EB] hover:bg-[#1655B8] text-white rounded-lg text-[13px] font-semibold transition-colors cursor-pointer shadow-sm"
+                    className="px-4 py-2 bg-[#AE2448] hover:bg-[#6E1A37] text-white rounded-lg text-[13px] font-semibold transition-colors cursor-pointer shadow-sm"
                   >
                     Share
                   </button>
@@ -1600,7 +1609,7 @@ export default function LibraryPage() {
                   </button>
                   <button 
                     onClick={confirmMoveVideo}
-                    className="px-5 py-2 bg-[#0E71EB] hover:bg-[#1655B8] text-white rounded-lg text-[13px] font-semibold transition-colors shadow-sm"
+                    className="px-5 py-2 bg-[#AE2448] hover:bg-[#6E1A37] text-white rounded-lg text-[13px] font-semibold transition-colors shadow-sm"
                   >
                     Move
                   </button>
@@ -1640,7 +1649,7 @@ export default function LibraryPage() {
                 {/* Header */}
                 <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-[#D5E7B5] text-[#AE2448] flex items-center justify-center">
                       <Share2 size={20} />
                     </div>
                     <div>
@@ -1669,7 +1678,7 @@ export default function LibraryPage() {
                             showToast("Link copied to clipboard!");
                           }
                         }}
-                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 shrink-0 shadow-sm shadow-blue-500/20"
+                        className="px-4 py-2.5 bg-[#AE2448] hover:bg-[#6E1A37] text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 shrink-0 shadow-sm shadow-[rgba(174, 36, 72,0.2)]"
                       >
                         <LinkIcon size={14} /> Copy link
                       </button>
@@ -1706,7 +1715,7 @@ export default function LibraryPage() {
                         target="_blank" rel="noreferrer"
                         className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-700 text-xs font-medium"
                       >
-                        <div className="w-8 h-8 rounded-full bg-red-50 text-red-600 flex items-center justify-center font-bold text-xs">@</div>
+                        <div className="w-8 h-8 rounded-full bg-[#AE2448]/10 text-[#AE2448] flex items-center justify-center font-bold text-xs">@</div>
                         <span>Email</span>
                       </a>
                       <a 
@@ -1714,7 +1723,7 @@ export default function LibraryPage() {
                         target="_blank" rel="noreferrer"
                         className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-700 text-xs font-medium"
                       >
-                        <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs">WA</div>
+                        <div className="w-8 h-8 rounded-full bg-[#D5E7B5]/40 text-[#72BAA9] flex items-center justify-center font-bold text-xs">WA</div>
                         <span>WhatsApp</span>
                       </a>
                       <a 
@@ -1730,15 +1739,15 @@ export default function LibraryPage() {
                         target="_blank" rel="noreferrer"
                         className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all text-slate-700 text-xs font-medium"
                       >
-                        <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs">in</div>
+                        <div className="w-8 h-8 rounded-full bg-[#D5E7B5] text-[#6E1A37] flex items-center justify-center font-bold text-xs">in</div>
                         <span>LinkedIn</span>
                       </a>
                     </div>
                   </div>
 
                   {/* Access notice */}
-                  <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-xl flex items-center gap-2 text-xs text-blue-800">
-                    <Globe size={16} className="text-blue-600 shrink-0" />
+                  <div className="p-3 bg-[#D5E7B5]/60 border border-[#AE2448]/20 rounded-xl flex items-center gap-2 text-xs text-[#AE2448]">
+                    <Globe size={16} className="text-[#AE2448] shrink-0" />
                     <span>Anyone with this link can watch this recording without an account.</span>
                   </div>
                 </div>
@@ -1775,7 +1784,7 @@ export default function LibraryPage() {
                 {/* Header */}
                 <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 text-[#6E1A37] flex items-center justify-center">
                       <Folder size={20} />
                     </div>
                     <div>
@@ -1799,15 +1808,15 @@ export default function LibraryPage() {
                         onClick={() => setMoveTargetFolderId(dest.id)}
                         className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
                           isSelected 
-                            ? 'bg-blue-50 border-blue-500 text-blue-900 font-semibold shadow-sm'
+                            ? 'bg-[#D5E7B5] border-[#AE2448] text-blue-900 font-semibold shadow-sm'
                             : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <Folder size={18} className={isSelected ? 'text-blue-600' : 'text-slate-400'} />
+                          <Folder size={18} className={isSelected ? 'text-[#AE2448]' : 'text-slate-400'} />
                           <span className="text-sm">{dest.name}</span>
                         </div>
-                        {isSelected && <Check size={16} className="text-blue-600" />}
+                        {isSelected && <Check size={16} className="text-[#AE2448]" />}
                       </button>
                     );
                   })}
@@ -1823,7 +1832,7 @@ export default function LibraryPage() {
                   </button>
                   <button 
                     onClick={confirmMoveVideo} 
-                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm transition-colors shadow-sm shadow-blue-500/20"
+                    className="px-5 py-2 bg-[#AE2448] hover:bg-[#6E1A37] text-white rounded-xl font-semibold text-sm transition-colors shadow-sm shadow-[rgba(174, 36, 72,0.2)]"
                   >
                     Move here
                   </button>
@@ -1852,15 +1861,15 @@ function SidebarItem({ icon, label, active = false, external = false, href }: { 
         fontStyle: 'normal',
         lineHeight: '14px',
         letterSpacing: 'normal',
-        color: active ? '#1D4ED8' : '#292A2E'
+        color: active ? '#AE2448' : '#292A2E'
       }}
       className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold cursor-pointer transition-all ${
       active 
-        ? "bg-blue-50 shadow-sm" 
+        ? "bg-[#D5E7B5] shadow-sm" 
         : "hover:bg-slate-50"
     }`}>
       <div className="flex items-center gap-3">
-        <div className={`${active ? "text-blue-600" : "text-slate-400"}`}>
+        <div className={`${active ? "text-[#AE2448]" : "text-slate-400"}`}>
           {icon}
         </div>
         <span className="text-sm tracking-wide">{label}</span>

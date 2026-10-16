@@ -48,7 +48,7 @@ export default function SharedVideoPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#0f1115] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#6E1A37] animate-spin" />
       </div>
     );
   }
@@ -69,7 +69,7 @@ export default function SharedVideoPage() {
   return (
     <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#0f1115] text-slate-900 dark:text-white flex flex-col">
       <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#16181d] flex items-center justify-center px-8 shrink-0">
-        <div className="font-bold text-xl tracking-tight text-indigo-600 dark:text-indigo-400">
+        <div className="font-bold text-xl tracking-tight text-[#6E1A37] dark:text-indigo-400">
           MEET
         </div>
       </header>

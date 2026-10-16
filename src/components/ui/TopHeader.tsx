@@ -1,5 +1,6 @@
 import React from "react";
-import { Bell, Search, Menu } from "lucide-react";
+import { Search, Menu } from "lucide-react";
+import { NotificationIcon } from "@/components/CustomIcons";
 
 interface TopHeaderProps {
   title: string;
@@ -33,9 +34,9 @@ export function TopHeader({ title, subtitle, onMenuClick, showMenuButton = false
           <Search size={18} />
         </button>
         <button className="relative w-10 h-10 bg-surface rounded-full flex items-center justify-center border border-border shadow-sm text-text-secondary hover:text-text-primary hover:border-gray-300 transition-colors">
-          <Bell size={18} />
+          <NotificationIcon size={18} />
           {/* Notification Dot */}
-          <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border border-surface" />
+          <span className="absolute top-2 right-2.5 w-2 h-2 bg-[#AE2448] rounded-full border border-surface" />
         </button>
       </div>
     </header>

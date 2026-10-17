@@ -6,15 +6,23 @@ export const DEFAULT_ROOT_FOLDER_ID = '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7';
 export const DEFAULT_MEETING_FOLDER_ID = '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW';
 
 export function extractDriveFolderId(input?: string | null): string {
-  if (!input || input === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || input === 'root' || input === 'all') {
+  if (!input) return DEFAULT_ROOT_FOLDER_ID;
+  const trimmed = input.trim();
+  if (trimmed === 'root' || trimmed === 'all' || trimmed === 'folder-all' || trimmed === 'workspace') {
     return DEFAULT_ROOT_FOLDER_ID;
   }
-  const trimmed = input.trim();
+  let id = trimmed;
   const match = trimmed.match(/folders\/([a-zA-Z0-9_-]+)/);
-  if (match) return match[1];
-  const idMatch = trimmed.match(/^([a-zA-Z0-9_-]{20,})$/);
-  if (idMatch) return idMatch[1];
-  return trimmed || DEFAULT_ROOT_FOLDER_ID;
+  if (match) {
+    id = match[1];
+  } else {
+    const idMatch = trimmed.match(/^([a-zA-Z0-9_-]{20,})$/);
+    if (idMatch) id = idMatch[1];
+  }
+  if (!id || id === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || id.includes('1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4') || id === 'root' || id === 'all') {
+    return DEFAULT_ROOT_FOLDER_ID;
+  }
+  return id;
 }
 
 export function getRootFolderId(): string {
@@ -286,7 +294,7 @@ export async function createResumableUploadSession(params: {
       const cleanName = params.folderId.replace(/^folder-/, '');
       targetFolder = await getOrCreateNamedDriveFolder(cleanName);
     } else {
-      targetFolder = params.folderId;
+      targetFolder = extractDriveFolderId(params.folderId);
     }
   } else if (params.isMeeting) {
     targetFolder = await getMeetingFolderId();
@@ -562,22 +570,39 @@ export async function createDriveFolder(name: string, parentId?: string): Promis
 
   try {
     const rootId = extractDriveFolderId(parentId || getRootFolderId());
-    const metadata: { name: string; mimeType: string; parents?: string[] } = {
-      name: name.trim(),
-      mimeType: 'application/vnd.google-apps.folder',
-    };
-    if (rootId) {
-      metadata.parents = [rootId];
+    const folderName = name.trim();
+
+    // Check if an active folder with this exact name already exists under rootId
+    try {
+      const existing = await drive.files.list({
+        q: `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and name = '${folderName.replace(/'/g, "\\'")}' and trashed = false`,
+        fields: 'files(id, name)',
+        pageSize: 1,
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+      });
+      if (existing.data.files && existing.data.files.length > 0 && existing.data.files[0].id) {
+        driveCache.timestamp = 0;
+        return existing.data.files[0].id;
+      }
+    } catch (checkErr) {
+      console.warn('Folder duplicate check warning:', checkErr);
     }
+
+    const metadata: { name: string; mimeType: string; parents?: string[] } = {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: [rootId],
+    };
 
     const res = await drive.files.create({
       requestBody: metadata,
-      fields: 'id, name',
+      fields: 'id, name, parents',
       supportsAllDrives: true,
     });
     driveCache.timestamp = 0;
     if (res.data.id) {
-      driveCache.folders.push({ id: res.data.id, name: name.trim() });
+      driveCache.folders.push({ id: res.data.id, name: folderName });
     }
     return res.data.id || null;
   } catch (error: unknown) {
@@ -685,7 +710,7 @@ export async function uploadBufferToDrive(params: {
         const cleanName = params.folderId.replace(/^folder-/, '');
         targetFolder = await getOrCreateNamedDriveFolder(cleanName);
       } else {
-        targetFolder = params.folderId;
+        targetFolder = extractDriveFolderId(params.folderId);
       }
     } else if (params.isMeeting) {
       targetFolder = await getMeetingFolderId();

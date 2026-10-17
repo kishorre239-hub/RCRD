@@ -26,7 +26,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Folder name is required' }, { status: 400 });
     }
 
-    const folderId = await createDriveFolder(name);
+    const parentId = typeof body.parentId === 'string' ? body.parentId.trim() : undefined;
+    const folderId = await createDriveFolder(name, parentId);
     if (!folderId) {
       return NextResponse.json({ error: 'Failed to create folder on Google Drive' }, { status: 500 });
     }

@@ -355,6 +355,16 @@ export const createCourse = async (name: string): Promise<{ id: string; name: st
   });
   if (response.ok) {
     const created = await response.json();
+    if (typeof window !== 'undefined' && created && created.id) {
+      try {
+        const stored = localStorage.getItem('loom_video_folders');
+        const folders: Array<{ id: string; name: string }> = stored ? JSON.parse(stored) : [];
+        if (!folders.some(f => f.id === created.id)) {
+          folders.push(created);
+          localStorage.setItem('loom_video_folders', JSON.stringify(folders));
+        }
+      } catch {}
+    }
     return created;
   }
   const errData = await response.json().catch(() => ({}));

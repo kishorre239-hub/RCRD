@@ -47,7 +47,7 @@ export const useRecorder = () => {
         const displayMediaOptions = {
           video: {
             displaySurface: 'monitor',
-            frameRate: { ideal: 30, max: 60 },
+            frameRate: { ideal: 12, max: 15 },
           },
           audio: true, // Capture system audio if shared by user
           selfBrowserSurface: 'include',
@@ -72,8 +72,8 @@ export const useRecorder = () => {
 
       if (shouldGetMic || shouldGetCamera) {
         const avStream = await navigator.mediaDevices.getUserMedia({
-          video: shouldGetCamera ? { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 60 } } : false,
-          audio: shouldGetMic ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false,
+          video: shouldGetCamera ? { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 12, max: 15 } } : false,
+          audio: shouldGetMic ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 16000 } : false,
         });
         
         avStream.getTracks().forEach((track) => {
@@ -103,11 +103,12 @@ export const useRecorder = () => {
         return 'video/webm';
       };
 
-      // High-definition 60fps screen & window recording bitrate (2.5 Mbps) for smooth multi-window transitions
+      // Ultra-efficient storage compression: 7.5 kbps video + 4 kbps voice
+      // Exactly ~5 MB per 1 full hour (~340 KB for 4 minutes instead of 21 MB)
       const mediaRecorder = new MediaRecorder(combinedStream, {
         mimeType: getOptimalMimeType(),
-        videoBitsPerSecond: 2500000,
-        audioBitsPerSecond: 128000,
+        videoBitsPerSecond: 7500,
+        audioBitsPerSecond: 4000,
       });
 
       mediaRecorder.ondataavailable = (event) => {

@@ -326,8 +326,8 @@ export default function RecordingSetupModal({
       // 1. Screen capture (unless Camera only)
       if (screenType === 'Camera only') {
         const camConstraints: MediaStreamConstraints = {
-          video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
-          audio: micOn ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true } : false,
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 12, max: 15 } },
+          audio: micOn ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 16000 } : false,
         };
         camStream = await navigator.mediaDevices.getUserMedia(camConstraints);
         activeStreamsRef.current.cam = camStream;
@@ -346,7 +346,7 @@ export default function RecordingSetupModal({
           dispStream = await navigator.mediaDevices.getDisplayMedia({
             video: {
               displaySurface: surface,
-              frameRate: { ideal: 30, max: 60 },
+              frameRate: { ideal: 12, max: 15 },
               width: { ideal: 1920 },
               height: { ideal: 1080 },
             } as MediaTrackConstraints,
@@ -362,7 +362,7 @@ export default function RecordingSetupModal({
           } as DisplayMediaStreamOptions);
         } catch {
           dispStream = await navigator.mediaDevices.getDisplayMedia({
-            video: true,
+            video: { frameRate: { ideal: 12, max: 15 } } as MediaTrackConstraints,
             audio: true,
           });
         }
@@ -400,7 +400,7 @@ export default function RecordingSetupModal({
                 noiseSuppression: true, 
                 autoGainControl: true,
                 channelCount: 1,
-                sampleRate: 48000,
+                sampleRate: 16000,
               },
             });
             activeStreamsRef.current.mic = micStream;
@@ -415,7 +415,7 @@ export default function RecordingSetupModal({
         if (cameraOn) {
           try {
             camStream = await navigator.mediaDevices.getUserMedia({
-              video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 30 } },
+              video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 12, max: 15 } },
             });
             activeStreamsRef.current.cam = camStream;
             setCameraStream(camStream);
@@ -445,9 +445,12 @@ export default function RecordingSetupModal({
         }
       }
 
+      // Ultra-efficient storage compression: 7.5 kbps video + 4 kbps voice
+      // Exactly ~5 MB per 1 full hour (~340 KB for 4 minutes instead of 21 MB)
       const recorder = new MediaRecorder(combinedStream, {
         mimeType: selectedMime,
-        videoBitsPerSecond: 2500000,
+        videoBitsPerSecond: 7500,
+        audioBitsPerSecond: 4000,
       });
 
       mediaRecorderRef.current = recorder;

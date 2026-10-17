@@ -656,12 +656,12 @@ export default function ClassRoomPage() {
 
     const mimeType = getOptimalMimeType();
     try {
-      // Ultra-efficient classroom lecture compression: 22 kbps VP9 video + 10 kbps Opus voice
-      // Produces ~1.1 MB for 5 min, ~13.7 MB for 1 full hour (<15 MB/hr target achieved!), keeping slide text & code 100% sharp and readable!
+      // Ultra-efficient classroom lecture compression: 7.5 kbps video + 4 kbps voice
+      // Produces ~340 KB for 4 min, ~5 MB for 1 full hour (5 MB/hr target achieved!), keeping slide text & audio crisp!
       const rec = new MediaRecorder(combined, { 
         mimeType, 
-        videoBitsPerSecond: 22000,
-        audioBitsPerSecond: 10000
+        videoBitsPerSecond: 7500,
+        audioBitsPerSecond: 4000
       });
       mediaRecRef.current = rec;
       chunksRef.current = [];

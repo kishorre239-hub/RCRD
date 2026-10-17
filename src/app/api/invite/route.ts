@@ -35,7 +35,7 @@ export async function POST(req: Request) {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
             <div style="text-align: center; margin-bottom: 20px;">
-              <h1 style="color: #0CAA41; margin: 0;">Geonixa.</h1>
+              <h1 style="color: #154360; margin: 0;">Geonixa.</h1>
             </div>
             <h2 style="color: #333;">You're Invited!</h2>
             <p style="color: #555; line-height: 1.6;">
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
               You have been invited by <strong>Hari Kishore Reddy</strong> to join their workspace on <strong>Geonixa.</strong>
             </p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="http://localhost:3000/login" style="background-color: #0CAA41; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+              <a href="http://localhost:3000/login" style="background-color: #154360; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
                 Accept Invitation
               </a>
             </div>

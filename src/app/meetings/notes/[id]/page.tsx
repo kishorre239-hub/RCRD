@@ -289,7 +289,7 @@ export default function MeetingNotesPage() {
       {/* Toast */}
       {toast && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-2.5 rounded-2xl shadow-2xl z-50 text-xs font-bold animate-in fade-in slide-in-from-top-2 border border-slate-700 flex items-center gap-2">
-          <Check size={14} className="text-[#E6F6EC]" />
+          <Check size={14} className="text-[#EBF5FB]" />
           <span>{toast}</span>
         </div>
       )}
@@ -310,7 +310,7 @@ export default function MeetingNotesPage() {
                 <h1 className="text-lg font-bold text-[#20262E]">
                   {meeting?.title || "Class Meeting Notes"}
                 </h1>
-                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#E6F6EC] text-[#0C5325] border border-[#0CAA41]/30">
+                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#EBF5FB] text-[#0E2F44] border border-[#154360]/30">
                   {meeting?.status || "Ended"}
                 </span>
               </div>
@@ -343,7 +343,7 @@ export default function MeetingNotesPage() {
               className="px-3 py-1.5 rounded-xl border border-[#E2E7EC] hover:bg-[#F5F6F8] text-xs font-bold text-[#20262E] flex items-center gap-1.5 transition-colors shadow-xs"
               title="Upload Notes file (.txt, .md, .json)"
             >
-              <Upload size={13} className="text-[#0CAA41]" />
+              <Upload size={13} className="text-[#154360]" />
               <span>Upload Notes</span>
             </button>
             <input
@@ -359,13 +359,13 @@ export default function MeetingNotesPage() {
               className="px-3 py-1.5 rounded-xl border border-[#E2E7EC] hover:bg-[#F5F6F8] text-xs font-bold text-[#20262E] flex items-center gap-1.5 transition-colors shadow-xs"
               title="Export all notes to Markdown"
             >
-              <Download size={13} className="text-[#72BAA9]" />
+              <Download size={13} className="text-[#2980B9]" />
               <span>Export Notes</span>
             </button>
 
             <button
               onClick={() => router.push(`/meetings/room/${meetingId}`)}
-              className="px-4 py-1.5 rounded-xl bg-[#0CAA41] hover:bg-[#0C5325] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+              className="px-4 py-1.5 rounded-xl bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
               title="Open meeting room"
             >
               <Video size={13} />
@@ -387,7 +387,7 @@ export default function MeetingNotesPage() {
                 onClick={() => setActiveTab(tab)}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all capitalize flex items-center gap-1.5 ${
                   activeTab === tab
-                    ? "bg-[#0CAA41] text-white shadow-sm"
+                    ? "bg-[#154360] text-white shadow-sm"
                     : "text-[#57636E] hover:text-[#20262E] hover:bg-slate-100"
                 }`}
               >
@@ -409,7 +409,7 @@ export default function MeetingNotesPage() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search notes or files..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#E2E7EC] bg-[#F5F6F8] text-xs text-[#20262E] placeholder-slate-400 focus:bg-white focus:border-[#0CAA41] outline-none transition-colors"
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#E2E7EC] bg-[#F5F6F8] text-xs text-[#20262E] placeholder-slate-400 focus:bg-white focus:border-[#154360] outline-none transition-colors"
             />
             {searchQuery && (
               <button
@@ -443,16 +443,16 @@ export default function MeetingNotesPage() {
                   <div className="flex items-center justify-between pb-2 border-b border-[#E2E7EC] mb-3 text-xs">
                     <div className="flex items-center gap-2">
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${
-                        n.type === "host" ? "bg-[#0CAA41]" : n.type === "participant" ? "bg-[#0C5325]" : "bg-[#72BAA9]"
+                        n.type === "host" ? "bg-[#154360]" : n.type === "participant" ? "bg-[#0E2F44]" : "bg-[#2980B9]"
                       }`}>
                         {n.author.charAt(0).toUpperCase()}
                       </div>
                       <div>
                         <span className="font-bold text-[#20262E]">{n.author}</span>
                         <span className={`ml-2 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                          n.type === "host" ? "bg-[#E6F6EC] text-[#0C5325] border border-[#0CAA41]/30" :
+                          n.type === "host" ? "bg-[#EBF5FB] text-[#0E2F44] border border-[#154360]/30" :
                           n.type === "participant" ? "bg-indigo-50 text-indigo-700 border border-indigo-200" :
-                          "bg-[#E6F6EC]/40 text-[#0C5325] border border-[#72BAA9]/30"
+                          "bg-[#EBF5FB]/40 text-[#0E2F44] border border-[#2980B9]/30"
                         }`}>
                           {n.type === "host" ? "Host Note" : n.type === "participant" ? "Private Thread" : "Group Note"}
                         </span>
@@ -472,7 +472,7 @@ export default function MeetingNotesPage() {
                   {n.attachment && (
                     <div className="mt-3 flex items-center justify-between p-2.5 rounded-xl bg-[#F5F6F8] border border-[#E2E7EC]">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-[#E6F6EC] text-[#0C5325] flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-[#EBF5FB] text-[#0E2F44] flex items-center justify-center shrink-0">
                           <Paperclip size={14} />
                         </div>
                         <div className="min-w-0">
@@ -483,7 +483,7 @@ export default function MeetingNotesPage() {
                       <a
                         href={n.attachment.dataUrl}
                         download={n.attachment.name}
-                        className="px-2.5 py-1 rounded-lg bg-white border border-[#E2E7EC] hover:bg-[#E6F6EC] hover:border-[#0CAA41]/30 text-[#20262E] hover:text-[#0C5325] text-xs font-bold flex items-center gap-1 transition-colors shadow-xs shrink-0"
+                        className="px-2.5 py-1 rounded-lg bg-white border border-[#E2E7EC] hover:bg-[#EBF5FB] hover:border-[#154360]/30 text-[#20262E] hover:text-[#0E2F44] text-xs font-bold flex items-center gap-1 transition-colors shadow-xs shrink-0"
                         title="Download attachment"
                       >
                         <Download size={12} />
@@ -497,7 +497,7 @@ export default function MeetingNotesPage() {
                 <div className="flex justify-end pt-3 mt-2 border-t border-slate-50">
                   <button
                     onClick={() => handleDeleteNote(n.id)}
-                    className="p-1 text-slate-300 hover:text-[#0CAA41] hover:bg-[#0CAA41]/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    className="p-1 text-slate-300 hover:text-[#154360] hover:bg-[#154360]/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
                     title="Delete Note"
                   >
                     <Trash2 size={13} />
@@ -512,7 +512,7 @@ export default function MeetingNotesPage() {
         <div className="bg-white rounded-2xl border border-[#E2E7EC] p-4 shadow-sm space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-[#20262E] flex items-center gap-1.5">
-              <Plus size={14} className="text-[#0CAA41]" />
+              <Plus size={14} className="text-[#154360]" />
               Add New Meeting Note
             </span>
             <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[11px] font-bold">
@@ -522,7 +522,7 @@ export default function MeetingNotesPage() {
                   type="button"
                   onClick={() => setNewNoteType(t)}
                   className={`px-2.5 py-0.5 rounded-md transition-all capitalize ${
-                    newNoteType === t ? "bg-white text-[#0CAA41] shadow-xs" : "text-[#57636E] hover:text-[#20262E]"
+                    newNoteType === t ? "bg-white text-[#154360] shadow-xs" : "text-[#57636E] hover:text-[#20262E]"
                   }`}
                 >
                   {t === "group" ? "Group Note" : t === "host" ? "Host Private" : "Participant"}
@@ -533,15 +533,15 @@ export default function MeetingNotesPage() {
 
           {/* Attached file chip preview */}
           {newAttachment && (
-            <div className="flex items-center justify-between p-2 bg-[#E6F6EC] border border-[#0CAA41]/30 rounded-xl text-xs text-blue-900">
+            <div className="flex items-center justify-between p-2 bg-[#EBF5FB] border border-[#154360]/30 rounded-xl text-xs text-blue-900">
               <div className="flex items-center gap-2 truncate">
-                <Paperclip size={13} className="text-[#0CAA41] shrink-0" />
+                <Paperclip size={13} className="text-[#154360] shrink-0" />
                 <span className="font-semibold truncate">{newAttachment.name}</span>
-                <span className="text-[10px] text-[#0CAA41] shrink-0">({(newAttachment.size / 1024).toFixed(1)} KB)</span>
+                <span className="text-[10px] text-[#154360] shrink-0">({(newAttachment.size / 1024).toFixed(1)} KB)</span>
               </div>
               <button
                 onClick={() => setNewAttachment(null)}
-                className="text-[#0CAA41] hover:text-[#0CAA41] p-0.5"
+                className="text-[#154360] hover:text-[#154360] p-0.5"
                 title="Remove attachment"
               >
                 <X size={13} />
@@ -559,7 +559,7 @@ export default function MeetingNotesPage() {
             }}
             placeholder="Write meeting notes, key discussion points, or summaries... (Ctrl+Enter to save)"
             rows={3}
-            className="w-full bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-3 text-xs text-[#20262E] placeholder-slate-400 focus:bg-white focus:border-[#0CAA41] outline-none resize-none shadow-xs font-normal"
+            className="w-full bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-3 text-xs text-[#20262E] placeholder-slate-400 focus:bg-white focus:border-[#154360] outline-none resize-none shadow-xs font-normal"
           />
 
           <div className="flex items-center justify-between pt-1">
@@ -581,7 +581,7 @@ export default function MeetingNotesPage() {
 
             <button
               onClick={handleAddNote}
-              className="px-5 py-2 bg-[#0CAA41] hover:bg-[#0C5325] text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+              className="px-5 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl text-xs font-bold transition-all shadow-sm"
             >
               Save Note
             </button>

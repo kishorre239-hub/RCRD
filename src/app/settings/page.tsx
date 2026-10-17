@@ -76,7 +76,7 @@ function PushRow({
     return (
       <button 
         onClick={() => onToggle(category, item, device)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-[#0CAA41]' : 'bg-slate-300'}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-[#154360]' : 'bg-slate-300'}`}
       >
         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isActive ? 'translate-x-6' : 'translate-x-1'}`} />
       </button>
@@ -405,9 +405,9 @@ export default function SettingsPage() {
         <div className="p-5 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-between p-3 bg-[#F5F6F8] hover:bg-slate-100 rounded-xl cursor-pointer transition-all border border-[#E2E7EC] hover:border-[#E2E7EC] group">
             <div>
-              <div className="text-sm font-semibold text-[#20262E] group-hover:text-[#0C5325] transition-colors">RCRD Workspace</div>
+              <div className="text-sm font-semibold text-[#20262E] group-hover:text-[#0E2F44] transition-colors">RCRD Workspace</div>
               <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] uppercase tracking-wider bg-[#E6F6EC] px-2 py-0.5 rounded text-[#0C5325] font-bold border border-[#0CAA41]/30">Settings</span>
+                <span className="text-[10px] uppercase tracking-wider bg-[#EBF5FB] px-2 py-0.5 rounded text-[#0E2F44] font-bold border border-[#154360]/30">Settings</span>
                 <span className="text-xs text-[#57636E]">Admin Config</span>
               </div>
             </div>
@@ -417,7 +417,7 @@ export default function SettingsPage() {
             onClick={() => { router.push('/settings?tab=users'); setIsMobileMenuOpen(false); }}
             className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm font-semibold text-[#20262E] transition-all shadow-sm hover:shadow-md cursor-pointer"
           >
-            <UsersIcon size={16} className="text-[#0CAA41]" />
+            <UsersIcon size={16} className="text-[#154360]" />
             Invite Teammates
           </button>
         </div>
@@ -466,7 +466,7 @@ export default function SettingsPage() {
         <div className="p-5 border-t border-[#E2E7EC] bg-[#F5F6F8]/50 flex-shrink-0">
           <button 
             onClick={() => { setIsRecordModalOpen(true); setIsMobileMenuOpen(false); }}
-            className="w-full bg-[#0CAA41] hover:bg-[#0C5325] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(12, 170, 65,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(12, 170, 65,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+            className="w-full bg-[#154360] hover:bg-[#0E2F44] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(21, 67, 96,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(21, 67, 96,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <VideoCameraIcon size={20} />
             <span>Record Video</span>
@@ -525,7 +525,7 @@ export default function SettingsPage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`pb-3 text-[14px] font-medium whitespace-nowrap border-b-2 transition-colors ${
                       activeTab === tab.id 
-                        ? 'border-[#0CAA41] text-[#0CAA41] font-bold' 
+                        ? 'border-[#154360] text-[#154360] font-bold' 
                         : 'border-transparent text-[#57636E] hover:text-[#20262E] hover:border-[#E2E7EC]'
                     }`}
                   >
@@ -544,7 +544,7 @@ export default function SettingsPage() {
                 {/* Manage on RCRD (Restored Atlassian equivalent) */}
                 <div className="border border-[#E2E7EC] rounded-xl overflow-hidden bg-white shadow-sm">
                   <div className="border-b border-[#E2E7EC] p-6 flex items-center gap-4">
-                    <div className="w-8 h-8 bg-[#0CAA41] rounded-full flex items-center justify-center text-white font-bold text-[18px]">
+                    <div className="w-8 h-8 bg-[#154360] rounded-full flex items-center justify-center text-white font-bold text-[18px]">
                       A
                     </div>
                     <h2 className="text-[20px] font-bold text-[#20262E]">Manage on RCRD</h2>
@@ -555,7 +555,7 @@ export default function SettingsPage() {
                     <p className="text-[14px] text-[#57636E] mb-6">Change your name and photo on RCRD</p>
                     
                     <div className="flex items-center gap-6 pb-8 border-b border-[#E2E7EC]">
-                      <div className="w-24 h-24 bg-[#0CAA41] rounded-full flex items-center justify-center text-white text-[40px] font-bold shadow-sm">
+                      <div className="w-24 h-24 bg-[#154360] rounded-full flex items-center justify-center text-white text-[40px] font-bold shadow-sm">
                         HR
                       </div>
                       <div>
@@ -581,7 +581,7 @@ export default function SettingsPage() {
 
                   <div className="bg-[#F5F6F8] border-t border-[#E2E7EC] p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <p className="text-[14px] text-[#57636E]">To make changes visit your RCRD profile or contact your RCRD Admin.</p>
-                    <button className="bg-[#0CAA41] hover:bg-[#0C5325] text-white text-[13px] font-bold px-4 py-2 rounded transition-colors flex items-center gap-2 whitespace-nowrap">
+                    <button className="bg-[#154360] hover:bg-[#0E2F44] text-white text-[13px] font-bold px-4 py-2 rounded transition-colors flex items-center gap-2 whitespace-nowrap">
                       View on RCRD <ExternalLink size={14} />
                     </button>
                   </div>
@@ -590,7 +590,7 @@ export default function SettingsPage() {
                 {/* Manage on RCRD (Loom) Card */}
                 <div className="border border-[#E2E7EC] rounded-xl overflow-hidden bg-white shadow-sm">
                   <div className="border-b border-[#E2E7EC] p-6 flex items-center gap-4">
-                    <div className="w-8 h-8 bg-[#0CAA41] rounded-full flex items-center justify-center text-white">
+                    <div className="w-8 h-8 bg-[#154360] rounded-full flex items-center justify-center text-white">
                       * 
                     </div>
                     <h2 className="text-[20px] font-bold text-[#20262E]">Manage on RCRD</h2>
@@ -604,7 +604,7 @@ export default function SettingsPage() {
                       <div className="w-[280px] mb-4">
                         <button className="w-full flex items-center justify-between border border-[#E2E7EC] rounded-lg p-3 hover:border-slate-400 transition-colors bg-white">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-[#E6F6EC] rounded-full flex items-center justify-center text-[#72BAA9]">
+                            <div className="w-8 h-8 bg-[#EBF5FB] rounded-full flex items-center justify-center text-[#2980B9]">
                               <Globe size={16} />
                             </div>
                             <div className="text-left">
@@ -651,7 +651,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="p-6 flex items-center justify-between border-b border-[#E2E7EC]">
                     <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 flex items-center justify-center font-bold text-xl"><Globe className="w-5 h-5 text-[#0CAA41]"/></div>
+                      <div className="w-6 h-6 flex items-center justify-center font-bold text-xl"><Globe className="w-5 h-5 text-[#154360]"/></div>
                       <span className="text-[14px] font-bold text-[#20262E]">Google Calendar</span>
                     </div>
                     <button className="bg-[#c53030] hover:bg-[#9b2c2c] text-white text-[13px] font-bold px-4 py-1.5 rounded transition-colors">
@@ -660,7 +660,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="p-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 flex items-center justify-center font-bold text-xl"><Globe className="w-5 h-5 text-[#0CAA41]"/></div>
+                      <div className="w-6 h-6 flex items-center justify-center font-bold text-xl"><Globe className="w-5 h-5 text-[#154360]"/></div>
                       <span className="text-[14px] font-bold text-[#20262E]">Outlook Calendar</span>
                     </div>
                     <button className="border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E] text-[13px] font-bold px-4 py-1.5 rounded transition-colors">
@@ -682,8 +682,8 @@ export default function SettingsPage() {
                       { val: 'Manually-selected meetings', title: 'Manually-selected meetings', desc: 'Select meetings you want to record after setup.' }
                     ].map(opt => (
                       <div key={opt.val} className="flex items-start gap-3 cursor-pointer group" onClick={() => setMeetingSetting('autoRecording', opt.val)}>
-                        <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.autoRecording === opt.val ? 'border-[#0CAA41]' : 'border-slate-400 group-hover:border-slate-600'}`}>
-                          {meetingRecordings.autoRecording === opt.val && <div className="w-2 h-2 bg-[#0CAA41] rounded-full" />}
+                        <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.autoRecording === opt.val ? 'border-[#154360]' : 'border-slate-400 group-hover:border-slate-600'}`}>
+                          {meetingRecordings.autoRecording === opt.val && <div className="w-2 h-2 bg-[#154360] rounded-full" />}
                         </div>
                         <div>
                           <div className="text-[14px] font-bold text-[#20262E]">{opt.title}</div>
@@ -709,8 +709,8 @@ export default function SettingsPage() {
                         { val: 'Just me', title: 'Just me', desc: '' }
                       ].map(opt => (
                         <div key={opt.val} className="flex items-start gap-3 cursor-pointer group" onClick={() => setMeetingSetting('meetingRecap', opt.val)}>
-                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.meetingRecap === opt.val ? 'border-[#0CAA41]' : 'border-slate-400 group-hover:border-slate-600'}`}>
-                            {meetingRecordings.meetingRecap === opt.val && <div className="w-2 h-2 bg-[#0CAA41] rounded-full" />}
+                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.meetingRecap === opt.val ? 'border-[#154360]' : 'border-slate-400 group-hover:border-slate-600'}`}>
+                            {meetingRecordings.meetingRecap === opt.val && <div className="w-2 h-2 bg-[#154360] rounded-full" />}
                           </div>
                           <div>
                             <div className="text-[14px] font-bold text-[#20262E]">{opt.title}</div>
@@ -732,8 +732,8 @@ export default function SettingsPage() {
                         { val: 'Private', title: 'Private', desc: '' }
                       ].map(opt => (
                         <div key={opt.val} className="flex items-start gap-3 cursor-pointer group" onClick={() => setMeetingSetting('linkAccess', opt.val)}>
-                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.linkAccess === opt.val ? 'border-[#0CAA41]' : 'border-slate-400 group-hover:border-slate-600'}`}>
-                            {meetingRecordings.linkAccess === opt.val && <div className="w-2 h-2 bg-[#0CAA41] rounded-full" />}
+                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.linkAccess === opt.val ? 'border-[#154360]' : 'border-slate-400 group-hover:border-slate-600'}`}>
+                            {meetingRecordings.linkAccess === opt.val && <div className="w-2 h-2 bg-[#154360] rounded-full" />}
                           </div>
                           <div>
                             <div className="text-[14px] font-bold text-[#20262E]">{opt.title}</div>
@@ -754,8 +754,8 @@ export default function SettingsPage() {
                         { val: 'Set default language', title: 'Set default language' }
                       ].map(opt => (
                         <div key={opt.val} className="flex items-start gap-3 cursor-pointer group" onClick={() => setMeetingSetting('languageSetting', opt.val)}>
-                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.languageSetting === opt.val ? 'border-[#0CAA41]' : 'border-slate-400 group-hover:border-slate-600'}`}>
-                            {meetingRecordings.languageSetting === opt.val && <div className="w-2 h-2 bg-[#0CAA41] rounded-full" />}
+                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.languageSetting === opt.val ? 'border-[#154360]' : 'border-slate-400 group-hover:border-slate-600'}`}>
+                            {meetingRecordings.languageSetting === opt.val && <div className="w-2 h-2 bg-[#154360] rounded-full" />}
                           </div>
                           <div className="text-[14px] font-bold text-[#20262E]">{opt.title}</div>
                         </div>
@@ -772,8 +772,8 @@ export default function SettingsPage() {
                 {/* Banner */}
                 <div className="bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-[#E6F6EC] rounded-full flex items-center justify-center shrink-0">
-                      <Bell size={24} className="text-[#0CAA41]" />
+                    <div className="w-16 h-16 bg-[#EBF5FB] rounded-full flex items-center justify-center shrink-0">
+                      <Bell size={24} className="text-[#154360]" />
                     </div>
                     <div>
                       <h2 className="text-[16px] font-bold text-[#20262E] mb-1">Turn on push notifications</h2>
@@ -797,7 +797,7 @@ export default function SettingsPage() {
                         <div className="text-[13px] font-bold text-[#20262E] mb-1">Email</div>
                         <button 
                           onClick={() => toggleAllPushDevice('email', !isAllDeviceOn('email'))}
-                          className="text-[12px] text-[#0CAA41] hover:underline"
+                          className="text-[12px] text-[#154360] hover:underline"
                         >
                           {isAllDeviceOn('email') ? 'Turn off all email' : 'Turn on all email'}
                         </button>
@@ -807,7 +807,7 @@ export default function SettingsPage() {
                         <div className="text-[11px] text-[#57636E] mb-1">Push notification</div>
                         <button 
                           onClick={() => toggleAllPushDevice('desktop', !isAllDeviceOn('desktop'))}
-                          className="text-[12px] text-[#0CAA41] hover:underline"
+                          className="text-[12px] text-[#154360] hover:underline"
                         >
                           {isAllDeviceOn('desktop') ? 'Turn off all desktop' : 'Turn on all desktop'}
                         </button>
@@ -817,7 +817,7 @@ export default function SettingsPage() {
                         <div className="text-[11px] text-[#57636E] mb-1">Push notification</div>
                         <button 
                           onClick={() => toggleAllPushDevice('mobile', !isAllDeviceOn('mobile'))}
-                          className="text-[12px] text-[#0CAA41] hover:underline"
+                          className="text-[12px] text-[#154360] hover:underline"
                         >
                           {isAllDeviceOn('mobile') ? 'Turn off all mobile' : 'Turn on all mobile'}
                         </button>
@@ -900,9 +900,9 @@ export default function SettingsPage() {
 
             {activeTab === "integrations" && (
               <div className="space-y-6 pb-20">
-                <div className="p-6 bg-[#E6F6EC] border border-[#0CAA41]/20 rounded-xl">
+                <div className="p-6 bg-[#EBF5FB] border border-[#154360]/20 rounded-xl">
                   <h2 className="text-[16px] font-bold text-[#20262E] mb-2 flex items-center gap-2">
-                    <HardDrive className="w-5 h-5 text-[#0CAA41]" />
+                    <HardDrive className="w-5 h-5 text-[#154360]" />
                     Google Drive Integration
                   </h2>
                   <p className="text-[14px] text-[#57636E] mb-4">Authenticate your Google account and connect your Google Drive folder to sync recorded videos seamlessly.</p>
@@ -926,7 +926,7 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-3">
                         <a 
                           href="/api/auth/google?redirect=/settings"
-                          className="w-fit bg-[#0CAA41] hover:bg-[#0C5325] text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
+                          className="w-fit bg-[#154360] hover:bg-[#0E2F44] text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
                         >
                           <Cloud className="w-4 h-4" />
                           Connect 5 TB Google Drive (kishorre239@gmail.com)
@@ -941,19 +941,19 @@ export default function SettingsPage() {
                         value={driveLink}
                         onChange={(e) => setDriveLink(e.target.value)}
                         placeholder="Paste your Google Drive folder link here"
-                        className="flex-1 px-4 py-2 border border-[#E2E7EC] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0CAA41]"
+                        className="flex-1 px-4 py-2 border border-[#E2E7EC] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#154360]"
                       />
                       <button 
                         onClick={handleSaveDriveFolder}
                         disabled={isSavingDrive || !driveLink}
-                        className="bg-[#0CAA41] hover:bg-[#0C5325] disabled:opacity-50 text-white px-5 py-2 rounded-lg font-semibold text-sm transition-colors whitespace-nowrap"
+                        className="bg-[#154360] hover:bg-[#0E2F44] disabled:opacity-50 text-white px-5 py-2 rounded-lg font-semibold text-sm transition-colors whitespace-nowrap"
                       >
                         {isSavingDrive ? "Saving..." : "Set Folder"}
                       </button>
                     </div>
                   </div>
                   {driveSaveMessage && (
-                    <p className={`text-sm mt-3 font-medium ${driveSaveMessage.includes("success") || driveSaveMessage.includes("✓") ? "text-emerald-700" : "text-[#0CAA41]"}`}>
+                    <p className={`text-sm mt-3 font-medium ${driveSaveMessage.includes("success") || driveSaveMessage.includes("✓") ? "text-emerald-700" : "text-[#154360]"}`}>
                       {driveSaveMessage}
                     </p>
                   )}
@@ -984,7 +984,7 @@ export default function SettingsPage() {
                       
                       <button 
                         onClick={() => toggleIntegration(intg.key)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ml-4 shrink-0 ${integrations[intg.key] ? 'bg-[#0CAA41]' : 'bg-slate-300'}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ml-4 shrink-0 ${integrations[intg.key] ? 'bg-[#154360]' : 'bg-slate-300'}`}
                       >
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${integrations[intg.key] ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
@@ -1003,7 +1003,7 @@ export default function SettingsPage() {
                   </div>
                   <button 
                     onClick={() => setQuickRecordEnabled(!quickRecordEnabled)}
-                    className={`${quickRecordEnabled ? 'bg-[#c53030] hover:bg-[#9b2c2c]' : 'bg-[#0CAA41] hover:bg-[#0C5325]'} text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-colors shadow-sm`}
+                    className={`${quickRecordEnabled ? 'bg-[#c53030] hover:bg-[#9b2c2c]' : 'bg-[#154360] hover:bg-[#0E2F44]'} text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-colors shadow-sm`}
                   >
                     {quickRecordEnabled ? 'Turn off Quick Record' : 'Turn on Quick Record'}
                   </button>
@@ -1019,7 +1019,7 @@ export default function SettingsPage() {
                   
                   <div className="flex items-center gap-3 mb-8 cursor-pointer" onClick={() => setUseShortcuts(!useShortcuts)}>
                     <button 
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${useShortcuts ? 'bg-[#0CAA41]' : 'bg-slate-300'}`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${useShortcuts ? 'bg-[#154360]' : 'bg-slate-300'}`}
                     >
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useShortcuts ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
@@ -1131,15 +1131,15 @@ function SidebarItem({
         fontStyle: 'normal',
         lineHeight: '14px',
         letterSpacing: 'normal',
-        color: active ? '#0CAA41' : '#292A2E'
+        color: active ? '#154360' : '#292A2E'
       }}
       className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold cursor-pointer transition-all ${
       active 
-        ? "bg-[#E6F6EC] shadow-sm" 
+        ? "bg-[#EBF5FB] shadow-sm" 
         : "hover:bg-[#F5F6F8]"
     }`}>
       <div className="flex items-center gap-3">
-        <div className={`${active ? "text-[#0CAA41]" : "text-[#57636E]"}`}>
+        <div className={`${active ? "text-[#154360]" : "text-[#57636E]"}`}>
           {icon}
         </div>
         <span className="text-sm tracking-wide">{label}</span>

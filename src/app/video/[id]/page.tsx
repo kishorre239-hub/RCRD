@@ -300,7 +300,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
   if (isLoading) {
     return (
       <div className="h-full w-full bg-white flex flex-col items-center justify-center space-y-4 font-jost">
-        <div className="w-12 h-12 rounded-full border-4 border-[#0CAA41]/20 border-t-[#0CAA41] animate-spin"></div>
+        <div className="w-12 h-12 rounded-full border-4 border-[#154360]/20 border-t-[#154360] animate-spin"></div>
         <p className="text-[#57636E] font-medium animate-pulse">Loading workspace...</p>
       </div>
     );
@@ -317,7 +317,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
         
         <div className="flex items-center gap-3">
           {/* Action Buttons */}
-          <button className="hidden md:flex items-center gap-2 bg-[#0CAA41] hover:bg-[#0C5325] text-white px-3 py-1.5 rounded-full text-sm font-semibold transition-all shadow-sm hover:shadow cursor-pointer">
+          <button className="hidden md:flex items-center gap-2 bg-[#154360] hover:bg-[#0E2F44] text-white px-3 py-1.5 rounded-full text-sm font-semibold transition-all shadow-sm hover:shadow cursor-pointer">
             <Share className="w-4 h-4" />
             Share
           </button>
@@ -327,7 +327,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
             className="hidden md:flex items-center gap-2 bg-[#F3F4F6] hover:bg-gray-200 text-[#20262E] p-1.5 rounded-full transition-all hover:scale-105 cursor-pointer"
             title="Copy Link"
           >
-            {copied ? <CheckCircle2 className="w-4 h-4 text-[#0CAA41]" /> : <LinkIcon className="w-4 h-4" />}
+            {copied ? <CheckCircle2 className="w-4 h-4 text-[#154360]" /> : <LinkIcon className="w-4 h-4" />}
           </button>
 
           <button 
@@ -352,11 +352,11 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
               } catch {}
             }}
             className={`hidden md:flex items-center gap-2 p-1.5 px-3 rounded-full transition-all text-sm font-medium cursor-pointer ${
-              isSaved ? "bg-[#E6F6EC] text-[#0CAA41] border border-[#0CAA41]/30" : "bg-[#F3F4F6] hover:bg-gray-200 text-[#20262E]"
+              isSaved ? "bg-[#EBF5FB] text-[#154360] border border-[#154360]/30" : "bg-[#F3F4F6] hover:bg-gray-200 text-[#20262E]"
             }`}
             title="Save to Watch Later"
           >
-            <Bookmark className={`w-4 h-4 ${isSaved ? "fill-[#0CAA41] text-[#0CAA41]" : ""}`} /> {isSaved ? "Saved" : "Save"}
+            <Bookmark className={`w-4 h-4 ${isSaved ? "fill-[#154360] text-[#154360]" : ""}`} /> {isSaved ? "Saved" : "Save"}
           </button>
 
           <button className="p-1.5 hover:bg-gray-100 rounded-full text-[#57636E] transition-colors cursor-pointer">
@@ -369,7 +369,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
           <button 
             type="button"
             onClick={() => setIsProfileOpen(true)}
-            className="w-9 h-9 rounded-full flex items-center justify-center p-0.5 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-[#E2E7EC] hover:border-[#0CAA41]/50 bg-white shadow-xs ml-1"
+            className="w-9 h-9 rounded-full flex items-center justify-center p-0.5 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-[#E2E7EC] hover:border-[#154360]/50 bg-white shadow-xs ml-1"
             title="Open profile menu"
             aria-label="Open profile menu"
           >
@@ -543,7 +543,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         onClick={() => handleEmojiReaction(emoji)}
                         title={`React with ${emoji} at ${Math.floor(currentVideoTime / 60)}:${Math.floor(currentVideoTime % 60).toString().padStart(2, '0')}`}
                         className={`p-1.5 hover:bg-gray-100 hover:scale-125 rounded-full transition-transform text-lg cursor-pointer active:scale-95 ${
-                          activeReactionEmoji === emoji ? 'scale-150 bg-[#E6F6EC]/40 ring-2 ring-amber-300' : ''
+                          activeReactionEmoji === emoji ? 'scale-150 bg-[#EBF5FB]/40 ring-2 ring-amber-300' : ''
                         }`}
                       >
                         {emoji}
@@ -570,7 +570,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
               <div>
                 <h3 className="font-semibold text-lg text-[#20262E] mb-3 flex items-center gap-2">
                   Summary
-                  <Zap className="w-4 h-4 text-[#0CAA41]" />
+                  <Zap className="w-4 h-4 text-[#154360]" />
                 </h3>
                 <div className="p-4 border border-dashed border-[#E2E7EC] rounded-lg text-[#57636E] text-sm hover:border-gray-400 transition-colors cursor-pointer bg-[#F5F6F8] hover:bg-white group">
                   <span className="group-hover:text-[#20262E]">Add a summary...</span>
@@ -616,13 +616,13 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                 onClick={() => setActiveTab(tab.id as 'edit'|'activity'|'generate'|'transcript'|'settings')}
                 className={`px-4 py-4 text-sm font-medium whitespace-nowrap relative transition-colors ${
                   activeTab === tab.id 
-                    ? 'text-[#0CAA41]' 
+                    ? 'text-[#154360]' 
                     : 'text-[#57636E] hover:text-[#20262E]'
                 }`}
               >
                 {tab.label}
                 {activeTab === tab.id && (
-                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#0CAA41] rounded-t-full layout-id-active-tab"></div>
+                  <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#154360] rounded-t-full layout-id-active-tab"></div>
                 )}
               </button>
             ))}
@@ -634,16 +634,16 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
             {activeTab === 'edit' && (
               <div className="space-y-8">
                 {/* Promo Card */}
-                <div className="p-4 rounded-xl border border-[#0CAA41]/30 bg-gradient-to-r from-[#E6F6EC] to-white hover:shadow-md transition-shadow cursor-pointer relative group overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#0CAA41]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="p-4 rounded-xl border border-[#154360]/30 bg-gradient-to-r from-[#EBF5FB] to-white hover:shadow-md transition-shadow cursor-pointer relative group overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#154360]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <div className="flex justify-between items-center mb-1">
                     <h4 className="font-bold text-[#20262E] flex items-center gap-1">
-                      RCRD AI <Zap className="w-3 h-3 text-[#0CAA41]" />
+                      RCRD AI <Zap className="w-3 h-3 text-[#154360]" />
                     </h4>
-                    <ChevronRight className="w-4 h-4 text-[#57636E] group-hover:text-[#0CAA41] group-hover:translate-x-1 transition-all" />
+                    <ChevronRight className="w-4 h-4 text-[#57636E] group-hover:text-[#154360] group-hover:translate-x-1 transition-all" />
                   </div>
                   <p className="text-xs text-[#57636E] mb-2">Try out RCRD AI on your next few videos.</p>
-                  <span className="text-xs text-[#0CAA41] font-medium hover:underline">Upgrade to keep access</span>
+                  <span className="text-xs text-[#154360] font-medium hover:underline">Upgrade to keep access</span>
                 </div>
 
                 {/* Make Edits */}
@@ -657,17 +657,17 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                     {/* Trimming (Active) */}
                     <div 
                       onClick={() => setIsEditorOpen(true)}
-                      className="flex items-center justify-between p-3 rounded-lg border border-[#0CAA41]/20 bg-[#0CAA41]/5 hover:bg-[#0CAA41]/10 transition-colors cursor-pointer group shadow-sm"
+                      className="flex items-center justify-between p-3 rounded-lg border border-[#154360]/20 bg-[#154360]/5 hover:bg-[#154360]/10 transition-colors cursor-pointer group shadow-sm"
                     >
                       <div className="flex gap-3 items-center">
-                        <div className="w-8 h-8 rounded bg-white shadow-sm flex items-center justify-center text-[#0CAA41] transition-colors">
+                        <div className="w-8 h-8 rounded bg-white shadow-sm flex items-center justify-center text-[#154360] transition-colors">
                           <Scissors className="w-4 h-4" />
                         </div>
                         <div className="text-sm text-[#20262E] font-bold max-w-[200px]">
                           Open Video Editor
                         </div>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-[#0CAA41] group-hover:translate-x-1 transition-transform" />
+                      <ChevronRight className="w-4 h-4 text-[#154360] group-hover:translate-x-1 transition-transform" />
                     </div>
 
                     {/* Toggles */}
@@ -692,7 +692,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                           }
                         }}
                         disabled={isProcessingAI}
-                        className={`w-9 h-5 rounded-full relative transition-colors ${silences ? 'bg-[#0CAA41]' : 'bg-gray-200'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-9 h-5 rounded-full relative transition-colors ${silences ? 'bg-[#154360]' : 'bg-gray-200'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <span className={`absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform ${silences ? 'translate-x-4' : 'translate-x-0'}`}></span>
                       </button>
@@ -719,7 +719,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                           }
                         }}
                         disabled={isProcessingAI}
-                        className={`w-9 h-5 rounded-full relative transition-colors ${fillerWords ? 'bg-[#0CAA41]' : 'bg-gray-200'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-9 h-5 rounded-full relative transition-colors ${fillerWords ? 'bg-[#154360]' : 'bg-gray-200'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <span className={`absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full transition-transform ${fillerWords ? 'translate-x-4' : 'translate-x-0'}`}></span>
                       </button>
@@ -739,9 +739,9 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                 ) : (
                   <>
                 {/* New Comment Input Box */}
-                <div className="border border-[#0CAA41] rounded-lg p-3 mb-6 bg-white shadow-sm">
+                <div className="border border-[#154360] rounded-lg p-3 mb-6 bg-white shadow-sm">
                   <div className="flex gap-3 mb-3">
-                    <div className="w-8 h-8 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-sm font-bold shrink-0">HR</div>
+                    <div className="w-8 h-8 rounded-full bg-[#154360] text-white flex items-center justify-center text-sm font-bold shrink-0">HR</div>
                     <textarea 
                       id="main-comment-input"
                       placeholder="Leave a comment..."
@@ -802,7 +802,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                           console.error("Failed to add comment", err);
                         }
                       }}
-                      className="bg-[#0CAA41] text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-[#0C5325] transition-colors disabled:opacity-50"
+                      className="bg-[#154360] text-white px-4 py-1.5 rounded-md text-sm font-medium hover:bg-[#0E2F44] transition-colors disabled:opacity-50"
                       disabled={!commentText.trim()}
                     >
                       Comment at {Math.floor(currentVideoTime / 60)}:{Math.floor(currentVideoTime % 60).toString().padStart(2, '0')}
@@ -812,9 +812,9 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
 
                 {(!video?.comments || video.comments.length === 0) ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center p-6 mt-10 group">
-                    <div className="w-16 h-16 bg-[#E6F6EC] text-[#0CAA41] rounded-full flex items-center justify-center mb-4 relative group-hover:scale-110 transition-transform">
+                    <div className="w-16 h-16 bg-[#EBF5FB] text-[#154360] rounded-full flex items-center justify-center mb-4 relative group-hover:scale-110 transition-transform">
                       <MessageSquare className="w-8 h-8" />
-                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#0CAA41] text-white rounded-full flex items-center justify-center text-lg font-bold border-2 border-white">+</div>
+                      <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#154360] text-white rounded-full flex items-center justify-center text-lg font-bold border-2 border-white">+</div>
                     </div>
                     <h3 className="text-lg font-bold text-[#20262E] mb-2">Be the first to comment</h3>
                     <p className="text-sm text-[#57636E]">Hit <kbd className="bg-gray-100 border border-[#E2E7EC] rounded px-1.5 py-0.5 mx-1 font-mono text-xs shadow-sm">C</kbd> to reply to {video?.ownerName?.split(' ')[0] || 'User'} or leave a comment above.</p>
@@ -825,7 +825,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                     <div className="space-y-4">
                       {video.comments.map((comment) => (
                         <div key={comment.id} className="relative group flex gap-3 p-3 rounded-xl hover:bg-[#F5F6F8] transition-colors border border-transparent hover:border-[#E2E7EC]">
-                          <div className="w-8 h-8 bg-[#0CAA41] text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-sm mt-1">
+                          <div className="w-8 h-8 bg-[#154360] text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0 shadow-sm mt-1">
                             {comment.userName ? comment.userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
                           </div>
                           <div className="flex-1">
@@ -833,14 +833,14 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                               <span className="font-bold text-sm text-[#20262E] truncate shrink-0 max-w-[120px]">{comment.userName || 'User'}</span>
                               <span 
                                 onClick={() => handleTimeClick(comment.videoTime)}
-                                className="text-sm text-[#0CAA41] cursor-pointer hover:underline font-medium shrink-0"
+                                className="text-sm text-[#154360] cursor-pointer hover:underline font-medium shrink-0"
                               >
                                 {comment.videoTime}
                               </span>
                               <span className="text-xs text-[#57636E] shrink-0">Just now</span>
                               
                               {/* Actions - Horizontal on the right corner */}
-                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 text-[#0CAA41] p-1.5 bg-[#F5F6F8]/90 rounded-md">
+                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 text-[#154360] p-1.5 bg-[#F5F6F8]/90 rounded-md">
                                 {recordReply && (
                                 <Mic 
                                   onClick={() => {
@@ -859,7 +859,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                                     }
                                     setTimeout(() => document.getElementById('main-comment-input')?.focus(), 100);
                                   }} 
-                                  className="w-4 h-4 cursor-pointer hover:text-[#0C5325] transition-colors"
+                                  className="w-4 h-4 cursor-pointer hover:text-[#0E2F44] transition-colors"
                                 />
                                 )}
                                 {emojiReactions && (
@@ -876,7 +876,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                                       console.error(e);
                                     }
                                   }} 
-                                  className="w-4 h-4 cursor-pointer hover:text-[#0C5325] transition-colors"
+                                  className="w-4 h-4 cursor-pointer hover:text-[#0E2F44] transition-colors"
                                 />
                                 )}
                                 <Edit2 
@@ -884,7 +884,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                                     setEditingCommentId(comment.id);
                                     setEditCommentText(comment.text);
                                   }} 
-                                  className="w-4 h-4 cursor-pointer hover:text-[#0C5325] transition-colors"
+                                  className="w-4 h-4 cursor-pointer hover:text-[#0E2F44] transition-colors"
                                 />
                                 <Trash2 
                                   onClick={async () => {
@@ -900,21 +900,21 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                                       });
                                     }
                                   }}
-                                  className="w-4 h-4 cursor-pointer text-[#0CAA41] hover:text-[#0C5325] transition-colors"
+                                  className="w-4 h-4 cursor-pointer text-[#154360] hover:text-[#0E2F44] transition-colors"
                                 />
                                 <Link2 
                                   onClick={() => {
                                     navigator.clipboard.writeText(window.location.href);
                                     alert('Link to video copied!');
                                   }}
-                                  className="w-4 h-4 cursor-pointer hover:text-[#0C5325] transition-colors"
+                                  className="w-4 h-4 cursor-pointer hover:text-[#0E2F44] transition-colors"
                                 />
                               </div>
                             </div>
                             {editingCommentId === comment.id ? (
                               <div className="mt-2 pr-8">
                                 <textarea 
-                                  className="w-full text-sm text-[#20262E] p-2 border border-[#0CAA41] rounded-md focus:outline-none focus:ring-2 focus:ring-[#0CAA41] resize-none"
+                                  className="w-full text-sm text-[#20262E] p-2 border border-[#154360] rounded-md focus:outline-none focus:ring-2 focus:ring-[#154360] resize-none"
                                   value={editCommentText}
                                   onChange={(e) => setEditCommentText(e.target.value)}
                                   rows={2}
@@ -949,7 +949,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                                       });
                                       setEditingCommentId(null);
                                     }}
-                                    className="text-xs bg-[#0CAA41] text-white px-3 py-1 rounded-md hover:bg-[#0C5325] font-medium transition-colors"
+                                    className="text-xs bg-[#154360] text-white px-3 py-1 rounded-md hover:bg-[#0E2F44] font-medium transition-colors"
                                   >
                                     Save
                                   </button>
@@ -987,11 +987,11 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                 <div className="flex rounded-lg bg-[#F5F6F8] p-1 mb-4 border border-[#E2E7EC]">
                   <button 
                     onClick={() => setSettingsTab('enhancements')}
-                    className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${settingsTab === 'enhancements' ? 'bg-white shadow-sm text-[#0CAA41]' : 'text-[#57636E] hover:text-[#20262E]'}`}
+                    className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${settingsTab === 'enhancements' ? 'bg-white shadow-sm text-[#154360]' : 'text-[#57636E] hover:text-[#20262E]'}`}
                   >Enhancements</button>
                   <button 
                     onClick={() => setSettingsTab('audience')}
-                    className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${settingsTab === 'audience' ? 'bg-white shadow-sm text-[#0CAA41]' : 'text-[#57636E] hover:text-[#20262E]'}`}
+                    className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${settingsTab === 'audience' ? 'bg-white shadow-sm text-[#154360]' : 'text-[#57636E] hover:text-[#20262E]'}`}
                   >Audience</button>
                 </div>
                 
@@ -1046,7 +1046,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                             }
                           }}
                           disabled={isProcessingAI}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${noiseFilter ? 'bg-[#0CAA41]' : 'bg-[#F5F6F8]0'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${noiseFilter ? 'bg-[#154360]' : 'bg-[#F5F6F8]0'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${noiseFilter ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1060,7 +1060,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setAnimatedThumb(!animatedThumb)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${animatedThumb ? 'bg-[#0CAA41]' : 'bg-[#F5F6F8]0'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${animatedThumb ? 'bg-[#154360]' : 'bg-[#F5F6F8]0'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${animatedThumb ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1088,7 +1088,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                             }
                           }}
                           disabled={isProcessingAI}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${turnOnCaptions ? 'bg-[#0CAA41]' : 'bg-[#F5F6F8]0'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${turnOnCaptions ? 'bg-[#154360]' : 'bg-[#F5F6F8]0'} ${isProcessingAI ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${turnOnCaptions ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1121,7 +1121,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setAllowComments(!allowComments)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${allowComments ? 'bg-[#0CAA41]' : 'bg-[#F5F6F8]0'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${allowComments ? 'bg-[#154360]' : 'bg-[#F5F6F8]0'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${allowComments ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1135,7 +1135,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setCommentNotification(!commentNotification)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${commentNotification ? 'bg-[#0CAA41]' : 'bg-[#F5F6F8]0'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${commentNotification ? 'bg-[#154360]' : 'bg-[#F5F6F8]0'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${commentNotification ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1149,7 +1149,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setRecordReply(!recordReply)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${recordReply ? 'bg-[#0CAA41]' : 'bg-[#F5F6F8]0'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${recordReply ? 'bg-[#154360]' : 'bg-[#F5F6F8]0'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${recordReply ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1163,7 +1163,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setEmojiReactions(!emojiReactions)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${emojiReactions ? 'bg-[#0CAA41]' : 'bg-[#F5F6F8]0'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${emojiReactions ? 'bg-[#154360]' : 'bg-[#F5F6F8]0'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${emojiReactions ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1177,7 +1177,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setDownloadEnabled(!downloadEnabled)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${downloadEnabled ? 'bg-[#0CAA41]' : 'bg-[#F5F6F8]0'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${downloadEnabled ? 'bg-[#154360]' : 'bg-[#F5F6F8]0'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${downloadEnabled ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1191,7 +1191,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setStitchEnabled(!stitchEnabled)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${stitchEnabled ? 'bg-[#0CAA41]' : 'bg-[#F5F6F8]0'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${stitchEnabled ? 'bg-[#154360]' : 'bg-[#F5F6F8]0'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${stitchEnabled ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1205,7 +1205,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
                         <button 
                           onClick={() => setAnalyticsEnabled(!analyticsEnabled)}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${analyticsEnabled ? 'bg-[#0CAA41]' : 'bg-[#F5F6F8]0'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${analyticsEnabled ? 'bg-[#154360]' : 'bg-[#F5F6F8]0'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${analyticsEnabled ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1221,7 +1221,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                           onClick={() => {
                             setTranscriptEnabled(!transcriptEnabled);
                           }}
-                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${transcriptEnabled ? 'bg-[#0CAA41]' : 'bg-[#F5F6F8]0'}`}
+                          className={`w-10 h-5 rounded-full relative transition-colors mt-0.5 shrink-0 ${transcriptEnabled ? 'bg-[#154360]' : 'bg-[#F5F6F8]0'}`}
                         >
                           <span className={`absolute top-[2px] left-[2px] bg-white w-4 h-4 rounded-full transition-transform ${transcriptEnabled ? 'translate-x-5' : 'translate-x-0 shadow-sm'}`}></span>
                         </button>
@@ -1271,7 +1271,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
               <div className="flex flex-col h-full animate-in fade-in duration-300">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-[#20262E] flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-[#0CAA41]" /> AI Document
+                    <Zap className="w-4 h-4 text-[#154360]" /> AI Document
                   </h3>
                   <button 
                     onClick={() => {
@@ -1283,7 +1283,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                       }, 2000);
                     }}
                     disabled={isProcessingAI}
-                    className="text-xs font-medium text-[#0CAA41] hover:text-purple-800 transition-colors flex items-center gap-1"
+                    className="text-xs font-medium text-[#154360] hover:text-purple-800 transition-colors flex items-center gap-1"
                   >
                     {isProcessingAI ? <div className="w-3 h-3 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div> : <Zap className="w-3 h-3" />}
                     {isProcessingAI ? "Generating..." : "Regenerate"}
@@ -1348,7 +1348,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
 
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
-          <CheckCircle2 className="w-4 h-4 text-[#E6F6EC]" />
+          <CheckCircle2 className="w-4 h-4 text-[#EBF5FB]" />
           <span>{toastMessage}</span>
         </div>
       )}

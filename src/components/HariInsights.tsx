@@ -27,7 +27,7 @@ export default function HariInsights({
       {/* Top Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-[#E6F6EC] text-[#0CAA41] flex items-center justify-center">
+          <div className="w-5 h-5 rounded-full bg-[#EBF5FB] text-[#154360] flex items-center justify-center">
             <Sparkles size={12} />
           </div>
           <h2 className="text-xs font-bold uppercase tracking-wider text-[#57636E]">
@@ -68,7 +68,7 @@ export default function HariInsights({
 
             <button
               onClick={onStartRecord}
-              className="w-full py-2 bg-white hover:bg-[#E6F6EC]/40 border border-[#E2E7EC] hover:border-[#0CAA41] text-[#20262E] text-xs font-bold rounded-xl transition-all shadow-2xs cursor-pointer mb-5"
+              className="w-full py-2 bg-white hover:bg-[#EBF5FB]/40 border border-[#E2E7EC] hover:border-[#154360] text-[#20262E] text-xs font-bold rounded-xl transition-all shadow-2xs cursor-pointer mb-5"
             >
               Start recording
             </button>
@@ -101,7 +101,7 @@ export default function HariInsights({
 
             <button
               onClick={onStartRecord}
-              className="w-full py-2 bg-white hover:bg-[#E6F6EC]/40 border border-[#E2E7EC] hover:border-[#0CAA41] text-[#20262E] text-xs font-bold rounded-xl transition-all shadow-2xs cursor-pointer mb-4"
+              className="w-full py-2 bg-white hover:bg-[#EBF5FB]/40 border border-[#E2E7EC] hover:border-[#154360] text-[#20262E] text-xs font-bold rounded-xl transition-all shadow-2xs cursor-pointer mb-4"
             >
               Explore the Community
             </button>
@@ -110,12 +110,12 @@ export default function HariInsights({
           {/* Spotlight Graphic Card in Glassdoor green */}
           <div 
             onClick={onStartRecord}
-            className="relative h-32 rounded-xl bg-gradient-to-br from-[#E6F6EC] via-white to-[#E6F6EC] border border-[#0CAA41]/20 flex flex-col items-center justify-center p-3 cursor-pointer group overflow-hidden"
+            className="relative h-32 rounded-xl bg-gradient-to-br from-[#EBF5FB] via-white to-[#EBF5FB] border border-[#154360]/20 flex flex-col items-center justify-center p-3 cursor-pointer group overflow-hidden"
           >
-            <div className="w-12 h-12 rounded-full bg-[#0CAA41] text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+            <div className="w-12 h-12 rounded-full bg-[#154360] text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
               <Play size={18} className="fill-white translate-x-0.5" />
             </div>
-            <span className="text-xs font-bold text-[#0C5325] mt-2 group-hover:text-[#0CAA41] transition-colors">
+            <span className="text-xs font-bold text-[#0E2F44] mt-2 group-hover:text-[#154360] transition-colors">
               Skip the meeting, send a RCRD
             </span>
           </div>
@@ -129,7 +129,7 @@ export default function HariInsights({
             
             <div className="flex items-center gap-3 text-[11px] text-[#57636E] font-medium mt-2">
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-[#0CAA41]" />
+                <span className="w-2 h-2 rounded-full bg-[#154360]" />
                 0% filler words
               </span>
               <span className="flex items-center gap-1">
@@ -151,7 +151,7 @@ export default function HariInsights({
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                 />
                 <path
-                  className="text-[#0CAA41]"
+                  className="text-[#154360]"
                   strokeDasharray="98, 100"
                   strokeWidth="3.5"
                   strokeLinecap="round"
@@ -167,7 +167,7 @@ export default function HariInsights({
             </div>
           </div>
 
-          <div className="pt-3 border-t border-[#E2E7EC]/60 flex items-center justify-between text-xs text-[#0CAA41] hover:text-[#0C5325] font-semibold cursor-pointer">
+          <div className="pt-3 border-t border-[#E2E7EC]/60 flex items-center justify-between text-xs text-[#154360] hover:text-[#0E2F44] font-semibold cursor-pointer">
             <span>Learn how to remove filler words</span>
             <ArrowRight size={13} />
           </div>

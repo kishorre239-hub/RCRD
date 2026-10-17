@@ -36,7 +36,7 @@ export default function CreateWorkspacePage() {
         </Link>
         
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-indigo-50 dark:bg-[#0C5325]/10 rounded-xl text-[#0C5325] dark:text-indigo-400">
+          <div className="p-3 bg-indigo-50 dark:bg-[#0E2F44]/10 rounded-xl text-[#0E2F44] dark:text-indigo-400">
             <Building className="w-6 h-6" />
           </div>
           <h1 className="text-2xl font-bold text-[#20262E] dark:text-white">Create Workspace</h1>
@@ -48,7 +48,7 @@ export default function CreateWorkspacePage() {
 
         <form onSubmit={handleCreate} className="space-y-4">
           {error && (
-            <div className="p-3 bg-[#0CAA41]/10 text-[#0C5325] border border-[#0CAA41]/30 rounded-lg text-sm">
+            <div className="p-3 bg-[#154360]/10 text-[#0E2F44] border border-[#154360]/30 rounded-lg text-sm">
               {error}
             </div>
           )}
@@ -68,7 +68,7 @@ export default function CreateWorkspacePage() {
           <button 
             type="submit" 
             disabled={loading || !name.trim()}
-            className="w-full py-2.5 bg-[#0C5325] hover:bg-indigo-700 text-white font-medium rounded-lg disabled:opacity-50 transition-colors mt-6"
+            className="w-full py-2.5 bg-[#0E2F44] hover:bg-indigo-700 text-white font-medium rounded-lg disabled:opacity-50 transition-colors mt-6"
           >
             {loading ? "Creating..." : "Create Workspace"}
           </button>

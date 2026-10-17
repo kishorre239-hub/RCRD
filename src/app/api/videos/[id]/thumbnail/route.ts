@@ -9,13 +9,13 @@ function getPlaceholderThumbnail(title?: string) {
     <defs>
       <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stop-color="#20262E" />
-        <stop offset="50%" stop-color="#0C5325" />
+        <stop offset="50%" stop-color="#0E2F44" />
         <stop offset="100%" stop-color="#20262E" />
       </linearGradient>
     </defs>
     <rect width="640" height="360" fill="url(#bg)" rx="8" />
-    <circle cx="320" cy="165" r="40" fill="#0CAA41" fill-opacity="0.25" stroke="#0CAA41" stroke-width="2.5" />
-    <polygon points="312,150 336,165 312,180" fill="#0CAA41" />
+    <circle cx="320" cy="165" r="40" fill="#154360" fill-opacity="0.25" stroke="#154360" stroke-width="2.5" />
+    <polygon points="312,150 336,165 312,180" fill="#154360" />
     <text x="320" y="240" fill="#E2E7EC" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" text-anchor="middle">
       ${safeTitle}
     </text>

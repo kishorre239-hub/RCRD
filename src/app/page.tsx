@@ -39,11 +39,11 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="relative flex h-full w-full bg-[#F5F6F8] text-[#20262E] font-sans overflow-hidden selection:bg-[#0CAA41]/20">
+    <div className="relative flex h-full w-full bg-[#F5F6F8] text-[#20262E] font-sans overflow-hidden selection:bg-[#154360]/20">
       
       {/* Background Ambient Glow in Glassdoor Mint */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#E6F6EC]/30 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#E6F6EC]/30 blur-[120px] pointer-events-none"></div>
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#EBF5FB]/30 blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#EBF5FB]/30 blur-[120px] pointer-events-none"></div>
 
       {/* Mobile Drawer Backdrop */}
       {isMobileMenuOpen && (
@@ -74,11 +74,11 @@ export default function HomePage() {
         </div>
 
         <div className="p-5 border-b border-[#E2E7EC] flex-shrink-0">
-          <div className="flex items-center justify-between p-3 bg-[#F5F6F8] hover:bg-[#E6F6EC]/40 rounded-xl cursor-pointer transition-all border border-[#E2E7EC] group">
+          <div className="flex items-center justify-between p-3 bg-[#F5F6F8] hover:bg-[#EBF5FB]/40 rounded-xl cursor-pointer transition-all border border-[#E2E7EC] group">
             <div>
-              <div className="text-sm font-semibold text-[#20262E] group-hover:text-[#0CAA41] transition-colors">RCRD Workspace</div>
+              <div className="text-sm font-semibold text-[#20262E] group-hover:text-[#154360] transition-colors">RCRD Workspace</div>
               <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] uppercase tracking-wider bg-[#E6F6EC] px-2 py-0.5 rounded text-[#0CAA41] font-bold border border-[#0CAA41]/20">Pro Plan</span>
+                <span className="text-[10px] uppercase tracking-wider bg-[#EBF5FB] px-2 py-0.5 rounded text-[#154360] font-bold border border-[#154360]/20">Pro Plan</span>
                 <span className="text-xs text-[#57636E]">Team Space</span>
               </div>
             </div>
@@ -86,9 +86,9 @@ export default function HomePage() {
           </div>
           <button 
             onClick={() => { router.push('/settings?tab=users'); setIsMobileMenuOpen(false); }}
-            className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#E6F6EC]/50 border border-[#E2E7EC] hover:border-[#0CAA41]/30 rounded-xl text-sm font-semibold text-[#20262E] transition-all shadow-xs cursor-pointer"
+            className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#EBF5FB]/50 border border-[#E2E7EC] hover:border-[#154360]/30 rounded-xl text-sm font-semibold text-[#20262E] transition-all shadow-xs cursor-pointer"
           >
-            <UsersIcon size={16} className="text-[#0CAA41]" />
+            <UsersIcon size={16} className="text-[#154360]" />
             Invite Teammates
           </button>
         </div>
@@ -116,7 +116,7 @@ export default function HomePage() {
           <button 
             id="tour-record-btn"
             onClick={() => { setIsRecordModalOpen(true); setIsMobileMenuOpen(false); }}
-            className="w-full bg-[#0CAA41] hover:bg-[#0C5325] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(12,170,65,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(12,83,37,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+            className="w-full bg-[#154360] hover:bg-[#0E2F44] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(21, 67, 96,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(12,83,37,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <VideoCameraIcon size={20} />
             <span>Record Video</span>
@@ -158,8 +158,8 @@ export default function HomePage() {
             />
             
             {/* Floating particles in Mint and Glassdoor Green */}
-            <div className="absolute top-2 right-2 w-3 h-3 bg-[#0CAA41] rounded-full opacity-80 animate-bounce delay-75"></div>
-            <div className="absolute bottom-4 left-0 w-2.5 h-2.5 bg-[#0C5325] rounded-full opacity-80 animate-bounce delay-300"></div>
+            <div className="absolute top-2 right-2 w-3 h-3 bg-[#154360] rounded-full opacity-80 animate-bounce delay-75"></div>
+            <div className="absolute bottom-4 left-0 w-2.5 h-2.5 bg-[#0E2F44] rounded-full opacity-80 animate-bounce delay-300"></div>
           </div>
 
           <h1 className="text-3xl font-extrabold text-[#20262E] mb-3 tracking-tight text-center">
@@ -175,7 +175,7 @@ export default function HomePage() {
             {/* 1. Start Recording Button */}
             <button 
               onClick={() => setIsRecordModalOpen(true)}
-              className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2.5 transition-all shadow-[0_8px_20px_rgba(12,170,65,0.35)] hover:shadow-[0_12px_28px_rgba(12,83,37,0.45)] transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
+              className="bg-[#154360] hover:bg-[#0E2F44] text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2.5 transition-all shadow-[0_8px_20px_rgba(21, 67, 96,0.35)] hover:shadow-[0_12px_28px_rgba(12,83,37,0.45)] transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
             >
               <div className="bg-white/20 p-1 rounded-lg">
                 <VideoCameraIcon size={16} className="text-white" />
@@ -186,9 +186,9 @@ export default function HomePage() {
             {/* 2. Upload Video Button */}
             <button 
               onClick={() => setIsUploadModalOpen(true)}
-              className="bg-white hover:bg-[#E6F6EC]/40 text-[#20262E] border-2 border-[#E2E7EC] hover:border-[#0CAA41] px-6 py-3 rounded-2xl font-bold flex items-center gap-2.5 transition-all shadow-xs hover:shadow-sm transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
+              className="bg-white hover:bg-[#EBF5FB]/40 text-[#20262E] border-2 border-[#E2E7EC] hover:border-[#154360] px-6 py-3 rounded-2xl font-bold flex items-center gap-2.5 transition-all shadow-xs hover:shadow-sm transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
             >
-              <div className="bg-[#E6F6EC] p-1 rounded-lg text-[#0CAA41]">
+              <div className="bg-[#EBF5FB] p-1 rounded-lg text-[#154360]">
                 <Upload size={16} className="stroke-[2.5]" />
               </div>
               <span>Upload a Video</span>
@@ -197,9 +197,9 @@ export default function HomePage() {
             {/* 3. Schedule Meeting Button */}
             <button 
               onClick={() => router.push('/meetings?schedule=true')}
-              className="bg-white hover:bg-[#E6F6EC]/40 text-[#20262E] border-2 border-[#E2E7EC] hover:border-[#0CAA41] px-6 py-3 rounded-2xl font-bold flex items-center gap-2.5 transition-all shadow-xs hover:shadow-sm transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
+              className="bg-white hover:bg-[#EBF5FB]/40 text-[#20262E] border-2 border-[#E2E7EC] hover:border-[#154360] px-6 py-3 rounded-2xl font-bold flex items-center gap-2.5 transition-all shadow-xs hover:shadow-sm transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
             >
-              <div className="bg-[#E6F6EC] p-1 rounded-lg text-[#0CAA41]">
+              <div className="bg-[#EBF5FB] p-1 rounded-lg text-[#154360]">
                 <Calendar size={16} className="stroke-[2.5]" />
               </div>
               <span>Schedule Meeting</span>
@@ -245,15 +245,15 @@ function SidebarItem({ icon, label, active = false, external = false, href }: { 
         fontStyle: 'normal',
         lineHeight: '14px',
         letterSpacing: 'normal',
-        color: active ? '#0CAA41' : '#292A2E'
+        color: active ? '#154360' : '#292A2E'
       }}
       className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold cursor-pointer transition-all ${
       active 
-        ? "bg-[#E6F6EC] text-[#0CAA41] shadow-sm font-bold" 
+        ? "bg-[#EBF5FB] text-[#154360] shadow-sm font-bold" 
         : "hover:bg-[#F5F6F8] text-[#20262E]"
     }`}>
       <div className="flex items-center gap-3">
-        <div className={`${active ? "text-[#0CAA41]" : "text-[#57636E]"}`}>
+        <div className={`${active ? "text-[#154360]" : "text-[#57636E]"}`}>
           {icon}
         </div>
         <span className="text-sm tracking-wide">{label}</span>
@@ -266,7 +266,7 @@ function SidebarItem({ icon, label, active = false, external = false, href }: { 
 
 /* 
 <div className="fixed bottom-4 right-4 flex gap-4 bg-white p-4 shadow-xl rounded-xl z-50">
-  <Link href="/signup" className="font-bold text-[#0CAA41] hover:underline">Signup UI</Link>
-  <Link href="/id-cards" className="font-bold text-[#0CAA41] hover:underline">ID Cards UI</Link>
+  <Link href="/signup" className="font-bold text-[#154360] hover:underline">Signup UI</Link>
+  <Link href="/id-cards" className="font-bold text-[#154360] hover:underline">ID Cards UI</Link>
 </div>
 */

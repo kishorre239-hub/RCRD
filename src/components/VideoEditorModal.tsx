@@ -104,7 +104,7 @@ const PRESET_WATERMARK_IMAGES = [
 function AnimatedPointingArrow({ 
   direction = 'left',
   className = '', 
-  strokeColor = '#0CAA41'
+  strokeColor = '#154360'
 }: { 
   direction?: 'left' | 'up' | 'down' | 'right';
   className?: string; 
@@ -824,18 +824,18 @@ export default function VideoEditorModal({
     <div className="fixed inset-0 z-[100] flex flex-col bg-[#f0f5fa] text-[#20262E] font-sans animate-in fade-in duration-200">
       
       {/* HEADER */}
-      <div className="h-16 border-b border-[#0CAA41]/20 bg-white flex items-center justify-between px-6 shadow-sm z-10">
+      <div className="h-16 border-b border-[#154360]/20 bg-white flex items-center justify-between px-6 shadow-sm z-10">
         <div className="flex items-center gap-4">
           <button 
             onClick={onClose} 
-            className="p-2 hover:bg-[#E6F6EC] rounded-full transition-colors text-[#57636E] hover:text-[#0CAA41]"
+            className="p-2 hover:bg-[#EBF5FB] rounded-full transition-colors text-[#57636E] hover:text-[#154360]"
             title="Exit Editor"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
           <div className="font-bold text-[#20262E] text-lg flex items-center gap-2">
             <span>{videoTitle}</span> 
-            <span className="text-xs font-semibold text-[#0C5325] bg-[#E6F6EC] px-2.5 py-1 rounded-md border border-[#0CAA41]/30">
+            <span className="text-xs font-semibold text-[#0E2F44] bg-[#EBF5FB] px-2.5 py-1 rounded-md border border-[#154360]/30">
               Video Studio
             </span>
           </div>
@@ -847,12 +847,12 @@ export default function VideoEditorModal({
             className="bg-slate-100 hover:bg-slate-200 text-[#20262E] font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer border border-[#E2E7EC] shadow-xs"
             title="Open video editing tutorial and walkthrough"
           >
-            <HelpCircle className="w-4 h-4 text-[#0CAA41]" />
+            <HelpCircle className="w-4 h-4 text-[#154360]" />
             <span>Tutorial & Guide</span>
           </button>
 
           {saveSuccess ? (
-            <div className="bg-[#72BAA9] text-white font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 shadow-md animate-in zoom-in-95">
+            <div className="bg-[#2980B9] text-white font-bold px-5 py-2.5 rounded-lg text-sm flex items-center gap-2 shadow-md animate-in zoom-in-95">
               <CheckCircle2 className="w-4 h-4" />
               <span>Saved!</span>
             </div>
@@ -861,8 +861,8 @@ export default function VideoEditorModal({
               id="editor-save-btn"
               onClick={handleSaveChanges}
               disabled={isSaving}
-              className={`bg-[#0CAA41] hover:bg-[#0CAA41] text-white font-bold px-6 py-2.5 rounded-lg text-sm flex items-center gap-2 shadow-md shadow-[rgba(12, 170, 65,0.2)] transition-all active:scale-95 disabled:opacity-75 cursor-pointer ${
-                showTutorial && tutorialStep === 4 ? 'ring-4 ring-[#0CAA41]/20 ring-offset-2 animate-pulse' : ''
+              className={`bg-[#154360] hover:bg-[#154360] text-white font-bold px-6 py-2.5 rounded-lg text-sm flex items-center gap-2 shadow-md shadow-[rgba(21, 67, 96,0.2)] transition-all active:scale-95 disabled:opacity-75 cursor-pointer ${
+                showTutorial && tutorialStep === 4 ? 'ring-4 ring-[#154360]/20 ring-offset-2 animate-pulse' : ''
               }`}
             >
               {isSaving ? (
@@ -880,14 +880,14 @@ export default function VideoEditorModal({
       <div className="flex-1 flex overflow-hidden">
         
         {/* Left Sidebar (Tools) */}
-        <div className="w-20 border-r border-[#0CAA41]/20 bg-white flex flex-col items-center py-6 gap-4 shadow-sm z-10 select-none">
+        <div className="w-20 border-r border-[#154360]/20 bg-white flex flex-col items-center py-6 gap-4 shadow-sm z-10 select-none">
           <button 
             id="editor-tab-overview"
             onClick={() => { setActiveTab('select'); setSelectedTextId(null); setSelectedMediaId(null); }}
             className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl w-16 transition-all ${
               activeTab === 'select'
-                ? 'text-[#0CAA41] bg-[#E6F6EC] border-2 border-[#0CAA41]/30 shadow-sm font-bold' 
-                : 'text-[#57636E] hover:text-[#0CAA41] hover:bg-[#F5F6F8]'
+                ? 'text-[#154360] bg-[#EBF5FB] border-2 border-[#154360]/30 shadow-sm font-bold' 
+                : 'text-[#57636E] hover:text-[#154360] hover:bg-[#F5F6F8]'
             }`}
           >
             <MousePointer2 className="w-5 h-5" />
@@ -901,14 +901,14 @@ export default function VideoEditorModal({
               showTutorial && tutorialStep === 0 ? 'ring-4 ring-rose-400 ring-offset-2 z-30' : ''
             } ${
               activeTab === 'cut' 
-                ? 'text-[#0CAA41] bg-[#0CAA41]/10 border-2 border-[#0CAA41]/30 shadow-sm font-bold' 
-                : 'text-[#57636E] hover:text-[#0CAA41] hover:bg-[#0CAA41]/10'
+                ? 'text-[#154360] bg-[#154360]/10 border-2 border-[#154360]/30 shadow-sm font-bold' 
+                : 'text-[#57636E] hover:text-[#154360] hover:bg-[#154360]/10'
             }`}
           >
             <Scissors className="w-5 h-5" />
             <span className="text-[10px]">Cut</span>
             {completedCuts.length > 0 && (
-              <span className="text-[9px] bg-[#0CAA41] text-white px-1.5 rounded-full font-bold">
+              <span className="text-[9px] bg-[#154360] text-white px-1.5 rounded-full font-bold">
                 {completedCuts.length}
               </span>
             )}
@@ -921,14 +921,14 @@ export default function VideoEditorModal({
               showTutorial && tutorialStep === 1 ? 'ring-4 ring-indigo-400 ring-offset-2 z-30' : ''
             } ${
               activeTab === 'text' 
-                ? 'text-[#0C5325] bg-[#E6F6EC]/40 border-2 border-[#72BAA9]/30 shadow-sm font-bold' 
-                : 'text-[#57636E] hover:text-[#0C5325] hover:bg-[#E6F6EC]/40'
+                ? 'text-[#0E2F44] bg-[#EBF5FB]/40 border-2 border-[#2980B9]/30 shadow-sm font-bold' 
+                : 'text-[#57636E] hover:text-[#0E2F44] hover:bg-[#EBF5FB]/40'
             }`}
           >
             <Type className="w-5 h-5" />
             <span className="text-[10px]">Text</span>
             {textOverlays.length > 0 && (
-              <span className="text-[9px] bg-[#0C5325] text-white px-1.5 rounded-full font-bold">
+              <span className="text-[9px] bg-[#0E2F44] text-white px-1.5 rounded-full font-bold">
                 {textOverlays.length}
               </span>
             )}
@@ -941,14 +941,14 @@ export default function VideoEditorModal({
               showTutorial && tutorialStep === 2 ? 'ring-4 ring-purple-400 ring-offset-2 z-30' : ''
             } ${
               activeTab === 'media' 
-                ? 'text-[#0CAA41] bg-[#E6F6EC]/40 border-2 border-[#0CAA41]/30 shadow-sm font-bold' 
-                : 'text-[#57636E] hover:text-[#0CAA41] hover:bg-[#E6F6EC]/40'
+                ? 'text-[#154360] bg-[#EBF5FB]/40 border-2 border-[#154360]/30 shadow-sm font-bold' 
+                : 'text-[#57636E] hover:text-[#154360] hover:bg-[#EBF5FB]/40'
             }`}
           >
             <ImageIcon className="w-5 h-5" />
             <span className="text-[10px]">Media</span>
             {mediaOverlays.length > 0 && (
-              <span className="text-[9px] bg-[#0CAA41] text-white px-1.5 rounded-full font-bold">
+              <span className="text-[9px] bg-[#154360] text-white px-1.5 rounded-full font-bold">
                 {mediaOverlays.length}
               </span>
             )}
@@ -961,14 +961,14 @@ export default function VideoEditorModal({
               showTutorial && tutorialStep === 3 ? 'ring-4 ring-emerald-400 ring-offset-2 z-30' : ''
             } ${
               activeTab === 'audio' 
-                ? 'text-[#72BAA9] bg-[#E6F6EC]/40 border-2 border-[#72BAA9]/30 shadow-sm font-bold' 
-                : 'text-[#57636E] hover:text-[#72BAA9] hover:bg-[#E6F6EC]/40'
+                ? 'text-[#2980B9] bg-[#EBF5FB]/40 border-2 border-[#2980B9]/30 shadow-sm font-bold' 
+                : 'text-[#57636E] hover:text-[#2980B9] hover:bg-[#EBF5FB]/40'
             }`}
           >
             <Music className="w-5 h-5" />
             <span className="text-[10px]">Audio</span>
             {hasAudioTrack && (
-              <span className="w-2 h-2 bg-[#72BAA9] rounded-full" />
+              <span className="w-2 h-2 bg-[#2980B9] rounded-full" />
             )}
           </button>
         </div>
@@ -1015,7 +1015,7 @@ export default function VideoEditorModal({
             {!isPlaying && (
               <button 
                 onClick={handlePlayPause} 
-                className="absolute m-auto w-16 h-16 bg-[#0CAA41]/90 hover:bg-[#0CAA41] text-white rounded-full flex items-center justify-center transition-all transform hover:scale-110 shadow-2xl z-20"
+                className="absolute m-auto w-16 h-16 bg-[#154360]/90 hover:bg-[#154360] text-white rounded-full flex items-center justify-center transition-all transform hover:scale-110 shadow-2xl z-20"
                 title="Play (Space)"
               >
                 <Play className="w-8 h-8 ml-1 fill-current" />
@@ -1045,7 +1045,7 @@ export default function VideoEditorModal({
                         transform: `rotate(${text.rotation || 0}deg)`
                       }}
                       className={`relative max-w-2xl px-8 py-6 rounded-2xl bg-black/80 border border-white/20 shadow-2xl text-center select-none cursor-move ${
-                        isSelected ? 'ring-4 ring-[#0CAA41]/20 scale-105' : 'hover:ring-2 hover:ring-white/40'
+                        isSelected ? 'ring-4 ring-[#154360]/20 scale-105' : 'hover:ring-2 hover:ring-white/40'
                       }`}
                     >
                       <span className="font-bold tracking-tight block leading-snug">{text.text}</span>
@@ -1072,7 +1072,7 @@ export default function VideoEditorModal({
                               setTextOverlays(prev => prev.filter(t => t.id !== text.id)); 
                               setSelectedTextId(null); 
                             }} 
-                            className="p-1.5 hover:bg-[#0CAA41]/10 hover:text-[#0CAA41] rounded text-[#20262E]"
+                            className="p-1.5 hover:bg-[#154360]/10 hover:text-[#154360] rounded text-[#20262E]"
                             title="Delete text"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1089,9 +1089,9 @@ export default function VideoEditorModal({
               if (text.stylePreset === 'subtitle' || !text.stylePreset) {
                 containerStyle = "bg-slate-950/90 text-white px-5 py-2 rounded-xl border border-white/20 shadow-lg backdrop-blur-md font-semibold tracking-wide text-center";
               } else if (text.stylePreset === 'lowerThird') {
-                containerStyle = "bg-slate-950/90 text-white px-5 py-2.5 rounded-r-xl border-l-4 border-[#0CAA41] shadow-lg backdrop-blur-md font-semibold";
+                containerStyle = "bg-slate-950/90 text-white px-5 py-2.5 rounded-r-xl border-l-4 border-[#154360] shadow-lg backdrop-blur-md font-semibold";
               } else if (text.stylePreset === 'badge') {
-                containerStyle = "bg-[#0CAA41] text-white px-4 py-1.5 rounded-full font-bold shadow-md ring-1 ring-white/30";
+                containerStyle = "bg-[#154360] text-white px-4 py-1.5 rounded-full font-bold shadow-md ring-1 ring-white/30";
               } else if (text.stylePreset === 'minimal') {
                 containerStyle = "text-white font-extrabold tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]";
               }
@@ -1109,7 +1109,7 @@ export default function VideoEditorModal({
                     transform: `translate(-50%, -50%) rotate(${text.rotation || 0}deg)` 
                   }}
                   className={`absolute cursor-move transition-all z-20 select-none ${containerStyle} ${
-                    isSelected ? 'ring-2 ring-[#0CAA41]/20 scale-105 z-30' : 'hover:ring-1 hover:ring-white/40'
+                    isSelected ? 'ring-2 ring-[#154360]/20 scale-105 z-30' : 'hover:ring-1 hover:ring-white/40'
                   }`}
                 >
                   <span className="block text-center whitespace-pre-wrap leading-normal pointer-events-none">
@@ -1137,7 +1137,7 @@ export default function VideoEditorModal({
                           setTextOverlays(prev => prev.filter(t => t.id !== text.id)); 
                           setSelectedTextId(null); 
                         }} 
-                        className="p-1.5 hover:bg-[#0CAA41]/10 hover:text-[#0CAA41] rounded text-[#20262E]"
+                        className="p-1.5 hover:bg-[#154360]/10 hover:text-[#154360] rounded text-[#20262E]"
                         title="Delete text"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1148,7 +1148,7 @@ export default function VideoEditorModal({
                   {/* Corner Resize Handle */}
                   {isSelected && (
                     <div 
-                      className="absolute -bottom-2 -right-2 w-5 h-5 bg-[#0CAA41] border-2 border-white rounded-full cursor-nwse-resize z-50 shadow-md"
+                      className="absolute -bottom-2 -right-2 w-5 h-5 bg-[#154360] border-2 border-white rounded-full cursor-nwse-resize z-50 shadow-md"
                       onPointerDown={(e) => {
                         e.stopPropagation();
                         setResizingOverlay({ id: text.id, type: 'text', startY: e.clientY, initialSize: text.size });
@@ -1183,7 +1183,7 @@ export default function VideoEditorModal({
                         opacity
                       }}
                       className={`relative max-w-[85%] max-h-[85%] flex items-center justify-center rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-black/50 p-2 cursor-move ${
-                        isSelected ? 'ring-4 ring-[#0CAA41]/20 scale-105' : 'hover:ring-2 hover:ring-white/40'
+                        isSelected ? 'ring-4 ring-[#154360]/20 scale-105' : 'hover:ring-2 hover:ring-white/40'
                       }`}
                     >
                       {media.isVideo ? (
@@ -1226,7 +1226,7 @@ export default function VideoEditorModal({
                               setMediaOverlays(prev => prev.filter(m => m.id !== media.id)); 
                               setSelectedMediaId(null); 
                             }} 
-                            className="p-1.5 hover:bg-[#0CAA41]/10 hover:text-[#0CAA41] rounded text-[#20262E]"
+                            className="p-1.5 hover:bg-[#154360]/10 hover:text-[#154360] rounded text-[#20262E]"
                             title="Delete image"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1251,7 +1251,7 @@ export default function VideoEditorModal({
                     opacity
                   }}
                   className={`absolute cursor-move transition-all z-20 select-none ${
-                    isSelected ? 'ring-4 ring-[#0CAA41]/20 shadow-2xl z-30' : 'hover:ring-2 hover:ring-white/40'
+                    isSelected ? 'ring-4 ring-[#154360]/20 shadow-2xl z-30' : 'hover:ring-2 hover:ring-white/40'
                   }`}
                 >
                   {/* Floating Toolbar when selected */}
@@ -1277,7 +1277,7 @@ export default function VideoEditorModal({
                           setMediaOverlays(prev => prev.filter(m => m.id !== media.id)); 
                           setSelectedMediaId(null); 
                         }} 
-                        className="p-1.5 hover:bg-[#0CAA41]/10 hover:text-[#0CAA41] rounded text-[#20262E]"
+                        className="p-1.5 hover:bg-[#154360]/10 hover:text-[#154360] rounded text-[#20262E]"
                         title="Delete image"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1288,7 +1288,7 @@ export default function VideoEditorModal({
                   {/* Corner Resize Handle */}
                   {isSelected && (
                     <div 
-                      className="absolute -bottom-2 -right-2 w-6 h-6 bg-[#0CAA41] border-2 border-white rounded-full cursor-nwse-resize z-50 shadow-md"
+                      className="absolute -bottom-2 -right-2 w-6 h-6 bg-[#154360] border-2 border-white rounded-full cursor-nwse-resize z-50 shadow-md"
                       style={{ transform: `scale(${100 / (media.scale || 100)})` }}
                       onPointerDown={(e) => {
                         e.stopPropagation();
@@ -1331,7 +1331,7 @@ export default function VideoEditorModal({
               title="Rewind 5 seconds"
               className="px-3 py-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-semibold active:scale-95 cursor-pointer"
             >
-              <RotateCcw className="w-4 h-4 text-[#0CAA41]" />
+              <RotateCcw className="w-4 h-4 text-[#154360]" />
               <span>-5s</span>
             </button>
 
@@ -1339,7 +1339,7 @@ export default function VideoEditorModal({
             <button 
               onClick={handlePlayPause} 
               title={isPlaying ? "Pause (Space)" : "Play (Space)"}
-              className="w-10 h-10 rounded-full bg-[#0CAA41] text-white flex items-center justify-center shadow-lg shadow-blue-500/30 hover:bg-[#0CAA41] transition-all transform hover:scale-105 active:scale-95 cursor-pointer"
+              className="w-10 h-10 rounded-full bg-[#154360] text-white flex items-center justify-center shadow-lg shadow-blue-500/30 hover:bg-[#154360] transition-all transform hover:scale-105 active:scale-95 cursor-pointer"
             >
               {isPlaying ? <Pause className="w-5 h-5 fill-current"/> : <Play className="w-5 h-5 ml-0.5 fill-current"/>}
             </button>
@@ -1351,7 +1351,7 @@ export default function VideoEditorModal({
               className="px-3 py-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 text-xs font-semibold active:scale-95 cursor-pointer"
             >
               <span>+5s</span>
-              <RotateCw className="w-4 h-4 text-[#0CAA41]" />
+              <RotateCw className="w-4 h-4 text-[#154360]" />
             </button>
 
             <div className="w-px h-5 bg-white/15 mx-1" />
@@ -1361,7 +1361,7 @@ export default function VideoEditorModal({
               onClick={handleToggleMute} 
               title={isMuted ? "Unmute" : "Mute"}
               className={`p-2 rounded-lg transition-all active:scale-95 cursor-pointer ${
-                isMuted ? 'text-[#0CAA41] bg-[#0CAA41]/20' : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                isMuted ? 'text-[#154360] bg-[#154360]/20' : 'text-slate-300 hover:bg-white/10 hover:text-white'
               }`}
             >
               {isMuted ? <VolumeX className="w-5 h-5"/> : <Volume2 className="w-5 h-5"/>}
@@ -1374,14 +1374,14 @@ export default function VideoEditorModal({
         </div>
 
         {/* Right Sidebar (Properties Panel) */}
-        <div className="w-84 border-l border-[#0CAA41]/20 bg-white p-5 flex flex-col gap-5 overflow-y-auto z-10 shadow-sm text-sm">
+        <div className="w-84 border-l border-[#154360]/20 bg-white p-5 flex flex-col gap-5 overflow-y-auto z-10 shadow-sm text-sm">
           
           {/* TAB 1: OVERVIEW / SELECT */}
           {activeTab === 'select' && (
             <div className="space-y-5 animate-in fade-in duration-150">
               <div className="border-b border-[#E2E7EC] pb-3">
                 <h3 className="font-bold text-[#20262E] text-base flex items-center gap-2">
-                  <Sliders className="w-4 h-4 text-[#0CAA41]" />
+                  <Sliders className="w-4 h-4 text-[#154360]" />
                   <span>Editor Overview</span>
                 </h3>
                 <p className="text-xs text-[#57636E] mt-1">Summary of active overlays and cuts in this video.</p>
@@ -1391,46 +1391,46 @@ export default function VideoEditorModal({
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div 
                   onClick={() => setActiveTab('cut')}
-                  className="p-3 bg-[#0CAA41]/10 hover:bg-[#0CAA41]/15/70 rounded-xl border border-[#0CAA41]/30/60 cursor-pointer transition-all"
+                  className="p-3 bg-[#154360]/10 hover:bg-[#154360]/15/70 rounded-xl border border-[#154360]/30/60 cursor-pointer transition-all"
                 >
-                  <p className="font-bold text-[#0C5325] flex items-center justify-between">
+                  <p className="font-bold text-[#0E2F44] flex items-center justify-between">
                     <span>Cuts</span>
                     <Scissors className="w-3.5 h-3.5" />
                   </p>
-                  <p className="text-lg font-black text-[#0C5325] mt-1">{completedCuts.length}</p>
+                  <p className="text-lg font-black text-[#0E2F44] mt-1">{completedCuts.length}</p>
                 </div>
 
                 <div 
                   onClick={() => setActiveTab('text')}
-                  className="p-3 bg-[#E6F6EC]/40 hover:bg-[#E6F6EC]/70 rounded-xl border border-[#72BAA9]/30/60 cursor-pointer transition-all"
+                  className="p-3 bg-[#EBF5FB]/40 hover:bg-[#EBF5FB]/70 rounded-xl border border-[#2980B9]/30/60 cursor-pointer transition-all"
                 >
-                  <p className="font-bold text-[#0C5325] flex items-center justify-between">
+                  <p className="font-bold text-[#0E2F44] flex items-center justify-between">
                     <span>Text</span>
                     <Type className="w-3.5 h-3.5" />
                   </p>
-                  <p className="text-lg font-black text-[#0C5325] mt-1">{textOverlays.length}</p>
+                  <p className="text-lg font-black text-[#0E2F44] mt-1">{textOverlays.length}</p>
                 </div>
 
                 <div 
                   onClick={() => setActiveTab('media')}
-                  className="p-3 bg-[#E6F6EC]/40 hover:bg-[#E6F6EC]/70 rounded-xl border border-[#0CAA41]/30/60 cursor-pointer transition-all"
+                  className="p-3 bg-[#EBF5FB]/40 hover:bg-[#EBF5FB]/70 rounded-xl border border-[#154360]/30/60 cursor-pointer transition-all"
                 >
-                  <p className="font-bold text-[#0CAA41] flex items-center justify-between">
+                  <p className="font-bold text-[#154360] flex items-center justify-between">
                     <span>Media</span>
                     <ImageIcon className="w-3.5 h-3.5" />
                   </p>
-                  <p className="text-lg font-black text-[#0C5325] mt-1">{mediaOverlays.length}</p>
+                  <p className="text-lg font-black text-[#0E2F44] mt-1">{mediaOverlays.length}</p>
                 </div>
 
                 <div 
                   onClick={() => setActiveTab('audio')}
-                  className="p-3 bg-[#E6F6EC]/40 hover:bg-[#E6F6EC] rounded-xl border border-[#72BAA9]/30/60 cursor-pointer transition-all"
+                  className="p-3 bg-[#EBF5FB]/40 hover:bg-[#EBF5FB] rounded-xl border border-[#2980B9]/30/60 cursor-pointer transition-all"
                 >
-                  <p className="font-bold text-[#0C5325] flex items-center justify-between">
+                  <p className="font-bold text-[#0E2F44] flex items-center justify-between">
                     <span>Audio</span>
                     <Music className="w-3.5 h-3.5" />
                   </p>
-                  <p className="text-xs font-bold text-[#0C5325] mt-2 truncate">
+                  <p className="text-xs font-bold text-[#0E2F44] mt-2 truncate">
                     {hasAudioTrack ? 'Active' : 'Off'}
                   </p>
                 </div>
@@ -1441,25 +1441,25 @@ export default function VideoEditorModal({
                 <p className="text-xs font-bold text-[#57636E] uppercase tracking-wide">Quick Add</p>
                 <button 
                   onClick={() => handleAddText()}
-                  className="w-full py-2.5 px-3 bg-[#F5F6F8] hover:bg-[#E6F6EC]/40 hover:text-[#0C5325] border border-[#E2E7EC] rounded-lg text-[#20262E] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                  className="w-full py-2.5 px-3 bg-[#F5F6F8] hover:bg-[#EBF5FB]/40 hover:text-[#0E2F44] border border-[#E2E7EC] rounded-lg text-[#20262E] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <Type className="w-4 h-4 text-[#72BAA9]" />
+                  <Type className="w-4 h-4 text-[#2980B9]" />
                   <span>Add Subtitle / Caption</span>
                 </button>
 
                 <button 
                   onClick={() => handleAddMedia()}
-                  className="w-full py-2.5 px-3 bg-[#F5F6F8] hover:bg-[#E6F6EC]/40 hover:text-[#0CAA41] border border-[#E2E7EC] rounded-lg text-[#20262E] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                  className="w-full py-2.5 px-3 bg-[#F5F6F8] hover:bg-[#EBF5FB]/40 hover:text-[#154360] border border-[#E2E7EC] rounded-lg text-[#20262E] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <ImageIcon className="w-4 h-4 text-[#0CAA41]" />
+                  <ImageIcon className="w-4 h-4 text-[#154360]" />
                   <span>Add Image / Watermark</span>
                 </button>
 
                 <button 
                   onClick={initiateNewCut}
-                  className="w-full py-2.5 px-3 bg-[#F5F6F8] hover:bg-[#0CAA41]/10 hover:text-[#0C5325] border border-[#E2E7EC] rounded-lg text-[#20262E] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
+                  className="w-full py-2.5 px-3 bg-[#F5F6F8] hover:bg-[#154360]/10 hover:text-[#0E2F44] border border-[#E2E7EC] rounded-lg text-[#20262E] font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <Scissors className="w-4 h-4 text-[#0CAA41]" />
+                  <Scissors className="w-4 h-4 text-[#154360]" />
                   <span>Trim or Cut Video</span>
                 </button>
               </div>
@@ -1473,7 +1473,7 @@ export default function VideoEditorModal({
               <div className="border-b border-[#E2E7EC] pb-3 flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-[#20262E] text-base flex items-center gap-2">
-                    <Scissors className="w-4 h-4 text-[#0CAA41]" />
+                    <Scissors className="w-4 h-4 text-[#154360]" />
                     <span>Cut & Trim Video</span>
                   </h3>
                   <p className="text-xs text-[#57636E] mt-0.5">Remove mistakes or unwanted pauses cleanly.</p>
@@ -1481,7 +1481,7 @@ export default function VideoEditorModal({
                 <button
                   type="button"
                   onClick={() => setShowTutorial(true)}
-                  className="px-2.5 py-1 bg-[#E6F6EC] hover:bg-[#E6F6EC] text-[#0C5325] text-xs font-bold rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                  className="px-2.5 py-1 bg-[#EBF5FB] hover:bg-[#EBF5FB] text-[#0E2F44] text-xs font-bold rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <HelpCircle className="w-3.5 h-3.5" />
                   Guide
@@ -1489,21 +1489,21 @@ export default function VideoEditorModal({
               </div>
 
               {/* Quick How-To Banner */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-[#0CAA41]/30/80 rounded-2xl p-3 space-y-2">
-                <span className="text-xs font-bold text-[#0C5325]0 flex items-center gap-1.5">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-[#154360]/30/80 rounded-2xl p-3 space-y-2">
+                <span className="text-xs font-bold text-[#0E2F44]0 flex items-center gap-1.5">
                   How to Cut Video in 3 Steps:
                 </span>
                 <div className="text-[11px] text-[#57636E] space-y-1 font-medium leading-relaxed">
                   <div className="flex items-start gap-1.5">
-                    <span className="w-4 h-4 rounded-full bg-[#E6F6EC] text-[#0CAA41] font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <span className="w-4 h-4 rounded-full bg-[#EBF5FB] text-[#154360] font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
                     <span>Play and pause video at the mistake you want to remove.</span>
                   </div>
                   <div className="flex items-start gap-1.5">
-                    <span className="w-4 h-4 rounded-full bg-[#E6F6EC] text-[#0CAA41] font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <span className="w-4 h-4 rounded-full bg-[#EBF5FB] text-[#154360] font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
                     <span>Click <b>Cut Beginning</b>, <b>Cut Ending</b>, or select a middle part below.</span>
                   </div>
                   <div className="flex items-start gap-1.5">
-                    <span className="w-4 h-4 rounded-full bg-[#E6F6EC] text-[#0CAA41] font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
+                    <span className="w-4 h-4 rounded-full bg-[#EBF5FB] text-[#154360] font-bold text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
                     <span>That section is skipped automatically during preview and playback!</span>
                   </div>
                 </div>
@@ -1519,14 +1519,14 @@ export default function VideoEditorModal({
                     type="button"
                     onClick={cutFromStartToNow}
                     disabled={currentTime < 0.2}
-                    className="w-full p-3 bg-white hover:bg-[#0CAA41]/10 border border-[#E2E7EC] hover:border-[#0CAA41]/40 rounded-xl text-left transition-all cursor-pointer shadow-xs group disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full p-3 bg-white hover:bg-[#154360]/10 border border-[#E2E7EC] hover:border-[#154360]/40 rounded-xl text-left transition-all cursor-pointer shadow-xs group disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-[#20262E] group-hover:text-[#0CAA41] flex items-center gap-1.5">
-                        <Scissors className="w-3.5 h-3.5 text-[#0CAA41]" />
+                      <span className="font-bold text-xs text-[#20262E] group-hover:text-[#154360] flex items-center gap-1.5">
+                        <Scissors className="w-3.5 h-3.5 text-[#154360]" />
                         Cut Off Beginning (Intro)
                       </span>
-                      <span className="font-mono text-[11px] font-bold text-[#0CAA41] bg-[#0CAA41]/10 px-2 py-0.5 rounded border border-[#0CAA41]/30">
+                      <span className="font-mono text-[11px] font-bold text-[#154360] bg-[#154360]/10 px-2 py-0.5 rounded border border-[#154360]/30">
                         0:00 → {formatTimeStr(currentTime)}
                       </span>
                     </div>
@@ -1539,14 +1539,14 @@ export default function VideoEditorModal({
                     type="button"
                     onClick={cutFromNowToEnd}
                     disabled={duration <= currentTime + 0.2}
-                    className="w-full p-3 bg-white hover:bg-[#0CAA41]/10 border border-[#E2E7EC] hover:border-[#0CAA41]/40 rounded-xl text-left transition-all cursor-pointer shadow-xs group disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full p-3 bg-white hover:bg-[#154360]/10 border border-[#E2E7EC] hover:border-[#154360]/40 rounded-xl text-left transition-all cursor-pointer shadow-xs group disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-[#20262E] group-hover:text-[#0CAA41] flex items-center gap-1.5">
-                        <Scissors className="w-3.5 h-3.5 text-[#0CAA41]" />
+                      <span className="font-bold text-xs text-[#20262E] group-hover:text-[#154360] flex items-center gap-1.5">
+                        <Scissors className="w-3.5 h-3.5 text-[#154360]" />
                         Cut Off Ending (Outro)
                       </span>
-                      <span className="font-mono text-[11px] font-bold text-[#0CAA41] bg-[#0CAA41]/10 px-2 py-0.5 rounded border border-[#0CAA41]/30">
+                      <span className="font-mono text-[11px] font-bold text-[#154360] bg-[#154360]/10 px-2 py-0.5 rounded border border-[#154360]/30">
                         {formatTimeStr(currentTime)} → End
                       </span>
                     </div>
@@ -1579,13 +1579,13 @@ export default function VideoEditorModal({
                 </div>
 
                 {activeCut ? (
-                  <div className="p-3.5 bg-[#0CAA41]/10 border-2 border-[#0CAA41]/40 rounded-2xl space-y-3 shadow-xs">
+                  <div className="p-3.5 bg-[#154360]/10 border-2 border-[#154360]/40 rounded-2xl space-y-3 shadow-xs">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-[#0C5325] flex items-center gap-1.5">
-                        <Scissors className="w-4 h-4 text-[#0CAA41] animate-pulse" />
+                      <span className="text-xs font-black text-[#0E2F44] flex items-center gap-1.5">
+                        <Scissors className="w-4 h-4 text-[#154360] animate-pulse" />
                         Marked Section to Remove
                       </span>
-                      <span className="font-mono text-xs font-extrabold text-[#0CAA41] bg-white px-2 py-0.5 rounded border border-[#0CAA41]/30">
+                      <span className="font-mono text-xs font-extrabold text-[#154360] bg-white px-2 py-0.5 rounded border border-[#154360]/30">
                         {formatTimeStr(activeCut.start)} → {formatTimeStr(activeCut.end)}
                       </span>
                     </div>
@@ -1598,7 +1598,7 @@ export default function VideoEditorModal({
                           const newStart = Math.min(currentTime, activeCut.end - 0.2);
                           setActiveCut({ ...activeCut, start: Math.max(0, newStart) });
                         }}
-                        className="py-1.5 px-2 bg-white hover:bg-[#0CAA41]/20 border border-[#0CAA41]/30 rounded-lg text-xs font-bold text-[#20262E] flex items-center justify-center gap-1 transition-all cursor-pointer"
+                        className="py-1.5 px-2 bg-white hover:bg-[#154360]/20 border border-[#154360]/30 rounded-lg text-xs font-bold text-[#20262E] flex items-center justify-center gap-1 transition-all cursor-pointer"
                         title="Set start of cut to current video playhead"
                       >
                         Start at Now ({formatTimeStr(currentTime)})
@@ -1609,7 +1609,7 @@ export default function VideoEditorModal({
                           const newEnd = Math.max(currentTime, activeCut.start + 0.2);
                           setActiveCut({ ...activeCut, end: Math.min(duration || 100, newEnd) });
                         }}
-                        className="py-1.5 px-2 bg-white hover:bg-[#0CAA41]/20 border border-[#0CAA41]/30 rounded-lg text-xs font-bold text-[#20262E] flex items-center justify-center gap-1 transition-all cursor-pointer"
+                        className="py-1.5 px-2 bg-white hover:bg-[#154360]/20 border border-[#154360]/30 rounded-lg text-xs font-bold text-[#20262E] flex items-center justify-center gap-1 transition-all cursor-pointer"
                         title="Set end of cut to current video playhead"
                       >
                         End at Now ({formatTimeStr(currentTime)})
@@ -1617,7 +1617,7 @@ export default function VideoEditorModal({
                     </div>
 
                     {/* Sliders for precise adjustment */}
-                    <div className="space-y-2 bg-white/80 p-2.5 rounded-xl border border-[#0CAA41]/30">
+                    <div className="space-y-2 bg-white/80 p-2.5 rounded-xl border border-[#154360]/30">
                       <div>
                         <div className="flex justify-between text-[11px] mb-1">
                           <span className="font-semibold text-[#57636E]">Cut Start Time:</span>
@@ -1655,14 +1655,14 @@ export default function VideoEditorModal({
                       <button
                         type="button"
                         onClick={trimToActiveSelection}
-                        className="w-full py-3 px-3 bg-[#72BAA9] hover:bg-[#0C5325] text-white rounded-xl text-xs font-black flex flex-col items-center justify-center gap-0.5 shadow-md shadow-emerald-600/20 transition-all active:scale-98 cursor-pointer border border-[#72BAA9]"
+                        className="w-full py-3 px-3 bg-[#2980B9] hover:bg-[#0E2F44] text-white rounded-xl text-xs font-black flex flex-col items-center justify-center gap-0.5 shadow-md shadow-emerald-600/20 transition-all active:scale-98 cursor-pointer border border-[#2980B9]"
                         title="Keeps only this selected portion and cuts out everything before and after"
                       >
                         <div className="flex items-center gap-1.5 text-sm">
                           <Check className="w-4 h-4 stroke-[3]" />
                           <span>Keep Only This Range ({formatTimeStr(activeCut.start)} → {formatTimeStr(activeCut.end)})</span>
                         </div>
-                        <span className="text-[10px] font-medium text-[#E6F6EC]">
+                        <span className="text-[10px] font-medium text-[#EBF5FB]">
                           Keeps this clip & cuts out remaining parts (00:00 to {formatTimeStr(activeCut.start)} & {formatTimeStr(activeCut.end)} to End)
                         </span>
                       </button>
@@ -1670,10 +1670,10 @@ export default function VideoEditorModal({
                       <button
                         type="button"
                         onClick={confirmCut}
-                        className="w-full py-2 px-3 bg-white hover:bg-[#0CAA41]/10 text-[#0CAA41] hover:text-[#0C5325] border border-[#0CAA41]/40 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                        className="w-full py-2 px-3 bg-white hover:bg-[#154360]/10 text-[#154360] hover:text-[#0E2F44] border border-[#154360]/40 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
                         title="Cuts out and deletes only this selected section"
                       >
-                        <Scissors className="w-3.5 h-3.5 text-[#0CAA41]" />
+                        <Scissors className="w-3.5 h-3.5 text-[#154360]" />
                         <span>Delete This Range Instead (Cut Out {formatTimeStr(activeCut.start)} → {formatTimeStr(activeCut.end)})</span>
                       </button>
 
@@ -1690,9 +1690,9 @@ export default function VideoEditorModal({
                   <button
                     type="button"
                     onClick={initiateNewCut}
-                    className="w-full py-3 px-4 bg-[#F5F6F8] hover:bg-[#E6F6EC] border-2 border-dashed border-[#E2E7EC] hover:border-[#0CAA41] rounded-2xl text-[#20262E] hover:text-[#0C5325] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    className="w-full py-3 px-4 bg-[#F5F6F8] hover:bg-[#EBF5FB] border-2 border-dashed border-[#E2E7EC] hover:border-[#154360] rounded-2xl text-[#20262E] hover:text-[#0E2F44] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
                   >
-                    <Scissors className="w-4 h-4 text-[#57636E] group-hover:text-[#0CAA41]" />
+                    <Scissors className="w-4 h-4 text-[#57636E] group-hover:text-[#154360]" />
                     <span>Click to Mark & Cut a Middle Section</span>
                   </button>
                 )}
@@ -1708,7 +1708,7 @@ export default function VideoEditorModal({
                     <button
                       type="button"
                       onClick={() => setCompletedCuts([])}
-                      className="text-[11px] font-bold text-[#0CAA41] hover:text-[#0C5325] hover:underline cursor-pointer"
+                      className="text-[11px] font-bold text-[#154360] hover:text-[#0E2F44] hover:underline cursor-pointer"
                     >
                       Reset All Cuts
                     </button>
@@ -1724,11 +1724,11 @@ export default function VideoEditorModal({
                   completedCuts.map((cut, idx) => {
                     const cutDuration = Math.max(0.1, cut.end - cut.start);
                     return (
-                      <div key={cut.id} className="p-3 bg-[#0CAA41]/10 rounded-xl border border-[#0CAA41]/30 flex items-center justify-between text-xs">
+                      <div key={cut.id} className="p-3 bg-[#154360]/10 rounded-xl border border-[#154360]/30 flex items-center justify-between text-xs">
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-[#20262E]">Cut #{idx + 1}</span>
-                            <span className="font-mono font-bold text-[#0CAA41] bg-white px-2 py-0.5 rounded border border-[#0CAA41]/30 text-[11px]">
+                            <span className="font-mono font-bold text-[#154360] bg-white px-2 py-0.5 rounded border border-[#154360]/30 text-[11px]">
                               {formatTimeStr(cut.start)} → {formatTimeStr(cut.end)}
                             </span>
                           </div>
@@ -1747,7 +1747,7 @@ export default function VideoEditorModal({
                               videoRef.current.play().catch(() => {});
                               setIsPlaying(true);
                             }}
-                            className="px-2.5 py-1.5 bg-white hover:bg-[#E6F6EC] border border-[#0CAA41]/30 text-[#0C5325] rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                            className="px-2.5 py-1.5 bg-white hover:bg-[#EBF5FB] border border-[#154360]/30 text-[#0E2F44] rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
                             title="Play 1.2s before cut to preview how it skips"
                           >
                             <Play className="w-3 h-3 fill-current" />
@@ -1756,7 +1756,7 @@ export default function VideoEditorModal({
                           <button 
                             type="button"
                             onClick={() => setCompletedCuts(prev => prev.filter(c => c.id !== cut.id))}
-                            className="px-2.5 py-1.5 bg-white hover:bg-[#0CAA41]/20 border border-[#0CAA41]/30 text-[#0CAA41] rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                            className="px-2.5 py-1.5 bg-white hover:bg-[#154360]/20 border border-[#154360]/30 text-[#154360] rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
                             title="Restore this cut"
                           >
                             <RotateCcw className="w-3 h-3" />
@@ -1777,14 +1777,14 @@ export default function VideoEditorModal({
               <div className="border-b border-[#E2E7EC] pb-3 flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-[#20262E] text-base flex items-center gap-2">
-                    <Type className="w-4 h-4 text-[#0C5325]" />
+                    <Type className="w-4 h-4 text-[#0E2F44]" />
                     <span>Text Overlays</span>
                   </h3>
                   <p className="text-xs text-[#57636E] mt-1">High-clarity subtitles and lower thirds.</p>
                 </div>
                 <button 
                   onClick={() => handleAddText()}
-                  className="p-1.5 bg-[#E6F6EC]/40 hover:bg-[#E6F6EC] text-[#0C5325] rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                  className="p-1.5 bg-[#EBF5FB]/40 hover:bg-[#EBF5FB] text-[#0E2F44] rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                   title="Add new text"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -1800,7 +1800,7 @@ export default function VideoEditorModal({
                     <textarea 
                       value={activeText.text}
                       onChange={(e) => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, text: e.target.value } : t))}
-                      className="w-full bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-3 text-sm text-[#20262E] focus:outline-none focus:border-[#72BAA9] focus:ring-2 focus:ring-indigo-100 resize-none h-20 shadow-inner font-medium" 
+                      className="w-full bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-3 text-sm text-[#20262E] focus:outline-none focus:border-[#2980B9] focus:ring-2 focus:ring-indigo-100 resize-none h-20 shadow-inner font-medium" 
                       placeholder="Type text here..."
                     />
                   </div>
@@ -1922,7 +1922,7 @@ export default function VideoEditorModal({
                       <button 
                         type="button"
                         onClick={() => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, start: 0, end: duration || 100 } : t))}
-                        className="text-[11px] text-[#0CAA41] hover:text-[#0C5325] font-bold hover:underline cursor-pointer"
+                        className="text-[11px] text-[#154360] hover:text-[#0E2F44] font-bold hover:underline cursor-pointer"
                       >
                         Entire Video
                       </button>
@@ -1988,7 +1988,7 @@ export default function VideoEditorModal({
                             const newEnd = Math.min(maxEnd, newStart + currentDur);
                             setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, start: newStart, end: newEnd } : t));
                           }}
-                          className="flex-1 accent-[#0CAA41] cursor-pointer" 
+                          className="flex-1 accent-[#154360] cursor-pointer" 
                         />
                         <button 
                           type="button"
@@ -2024,7 +2024,7 @@ export default function VideoEditorModal({
                           >
                             -1s
                           </button>
-                          <span className="font-mono font-bold text-[#0CAA41] text-xs min-w-[38px] text-center">
+                          <span className="font-mono font-bold text-[#154360] text-xs min-w-[38px] text-center">
                             {Math.max(0.5, Math.round((activeText.end - activeText.start) * 10) / 10).toFixed(1)}s
                           </span>
                           <button
@@ -2054,7 +2054,7 @@ export default function VideoEditorModal({
                           const newEnd = Math.min(maxEnd, activeText.start + newDur);
                           setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, end: newEnd } : t));
                         }}
-                        className="w-full accent-[#0CAA41] cursor-pointer" 
+                        className="w-full accent-[#154360] cursor-pointer" 
                       />
                     </div>
 
@@ -2075,7 +2075,7 @@ export default function VideoEditorModal({
                     <input 
                       type="range" min="14" max="80" value={activeText.size} 
                       onChange={(e) => setTextOverlays(prev => prev.map(t => t.id === activeText.id ? { ...t, size: parseInt(e.target.value) } : t))}
-                      className="w-full accent-[#0CAA41] cursor-pointer" 
+                      className="w-full accent-[#154360] cursor-pointer" 
                     />
                   </div>
 
@@ -2085,7 +2085,7 @@ export default function VideoEditorModal({
                       setTextOverlays(prev => prev.filter(t => t.id !== activeText.id)); 
                       setSelectedTextId(null); 
                     }}
-                    className="w-full bg-[#F5F6F8] hover:bg-[#0CAA41]/10 text-[#0CAA41] hover:text-[#0CAA41] border border-[#E2E7EC] hover:border-[#0CAA41]/30 font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer text-xs"
+                    className="w-full bg-[#F5F6F8] hover:bg-[#154360]/10 text-[#154360] hover:text-[#154360] border border-[#E2E7EC] hover:border-[#154360]/30 font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer text-xs"
                   >
                     <Trash2 className="w-4 h-4" /> Delete Text Overlay
                   </button>
@@ -2096,7 +2096,7 @@ export default function VideoEditorModal({
                   <p className="text-xs font-bold text-[#57636E]">Active Text Overlays ({textOverlays.length})</p>
                   {textOverlays.length === 0 ? (
                     <div className="p-6 bg-[#F5F6F8] rounded-xl text-center text-[#57636E]">
-                      <Type className="w-6 h-6 mx-auto mb-2 text-[#72BAA9]" />
+                      <Type className="w-6 h-6 mx-auto mb-2 text-[#2980B9]" />
                       <p className="text-xs">No text overlays yet. Click &quot;+ Add&quot; above.</p>
                     </div>
                   ) : (
@@ -2110,7 +2110,7 @@ export default function VideoEditorModal({
                             setCurrentTime(text.start);
                           }
                         }}
-                        className="p-3 bg-[#F5F6F8] hover:bg-[#E6F6EC]/40/60 rounded-xl border border-[#E2E7EC] cursor-pointer transition-all flex items-center justify-between"
+                        className="p-3 bg-[#F5F6F8] hover:bg-[#EBF5FB]/40/60 rounded-xl border border-[#E2E7EC] cursor-pointer transition-all flex items-center justify-between"
                       >
                         <div className="truncate pr-2">
                           <p className="font-bold text-[#20262E] text-xs truncate">{text.text}</p>
@@ -2123,7 +2123,7 @@ export default function VideoEditorModal({
                             e.stopPropagation();
                             setTextOverlays(prev => prev.filter(t => t.id !== text.id));
                           }}
-                          className="text-[#57636E] hover:text-[#0CAA41] p-1 rounded"
+                          className="text-[#57636E] hover:text-[#154360] p-1 rounded"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -2141,14 +2141,14 @@ export default function VideoEditorModal({
               <div className="border-b border-[#E2E7EC] pb-3 flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-[#20262E] text-base flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4 text-[#0CAA41]" />
+                    <ImageIcon className="w-4 h-4 text-[#154360]" />
                     <span>Media & Logos</span>
                   </h3>
                   <p className="text-xs text-[#57636E] mt-1">Watermarks, icons, and picture-in-picture.</p>
                 </div>
                 <button 
                   onClick={() => handleAddMedia()}
-                  className="p-1.5 bg-[#E6F6EC]/40 hover:bg-[#E6F6EC] text-[#0CAA41] rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                  className="p-1.5 bg-[#EBF5FB]/40 hover:bg-[#EBF5FB] text-[#154360] rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                   title="Add new image"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -2161,9 +2161,9 @@ export default function VideoEditorModal({
                   {/* Upload Custom File (Image or Video) */}
                   <div>
                     <label className="text-xs font-bold text-[#20262E] block mb-1.5">Change Photo or Video Clip</label>
-                    <label className="flex items-center justify-center w-full h-11 px-4 transition bg-[#F5F6F8] border-2 border-[#E2E7EC] border-dashed rounded-xl appearance-none cursor-pointer hover:border-[#0CAA41] hover:bg-[#E6F6EC]/40 text-xs font-bold text-[#57636E]">
+                    <label className="flex items-center justify-center w-full h-11 px-4 transition bg-[#F5F6F8] border-2 border-[#E2E7EC] border-dashed rounded-xl appearance-none cursor-pointer hover:border-[#154360] hover:bg-[#EBF5FB]/40 text-xs font-bold text-[#57636E]">
                       <span className="flex items-center space-x-2">
-                        <ImageIcon className="w-4 h-4 text-[#0CAA41]" />
+                        <ImageIcon className="w-4 h-4 text-[#154360]" />
                         <span>Upload Photo or Video Clip...</span>
                       </span>
                       <input type="file" accept="image/*,video/*" className="hidden" onChange={handleMediaUpload} />
@@ -2239,7 +2239,7 @@ export default function VideoEditorModal({
                     <input 
                       type="range" min="20" max="100" value={activeMedia.opacity ?? 85} 
                       onChange={(e) => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, opacity: parseInt(e.target.value) } : m))}
-                      className="w-full accent-[#0CAA41] cursor-pointer" 
+                      className="w-full accent-[#154360] cursor-pointer" 
                     />
                   </div>
 
@@ -2252,7 +2252,7 @@ export default function VideoEditorModal({
                     <input 
                       type="range" min="20" max="250" value={activeMedia.scale} 
                       onChange={(e) => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, scale: parseInt(e.target.value) } : m))}
-                      className="w-full accent-[#0CAA41] cursor-pointer" 
+                      className="w-full accent-[#154360] cursor-pointer" 
                     />
                   </div>
 
@@ -2263,7 +2263,7 @@ export default function VideoEditorModal({
                       type="checkbox" 
                       checked={activeMedia.rounded !== false}
                       onChange={(e) => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, rounded: e.target.checked } : m))}
-                      className="w-4 h-4 accent-[#0CAA41] cursor-pointer"
+                      className="w-4 h-4 accent-[#154360] cursor-pointer"
                     />
                   </div>
 
@@ -2274,7 +2274,7 @@ export default function VideoEditorModal({
                       <button 
                         type="button"
                         onClick={() => setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, start: 0, end: duration || 100 } : m))}
-                        className="text-[11px] text-[#0CAA41] hover:text-[#0C5325] font-bold hover:underline cursor-pointer"
+                        className="text-[11px] text-[#154360] hover:text-[#0E2F44] font-bold hover:underline cursor-pointer"
                       >
                         Entire Video
                       </button>
@@ -2340,7 +2340,7 @@ export default function VideoEditorModal({
                             const newEnd = Math.min(maxEnd, newStart + currentDur);
                             setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, start: newStart, end: newEnd } : m));
                           }}
-                          className="flex-1 accent-[#0CAA41] cursor-pointer" 
+                          className="flex-1 accent-[#154360] cursor-pointer" 
                         />
                         <button 
                           type="button"
@@ -2376,7 +2376,7 @@ export default function VideoEditorModal({
                           >
                             -1s
                           </button>
-                          <span className="font-mono font-bold text-[#0CAA41] text-xs min-w-[38px] text-center">
+                          <span className="font-mono font-bold text-[#154360] text-xs min-w-[38px] text-center">
                             {Math.max(0.5, Math.round((activeMedia.end - activeMedia.start) * 10) / 10).toFixed(1)}s
                           </span>
                           <button
@@ -2406,7 +2406,7 @@ export default function VideoEditorModal({
                           const newEnd = Math.min(maxEnd, activeMedia.start + newDur);
                           setMediaOverlays(prev => prev.map(m => m.id === activeMedia.id ? { ...m, end: newEnd } : m));
                         }}
-                        className="w-full accent-[#0CAA41] cursor-pointer" 
+                        className="w-full accent-[#154360] cursor-pointer" 
                       />
                     </div>
 
@@ -2424,7 +2424,7 @@ export default function VideoEditorModal({
                       setMediaOverlays(prev => prev.filter(m => m.id !== activeMedia.id)); 
                       setSelectedMediaId(null); 
                     }}
-                    className="w-full bg-[#F5F6F8] hover:bg-[#0CAA41]/10 text-[#0CAA41] hover:text-[#0CAA41] border border-[#E2E7EC] hover:border-[#0CAA41]/30 font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer text-xs"
+                    className="w-full bg-[#F5F6F8] hover:bg-[#154360]/10 text-[#154360] hover:text-[#154360] border border-[#E2E7EC] hover:border-[#154360]/30 font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer text-xs"
                   >
                     <Trash2 className="w-4 h-4" /> Delete Image Overlay
                   </button>
@@ -2435,7 +2435,7 @@ export default function VideoEditorModal({
                   <p className="text-xs font-bold text-[#57636E]">Active Media Overlays ({mediaOverlays.length})</p>
                   {mediaOverlays.length === 0 ? (
                     <div className="p-6 bg-[#F5F6F8] rounded-xl text-center text-[#57636E]">
-                      <ImageIcon className="w-6 h-6 mx-auto mb-2 text-[#72BAA9]" />
+                      <ImageIcon className="w-6 h-6 mx-auto mb-2 text-[#2980B9]" />
                       <p className="text-xs">No media overlays yet. Click &quot;+ Add&quot; above.</p>
                     </div>
                   ) : (
@@ -2449,7 +2449,7 @@ export default function VideoEditorModal({
                             setCurrentTime(media.start);
                           }
                         }}
-                        className="p-3 bg-[#F5F6F8] hover:bg-[#E6F6EC]/40/60 rounded-xl border border-[#E2E7EC] cursor-pointer transition-all flex items-center justify-between"
+                        className="p-3 bg-[#F5F6F8] hover:bg-[#EBF5FB]/40/60 rounded-xl border border-[#E2E7EC] cursor-pointer transition-all flex items-center justify-between"
                       >
                         <div className="flex items-center gap-3">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2466,7 +2466,7 @@ export default function VideoEditorModal({
                             e.stopPropagation();
                             setMediaOverlays(prev => prev.filter(m => m.id !== media.id));
                           }}
-                          className="text-[#57636E] hover:text-[#0CAA41] p-1 rounded"
+                          className="text-[#57636E] hover:text-[#154360] p-1 rounded"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -2483,17 +2483,17 @@ export default function VideoEditorModal({
             <div className="space-y-5 animate-in fade-in duration-150">
               <div className="border-b border-[#E2E7EC] pb-3">
                 <h3 className="font-bold text-[#20262E] text-base flex items-center gap-2">
-                  <Music className="w-4 h-4 text-[#72BAA9]" />
+                  <Music className="w-4 h-4 text-[#2980B9]" />
                   <span>Background Audio</span>
                 </h3>
                 <p className="text-xs text-[#57636E] mt-1">Add background music or narration track.</p>
               </div>
 
               {/* Master Audio Toggle */}
-              <div className="p-3.5 bg-[#E6F6EC]/40 border border-[#72BAA9]/30 rounded-xl flex items-center justify-between">
+              <div className="p-3.5 bg-[#EBF5FB]/40 border border-[#2980B9]/30 rounded-xl flex items-center justify-between">
                 <div>
-                  <p className="font-bold text-[#0C5325] text-xs">Enable Background Music</p>
-                  <p className="text-[11px] text-[#0C5325]">Mixes audio track into video playback</p>
+                  <p className="font-bold text-[#0E2F44] text-xs">Enable Background Music</p>
+                  <p className="text-[11px] text-[#0E2F44]">Mixes audio track into video playback</p>
                 </div>
                 <input 
                   type="checkbox" 
@@ -2518,12 +2518,12 @@ export default function VideoEditorModal({
                           }}
                           className={`p-2.5 rounded-xl border text-xs flex items-center justify-between cursor-pointer transition-all ${
                             audioUrl === track.url 
-                              ? 'bg-[#E6F6EC]/40 border-[#72BAA9] text-[#0C5325] font-bold shadow-sm' 
+                              ? 'bg-[#EBF5FB]/40 border-[#2980B9] text-[#0E2F44] font-bold shadow-sm' 
                               : 'bg-[#F5F6F8] border-[#E2E7EC] text-[#20262E] hover:bg-slate-100'
                           }`}
                         >
                           <span>{track.title}</span>
-                          {audioUrl === track.url && <Check className="w-4 h-4 text-[#72BAA9]" />}
+                          {audioUrl === track.url && <Check className="w-4 h-4 text-[#2980B9]" />}
                         </div>
                       ))}
                     </div>
@@ -2532,9 +2532,9 @@ export default function VideoEditorModal({
                   {/* Upload Custom Audio */}
                   <div>
                     <label className="text-xs font-bold text-[#20262E] block mb-1.5">Upload Custom Audio</label>
-                    <label className="flex items-center justify-center w-full h-11 px-4 transition bg-[#F5F6F8] border-2 border-[#E2E7EC] border-dashed rounded-xl appearance-none cursor-pointer hover:border-[#72BAA9] hover:bg-[#E6F6EC]/40 text-xs font-bold text-[#57636E]">
+                    <label className="flex items-center justify-center w-full h-11 px-4 transition bg-[#F5F6F8] border-2 border-[#E2E7EC] border-dashed rounded-xl appearance-none cursor-pointer hover:border-[#2980B9] hover:bg-[#EBF5FB]/40 text-xs font-bold text-[#57636E]">
                       <span className="flex items-center space-x-2">
-                        <Music className="w-4 h-4 text-[#72BAA9]" />
+                        <Music className="w-4 h-4 text-[#2980B9]" />
                         <span>Choose MP3 or WAV File...</span>
                       </span>
                       <input type="file" accept="audio/*" className="hidden" onChange={handleAudioUpload} />
@@ -2545,7 +2545,7 @@ export default function VideoEditorModal({
                   <div>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-bold text-[#20262E]">Music Volume</span>
-                      <span className="font-mono text-[#72BAA9] font-bold">{audioVolume}%</span>
+                      <span className="font-mono text-[#2980B9] font-bold">{audioVolume}%</span>
                     </div>
                     <input 
                       type="range" min="0" max="100" value={audioVolume} 
@@ -2581,7 +2581,7 @@ export default function VideoEditorModal({
                         setIsAudioPreviewPlaying(true);
                       }
                     }}
-                    className="w-full py-2.5 bg-[#E6F6EC] hover:bg-[#E6F6EC] text-[#0C5325] rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    className="w-full py-2.5 bg-[#EBF5FB] hover:bg-[#EBF5FB] text-[#0E2F44] rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
                   >
                     {isAudioPreviewPlaying ? <Pause className="w-4 h-4"/> : <Play className="w-4 h-4"/>}
                     <span>{isAudioPreviewPlaying ? "Pause Track Preview" : "Preview Music Track"}</span>
@@ -2594,20 +2594,20 @@ export default function VideoEditorModal({
       </div>
 
       {/* BOTTOM TIMELINE AREA */}
-      <div className="h-52 border-t border-[#0CAA41]/30 bg-white flex flex-col shadow-[0_-4px_20px_rgb(0,0,0,0.03)] z-10 relative select-none">
-        <div className="h-10 border-b border-[#0CAA41]/20 flex items-center justify-between px-6 bg-[#F5F6F8]">
+      <div className="h-52 border-t border-[#154360]/30 bg-white flex flex-col shadow-[0_-4px_20px_rgb(0,0,0,0.03)] z-10 relative select-none">
+        <div className="h-10 border-b border-[#154360]/20 flex items-center justify-between px-6 bg-[#F5F6F8]">
           <div className="flex items-center gap-3">
             <span className="text-xs font-bold text-[#57636E] uppercase tracking-wide">Timeline</span>
             {activeCut && (
-              <span className="text-xs font-bold text-[#0CAA41] bg-[#0CAA41]/15 px-2 py-0.5 rounded-md border border-[#0CAA41]/30 animate-pulse">
+              <span className="text-xs font-bold text-[#154360] bg-[#154360]/15 px-2 py-0.5 rounded-md border border-[#154360]/30 animate-pulse">
                 Adjust Cut Handles on Timeline
               </span>
             )}
           </div>
-          <div className="text-xs font-bold font-mono text-[#0C5325] bg-white border border-[#0CAA41]/30 px-2.5 py-1 rounded-md shadow-sm flex items-center gap-2">
+          <div className="text-xs font-bold font-mono text-[#0E2F44] bg-white border border-[#154360]/30 px-2.5 py-1 rounded-md shadow-sm flex items-center gap-2">
             <span>Total: {formatTimeStr(duration)}</span>
             {completedCuts.length > 0 && (
-              <span className="text-[#0C5325] font-bold bg-[#E6F6EC]/40 px-1.5 py-0.5 rounded border border-[#72BAA9]/30">
+              <span className="text-[#0E2F44] font-bold bg-[#EBF5FB]/40 px-1.5 py-0.5 rounded border border-[#2980B9]/30">
                 Trimmed: {formatTimeStr(Math.max(0, duration - completedCuts.reduce((acc, c) => acc + Math.max(0, c.end - c.start), 0)))}
               </span>
             )}
@@ -2619,11 +2619,11 @@ export default function VideoEditorModal({
           {/* Main Waveform / Playhead Bar */}
           <div className="relative w-full h-16 flex-shrink-0 mt-3 mb-1">
             {/* Visual Waveform background container with overflow-hidden */}
-            <div className="absolute inset-0 bg-[#E6F6EC]/70 border border-[#0CAA41]/30 rounded-xl overflow-hidden shadow-inner flex">
+            <div className="absolute inset-0 bg-[#EBF5FB]/70 border border-[#154360]/30 rounded-xl overflow-hidden shadow-inner flex">
               {/* Visual Waveform bars */}
               <div className="absolute inset-0 flex items-center justify-between px-2 opacity-25 pointer-events-none">
                 {waveformHeights.map((h, i) => (
-                  <div key={i} className="w-1 bg-[#0CAA41] rounded-full" style={{ height: `${h}%` }}></div>
+                  <div key={i} className="w-1 bg-[#154360] rounded-full" style={{ height: `${h}%` }}></div>
                 ))}
               </div>
 
@@ -2634,12 +2634,12 @@ export default function VideoEditorModal({
                 return (
                   <div 
                     key={cut.id}
-                    className="absolute top-0 bottom-0 bg-[#0CAA41]/20 border-l-2 border-r-2 border-[#0CAA41] z-10"
+                    className="absolute top-0 bottom-0 bg-[#154360]/20 border-l-2 border-r-2 border-[#154360] z-10"
                     style={{ left: `${left}%`, width: `${width}%` }}
                   >
                      <div className="absolute inset-0 flex items-center justify-center opacity-40">
-                        <div className="w-full h-px bg-[#0CAA41] rotate-12"></div>
-                        <div className="w-full h-px bg-[#0CAA41] -rotate-12 absolute"></div>
+                        <div className="w-full h-px bg-[#154360] rotate-12"></div>
+                        <div className="w-full h-px bg-[#154360] -rotate-12 absolute"></div>
                      </div>
                   </div>
                 );
@@ -2652,10 +2652,10 @@ export default function VideoEditorModal({
                 {/* Visual indicator for region BEFORE selection (trimmed out if Keep Range clicked) */}
                 {activeCut.start > 0.05 && (
                   <div 
-                    className="absolute top-0 bottom-0 bg-[#0CAA41]/25 border-r-2 border-[#0CAA41] z-20 pointer-events-none rounded-l-xl overflow-hidden flex items-center justify-center"
+                    className="absolute top-0 bottom-0 bg-[#154360]/25 border-r-2 border-[#154360] z-20 pointer-events-none rounded-l-xl overflow-hidden flex items-center justify-center"
                     style={{ left: 0, width: `${(activeCut.start / duration) * 100}%` }}
                   >
-                    <span className="text-[10px] font-black text-[#0C5325] bg-white/95 px-2 py-0.5 rounded shadow-sm uppercase tracking-wider">
+                    <span className="text-[10px] font-black text-[#0E2F44] bg-white/95 px-2 py-0.5 rounded shadow-sm uppercase tracking-wider">
                       Cut Out
                     </span>
                   </div>
@@ -2663,7 +2663,7 @@ export default function VideoEditorModal({
 
                 {/* Selected Range: GREEN/EMERALD to visually signify KEPT CLIP */}
                 <div 
-                  className="absolute top-0 bottom-0 bg-[#72BAA9]/25 border-t-2 border-b-2 border-[#72BAA9] z-30 shadow-lg rounded"
+                  className="absolute top-0 bottom-0 bg-[#2980B9]/25 border-t-2 border-b-2 border-[#2980B9] z-30 shadow-lg rounded"
                   style={{ 
                     left: `${(activeCut.start / duration) * 100}%`, 
                     width: `${((activeCut.end - activeCut.start) / duration) * 100}%` 
@@ -2672,7 +2672,7 @@ export default function VideoEditorModal({
                   {/* Left Drag Handle */}
                   <div 
                     onMouseDown={(e) => { e.preventDefault(); setDragHandle('start'); e.stopPropagation(); }} 
-                    className="absolute -left-3 top-0 bottom-0 w-6 bg-[#72BAA9] rounded-l-md cursor-ew-resize flex items-center justify-center hover:bg-[#0C5325] shadow-md z-40"
+                    className="absolute -left-3 top-0 bottom-0 w-6 bg-[#2980B9] rounded-l-md cursor-ew-resize flex items-center justify-center hover:bg-[#0E2F44] shadow-md z-40"
                     title="Drag start handle"
                   >
                     <div className="w-1 h-6 border-l border-r border-white/80"></div>
@@ -2680,7 +2680,7 @@ export default function VideoEditorModal({
                   {/* Right Drag Handle */}
                   <div 
                     onMouseDown={(e) => { e.preventDefault(); setDragHandle('end'); e.stopPropagation(); }} 
-                    className="absolute -right-3 top-0 bottom-0 w-6 bg-[#72BAA9] rounded-r-md cursor-ew-resize flex items-center justify-center hover:bg-[#0C5325] shadow-md z-40"
+                    className="absolute -right-3 top-0 bottom-0 w-6 bg-[#2980B9] rounded-r-md cursor-ew-resize flex items-center justify-center hover:bg-[#0E2F44] shadow-md z-40"
                     title="Drag end handle"
                   >
                     <div className="w-1 h-6 border-l border-r border-white/80"></div>
@@ -2691,19 +2691,19 @@ export default function VideoEditorModal({
                     onClick={(e) => e.stopPropagation()}
                     className="absolute -top-11 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-slate-900/95 backdrop-blur text-white px-2.5 py-1 rounded-xl shadow-2xl border border-slate-700 z-50 whitespace-nowrap"
                   >
-                    <span className="text-[10px] font-mono text-[#E6F6EC] font-bold px-1">
+                    <span className="text-[10px] font-mono text-[#EBF5FB] font-bold px-1">
                       Keep: {formatTimeStr(activeCut.start)} - {formatTimeStr(activeCut.end)}
                     </span>
                     <button 
                       onClick={trimToActiveSelection} 
-                      className="bg-[#72BAA9] hover:bg-[#0C5325] text-white px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer"
+                      className="bg-[#2980B9] hover:bg-[#0E2F44] text-white px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer"
                       title="Keep ONLY this section and trim everything else outside"
                     >
                       <Check className="w-3 h-3"/> Keep Range
                     </button>
                     <button 
                       onClick={confirmCut} 
-                      className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-2 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer"
+                      className="bg-[#154360] hover:bg-[#0E2F44] text-white px-2 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer"
                       title="Delete only this section"
                     >
                       <Scissors className="w-3 h-3"/> Delete Section
@@ -2721,13 +2721,13 @@ export default function VideoEditorModal({
                 {/* Visual indicator for region AFTER selection (trimmed out if Keep Range clicked) */}
                 {activeCut.end < duration - 0.05 && (
                   <div 
-                    className="absolute top-0 bottom-0 bg-[#0CAA41]/25 border-l-2 border-[#0CAA41] z-20 pointer-events-none rounded-r-xl overflow-hidden flex items-center justify-center"
+                    className="absolute top-0 bottom-0 bg-[#154360]/25 border-l-2 border-[#154360] z-20 pointer-events-none rounded-r-xl overflow-hidden flex items-center justify-center"
                     style={{ 
                       left: `${(activeCut.end / duration) * 100}%`, 
                       width: `${((duration - activeCut.end) / duration) * 100}%` 
                     }}
                   >
-                    <span className="text-[10px] font-black text-[#0C5325] bg-white/95 px-2 py-0.5 rounded shadow-sm uppercase tracking-wider">
+                    <span className="text-[10px] font-black text-[#0E2F44] bg-white/95 px-2 py-0.5 rounded shadow-sm uppercase tracking-wider">
                       Cut Out
                     </span>
                   </div>
@@ -2741,10 +2741,10 @@ export default function VideoEditorModal({
             {/* Playhead Vertical Line */}
             {duration > 0 && (
               <div 
-                className="absolute top-0 bottom-0 w-1 bg-[#0CAA41] z-40 pointer-events-none shadow-[0_0_8px_rgba(37,99,235,0.8)]"
+                className="absolute top-0 bottom-0 w-1 bg-[#154360] z-40 pointer-events-none shadow-[0_0_8px_rgba(37,99,235,0.8)]"
                 style={{ left: `${(currentTime / duration) * 100}%` }}
               >
-                <div className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-[#0CAA41] rounded-full shadow-md border-2 border-white"></div>
+                <div className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-[#154360] rounded-full shadow-md border-2 border-white"></div>
               </div>
             )}
           </div>
@@ -2758,7 +2758,7 @@ export default function VideoEditorModal({
                 <div 
                   key={text.id}
                   onClick={(e) => { e.stopPropagation(); setSelectedTextId(text.id); setActiveTab('text'); }}
-                  className="absolute h-4 rounded bg-[#0C5325]/80 hover:bg-[#0C5325] text-[9px] text-white font-bold flex items-center px-1.5 truncate cursor-pointer shadow-sm transition-all"
+                  className="absolute h-4 rounded bg-[#0E2F44]/80 hover:bg-[#0E2F44] text-[9px] text-white font-bold flex items-center px-1.5 truncate cursor-pointer shadow-sm transition-all"
                   style={{ left: `${left}%`, width: `${width}%` }}
                   title={`Text: ${text.text}`}
                 >
@@ -2774,7 +2774,7 @@ export default function VideoEditorModal({
                 <div 
                   key={media.id}
                   onClick={(e) => { e.stopPropagation(); setSelectedMediaId(media.id); setActiveTab('media'); }}
-                  className="absolute h-4 rounded bg-[#0CAA41]/80 hover:bg-[#0CAA41] text-[9px] text-white font-bold flex items-center px-1.5 truncate cursor-pointer shadow-sm transition-all"
+                  className="absolute h-4 rounded bg-[#154360]/80 hover:bg-[#154360] text-[9px] text-white font-bold flex items-center px-1.5 truncate cursor-pointer shadow-sm transition-all"
                   style={{ left: `${left}%`, width: `${width}%` }}
                   title="Media overlay"
                 >
@@ -2820,9 +2820,9 @@ export default function VideoEditorModal({
               <AnimatedPointingArrow direction="left" strokeColor="#e11d48" />
 
               {/* Floating Tooltip Card */}
-              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-[#0CAA41]/40 space-y-3">
+              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-[#154360]/40 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black tracking-wider uppercase bg-[#0CAA41]/20 text-[#0CAA41] px-2.5 py-0.5 rounded-full border border-[#0CAA41]/30">
+                  <span className="text-[11px] font-black tracking-wider uppercase bg-[#154360]/20 text-[#154360] px-2.5 py-0.5 rounded-full border border-[#154360]/30">
                     Step 1 of 5 • Cut & Trim
                   </span>
                   <button 
@@ -2836,21 +2836,21 @@ export default function VideoEditorModal({
 
                 <div>
                   <h3 className="text-base font-extrabold text-[#20262E] flex items-center gap-1.5">
-                    <Scissors className="w-4 h-4 text-[#0CAA41]" />
+                    <Scissors className="w-4 h-4 text-[#154360]" />
                     CapCut-Style Cut & Trim
                   </h3>
                   <p className="text-xs text-[#57636E] mt-1 leading-relaxed">
-                    Select the exact seconds of the video you want. Click <strong className="text-[#0C5325] font-bold">&quot;Keep Only This Range&quot;</strong> to trim away everything before and after — or click <strong className="text-[#0CAA41] font-bold">&quot;Delete Section&quot;</strong> to cut out middle pauses!
+                    Select the exact seconds of the video you want. Click <strong className="text-[#0E2F44] font-bold">&quot;Keep Only This Range&quot;</strong> to trim away everything before and after — or click <strong className="text-[#154360] font-bold">&quot;Delete Section&quot;</strong> to cut out middle pauses!
                   </p>
                 </div>
 
                 <div className="p-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-[11px] text-[#20262E] font-semibold space-y-1">
-                  <div className="flex items-center gap-1.5 text-[#0C5325]">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#72BAA9] inline-block"></span>
+                  <div className="flex items-center gap-1.5 text-[#0E2F44]">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#2980B9] inline-block"></span>
                     <span>Green on timeline = Clip you keep</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-[#0CAA41]">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#0CAA41] inline-block"></span>
+                  <div className="flex items-center gap-1.5 text-[#154360]">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#154360] inline-block"></span>
                     <span>Red hatched zones = Parts cut out</span>
                   </div>
                 </div>
@@ -2870,7 +2870,7 @@ export default function VideoEditorModal({
                           if (idx === 3) setActiveTab('audio');
                           if (idx === 4) setActiveTab('select');
                         }}
-                        className={`h-2 rounded-full transition-all cursor-pointer ${idx === 0 ? 'w-6 bg-[#0CAA41]' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
+                        className={`h-2 rounded-full transition-all cursor-pointer ${idx === 0 ? 'w-6 bg-[#154360]' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
                       />
                     ))}
                   </div>
@@ -2880,7 +2880,7 @@ export default function VideoEditorModal({
                       setTutorialStep(1);
                       setActiveTab('text');
                     }}
-                    className="px-4 py-2 bg-[#0CAA41] hover:bg-[#0C5325] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    className="px-4 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
                   >
                     <span>Next: Text & Subtitles</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -2898,9 +2898,9 @@ export default function VideoEditorModal({
             >
               <AnimatedPointingArrow direction="left" strokeColor="#4f46e5" />
 
-              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-[#72BAA9]/40 space-y-3">
+              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-[#2980B9]/40 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black tracking-wider uppercase bg-[#E6F6EC] text-[#0C5325] px-2.5 py-0.5 rounded-full border border-[#72BAA9]/30">
+                  <span className="text-[11px] font-black tracking-wider uppercase bg-[#EBF5FB] text-[#0E2F44] px-2.5 py-0.5 rounded-full border border-[#2980B9]/30">
                     Step 2 of 5 • Subtitles & Slides
                   </span>
                   <button 
@@ -2914,7 +2914,7 @@ export default function VideoEditorModal({
 
                 <div>
                   <h3 className="text-base font-extrabold text-[#20262E] flex items-center gap-1.5">
-                    <Type className="w-4 h-4 text-[#0C5325]" />
+                    <Type className="w-4 h-4 text-[#0E2F44]" />
                     Subtitles & In-Video Slides
                   </h3>
                   <p className="text-xs text-[#57636E] mt-1 leading-relaxed">
@@ -2922,7 +2922,7 @@ export default function VideoEditorModal({
                   </p>
                 </div>
 
-                <div className="p-2.5 bg-[#E6F6EC]/40 border border-[#72BAA9]/30 rounded-xl text-[11px] text-[#0C5325] font-semibold">
+                <div className="p-2.5 bg-[#EBF5FB]/40 border border-[#2980B9]/30 rounded-xl text-[11px] text-[#0E2F44] font-semibold">
                   Tip: Clicking on any subtitle in the list automatically jumps the playhead to that exact second so you can see and edit it live!
                 </div>
 
@@ -2940,7 +2940,7 @@ export default function VideoEditorModal({
                           if (idx === 3) setActiveTab('audio');
                           if (idx === 4) setActiveTab('select');
                         }}
-                        className={`h-2 rounded-full transition-all cursor-pointer ${idx === 1 ? 'w-6 bg-[#0C5325]' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
+                        className={`h-2 rounded-full transition-all cursor-pointer ${idx === 1 ? 'w-6 bg-[#0E2F44]' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
                       />
                     ))}
                   </div>
@@ -2955,7 +2955,7 @@ export default function VideoEditorModal({
                     <button
                       type="button"
                       onClick={() => { setTutorialStep(2); setActiveTab('media'); }}
-                      className="px-4 py-2 bg-[#0C5325] hover:bg-[#0CAA41] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                      className="px-4 py-2 bg-[#0E2F44] hover:bg-[#154360] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
                     >
                       <span>Next: Media & Logos</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -2974,9 +2974,9 @@ export default function VideoEditorModal({
             >
               <AnimatedPointingArrow direction="left" strokeColor="#9333ea" />
 
-              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-[#0CAA41]/40 space-y-3">
+              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-[#154360]/40 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black tracking-wider uppercase bg-[#E6F6EC] text-[#0CAA41] px-2.5 py-0.5 rounded-full border border-[#0CAA41]/30">
+                  <span className="text-[11px] font-black tracking-wider uppercase bg-[#EBF5FB] text-[#154360] px-2.5 py-0.5 rounded-full border border-[#154360]/30">
                     Step 3 of 5 • Photos & Stickers
                   </span>
                   <button 
@@ -2990,7 +2990,7 @@ export default function VideoEditorModal({
 
                 <div>
                   <h3 className="text-base font-extrabold text-[#20262E] flex items-center gap-1.5">
-                    <ImageIcon className="w-4 h-4 text-[#0CAA41]" />
+                    <ImageIcon className="w-4 h-4 text-[#154360]" />
                     Image, Logo & Clip Overlays
                   </h3>
                   <p className="text-xs text-[#57636E] mt-1 leading-relaxed">
@@ -2998,7 +2998,7 @@ export default function VideoEditorModal({
                   </p>
                 </div>
 
-                <div className="p-2.5 bg-[#E6F6EC]/40 border border-[#0CAA41]/30 rounded-xl text-[11px] text-[#0C5325] font-semibold">
+                <div className="p-2.5 bg-[#EBF5FB]/40 border border-[#154360]/30 rounded-xl text-[11px] text-[#0E2F44] font-semibold">
                   Tip: Use the Quick Presets (3s, 5s, 10s, Full) to effortlessly set how long images stay on screen!
                 </div>
 
@@ -3016,7 +3016,7 @@ export default function VideoEditorModal({
                           if (idx === 3) setActiveTab('audio');
                           if (idx === 4) setActiveTab('select');
                         }}
-                        className={`h-2 rounded-full transition-all cursor-pointer ${idx === 2 ? 'w-6 bg-[#0CAA41]' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
+                        className={`h-2 rounded-full transition-all cursor-pointer ${idx === 2 ? 'w-6 bg-[#154360]' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
                       />
                     ))}
                   </div>
@@ -3031,7 +3031,7 @@ export default function VideoEditorModal({
                     <button
                       type="button"
                       onClick={() => { setTutorialStep(3); setActiveTab('audio'); }}
-                      className="px-4 py-2 bg-[#0CAA41] hover:bg-[#0C5325] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                      className="px-4 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
                     >
                       <span>Next: Audio & Music</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -3048,11 +3048,11 @@ export default function VideoEditorModal({
               className="absolute left-[84px] top-[355px] flex items-center gap-2 pointer-events-auto animate-in fade-in slide-in-from-left-4 duration-300 z-[130]"
               onClick={(e) => e.stopPropagation()}
             >
-              <AnimatedPointingArrow direction="left" strokeColor="#72BAA9" />
+              <AnimatedPointingArrow direction="left" strokeColor="#2980B9" />
 
-              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-[#72BAA9]/40 space-y-3">
+              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-[#2980B9]/40 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black tracking-wider uppercase bg-[#E6F6EC] text-[#0C5325] px-2.5 py-0.5 rounded-full border border-[#72BAA9]/30">
+                  <span className="text-[11px] font-black tracking-wider uppercase bg-[#EBF5FB] text-[#0E2F44] px-2.5 py-0.5 rounded-full border border-[#2980B9]/30">
                     Step 4 of 5 • Background Audio
                   </span>
                   <button 
@@ -3066,7 +3066,7 @@ export default function VideoEditorModal({
 
                 <div>
                   <h3 className="text-base font-extrabold text-[#20262E] flex items-center gap-1.5">
-                    <Music className="w-4 h-4 text-[#72BAA9]" />
+                    <Music className="w-4 h-4 text-[#2980B9]" />
                     Background Music & Sound
                   </h3>
                   <p className="text-xs text-[#57636E] mt-1 leading-relaxed">
@@ -3074,7 +3074,7 @@ export default function VideoEditorModal({
                   </p>
                 </div>
 
-                <div className="p-2.5 bg-[#E6F6EC]/40/70 border border-[#72BAA9]/30 rounded-xl text-[11px] text-[#0C5325] font-semibold">
+                <div className="p-2.5 bg-[#EBF5FB]/40/70 border border-[#2980B9]/30 rounded-xl text-[11px] text-[#0E2F44] font-semibold">
                   Tip: The music automatically loops and syncs seamlessly with cuts and video playback!
                 </div>
 
@@ -3092,7 +3092,7 @@ export default function VideoEditorModal({
                           if (idx === 3) setActiveTab('audio');
                           if (idx === 4) setActiveTab('select');
                         }}
-                        className={`h-2 rounded-full transition-all cursor-pointer ${idx === 3 ? 'w-6 bg-[#72BAA9]' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
+                        className={`h-2 rounded-full transition-all cursor-pointer ${idx === 3 ? 'w-6 bg-[#2980B9]' : 'w-2 bg-slate-200 hover:bg-slate-300'}`}
                       />
                     ))}
                   </div>
@@ -3107,7 +3107,7 @@ export default function VideoEditorModal({
                     <button
                       type="button"
                       onClick={() => { setTutorialStep(4); setActiveTab('select'); }}
-                      className="px-4 py-2 bg-[#72BAA9] hover:bg-[#0C5325] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
+                      className="px-4 py-2 bg-[#2980B9] hover:bg-[#0E2F44] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
                     >
                       <span>Next: Save Changes</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -3125,12 +3125,12 @@ export default function VideoEditorModal({
               onClick={(e) => e.stopPropagation()}
             >
               <div className="pr-12">
-                <AnimatedPointingArrow direction="up" strokeColor="#0CAA41" />
+                <AnimatedPointingArrow direction="up" strokeColor="#154360" />
               </div>
 
-              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-[#0CAA41] space-y-3">
+              <div className="w-[370px] bg-white rounded-2xl p-5 shadow-2xl border-2 border-[#154360] space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black tracking-wider uppercase bg-[#E6F6EC] text-[#0C5325] px-2.5 py-0.5 rounded-full border border-[#0CAA41]/30">
+                  <span className="text-[11px] font-black tracking-wider uppercase bg-[#EBF5FB] text-[#0E2F44] px-2.5 py-0.5 rounded-full border border-[#154360]/30">
                     Step 5 of 5 • Cloud & Local Save
                   </span>
                   <button 
@@ -3144,15 +3144,15 @@ export default function VideoEditorModal({
 
                 <div>
                   <h3 className="text-base font-extrabold text-[#20262E] flex items-center gap-1.5">
-                    <Download className="w-4 h-4 text-[#0CAA41]" />
+                    <Download className="w-4 h-4 text-[#154360]" />
                     Save Changes Instantly
                   </h3>
                   <p className="text-xs text-[#57636E] mt-1 leading-relaxed">
-                    When you are done editing, click this blue <strong className="text-[#0CAA41] font-bold">&quot;Save Changes&quot;</strong> button! All your title slides, cuts, subtitles, and background audio will automatically persist to cloud and local storage and play everywhere!
+                    When you are done editing, click this blue <strong className="text-[#154360] font-bold">&quot;Save Changes&quot;</strong> button! All your title slides, cuts, subtitles, and background audio will automatically persist to cloud and local storage and play everywhere!
                   </p>
                 </div>
 
-                <div className="p-2.5 bg-[#E6F6EC]/70 border border-[#0CAA41]/30 rounded-xl text-[11px] text-[#0C5325]0 font-semibold">
+                <div className="p-2.5 bg-[#EBF5FB]/70 border border-[#154360]/30 rounded-xl text-[11px] text-[#0E2F44]0 font-semibold">
                   You are now ready to create high-impact videos like in CapCut and InShot!
                 </div>
 
@@ -3170,7 +3170,7 @@ export default function VideoEditorModal({
                       setShowTutorial(false);
                       try { localStorage.setItem('rcrd_video_editor_tutorial_seen', 'true'); } catch {}
                     }}
-                    className="px-5 py-2.5 bg-[#0CAA41] hover:bg-[#0C5325] text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-[rgba(12, 170, 65,0.2)] transition-all cursor-pointer"
+                    className="px-5 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-[rgba(21, 67, 96,0.2)] transition-all cursor-pointer"
                   >
                     <span>Start Editing Now</span>
                     <Check className="w-4 h-4 stroke-[3]" />

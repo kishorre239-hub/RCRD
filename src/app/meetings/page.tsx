@@ -59,16 +59,16 @@ function SidebarItem({ icon, label, active = false, external = false, href }: { 
         fontStyle: 'normal',
         lineHeight: '14px',
         letterSpacing: 'normal',
-        color: active ? '#0CAA41' : '#292A2E'
+        color: active ? '#154360' : '#292A2E'
       }}
       className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold cursor-pointer transition-all ${
       active 
-        ? "bg-[#E6F6EC] shadow-sm" 
+        ? "bg-[#EBF5FB] shadow-sm" 
         : "hover:bg-[#F5F6F8]"
       }`}
     >
       <div className="flex items-center gap-3">
-        <div className={active ? "text-[#0CAA41]" : "text-[#57636E]"}>
+        <div className={active ? "text-[#154360]" : "text-[#57636E]"}>
           {icon}
         </div>
         <span>{label}</span>
@@ -483,11 +483,11 @@ export default function MeetingsPage() {
         <div className="p-4 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-between p-3 bg-[#F5F6F8]/80 hover:bg-slate-100 rounded-2xl cursor-pointer transition-all border border-[#E2E7EC]/60 group">
             <div>
-              <div className="text-sm font-bold text-[#20262E] group-hover:text-[#0CAA41] transition-colors truncate max-w-[170px]">
+              <div className="text-sm font-bold text-[#20262E] group-hover:text-[#154360] transition-colors truncate max-w-[170px]">
                 RCRD Workspace
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-[10px] uppercase tracking-wider bg-[#E6F6EC] text-[#0CAA41] px-2 py-0.5 rounded-full font-bold border border-[#0CAA41]/30">
+                <span className="text-[10px] uppercase tracking-wider bg-[#EBF5FB] text-[#154360] px-2 py-0.5 rounded-full font-bold border border-[#154360]/30">
                   Meetings Hub
                 </span>
                 <span className="text-xs text-[#57636E] font-medium">1 host</span>
@@ -499,7 +499,7 @@ export default function MeetingsPage() {
             onClick={() => { router.push('/settings?tab=users'); setIsMobileMenuOpen(false); }}
             className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-xs font-bold text-[#20262E] hover:text-[#20262E] transition-all shadow-sm cursor-pointer"
           >
-            <UsersIcon size={16} className="text-[#0CAA41]" />
+            <UsersIcon size={16} className="text-[#154360]" />
             Invite Members
           </button>
         </div>
@@ -528,7 +528,7 @@ export default function MeetingsPage() {
         <div className="p-4 border-t border-[#E2E7EC] bg-[#F5F6F8]/50 flex-shrink-0">
           <button
             onClick={() => { openScheduleModal(); setIsMobileMenuOpen(false); }}
-            className="w-full bg-[#0CAA41] hover:bg-[#0C5325] text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+            className="w-full bg-[#154360] hover:bg-[#0E2F44] text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
           >
             <Calendar size={15} className="text-white" />
             Schedule Meeting
@@ -558,16 +558,16 @@ export default function MeetingsPage() {
               {/* Card 1: Schedule Meeting */}
               <div
                 onClick={openScheduleModal}
-                className="bg-white hover:bg-[#F5F6F8]/60 rounded-2xl p-5 cursor-pointer transition-all duration-200 border border-[#E2E7EC]/90 hover:border-[#0CAA41]/40 shadow-sm hover:shadow-md group flex flex-col justify-between"
+                className="bg-white hover:bg-[#F5F6F8]/60 rounded-2xl p-5 cursor-pointer transition-all duration-200 border border-[#E2E7EC]/90 hover:border-[#154360]/40 shadow-sm hover:shadow-md group flex flex-col justify-between"
               >
                 <div>
-                  <div className="w-10 h-10 rounded-xl bg-[#E6F6EC] border border-[#0CAA41]/20 flex items-center justify-center mb-3.5 transition-transform duration-200 group-hover:scale-105">
-                    <Calendar size={20} className="text-[#0CAA41]" />
+                  <div className="w-10 h-10 rounded-xl bg-[#EBF5FB] border border-[#154360]/20 flex items-center justify-center mb-3.5 transition-transform duration-200 group-hover:scale-105">
+                    <Calendar size={20} className="text-[#154360]" />
                   </div>
-                  <h3 className="text-sm font-bold text-[#20262E] group-hover:text-[#0CAA41] transition-colors">Schedule Meeting</h3>
+                  <h3 className="text-sm font-bold text-[#20262E] group-hover:text-[#154360] transition-colors">Schedule Meeting</h3>
                   <p className="text-xs text-[#57636E] mt-1 font-normal leading-relaxed">Plan upcoming classes with date, time, and curriculum folders</p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-[#E2E7EC] flex items-center justify-between text-xs font-semibold text-[#0CAA41]">
+                <div className="mt-4 pt-3 border-t border-[#E2E7EC] flex items-center justify-between text-xs font-semibold text-[#154360]">
                   <span>Schedule session</span>
                   <ChevronRight size={15} className="transition-transform group-hover:translate-x-0.5" />
                 </div>
@@ -582,10 +582,10 @@ export default function MeetingsPage() {
                   <div className="w-10 h-10 rounded-xl bg-slate-100 border border-[#E2E7EC] flex items-center justify-center mb-3.5 transition-transform duration-200 group-hover:scale-105">
                     <Plus size={20} className="text-[#20262E]" />
                   </div>
-                  <h3 className="text-sm font-bold text-[#20262E] group-hover:text-[#0CAA41] transition-colors">Join with ID</h3>
+                  <h3 className="text-sm font-bold text-[#20262E] group-hover:text-[#154360] transition-colors">Join with ID</h3>
                   <p className="text-xs text-[#57636E] mt-1 font-normal leading-relaxed">Enter an active meeting room with meeting ID & passcode</p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-[#E2E7EC] flex items-center justify-between text-xs font-semibold text-[#57636E] group-hover:text-[#0CAA41] transition-colors">
+                <div className="mt-4 pt-3 border-t border-[#E2E7EC] flex items-center justify-between text-xs font-semibold text-[#57636E] group-hover:text-[#154360] transition-colors">
                   <span>Enter room</span>
                   <ChevronRight size={15} className="transition-transform group-hover:translate-x-0.5" />
                 </div>
@@ -600,10 +600,10 @@ export default function MeetingsPage() {
                   <div className="w-10 h-10 rounded-xl bg-slate-100 border border-[#E2E7EC] flex items-center justify-center mb-3.5 transition-transform duration-200 group-hover:scale-105">
                     <Folder size={20} className="text-[#20262E]" />
                   </div>
-                  <h3 className="text-sm font-bold text-[#20262E] group-hover:text-[#0CAA41] transition-colors">Class Recordings</h3>
+                  <h3 className="text-sm font-bold text-[#20262E] group-hover:text-[#154360] transition-colors">Class Recordings</h3>
                   <p className="text-xs text-[#57636E] mt-1 font-normal leading-relaxed">Access auto-saved video recordings, notes, and AI transcripts</p>
                 </div>
-                <div className="mt-4 pt-3 border-t border-[#E2E7EC] flex items-center justify-between text-xs font-semibold text-[#57636E] group-hover:text-[#0CAA41] transition-colors">
+                <div className="mt-4 pt-3 border-t border-[#E2E7EC] flex items-center justify-between text-xs font-semibold text-[#57636E] group-hover:text-[#154360] transition-colors">
                   <span>Browse library</span>
                   <ChevronRight size={15} className="transition-transform group-hover:translate-x-0.5" />
                 </div>
@@ -613,15 +613,15 @@ export default function MeetingsPage() {
 
             {/* Live Session Alert Banner - Clean Card Pattern */}
             {live.length > 0 && (
-              <div className="p-4 bg-white rounded-2xl flex items-center justify-between gap-4 border border-[#0CAA41]/30 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="p-4 bg-white rounded-2xl flex items-center justify-between gap-4 border border-[#154360]/30 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="flex items-center gap-3">
                   <div className="relative flex items-center justify-center">
-                    <div className="w-3.5 h-3.5 bg-[#0CAA41] rounded-full animate-ping absolute opacity-70" />
-                    <div className="w-2.5 h-2.5 bg-[#0CAA41] rounded-full relative" />
+                    <div className="w-3.5 h-3.5 bg-[#154360] rounded-full animate-ping absolute opacity-70" />
+                    <div className="w-2.5 h-2.5 bg-[#154360] rounded-full relative" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider bg-[#0CAA41]/10 text-[#0CAA41] border border-[#0CAA41]/30 px-2 py-0.5 rounded-full">
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-[#154360]/10 text-[#154360] border border-[#154360]/30 px-2 py-0.5 rounded-full">
                         Live Session
                       </span>
                       <p className="font-bold text-sm text-[#20262E]">{live[0].title}</p>
@@ -631,7 +631,7 @@ export default function MeetingsPage() {
                 </div>
                 <button
                   onClick={() => startClass(live[0])}
-                  className="px-4 py-2 bg-[#0CAA41] hover:bg-[#0C5325] text-white font-semibold text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="px-4 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white font-semibold text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5"
                 >
                   <Play size={12} className="fill-white" /> Rejoin Room
                 </button>
@@ -659,7 +659,7 @@ export default function MeetingsPage() {
                     <span
                       className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                         activeTab === tab.id
-                          ? "bg-[#E6F6EC] text-[#0C5325]"
+                          ? "bg-[#EBF5FB] text-[#0E2F44]"
                           : "bg-slate-200/70 text-[#57636E]"
                       }`}
                     >
@@ -698,7 +698,7 @@ export default function MeetingsPage() {
                   <div className="flex items-center gap-2.5">
                     <button
                       onClick={openScheduleModal}
-                      className="px-4 py-2 bg-[#0CAA41] hover:bg-[#0C5325] text-white text-xs font-semibold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                      className="px-4 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-semibold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
                     >
                       <Calendar size={14} /> Schedule Meeting
                     </button>
@@ -724,7 +724,7 @@ export default function MeetingsPage() {
                       key={m.id}
                       className={`group relative rounded-2xl p-5 bg-white border transition-all duration-200 flex flex-col justify-between hover:shadow-md ${
                         isLive
-                          ? "border-[#0CAA41]/40 ring-2 ring-[#0CAA41]/20 shadow-sm"
+                          ? "border-[#154360]/40 ring-2 ring-[#154360]/20 shadow-sm"
                           : "border-[#E2E7EC]/90 hover:border-[#E2E7EC] shadow-xs"
                       }`}
                     >
@@ -733,8 +733,8 @@ export default function MeetingsPage() {
                         <div className="flex items-center justify-between gap-1.5 mb-3">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {isLive && (
-                              <span className="flex items-center gap-1.5 text-[10px] font-bold text-[#0CAA41] bg-[#0CAA41]/10 border border-[#0CAA41]/30 px-2 py-0.5 rounded-full">
-                                <span className="w-1.5 h-1.5 bg-[#0CAA41] rounded-full animate-pulse" /> LIVE
+                              <span className="flex items-center gap-1.5 text-[10px] font-bold text-[#154360] bg-[#154360]/10 border border-[#154360]/30 px-2 py-0.5 rounded-full">
+                                <span className="w-1.5 h-1.5 bg-[#154360] rounded-full animate-pulse" /> LIVE
                               </span>
                             )}
                             {isPast && (
@@ -748,7 +748,7 @@ export default function MeetingsPage() {
                               </span>
                             )}
                             {course && (
-                              <span className="flex items-center gap-1 text-[10px] text-[#0CAA41] bg-[#E6F6EC] border border-[#0CAA41]/30 px-2 py-0.5 rounded-full font-semibold truncate max-w-[130px]">
+                              <span className="flex items-center gap-1 text-[10px] text-[#154360] bg-[#EBF5FB] border border-[#154360]/30 px-2 py-0.5 rounded-full font-semibold truncate max-w-[130px]">
                                 <Folder size={10} /> {course.name}
                               </span>
                             )}
@@ -756,7 +756,7 @@ export default function MeetingsPage() {
                           
                           <button
                             onClick={() => deleteMeeting(m.id)}
-                            className="p-1 text-slate-300 hover:text-[#0CAA41] rounded transition-colors opacity-70 hover:opacity-100"
+                            className="p-1 text-slate-300 hover:text-[#154360] rounded transition-colors opacity-70 hover:opacity-100"
                             title="Delete meeting"
                           >
                             <Trash2 size={13} />
@@ -764,11 +764,11 @@ export default function MeetingsPage() {
                         </div>
 
                         {/* Title & Timing */}
-                        <h3 className="text-sm font-bold text-[#20262E] mb-1.5 group-hover:text-[#0CAA41] transition-colors truncate" title={m.title}>
+                        <h3 className="text-sm font-bold text-[#20262E] mb-1.5 group-hover:text-[#154360] transition-colors truncate" title={m.title}>
                           {m.title}
                         </h3>
                         <div className="flex items-center gap-1.5 text-xs text-[#57636E] font-medium mb-2.5">
-                          <Calendar size={13} className="text-[#0CAA41] shrink-0" />
+                          <Calendar size={13} className="text-[#154360] shrink-0" />
                           <span>{fmt(m.scheduledAt)}</span>
                         </div>
 
@@ -781,10 +781,10 @@ export default function MeetingsPage() {
                           {!isPast && (
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border shadow-2xs ${
                               isLive 
-                                ? "bg-[#0CAA41]/10 text-[#0CAA41] border-[#0CAA41]/30" 
-                                : "bg-[#E6F6EC] text-[#0C5325] border-[#0CAA41]/30"
+                                ? "bg-[#154360]/10 text-[#154360] border-[#154360]/30" 
+                                : "bg-[#EBF5FB] text-[#0E2F44] border-[#154360]/30"
                             }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${isLive ? "bg-[#0CAA41] animate-ping" : "bg-[#E6F6EC]0 animate-pulse"}`} />
+                              <span className={`w-1.5 h-1.5 rounded-full ${isLive ? "bg-[#154360] animate-ping" : "bg-[#EBF5FB]0 animate-pulse"}`} />
                               {isLive ? "Live Now" : `Starts in: ${relCountdown(m.scheduledAt)}`}
                             </span>
                           )}
@@ -807,16 +807,16 @@ export default function MeetingsPage() {
                             <span className="font-mono font-bold text-[#20262E] text-[11px]">{m.id}</span>
                             <button
                               onClick={() => copyText(m.id, `id-${m.id}`)}
-                              className="text-[#57636E] hover:text-[#0CAA41] transition-colors ml-0.5 cursor-pointer"
+                              className="text-[#57636E] hover:text-[#154360] transition-colors ml-0.5 cursor-pointer"
                               title="Copy ID"
                             >
-                              {copied === `id-${m.id}` ? <Check size={11} className="text-[#72BAA9]" /> : <Copy size={11} />}
+                              {copied === `id-${m.id}` ? <Check size={11} className="text-[#2980B9]" /> : <Copy size={11} />}
                             </button>
                           </div>
                           <div className="h-3 w-px bg-slate-200" />
                           <div className="flex items-center gap-1.5">
                             <span className="text-[10px] font-bold uppercase text-[#57636E]">Pass:</span>
-                            <span className="font-mono font-bold text-[#0CAA41] text-[11px]">{pwdVis ? m.password : "••••••"}</span>
+                            <span className="font-mono font-bold text-[#154360] text-[11px]">{pwdVis ? m.password : "••••••"}</span>
                             <button
                               onClick={() => setShowPwd(p => ({ ...p, [m.id]: !p[m.id] }))}
                               className="text-[#57636E] hover:text-[#20262E] transition-colors cursor-pointer"
@@ -826,10 +826,10 @@ export default function MeetingsPage() {
                             </button>
                             <button
                               onClick={() => copyText(m.password, `pwd-${m.id}`)}
-                              className="text-[#57636E] hover:text-[#0CAA41] transition-colors cursor-pointer"
+                              className="text-[#57636E] hover:text-[#154360] transition-colors cursor-pointer"
                               title="Copy Password"
                             >
-                              {copied === `pwd-${m.id}` ? <Check size={11} className="text-[#72BAA9]" /> : <Copy size={11} />}
+                              {copied === `pwd-${m.id}` ? <Check size={11} className="text-[#2980B9]" /> : <Copy size={11} />}
                             </button>
                           </div>
                           <div className="h-3 w-px bg-slate-200" />
@@ -839,10 +839,10 @@ export default function MeetingsPage() {
                               const link = `${origin}/meeting/${m.id}?pwd=${encodeURIComponent(m.password)}`;
                               copyText(link, `link-${m.id}`);
                             }}
-                            className="flex items-center gap-1 text-[11px] font-bold text-[#0CAA41] hover:text-[#0C5325] transition-colors px-1.5 py-0.5 rounded hover:bg-[#E6F6EC] cursor-pointer"
+                            className="flex items-center gap-1 text-[11px] font-bold text-[#154360] hover:text-[#0E2F44] transition-colors px-1.5 py-0.5 rounded hover:bg-[#EBF5FB] cursor-pointer"
                             title="Copy Direct Student Join Link"
                           >
-                            {copied === `link-${m.id}` ? <Check size={11} className="text-[#72BAA9]" /> : <Link2 size={11} />}
+                            {copied === `link-${m.id}` ? <Check size={11} className="text-[#2980B9]" /> : <Link2 size={11} />}
                             <span>{copied === `link-${m.id}` ? "Copied Link!" : "Copy Link"}</span>
                           </button>
                         </div>
@@ -854,7 +854,7 @@ export default function MeetingsPage() {
                           <>
                             <button
                               onClick={() => startClass(m)}
-                              className="flex-1 flex items-center justify-center gap-1.5 h-8.5 rounded-xl font-semibold text-xs transition-all shadow-sm bg-[#0CAA41] hover:bg-[#0C5325] text-white"
+                              className="flex-1 flex items-center justify-center gap-1.5 h-8.5 rounded-xl font-semibold text-xs transition-all shadow-sm bg-[#154360] hover:bg-[#0E2F44] text-white"
                             >
                               {isLive ? <><Play size={12} className="fill-white" /> Rejoin Room</> : <><Monitor size={12} /> Start</>}
                             </button>
@@ -870,7 +870,7 @@ export default function MeetingsPage() {
                           <>
                             <button
                               onClick={() => router.push(`/meetings/notes/${m.id}`)}
-                              className="flex-1 flex items-center justify-center gap-1.5 h-8.5 rounded-xl font-semibold text-xs bg-[#E6F6EC] hover:bg-[#E6F6EC] text-[#0C5325] border border-[#0CAA41]/30 transition-colors shadow-2xs"
+                              className="flex-1 flex items-center justify-center gap-1.5 h-8.5 rounded-xl font-semibold text-xs bg-[#EBF5FB] hover:bg-[#EBF5FB] text-[#0E2F44] border border-[#154360]/30 transition-colors shadow-2xs"
                             >
                               <FileText size={12} /> View Notes
                             </button>
@@ -907,7 +907,7 @@ export default function MeetingsPage() {
             {/* Header */}
             <div className="px-6 py-4 border-b border-[#E2E7EC] flex items-center justify-between bg-[#F5F6F8]/80">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#E6F6EC] border border-[#0CAA41]/20 flex items-center justify-center text-[#0CAA41]">
+                <div className="w-10 h-10 rounded-xl bg-[#EBF5FB] border border-[#154360]/20 flex items-center justify-center text-[#154360]">
                   <Calendar size={20} />
                 </div>
                 <div>
@@ -938,7 +938,7 @@ export default function MeetingsPage() {
                       value={newTitle}
                       onChange={e => setNewTitle(e.target.value)}
                       placeholder="E.g., Full-Stack Web Development"
-                      className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-[#E2E7EC] focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/15 rounded-xl text-xs outline-none transition-all shadow-xs"
+                      className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all shadow-xs"
                     />
                   </div>
                   <div>
@@ -948,7 +948,7 @@ export default function MeetingsPage() {
                     <select
                       value={newCourse}
                       onChange={e => setNewCourse(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-[#E2E7EC] focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/15 rounded-xl text-xs outline-none transition-all shadow-xs cursor-pointer font-medium text-[#20262E]"
+                      className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all shadow-xs cursor-pointer font-medium text-[#20262E]"
                     >
                       <option value="">None (Root Library)</option>
                       {courses.map(c => (
@@ -979,7 +979,7 @@ export default function MeetingsPage() {
                         type="date"
                         value={newDate}
                         onChange={e => setNewDate(e.target.value)}
-                        className="w-full px-3 py-2.5 border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-xl text-xs focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/15 outline-none shadow-xs transition-all bg-white font-medium text-[#20262E]"
+                        className="w-full px-3 py-2.5 border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-xl text-xs focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 outline-none shadow-xs transition-all bg-white font-medium text-[#20262E]"
                       />
                     </div>
 
@@ -988,7 +988,7 @@ export default function MeetingsPage() {
                       <select
                         value={selectedHour}
                         onChange={e => setSelectedHour(e.target.value)}
-                        className="w-16 px-2 py-2.5 border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-xl text-xs bg-white focus:border-[#0CAA41] outline-none shadow-xs transition-all font-semibold text-[#20262E] text-center cursor-pointer"
+                        className="w-16 px-2 py-2.5 border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-xl text-xs bg-white focus:border-[#154360] outline-none shadow-xs transition-all font-semibold text-[#20262E] text-center cursor-pointer"
                       >
                         {["01","02","03","04","05","06","07","08","09","10","11","12"].map(h => (
                           <option key={h} value={h}>{h}</option>
@@ -998,7 +998,7 @@ export default function MeetingsPage() {
                       <select
                         value={selectedMinute}
                         onChange={e => setSelectedMinute(e.target.value)}
-                        className="w-16 px-2 py-2.5 border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-xl text-xs bg-white focus:border-[#0CAA41] outline-none shadow-xs transition-all font-semibold text-[#20262E] text-center cursor-pointer"
+                        className="w-16 px-2 py-2.5 border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-xl text-xs bg-white focus:border-[#154360] outline-none shadow-xs transition-all font-semibold text-[#20262E] text-center cursor-pointer"
                       >
                         {["00","05","10","15","20","25","30","35","40","45","50","55"].map(m => (
                           <option key={m} value={m}>{m}</option>
@@ -1007,7 +1007,7 @@ export default function MeetingsPage() {
                       <select
                         value={selectedPeriod}
                         onChange={e => setSelectedPeriod(e.target.value as "AM" | "PM")}
-                        className="w-16 px-2 py-2.5 border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-xl text-xs bg-[#F5F6F8] focus:border-[#0CAA41] outline-none shadow-xs transition-all font-bold text-[#0C5325] text-center cursor-pointer"
+                        className="w-16 px-2 py-2.5 border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-xl text-xs bg-[#F5F6F8] focus:border-[#154360] outline-none shadow-xs transition-all font-bold text-[#0E2F44] text-center cursor-pointer"
                       >
                         <option value="AM">AM</option>
                         <option value="PM">PM</option>
@@ -1035,7 +1035,7 @@ export default function MeetingsPage() {
                         setSelectedMinute(String(Math.floor(target.getMinutes() / 5) * 5).padStart(2, '0'));
                         setSelectedPeriod(p);
                       }}
-                      className="px-3 py-1.5 bg-[#E6F6EC] hover:bg-[#E6F6EC] text-[#0C5325] text-xs font-semibold rounded-lg transition-colors border border-[#0CAA41]/30 shadow-2xs cursor-pointer"
+                      className="px-3 py-1.5 bg-[#EBF5FB] hover:bg-[#EBF5FB] text-[#0E2F44] text-xs font-semibold rounded-lg transition-colors border border-[#154360]/30 shadow-2xs cursor-pointer"
                     >
                       In 15 mins
                     </button>
@@ -1049,7 +1049,7 @@ export default function MeetingsPage() {
                         setSelectedMinute(String(Math.floor(target.getMinutes() / 5) * 5).padStart(2, '0'));
                         setSelectedPeriod(p);
                       }}
-                      className="px-3 py-1.5 bg-[#E6F6EC] hover:bg-[#E6F6EC] text-[#0C5325] text-xs font-semibold rounded-lg transition-colors border border-[#0CAA41]/30 shadow-2xs cursor-pointer"
+                      className="px-3 py-1.5 bg-[#EBF5FB] hover:bg-[#EBF5FB] text-[#0E2F44] text-xs font-semibold rounded-lg transition-colors border border-[#154360]/30 shadow-2xs cursor-pointer"
                     >
                       In 30 mins
                     </button>
@@ -1063,7 +1063,7 @@ export default function MeetingsPage() {
                         setSelectedMinute(String(Math.floor(target.getMinutes() / 5) * 5).padStart(2, '0'));
                         setSelectedPeriod(p);
                       }}
-                      className="px-3 py-1.5 bg-[#E6F6EC] hover:bg-[#E6F6EC] text-[#0C5325] text-xs font-semibold rounded-lg transition-colors border border-[#0CAA41]/30 shadow-2xs cursor-pointer"
+                      className="px-3 py-1.5 bg-[#EBF5FB] hover:bg-[#EBF5FB] text-[#0E2F44] text-xs font-semibold rounded-lg transition-colors border border-[#154360]/30 shadow-2xs cursor-pointer"
                     >
                       In 1 hour
                     </button>
@@ -1102,7 +1102,7 @@ export default function MeetingsPage() {
                     </label>
                     <p className="text-[11px] text-[#57636E] font-normal">How long should this session run?</p>
                   </div>
-                  <span className="text-xs font-bold text-[#0C5325] bg-[#E6F6EC] px-2.5 py-1 rounded-lg border border-[#0CAA41]/30 shadow-2xs">
+                  <span className="text-xs font-bold text-[#0E2F44] bg-[#EBF5FB] px-2.5 py-1 rounded-lg border border-[#154360]/30 shadow-2xs">
                     Selected: {formatDuration(newDuration)}
                   </span>
                 </div>
@@ -1118,7 +1118,7 @@ export default function MeetingsPage() {
                         onClick={() => setNewDuration(preset.value)}
                         className={`px-3 py-2 text-xs rounded-xl transition-all flex items-center justify-center cursor-pointer ${
                           isSelected
-                            ? "bg-[#0CAA41] text-white font-bold shadow-sm ring-2 ring-[#0CAA41]/20 scale-105"
+                            ? "bg-[#154360] text-white font-bold shadow-sm ring-2 ring-[#154360]/20 scale-105"
                             : "bg-slate-100 hover:bg-slate-200 text-[#20262E] font-semibold"
                         }`}
                       >
@@ -1139,7 +1139,7 @@ export default function MeetingsPage() {
                         const mins = newDuration % 60;
                         setNewDuration(hrs * 60 + mins);
                       }}
-                      className="px-2.5 py-1.5 border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-lg text-xs bg-white focus:border-[#0CAA41] outline-none font-semibold text-[#20262E] cursor-pointer"
+                      className="px-2.5 py-1.5 border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-lg text-xs bg-white focus:border-[#154360] outline-none font-semibold text-[#20262E] cursor-pointer"
                     >
                       {[0,1,2,3,4,5,6].map(h => (
                         <option key={h} value={h}>{h} hr</option>
@@ -1152,7 +1152,7 @@ export default function MeetingsPage() {
                         const mins = parseInt(e.target.value);
                         setNewDuration(hrs * 60 + mins);
                       }}
-                      className="px-2.5 py-1.5 border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-lg text-xs bg-white focus:border-[#0CAA41] outline-none font-semibold text-[#20262E] cursor-pointer"
+                      className="px-2.5 py-1.5 border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-lg text-xs bg-white focus:border-[#154360] outline-none font-semibold text-[#20262E] cursor-pointer"
                     >
                       {[0,5,10,15,20,30,45].map(m => (
                         <option key={m} value={m}>{m} min</option>
@@ -1166,10 +1166,10 @@ export default function MeetingsPage() {
               {(() => {
                 const summary = getModalSummary();
                 return (
-                  <div className="rounded-2xl border border-[#0CAA41]/30 bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-emerald-50/70 shadow-xs p-4">
+                  <div className="rounded-2xl border border-[#154360]/30 bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-emerald-50/70 shadow-xs p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#0CAA41] text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <div className="w-10 h-10 rounded-xl bg-[#154360] text-white flex items-center justify-center shrink-0 shadow-xs">
                           <Calendar size={18} />
                         </div>
                         <div>
@@ -1183,15 +1183,15 @@ export default function MeetingsPage() {
                       </div>
                       
                       <div className="text-right shrink-0">
-                        <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-white text-[#0C5325] border border-[#0CAA41]/30 shadow-2xs">
+                        <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-white text-[#0E2F44] border border-[#154360]/30 shadow-2xs">
                           Starts in {summary.countdown}
                         </span>
                       </div>
                     </div>
 
-                    <div className="mt-3 pt-3 border-t border-[#0CAA41]/20 flex items-center justify-between text-xs flex-wrap gap-2">
+                    <div className="mt-3 pt-3 border-t border-[#154360]/20 flex items-center justify-between text-xs flex-wrap gap-2">
                       <span className="text-[#20262E] font-semibold">
-                        Meeting Duration: <span className="text-[#0C5325] font-bold bg-white px-2 py-0.5 rounded border border-[#0CAA41]/30">{summary.durationStr}</span>
+                        Meeting Duration: <span className="text-[#0E2F44] font-bold bg-white px-2 py-0.5 rounded border border-[#154360]/30">{summary.durationStr}</span>
                       </span>
                       {newCourse ? (
                         <span className="text-[#57636E] font-medium text-[11px]">
@@ -1210,7 +1210,7 @@ export default function MeetingsPage() {
                 <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-2.5">Meeting Security</label>
                 <div className="flex gap-8">
                   <div className="flex items-center gap-2.5 opacity-90">
-                    <div className="w-5 h-5 rounded flex items-center justify-center bg-[#0CAA41] text-white">
+                    <div className="w-5 h-5 rounded flex items-center justify-center bg-[#154360] text-white">
                       <Check size={13} />
                     </div>
                     <div>
@@ -1219,7 +1219,7 @@ export default function MeetingsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5 opacity-90">
-                    <div className="w-5 h-5 rounded flex items-center justify-center bg-[#0CAA41] text-white">
+                    <div className="w-5 h-5 rounded flex items-center justify-center bg-[#154360] text-white">
                       <Check size={13} />
                     </div>
                     <div>
@@ -1245,7 +1245,7 @@ export default function MeetingsPage() {
                 <button
                   type="button"
                   onClick={handleCreate}
-                  className="px-5 py-2 bg-[#0CAA41] hover:bg-[#0C5325] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
                 >
                   Schedule Meeting
                 </button>
@@ -1282,7 +1282,7 @@ export default function MeetingsPage() {
                   value={joinName}
                   onChange={e => setJoinName(e.target.value)}
                   placeholder="e.g. Hari Kishore"
-                  className="w-full px-3.5 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] placeholder:text-[#57636E] outline-none focus:border-[#0CAA41] focus:bg-white focus:ring-2 focus:ring-[#0CAA41]/15 transition-all"
+                  className="w-full px-3.5 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] placeholder:text-[#57636E] outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/15 transition-all"
                 />
               </div>
 
@@ -1295,7 +1295,7 @@ export default function MeetingsPage() {
                   value={joinId}
                   onChange={e => setJoinId(e.target.value)}
                   placeholder="Enter 8-digit Meeting ID"
-                  className="w-full px-3.5 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm font-mono text-[#20262E] placeholder:text-[#57636E] outline-none focus:border-[#0CAA41] focus:bg-white focus:ring-2 focus:ring-[#0CAA41]/15 transition-all"
+                  className="w-full px-3.5 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm font-mono text-[#20262E] placeholder:text-[#57636E] outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/15 transition-all"
                 />
               </div>
 
@@ -1309,7 +1309,7 @@ export default function MeetingsPage() {
                     value={joinPwd}
                     onChange={e => setJoinPwd(e.target.value)}
                     placeholder="8-character passcode"
-                    className="w-full px-3.5 py-2.5 pr-10 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm font-mono tracking-widest text-[#20262E] placeholder:text-[#57636E] outline-none focus:border-[#0CAA41] focus:bg-white focus:ring-2 focus:ring-[#0CAA41]/15 transition-all"
+                    className="w-full px-3.5 py-2.5 pr-10 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm font-mono tracking-widest text-[#20262E] placeholder:text-[#57636E] outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/15 transition-all"
                   />
                   <button
                     onClick={() => setShowPwd(p => ({ ...p, join: !p.join }))}
@@ -1331,7 +1331,7 @@ export default function MeetingsPage() {
               <button
                 onClick={handleJoin}
                 disabled={!joinId.trim() || !joinPwd.trim() || !joinName.trim()}
-                className="flex-1 py-2.5 bg-[#0CAA41] hover:bg-[#0C5325] disabled:bg-slate-200 disabled:text-[#57636E] text-white text-xs font-semibold rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all"
+                className="flex-1 py-2.5 bg-[#154360] hover:bg-[#0E2F44] disabled:bg-slate-200 disabled:text-[#57636E] text-white text-xs font-semibold rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all"
               >
                 <Video size={14} /> Join Meeting
               </button>
@@ -1357,7 +1357,7 @@ export default function MeetingsPage() {
               
               <div className="px-6 pt-5 pb-4 flex items-center justify-between border-b border-[#E2E7EC] bg-[#F5F6F8]/70">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#E6F6EC] border border-[#0CAA41]/20 rounded-xl flex items-center justify-center text-[#0CAA41]">
+                  <div className="w-10 h-10 bg-[#EBF5FB] border border-[#154360]/20 rounded-xl flex items-center justify-center text-[#154360]">
                     <Share2 size={18} />
                   </div>
                   <div>
@@ -1376,12 +1376,12 @@ export default function MeetingsPage() {
               <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
                 
                 {/* 1. DIRECT MEETING LINK (PROMINENT HIGHLIGHT) */}
-                <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/60 to-blue-50/90 border border-[#0CAA41]/30 rounded-2xl p-4 space-y-2.5 shadow-2xs">
+                <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/60 to-blue-50/90 border border-[#154360]/30 rounded-2xl p-4 space-y-2.5 shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0C5325] flex items-center gap-1.5">
-                      <Link2 size={13} className="text-[#0CAA41]" /> Direct Meeting Link for Students
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0E2F44] flex items-center gap-1.5">
+                      <Link2 size={13} className="text-[#154360]" /> Direct Meeting Link for Students
                     </span>
-                    <span className="text-[10px] font-bold text-[#0C5325] bg-[#E6F6EC]/70 px-2 py-0.5 rounded-full border border-[#72BAA9]/30">
+                    <span className="text-[10px] font-bold text-[#0E2F44] bg-[#EBF5FB]/70 px-2 py-0.5 rounded-full border border-[#2980B9]/30">
                       Auto-fills Passcode
                     </span>
                   </div>
@@ -1392,11 +1392,11 @@ export default function MeetingsPage() {
                       readOnly
                       value={directMeetingLink}
                       onClick={e => (e.target as HTMLInputElement).select()}
-                      className="flex-1 px-3 py-2 bg-white border border-[#0CAA41]/30 rounded-xl text-xs font-mono text-[#20262E] outline-none select-all truncate font-medium shadow-2xs"
+                      className="flex-1 px-3 py-2 bg-white border border-[#154360]/30 rounded-xl text-xs font-mono text-[#20262E] outline-none select-all truncate font-medium shadow-2xs"
                     />
                     <button
                       onClick={() => copyText(directMeetingLink, `share-link-${showShare.id}`)}
-                      className="px-3.5 py-2 bg-[#0CAA41] hover:bg-[#0C5325] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
+                      className="px-3.5 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
                     >
                       {copied === `share-link-${showShare.id}` ? <Check size={13} className="text-white" /> : <Copy size={13} />}
                       <span>{copied === `share-link-${showShare.id}` ? "Copied!" : "Copy Link"}</span>
@@ -1409,7 +1409,7 @@ export default function MeetingsPage() {
                       href={directMeetingLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#0CAA41] hover:text-[#0C5325] font-semibold flex items-center gap-1"
+                      className="text-[#154360] hover:text-[#0E2F44] font-semibold flex items-center gap-1"
                     >
                       <span>Preview</span> <ExternalLink size={11} />
                     </a>
@@ -1423,7 +1423,7 @@ export default function MeetingsPage() {
                       {showShare.title}
                     </p>
                     {courseName && (
-                      <span className="text-[#0CAA41] font-semibold text-[11px] flex items-center gap-1 bg-[#E6F6EC] px-2 py-0.5 rounded border border-[#0CAA41]/30">
+                      <span className="text-[#154360] font-semibold text-[11px] flex items-center gap-1 bg-[#EBF5FB] px-2 py-0.5 rounded border border-[#154360]/30">
                         <Folder size={10} /> {courseName}
                       </span>
                     )}
@@ -1435,13 +1435,13 @@ export default function MeetingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-[10px] font-semibold text-[#57636E] uppercase tracking-wider mb-0.5">Meeting ID</p>
-                      <p className="text-sm font-mono font-bold text-[#0CAA41] tracking-wider">{showShare.id}</p>
+                      <p className="text-sm font-mono font-bold text-[#154360] tracking-wider">{showShare.id}</p>
                     </div>
                     <button
                       onClick={() => copyText(showShare.id, `cid-${showShare.id}`)}
                       className="px-3 py-1.5 bg-white border border-[#E2E7EC] hover:bg-slate-100 text-xs font-semibold text-[#20262E] rounded-lg flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
                     >
-                      {copied === `cid-${showShare.id}` ? <Check size={12} className="text-[#72BAA9]" /> : <Copy size={12} />}
+                      {copied === `cid-${showShare.id}` ? <Check size={12} className="text-[#2980B9]" /> : <Copy size={12} />}
                       {copied === `cid-${showShare.id}` ? "Copied" : "Copy ID"}
                     </button>
                   </div>
@@ -1456,7 +1456,7 @@ export default function MeetingsPage() {
                       onClick={() => copyText(showShare.password, `cpwd-${showShare.id}`)}
                       className="px-3 py-1.5 bg-white border border-[#E2E7EC] hover:bg-slate-100 text-xs font-semibold text-[#20262E] rounded-lg flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
                     >
-                      {copied === `cpwd-${showShare.id}` ? <Check size={12} className="text-[#72BAA9]" /> : <Copy size={12} />}
+                      {copied === `cpwd-${showShare.id}` ? <Check size={12} className="text-[#2980B9]" /> : <Copy size={12} />}
                       {copied === `cpwd-${showShare.id}` ? "Copied" : "Copy Passcode"}
                     </button>
                   </div>
@@ -1468,7 +1468,7 @@ export default function MeetingsPage() {
                       <Clock size={12} className="text-[#57636E]" />
                       {fmt(showShare.scheduledAt)} ({formatDuration(showShare.duration)})
                     </span>
-                    <span className="text-[#72BAA9] font-semibold text-[11px] flex items-center gap-1">
+                    <span className="text-[#2980B9] font-semibold text-[11px] flex items-center gap-1">
                       <CheckCircle2 size={11} /> Ready to Share
                     </span>
                   </div>
@@ -1491,7 +1491,7 @@ export default function MeetingsPage() {
 
                   <button
                     onClick={() => copyText(allText, "share-all")}
-                    className="w-full py-2.5 bg-[#0CAA41] hover:bg-[#0C5325] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
+                    className="w-full py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
                   >
                     {copied === "share-all" ? <><Check size={14} className="text-white" /> Copied Full Invitation!</> : <><Copy size={14} /> Copy Full Invitation with Link</>}
                   </button>
@@ -1508,7 +1508,7 @@ export default function MeetingsPage() {
                         setShowShare(null);
                         startClass(showShare);
                       }}
-                      className="flex-1 py-2 bg-[#72BAA9] hover:bg-[#0C5325] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                      className="flex-1 py-2 bg-[#2980B9] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
                     >
                       <Play size={12} className="fill-white" /> Start Room Now
                     </button>
@@ -1525,9 +1525,9 @@ export default function MeetingsPage() {
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 z-[200] border  animate-in slide-in-from-bottom-5 duration-200 ${
           toast.ok
             ? "bg-slate-900 text-white border-slate-800"
-            : "bg-[#0CAA41] text-white border-[#0CAA41]"
+            : "bg-[#154360] text-white border-[#154360]"
         }`}>
-          {toast.ok ? <CheckCircle2 size={16} className="text-[#E6F6EC]" /> : <X size={16} className="text-white" />}
+          {toast.ok ? <CheckCircle2 size={16} className="text-[#EBF5FB]" /> : <X size={16} className="text-white" />}
           <span className="text-xs font-bold">{toast.msg}</span>
           <button onClick={() => setToast(null)} className="p-0.5 hover:bg-white/20 rounded-md ml-1">
             <X size={14} />

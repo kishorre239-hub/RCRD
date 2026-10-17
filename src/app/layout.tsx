@@ -19,7 +19,7 @@ const outfit = Outfit({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#0CAA41",
+  themeColor: "#154360",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -36,8 +36,9 @@ export const metadata: Metadata = {
     title: "RCRD",
   },
   icons: {
-    icon: "/ICONS/favicon-square.png",
-    apple: "/ICONS/favicon-square.png",
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
   },
 };
 

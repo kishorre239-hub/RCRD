@@ -73,7 +73,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8] font-sans text-[#20262E] flex flex-col justify-between selection:bg-[#E6F6EC] selection:text-[#0C5325]">
+    <div className="min-h-screen bg-[#F5F6F8] font-sans text-[#20262E] flex flex-col justify-between selection:bg-[#EBF5FB] selection:text-[#0E2F44]">
       
       {/* Top Navbar */}
       <header className="h-16 px-6 sm:px-12 flex items-center justify-between border-b border-[#E2E7EC] bg-white sticky top-0 z-30 shadow-xs">
@@ -84,7 +84,7 @@ export default function SignupPage() {
           <span className="text-[#57636E]">Already have an account?</span>
           <Link
             href="/login"
-            className="font-bold text-[#0CAA41] hover:text-[#0C5325] px-3 py-1.5 rounded-lg border border-[#0CAA41]/30 hover:bg-[#E6F6EC] transition-all"
+            className="font-bold text-[#154360] hover:text-[#0E2F44] px-3 py-1.5 rounded-lg border border-[#154360]/30 hover:bg-[#EBF5FB] transition-all"
           >
             Sign in
           </Link>
@@ -96,7 +96,7 @@ export default function SignupPage() {
         <div className="w-full max-w-[460px] bg-white border border-[#E2E7EC] rounded-3xl p-8 sm:p-10 shadow-sm shadow-slate-200/50">
           
           <div className="text-center mb-8">
-            <div className="w-12 h-12 bg-[#E6F6EC] border border-[#0CAA41]/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#0CAA41]">
+            <div className="w-12 h-12 bg-[#EBF5FB] border border-[#154360]/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#154360]">
               <ShieldCheck size={24} />
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#20262E] tracking-tight">
@@ -127,7 +127,7 @@ export default function SignupPage() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Hari Kishore Reddy"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8] hover:bg-slate-50 focus:bg-white border border-[#E2E7EC] focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/15 rounded-xl text-xs text-[#20262E] outline-none transition-all font-medium placeholder:text-[#57636E]"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8] hover:bg-slate-50 focus:bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs text-[#20262E] outline-none transition-all font-medium placeholder:text-[#57636E]"
                 />
               </div>
             </div>
@@ -144,7 +144,7 @@ export default function SignupPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8] hover:bg-slate-50 focus:bg-white border border-[#E2E7EC] focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/15 rounded-xl text-xs text-[#20262E] outline-none transition-all font-medium placeholder:text-[#57636E]"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8] hover:bg-slate-50 focus:bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs text-[#20262E] outline-none transition-all font-medium placeholder:text-[#57636E]"
                 />
               </div>
             </div>
@@ -162,7 +162,7 @@ export default function SignupPage() {
                   placeholder="At least 6 characters"
                   required
                   minLength={3}
-                  className="w-full pl-10 pr-10 py-2.5 bg-[#F5F6F8] hover:bg-slate-50 focus:bg-white border border-[#E2E7EC] focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/15 rounded-xl text-xs text-[#20262E] outline-none transition-all font-medium placeholder:text-[#57636E]"
+                  className="w-full pl-10 pr-10 py-2.5 bg-[#F5F6F8] hover:bg-slate-50 focus:bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs text-[#20262E] outline-none transition-all font-medium placeholder:text-[#57636E]"
                 />
                 <button
                   type="button"
@@ -185,7 +185,7 @@ export default function SignupPage() {
                   onClick={() => setRole("MENTOR")}
                   className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer font-semibold ${
                     role === "MENTOR"
-                      ? "border-[#0CAA41] bg-[#E6F6EC] text-[#0C5325] ring-2 ring-[#0CAA41]/10 font-bold"
+                      ? "border-[#154360] bg-[#EBF5FB] text-[#0E2F44] ring-2 ring-[#154360]/10 font-bold"
                       : "border-[#E2E7EC] bg-white text-[#57636E] hover:bg-[#F5F6F8]"
                   }`}
                 >
@@ -196,7 +196,7 @@ export default function SignupPage() {
                   onClick={() => setRole("STUDENT")}
                   className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer font-semibold ${
                     role === "STUDENT"
-                      ? "border-[#0CAA41] bg-[#E6F6EC] text-[#0C5325] ring-2 ring-[#0CAA41]/10 font-bold"
+                      ? "border-[#154360] bg-[#EBF5FB] text-[#0E2F44] ring-2 ring-[#154360]/10 font-bold"
                       : "border-[#E2E7EC] bg-white text-[#57636E] hover:bg-[#F5F6F8]"
                   }`}
                 >
@@ -211,10 +211,10 @@ export default function SignupPage() {
                   type="checkbox"
                   checked={termsAccepted}
                   onChange={(e) => setTermsAccepted(e.target.checked)}
-                  className="w-4 h-4 mt-0.5 rounded border-[#E2E7EC] text-[#0CAA41] focus:ring-[#0CAA41] cursor-pointer shrink-0"
+                  className="w-4 h-4 mt-0.5 rounded border-[#E2E7EC] text-[#154360] focus:ring-[#154360] cursor-pointer shrink-0"
                 />
                 <span>
-                  I agree to the <a href="#" className="text-[#0CAA41] font-semibold hover:underline">Terms of Service</a> and <a href="#" className="text-[#0CAA41] font-semibold hover:underline">Privacy Policy</a>.
+                  I agree to the <a href="#" className="text-[#154360] font-semibold hover:underline">Terms of Service</a> and <a href="#" className="text-[#154360] font-semibold hover:underline">Privacy Policy</a>.
                 </span>
               </label>
             </div>
@@ -222,7 +222,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-4 py-3 bg-[#0CAA41] hover:bg-[#0C5325] disabled:opacity-60 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-md cursor-pointer"
+              className="w-full mt-4 py-3 bg-[#154360] hover:bg-[#0E2F44] disabled:opacity-60 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-md cursor-pointer"
             >
               {isLoading ? (
                 <span>Creating account...</span>

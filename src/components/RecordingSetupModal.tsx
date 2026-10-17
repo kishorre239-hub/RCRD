@@ -835,7 +835,7 @@ export default function RecordingSetupModal({
                 <button
                   type="button"
                   onClick={startRecordingFlow}
-                  className="w-full h-12 bg-[#0CAA41] hover:bg-[#0C5325] text-white font-bold rounded-2xl text-[15px] shadow-[0_4px_14px_rgba(12, 170, 65,0.35)] transition-all transform hover:-translate-y-0.5 active:scale-98 cursor-pointer flex items-center justify-center tracking-wide"
+                  className="w-full h-12 bg-[#154360] hover:bg-[#0E2F44] text-white font-bold rounded-2xl text-[15px] shadow-[0_4px_14px_rgba(21, 67, 96,0.35)] transition-all transform hover:-translate-y-0.5 active:scale-98 cursor-pointer flex items-center justify-center tracking-wide"
                 >
                   Start recording
                 </button>
@@ -878,7 +878,7 @@ export default function RecordingSetupModal({
       {/* ── PHASE 1.5: REQUESTING PERMISSION NOTIFICATION ── */}
       {phase === 'requesting' && (
         <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[99999] bg-[#1E1E24]/95 text-white px-6 py-3.5 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
-          <Loader2 className="w-5 h-5 text-[#0CAA41] animate-spin shrink-0" />
+          <Loader2 className="w-5 h-5 text-[#154360] animate-spin shrink-0" />
           <div className="text-sm font-semibold">
             Choose what to share in the browser popup...
           </div>
@@ -1173,7 +1173,7 @@ export default function RecordingSetupModal({
                 <button
                   type="button"
                   onClick={handleSaveToDrive}
-                  className="flex-[2] py-3 px-4 bg-[#0CAA41] hover:bg-[#0C5325] text-white rounded-xl font-bold text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+                  className="flex-[2] py-3 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl font-bold text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
                 >
                   <Folder size={15} />
                   <span>Save to Course Folder</span>
@@ -1188,7 +1188,7 @@ export default function RecordingSetupModal({
       {phase === 'uploading' && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white rounded-3xl shadow-2xl border border-[#E2E7EC] p-8 flex flex-col items-center gap-4 max-w-sm w-full animate-in zoom-in-95">
-            <Loader2 className="w-12 h-12 text-[#0CAA41] animate-spin" />
+            <Loader2 className="w-12 h-12 text-[#154360] animate-spin" />
             <div className="text-lg font-bold text-[#20262E]">Saving to Course Folder...</div>
             <div className="text-xs text-[#57636E] text-center">
               Target folder: {folders.find(f => f.id === selectedFolderId)?.name || 'MEETING'}
@@ -1196,7 +1196,7 @@ export default function RecordingSetupModal({
             {uploadProgress > 0 && (
               <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden mt-2">
                 <div 
-                  className="bg-[#0CAA41] h-full transition-all duration-300"
+                  className="bg-[#154360] h-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>

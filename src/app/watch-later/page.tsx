@@ -335,9 +335,9 @@ export default function WatchLaterPage() {
         <div className="p-5 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-between p-3 bg-[#F5F6F8] hover:bg-slate-100 rounded-xl cursor-pointer transition-all border border-[#E2E7EC] hover:border-[#E2E7EC] group">
             <div>
-              <div className="text-sm font-semibold text-[#20262E] group-hover:text-[#0C5325] transition-colors">RCRD Workspace</div>
+              <div className="text-sm font-semibold text-[#20262E] group-hover:text-[#0E2F44] transition-colors">RCRD Workspace</div>
               <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] uppercase tracking-wider bg-[#E6F6EC] px-2 py-0.5 rounded text-[#0C5325] font-bold border border-[#0CAA41]/30">Watch Later</span>
+                <span className="text-[10px] uppercase tracking-wider bg-[#EBF5FB] px-2 py-0.5 rounded text-[#0E2F44] font-bold border border-[#154360]/30">Watch Later</span>
                 <span className="text-xs text-[#57636E]">Saved Queue</span>
               </div>
             </div>
@@ -347,7 +347,7 @@ export default function WatchLaterPage() {
             onClick={() => { router.push('/settings?tab=users'); setIsMobileMenuOpen(false); }}
             className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm font-semibold text-[#20262E] transition-all shadow-sm hover:shadow-md cursor-pointer"
           >
-            <UsersIcon size={16} className="text-[#0CAA41]" />
+            <UsersIcon size={16} className="text-[#154360]" />
             Invite Teammates
           </button>
         </div>
@@ -374,7 +374,7 @@ export default function WatchLaterPage() {
         <div className="p-5 border-t border-[#E2E7EC] bg-[#F5F6F8]/50 flex-shrink-0">
           <button 
             onClick={() => { setIsRecordModalOpen(true); setIsMobileMenuOpen(false); }}
-            className="w-full bg-[#0CAA41] hover:bg-[#0C5325] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(12, 170, 65,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(12, 170, 65,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+            className="w-full bg-[#154360] hover:bg-[#0E2F44] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(21, 67, 96,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(21, 67, 96,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <VideoCameraIcon size={20} />
             <span>Record Video</span>
@@ -422,7 +422,7 @@ export default function WatchLaterPage() {
             {/* Video Grid */}
             {isLoading ? (
               <div className="flex items-center justify-center py-20">
-                <div className="w-8 h-8 border-4 border-[#0CAA41] border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-4 border-[#154360] border-t-transparent rounded-full animate-spin"></div>
               </div>
             ) : videos.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -430,7 +430,7 @@ export default function WatchLaterPage() {
                   <div className="w-16 h-16 bg-[#76A838] rounded shadow-md flex items-center justify-center transform -rotate-12 translate-x-4">
                     <CheckCircle2 size={32} className="text-white opacity-80" />
                   </div>
-                  <div className="w-16 h-16 bg-[#0CAA41] rounded shadow-md flex items-center justify-center absolute top-2 right-4 transform rotate-6 z-10">
+                  <div className="w-16 h-16 bg-[#154360] rounded shadow-md flex items-center justify-center absolute top-2 right-4 transform rotate-6 z-10">
                     <X size={32} className="text-white opacity-80" />
                   </div>
                   <div className="w-16 h-16 bg-[#76A838] rounded shadow-md flex items-center justify-center absolute top-8 left-2 z-20">
@@ -448,7 +448,7 @@ export default function WatchLaterPage() {
                   <div 
                     key={video.id} 
                     className={`bg-white rounded-xl shadow-sm border group cursor-pointer hover:shadow-md transition-all relative ${
-                      activeVideoMenu === video.id ? 'z-40 border-2 border-[#0CAA41] ring-2 ring-[#0CAA41]/20' : 'z-10 border-[#E2E7EC]'
+                      activeVideoMenu === video.id ? 'z-40 border-2 border-[#154360] ring-2 ring-[#154360]/20' : 'z-10 border-[#E2E7EC]'
                     }`}
                     onMouseEnter={() => {
                       setVideoHoverId(video.id);
@@ -623,7 +623,7 @@ export default function WatchLaterPage() {
                                   setActiveVideoMenu(null);
                                   handleDeleteVideo(video.id);
                                 }}
-                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#20262E] hover:bg-[#0CAA41]/10 hover:text-[#0CAA41] transition-colors cursor-pointer"
+                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#20262E] hover:bg-[#154360]/10 hover:text-[#154360] transition-colors cursor-pointer"
                               >
                                 Delete
                               </button>
@@ -636,7 +636,7 @@ export default function WatchLaterPage() {
                     {/* Card Details */}
                     <div className="p-4 relative bg-white border-t border-[#E2E7EC] flex flex-col gap-2">
                       <div className="flex items-start gap-3 mb-2">
-                        <div className="w-9 h-9 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-[12px] font-bold shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-[#154360] text-white flex items-center justify-center text-[12px] font-bold shrink-0">
                           {video.ownerName ? video.ownerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'HR'}
                         </div>
                         <div className="flex-1 min-w-0 pt-0.5">
@@ -663,12 +663,12 @@ export default function WatchLaterPage() {
                               if (e.key === 'Escape') setEditingTitleId(null);
                             }}
                             onBlur={() => handleSaveRename(video.id)}
-                            className="font-semibold text-[16px] text-[#20262E] w-full border-b-2 border-[#0CAA41] focus:outline-none bg-transparent pb-0.5"
+                            className="font-semibold text-[16px] text-[#20262E] w-full border-b-2 border-[#154360] focus:outline-none bg-transparent pb-0.5"
                           />
                         </div>
                       ) : (
                         <h3 
-                          className="font-medium text-[15px] text-[#20262E] truncate mb-3 cursor-pointer hover:text-[#0CAA41] transition-colors"
+                          className="font-medium text-[15px] text-[#20262E] truncate mb-3 cursor-pointer hover:text-[#154360] transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(`/video/${video.id}`);
@@ -756,7 +756,7 @@ export default function WatchLaterPage() {
                                 }
                               }
                             }}
-                            className="flex-1 bg-white border border-[#E2E7EC] rounded-full px-4 py-2 text-[13px] focus:outline-none focus:border-[#0CAA41] focus:ring-1 focus:ring-[#0CAA41] transition-shadow shadow-sm"
+                            className="flex-1 bg-white border border-[#E2E7EC] rounded-full px-4 py-2 text-[13px] focus:outline-none focus:border-[#154360] focus:ring-1 focus:ring-[#154360] transition-shadow shadow-sm"
                           />
                           <button 
                             onClick={async () => {
@@ -779,7 +779,7 @@ export default function WatchLaterPage() {
                               }
                             }}
                             disabled={!newCommentText.trim()}
-                            className="bg-[#0CAA41] hover:bg-[#0C5325] disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-full px-4 py-2 text-[13px] font-semibold transition-colors shadow-sm"
+                            className="bg-[#154360] hover:bg-[#0E2F44] disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-full px-4 py-2 text-[13px] font-semibold transition-colors shadow-sm"
                           >
                             Post
                           </button>
@@ -821,7 +821,7 @@ export default function WatchLaterPage() {
                     <input 
                       type="text" 
                       placeholder="Add names, emails, or Space" 
-                      className="w-full pl-4 pr-4 py-2.5 bg-white border border-[#E2E7EC] rounded-lg text-[14px] text-[#20262E] focus:border-[#0CAA41] focus:ring-1 focus:ring-[#0CAA41] outline-none"
+                      className="w-full pl-4 pr-4 py-2.5 bg-white border border-[#E2E7EC] rounded-lg text-[14px] text-[#20262E] focus:border-[#154360] focus:ring-1 focus:ring-[#154360] outline-none"
                     />
                   </div>
                   <div className="flex items-center gap-1 text-[13px] font-medium text-[#57636E] cursor-pointer hover:text-[#20262E] whitespace-nowrap">
@@ -858,7 +858,7 @@ export default function WatchLaterPage() {
                     <LinkIcon size={16} /> Copy link
                   </button>
                   <label className="flex items-center gap-2 cursor-pointer group">
-                    <input type="checkbox" className="w-4 h-4 rounded border-[#E2E7EC] text-[#0CAA41] focus:ring-[#0CAA41] group-hover:border-slate-400 transition-colors" />
+                    <input type="checkbox" className="w-4 h-4 rounded border-[#E2E7EC] text-[#154360] focus:ring-[#154360] group-hover:border-slate-400 transition-colors" />
                     <span className="text-[13px] font-medium text-[#20262E]">Share video at 0:00</span>
                   </label>
                 </div>
@@ -938,7 +938,7 @@ export default function WatchLaterPage() {
                   </button>
                   <button 
                     onClick={confirmMoveVideo}
-                    className="px-5 py-2 bg-[#0CAA41] hover:bg-[#0C5325] text-white rounded-lg text-[13px] font-semibold transition-colors shadow-sm"
+                    className="px-5 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-lg text-[13px] font-semibold transition-colors shadow-sm"
                   >
                     Move
                   </button>
@@ -990,15 +990,15 @@ function SidebarItem({ icon, label, active = false, external = false, href }: { 
         fontStyle: 'normal',
         lineHeight: '14px',
         letterSpacing: 'normal',
-        color: active ? '#0CAA41' : '#292A2E'
+        color: active ? '#154360' : '#292A2E'
       }}
       className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold cursor-pointer transition-all ${
       active 
-        ? "bg-[#E6F6EC] shadow-sm" 
+        ? "bg-[#EBF5FB] shadow-sm" 
         : "hover:bg-[#F5F6F8]"
     }`}>
       <div className="flex items-center gap-3">
-        <div className={`${active ? "text-[#0CAA41]" : "text-[#57636E]"}`}>
+        <div className={`${active ? "text-[#154360]" : "text-[#57636E]"}`}>
           {icon}
         </div>
         <span className="text-sm tracking-wide">{label}</span>

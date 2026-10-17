@@ -40,13 +40,13 @@ export default function AppHeader({
       {/* Center Section: Perfectly Centered Search Bar */}
       <div className="flex-1 flex justify-center px-2 sm:px-6 max-w-2xl mx-auto">
         <div className="w-full relative group">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E] group-focus-within:text-[#0CAA41] transition-colors pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E] group-focus-within:text-[#154360] transition-colors pointer-events-none" />
           <input
             type="text"
             value={searchQuery !== undefined ? searchQuery : undefined}
             onChange={onSearchChange ? (e) => onSearchChange(e.target.value) : undefined}
             placeholder={placeholder}
-            className="w-full pl-10 pr-4 py-2 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:bg-white focus:border-[#0CAA41] focus:ring-4 focus:ring-[#0CAA41]/10 outline-none transition-all placeholder:text-[#57636E] font-medium"
+            className="w-full pl-10 pr-4 py-2 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:bg-white focus:border-[#154360] focus:ring-4 focus:ring-[#154360]/10 outline-none transition-all placeholder:text-[#57636E] font-medium"
           />
         </div>
       </div>
@@ -56,7 +56,7 @@ export default function AppHeader({
         <button
           type="button"
           onClick={onOpenProfile}
-          className="w-10 h-10 rounded-full flex items-center justify-center p-0.5 hover:scale-105 active:scale-95 transition-all cursor-pointer border-2 border-[#E2E7EC] hover:border-[#0CAA41]/50 bg-white shadow-xs group"
+          className="w-10 h-10 rounded-full flex items-center justify-center p-0.5 hover:scale-105 active:scale-95 transition-all cursor-pointer border-2 border-[#E2E7EC] hover:border-[#154360]/50 bg-white shadow-xs group"
           title="Open profile menu"
           aria-label="Open profile menu"
         >

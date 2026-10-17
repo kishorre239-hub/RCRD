@@ -70,7 +70,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8] font-sans text-[#20262E] flex flex-col justify-between selection:bg-[#E6F6EC] selection:text-[#0C5325]">
+    <div className="min-h-screen bg-[#F5F6F8] font-sans text-[#20262E] flex flex-col justify-between selection:bg-[#EBF5FB] selection:text-[#0E2F44]">
       
       {/* Top Navbar */}
       <header className="h-16 px-6 sm:px-12 flex items-center justify-between border-b border-[#E2E7EC] bg-white sticky top-0 z-30 shadow-xs">
@@ -81,7 +81,7 @@ export default function LoginPage() {
           <span className="text-[#57636E]">Don&apos;t have an account?</span>
           <Link
             href="/signup"
-            className="font-bold text-[#0CAA41] hover:text-[#0C5325] px-3 py-1.5 rounded-lg border border-[#0CAA41]/30 hover:bg-[#E6F6EC] transition-all"
+            className="font-bold text-[#154360] hover:text-[#0E2F44] px-3 py-1.5 rounded-lg border border-[#154360]/30 hover:bg-[#EBF5FB] transition-all"
           >
             Sign up free
           </Link>
@@ -93,7 +93,7 @@ export default function LoginPage() {
         <div className="w-full max-w-[440px] bg-white border border-[#E2E7EC] rounded-3xl p-8 sm:p-10 shadow-sm shadow-slate-200/50">
           
           <div className="text-center mb-8">
-            <div className="w-12 h-12 bg-[#E6F6EC] border border-[#0CAA41]/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#0CAA41]">
+            <div className="w-12 h-12 bg-[#EBF5FB] border border-[#154360]/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#154360]">
               <Sparkles size={22} />
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#20262E] tracking-tight">
@@ -124,7 +124,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8] hover:bg-slate-50 focus:bg-white border border-[#E2E7EC] focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/15 rounded-xl text-xs text-[#20262E] outline-none transition-all font-medium placeholder:text-[#57636E]"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8] hover:bg-slate-50 focus:bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs text-[#20262E] outline-none transition-all font-medium placeholder:text-[#57636E]"
                 />
               </div>
             </div>
@@ -134,7 +134,7 @@ export default function LoginPage() {
                 <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider">
                   Password
                 </label>
-                <a href="#" className="text-[11px] font-semibold text-[#0CAA41] hover:underline">
+                <a href="#" className="text-[11px] font-semibold text-[#154360] hover:underline">
                   Forgot password?
                 </a>
               </div>
@@ -146,7 +146,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
-                  className="w-full pl-10 pr-10 py-2.5 bg-[#F5F6F8] hover:bg-slate-50 focus:bg-white border border-[#E2E7EC] focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/15 rounded-xl text-xs text-[#20262E] outline-none transition-all font-medium placeholder:text-[#57636E]"
+                  className="w-full pl-10 pr-10 py-2.5 bg-[#F5F6F8] hover:bg-slate-50 focus:bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs text-[#20262E] outline-none transition-all font-medium placeholder:text-[#57636E]"
                 />
                 <button
                   type="button"
@@ -164,7 +164,7 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-[#E2E7EC] text-[#0CAA41] focus:ring-[#0CAA41] cursor-pointer"
+                  className="w-4 h-4 rounded border-[#E2E7EC] text-[#154360] focus:ring-[#154360] cursor-pointer"
                 />
                 <span>Remember this device</span>
               </label>
@@ -173,7 +173,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-2 py-3 bg-[#0CAA41] hover:bg-[#0C5325] disabled:opacity-60 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-md cursor-pointer"
+              className="w-full mt-2 py-3 bg-[#154360] hover:bg-[#0E2F44] disabled:opacity-60 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-md cursor-pointer"
             >
               {isLoading ? (
                 <span>Signing in...</span>
@@ -195,7 +195,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => handleQuickDemo("admin@rcrd.com", "2026")}
-                className="p-2 rounded-xl border border-[#E2E7EC] hover:border-[#0CAA41] hover:bg-[#E6F6EC] text-left transition-colors cursor-pointer"
+                className="p-2 rounded-xl border border-[#E2E7EC] hover:border-[#154360] hover:bg-[#EBF5FB] text-left transition-colors cursor-pointer"
               >
                 <div className="font-bold text-[#20262E]">Admin Studio</div>
                 <div className="text-[10px] text-[#57636E]">admin@rcrd.com</div>
@@ -203,7 +203,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => handleQuickDemo("geonixa@rcrd.com", "9908")}
-                className="p-2 rounded-xl border border-[#E2E7EC] hover:border-[#0CAA41] hover:bg-[#E6F6EC] text-left transition-colors cursor-pointer"
+                className="p-2 rounded-xl border border-[#E2E7EC] hover:border-[#154360] hover:bg-[#EBF5FB] text-left transition-colors cursor-pointer"
               >
                 <div className="font-bold text-[#20262E]">Geonixa Host</div>
                 <div className="text-[10px] text-[#57636E]">geonixa@rcrd.com</div>

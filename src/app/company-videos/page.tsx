@@ -72,7 +72,7 @@ export default function CompanyVideosPage() {
             <span className="font-medium hidden sm:inline">Back to App</span>
           </Link>
           <div className="flex items-center gap-2">
-            <Building className="w-5 h-5 text-[#72BAA9]" />
+            <Building className="w-5 h-5 text-[#2980B9]" />
             <h1 className="text-xl font-bold">Company Shared Videos</h1>
           </div>
         </header>
@@ -101,7 +101,7 @@ export default function CompanyVideosPage() {
                     </div>
                     <div className="p-4 flex-1 flex flex-col">
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-[#20262E] dark:text-white line-clamp-1 group-hover:text-[#0C5325] dark:group-hover:text-indigo-400 transition-colors cursor-pointer" title={video.title}>
+                        <h3 className="font-semibold text-[#20262E] dark:text-white line-clamp-1 group-hover:text-[#0E2F44] dark:group-hover:text-indigo-400 transition-colors cursor-pointer" title={video.title}>
                           {video.title}
                         </h3>
                       </div>

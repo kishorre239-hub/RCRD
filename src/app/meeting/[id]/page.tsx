@@ -251,7 +251,7 @@ function JoinMeetingContent() {
   const isEnded = meeting?.status === "ended";
 
   return (
-    <div className="min-h-screen bg-[#F4F7FC] flex flex-col justify-between selection:bg-[#0CAA41] selection:text-white font-sans antialiased text-[#20262E] relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#F4F7FC] flex flex-col justify-between selection:bg-[#154360] selection:text-white font-sans antialiased text-[#20262E] relative overflow-x-hidden">
       
       {/* Background Decorative Gradient Blobs */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-gradient-to-b from-blue-100/60 via-indigo-50/40 to-transparent blur-3xl pointer-events-none -z-10" />
@@ -269,7 +269,7 @@ function JoinMeetingContent() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.push("/meetings")}
-            className="text-xs font-semibold text-[#57636E] hover:text-[#0CAA41] px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            className="text-xs font-semibold text-[#57636E] hover:text-[#154360] px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
           >
             All Meetings
           </button>
@@ -278,7 +278,7 @@ function JoinMeetingContent() {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E2E7EC] bg-white hover:bg-[#F5F6F8] text-xs font-semibold text-[#20262E] shadow-2xs transition-all"
             title="Copy direct join link"
           >
-            {copiedLink ? <Check size={13} className="text-[#72BAA9]" /> : <Copy size={13} className="text-[#0CAA41]" />}
+            {copiedLink ? <Check size={13} className="text-[#2980B9]" /> : <Copy size={13} className="text-[#154360]" />}
             <span>{copiedLink ? "Link Copied!" : "Share Link"}</span>
           </button>
         </div>
@@ -291,7 +291,7 @@ function JoinMeetingContent() {
           {/* LOADING STATE */}
           {loadingMeeting && (
             <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#E2E7EC]/90 shadow-xl shadow-slate-200/50 text-center space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-[#E6F6EC] border border-[#0CAA41]/20 flex items-center justify-center mx-auto text-[#0CAA41] animate-spin">
+              <div className="w-14 h-14 rounded-2xl bg-[#EBF5FB] border border-[#154360]/20 flex items-center justify-center mx-auto text-[#154360] animate-spin">
                 <RefreshCw size={24} />
               </div>
               <h2 className="text-base font-bold text-[#20262E]">Connecting to Class Session...</h2>
@@ -302,7 +302,7 @@ function JoinMeetingContent() {
           {/* MEETING NOT FOUND STATE */}
           {!loadingMeeting && meetingNotFound && (
             <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#E2E7EC]/90 shadow-xl shadow-slate-200/50 text-center space-y-5">
-              <div className="w-14 h-14 rounded-2xl bg-[#E6F6EC]/40 border border-[#72BAA9]/30 flex items-center justify-center mx-auto text-[#0CAA41]">
+              <div className="w-14 h-14 rounded-2xl bg-[#EBF5FB]/40 border border-[#2980B9]/30 flex items-center justify-center mx-auto text-[#154360]">
                 <AlertCircle size={26} />
               </div>
               <div>
@@ -321,7 +321,7 @@ function JoinMeetingContent() {
                 </button>
                 <button
                   onClick={() => router.push("/meetings")}
-                  className="flex-1 py-2.5 px-4 bg-[#0CAA41] hover:bg-[#0C5325] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
                 >
                   Go to Meetings Hub <ChevronRight size={13} />
                 </button>
@@ -335,20 +335,20 @@ function JoinMeetingContent() {
               
               {/* Meeting Banner Header */}
               <div className="p-6 sm:p-7 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white relative overflow-hidden">
-                <div className="absolute right-0 bottom-0 translate-x-6 translate-y-6 w-32 h-32 bg-[#0CAA41]/20 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute right-0 bottom-0 translate-x-6 translate-y-6 w-32 h-32 bg-[#154360]/20 rounded-full blur-2xl pointer-events-none" />
 
                 {/* Status Badges */}
                 <div className="flex items-center justify-between gap-2 mb-3.5">
                   <div className="flex items-center gap-2">
                     {isLive && (
-                      <span className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#0CAA41] bg-[#0CAA41]/20 border border-[#0CAA41]/30 px-3 py-0.8 rounded-full shadow-xs">
-                        <span className="w-2 h-2 rounded-full bg-[#0CAA41] animate-ping" />
+                      <span className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#154360] bg-[#154360]/20 border border-[#154360]/30 px-3 py-0.8 rounded-full shadow-xs">
+                        <span className="w-2 h-2 rounded-full bg-[#154360] animate-ping" />
                         LIVE SESSION
                       </span>
                     )}
                     {isScheduled && (
-                      <span className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-blue-300 bg-[#E6F6EC]0/20 border border-[#0CAA41]/30 px-3 py-0.8 rounded-full shadow-xs">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#0CAA41] animate-pulse" />
+                      <span className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-blue-300 bg-[#EBF5FB]0/20 border border-[#154360]/30 px-3 py-0.8 rounded-full shadow-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#154360] animate-pulse" />
                         SCHEDULED CLASS
                       </span>
                     )}
@@ -372,11 +372,11 @@ function JoinMeetingContent() {
                 {/* Date, Time & Duration Meta */}
                 <div className="flex flex-wrap items-center gap-y-1.5 gap-x-4 text-xs text-slate-300 pt-1 font-medium">
                   <div className="flex items-center gap-1.5">
-                    <Calendar size={13} className="text-[#0CAA41]" />
+                    <Calendar size={13} className="text-[#154360]" />
                     <span>{fmtDate(meeting.scheduledAt)}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <Clock size={13} className="text-[#0CAA41]" />
+                    <Clock size={13} className="text-[#154360]" />
                     <span>{formatDuration(meeting.duration)}</span>
                   </div>
                 </div>
@@ -385,10 +385,10 @@ function JoinMeetingContent() {
                 {isScheduled && (
                   <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-semibold text-blue-200">
                     <span className="flex items-center gap-1.5">
-                      <Sparkles size={13} className="text-[#0CAA41]" />
+                      <Sparkles size={13} className="text-[#154360]" />
                       Class Countdown
                     </span>
-                    <span className="font-mono font-bold text-white bg-[#0CAA41]/40 px-2.5 py-0.5 rounded-lg border border-[#0CAA41]/30">
+                    <span className="font-mono font-bold text-white bg-[#154360]/40 px-2.5 py-0.5 rounded-lg border border-[#154360]/30">
                       {getCountdown(meeting.scheduledAt)}
                     </span>
                   </div>
@@ -399,8 +399,8 @@ function JoinMeetingContent() {
               <form onSubmit={handleJoinSubmit} className="p-6 sm:p-7 space-y-4.5">
                 
                 {errorMsg && (
-                  <div className="p-3.5 bg-[#0CAA41]/10 border border-[#0CAA41]/30 rounded-2xl flex items-start gap-2.5 text-xs text-[#0C5325] animate-in fade-in duration-200">
-                    <AlertCircle size={16} className="text-[#0CAA41] shrink-0 mt-0.5" />
+                  <div className="p-3.5 bg-[#154360]/10 border border-[#154360]/30 rounded-2xl flex items-start gap-2.5 text-xs text-[#0E2F44] animate-in fade-in duration-200">
+                    <AlertCircle size={16} className="text-[#154360] shrink-0 mt-0.5" />
                     <span className="font-semibold leading-relaxed">{errorMsg}</span>
                   </div>
                 )}
@@ -419,7 +419,7 @@ function JoinMeetingContent() {
                       onChange={e => setStudentName(e.target.value)}
                       placeholder="e.g. Alex Morgan"
                       autoFocus={!studentName}
-                      className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8]/70 border border-[#E2E7EC] focus:border-[#0CAA41] focus:bg-white rounded-xl text-xs text-[#20262E] placeholder:text-[#57636E] focus:ring-2 focus:ring-[#0CAA41]/15 outline-none transition-all font-medium shadow-2xs"
+                      className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8]/70 border border-[#E2E7EC] focus:border-[#154360] focus:bg-white rounded-xl text-xs text-[#20262E] placeholder:text-[#57636E] focus:ring-2 focus:ring-[#154360]/15 outline-none transition-all font-medium shadow-2xs"
                     />
                   </div>
                   <p className="text-[11px] text-[#57636E] mt-1">This name will be shown to the instructor and attendees in the live room.</p>
@@ -432,7 +432,7 @@ function JoinMeetingContent() {
                   </label>
                   <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-100 border border-[#E2E7EC] rounded-xl text-xs font-mono font-bold text-[#20262E]">
                     <span className="tracking-wider">{meeting.id}</span>
-                    <span className="text-[10px] uppercase font-bold text-[#72BAA9] bg-[#E6F6EC]/40 px-2 py-0.5 rounded border border-[#72BAA9]/30 flex items-center gap-1">
+                    <span className="text-[10px] uppercase font-bold text-[#2980B9] bg-[#EBF5FB]/40 px-2 py-0.5 rounded border border-[#2980B9]/30 flex items-center gap-1">
                       <CheckCircle2 size={10} /> Verified
                     </span>
                   </div>
@@ -445,7 +445,7 @@ function JoinMeetingContent() {
                       Passcode *
                     </label>
                     {initialPwd && (
-                      <span className="text-[10px] text-[#72BAA9] font-bold bg-[#E6F6EC]/40 border border-[#72BAA9]/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="text-[10px] text-[#2980B9] font-bold bg-[#EBF5FB]/40 border border-[#2980B9]/30 px-2 py-0.5 rounded-full flex items-center gap-1">
                         <Check size={10} /> Auto-filled from link
                       </span>
                     )}
@@ -457,7 +457,7 @@ function JoinMeetingContent() {
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       placeholder="Enter 8-digit passcode"
-                      className="w-full pl-10 pr-10 py-2.5 bg-[#F5F6F8]/70 border border-[#E2E7EC] focus:border-[#0CAA41] focus:bg-white rounded-xl text-xs font-mono font-bold text-[#20262E] placeholder:text-[#57636E] tracking-wider focus:ring-2 focus:ring-[#0CAA41]/15 outline-none transition-all shadow-2xs"
+                      className="w-full pl-10 pr-10 py-2.5 bg-[#F5F6F8]/70 border border-[#E2E7EC] focus:border-[#154360] focus:bg-white rounded-xl text-xs font-mono font-bold text-[#20262E] placeholder:text-[#57636E] tracking-wider focus:ring-2 focus:ring-[#154360]/15 outline-none transition-all shadow-2xs"
                     />
                     <button
                       type="button"
@@ -471,8 +471,8 @@ function JoinMeetingContent() {
                 </div>
 
                 {/* Security Guarantee */}
-                <div className="flex items-center gap-2 p-3 bg-[#E6F6EC]/60 border border-[#0CAA41]/20 rounded-xl text-[11px] text-[#57636E]">
-                  <Shield size={14} className="text-[#0CAA41] shrink-0" />
+                <div className="flex items-center gap-2 p-3 bg-[#EBF5FB]/60 border border-[#154360]/20 rounded-xl text-[11px] text-[#57636E]">
+                  <Shield size={14} className="text-[#154360] shrink-0" />
                   <span>Secure connection · High definition audio & screen broadcast</span>
                 </div>
 
@@ -481,7 +481,7 @@ function JoinMeetingContent() {
                   <button
                     type="submit"
                     disabled={joining || !studentName.trim()}
-                    className="w-full py-3 px-4 bg-gradient-to-r from-[#0CAA41] to-[#0C5325] hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-200 disabled:text-[#57636E] text-white font-bold text-xs rounded-xl shadow-md shadow-[rgba(12, 170, 65,0.2)] hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                    className="w-full py-3 px-4 bg-gradient-to-r from-[#154360] to-[#0E2F44] hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-200 disabled:text-[#57636E] text-white font-bold text-xs rounded-xl shadow-md shadow-[rgba(21, 67, 96,0.2)] hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                   >
                     {joining ? (
                       <>
@@ -521,7 +521,7 @@ export default function MeetingJoinPage() {
       fallback={
         <div className="min-h-screen bg-[#F4F7FC] flex items-center justify-center p-6 text-center">
           <div className="p-8 bg-white rounded-3xl border border-[#E2E7EC] shadow-xl space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-[#E6F6EC] text-[#0CAA41] flex items-center justify-center mx-auto animate-spin">
+            <div className="w-10 h-10 rounded-xl bg-[#EBF5FB] text-[#154360] flex items-center justify-center mx-auto animate-spin">
               <RefreshCw size={20} />
             </div>
             <p className="text-xs font-bold text-[#20262E]">Loading meeting room...</p>

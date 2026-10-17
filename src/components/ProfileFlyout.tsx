@@ -124,7 +124,7 @@ export default function ProfileFlyout({
           
           {/* Section 1: User Avatar & Name Card */}
           <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-xl font-bold shadow-md ring-4 ring-[#E6F6EC] mb-3">
+            <div className="w-16 h-16 rounded-full bg-[#154360] text-white flex items-center justify-center text-xl font-bold shadow-md ring-4 ring-[#EBF5FB] mb-3">
               {profile.avatarText}
             </div>
             
@@ -133,9 +133,9 @@ export default function ProfileFlyout({
 
             <button
               onClick={() => setIsEditing(!isEditing)}
-              className="mt-3 px-4 py-1.5 border border-[#E2E7EC] hover:border-[#0CAA41] hover:bg-[#E6F6EC]/40 text-[#20262E] hover:text-[#0C5325] text-xs font-semibold rounded-lg transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+              className="mt-3 px-4 py-1.5 border border-[#E2E7EC] hover:border-[#154360] hover:bg-[#EBF5FB]/40 text-[#20262E] hover:text-[#0E2F44] text-xs font-semibold rounded-lg transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
             >
-              <Edit3 size={12} className="text-[#0CAA41]" />
+              <Edit3 size={12} className="text-[#154360]" />
               {isEditing ? "Cancel editing" : "Edit profile"}
             </button>
           </div>
@@ -151,7 +151,7 @@ export default function ProfileFlyout({
                   value={editForm.name}
                   onChange={e => setEditForm({ ...editForm, name: e.target.value })}
                   required
-                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E2E7EC] rounded-lg text-[#20262E] focus:border-[#0CAA41] outline-none"
+                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E2E7EC] rounded-lg text-[#20262E] focus:border-[#154360] outline-none"
                 />
               </div>
               <div>
@@ -161,7 +161,7 @@ export default function ProfileFlyout({
                   value={editForm.email}
                   onChange={e => setEditForm({ ...editForm, email: e.target.value })}
                   required
-                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E2E7EC] rounded-lg text-[#20262E] focus:border-[#0CAA41] outline-none"
+                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E2E7EC] rounded-lg text-[#20262E] focus:border-[#154360] outline-none"
                 />
               </div>
               <div>
@@ -170,12 +170,12 @@ export default function ProfileFlyout({
                   type="text"
                   value={editForm.role}
                   onChange={e => setEditForm({ ...editForm, role: e.target.value })}
-                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E2E7EC] rounded-lg text-[#20262E] focus:border-[#0CAA41] outline-none"
+                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E2E7EC] rounded-lg text-[#20262E] focus:border-[#154360] outline-none"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full py-2 bg-[#0CAA41] hover:bg-[#0C5325] text-white text-xs font-bold rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
+                className="w-full py-2 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
               >
                 <Check size={14} />
                 Save Changes
@@ -187,7 +187,7 @@ export default function ProfileFlyout({
           <div className="pt-4 border-t border-[#E2E7EC] space-y-1.5">
             <div 
               onClick={() => { onClose(); router.push('/settings?tab=billing'); }}
-              className="text-xs font-bold text-[#0CAA41] hover:text-[#0C5325] cursor-pointer flex items-center justify-between group"
+              className="text-xs font-bold text-[#154360] hover:text-[#0E2F44] cursor-pointer flex items-center justify-between group"
             >
               <span>Upgrade plan</span>
               <ExternalLink size={12} className="group-hover:translate-x-0.5 transition-transform" />
@@ -207,10 +207,10 @@ export default function ProfileFlyout({
           <div className="pt-4 border-t border-[#E2E7EC]">
             <div 
               onClick={() => showToast("RCRD AI feature activated!")}
-              className="p-3.5 bg-gradient-to-br from-[#E6F6EC] to-white rounded-xl border border-[#0CAA41]/25 hover:border-[#0CAA41] transition-all cursor-pointer group shadow-2xs"
+              className="p-3.5 bg-gradient-to-br from-[#EBF5FB] to-white rounded-xl border border-[#154360]/25 hover:border-[#154360] transition-all cursor-pointer group shadow-2xs"
             >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-[#0C5325] group-hover:text-[#0CAA41]">
-                <Sparkles size={14} className="text-[#0CAA41]" />
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#0E2F44] group-hover:text-[#154360]">
+                <Sparkles size={14} className="text-[#154360]" />
                 <span>Get RCRD AI✦</span>
               </div>
               <p className="text-[11px] text-[#57636E] mt-1 leading-relaxed">
@@ -294,7 +294,7 @@ export default function ProfileFlyout({
         {/* Interactive Toast Notification */}
         {toastMsg && (
           <div className="absolute bottom-4 left-4 right-4 bg-[#20262E] text-white text-xs px-3 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-in slide-in-from-bottom duration-200 z-50">
-            <Check size={14} className="text-[#0CAA41]" />
+            <Check size={14} className="text-[#154360]" />
             <span>{toastMsg}</span>
           </div>
         )}
@@ -306,7 +306,7 @@ export default function ProfileFlyout({
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E2E7EC] font-sans">
             <div className="flex items-center justify-between pb-3 border-b border-[#E2E7EC] mb-4">
               <h3 className="text-base font-bold text-[#20262E] flex items-center gap-2">
-                <Keyboard size={18} className="text-[#0CAA41]" />
+                <Keyboard size={18} className="text-[#154360]" />
                 Keyboard Shortcuts
               </h3>
               <button onClick={() => setShowShortcuts(false)} className="text-[#57636E] hover:text-[#20262E]">
@@ -339,7 +339,7 @@ export default function ProfileFlyout({
       {showChromeExt && (
         <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E2E7EC] font-sans text-center">
-            <div className="w-12 h-12 bg-[#E6F6EC] text-[#0CAA41] rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 bg-[#EBF5FB] text-[#154360] rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Download size={24} />
             </div>
             <h3 className="text-base font-bold text-[#20262E]">RCRD Chrome Extension</h3>
@@ -353,7 +353,7 @@ export default function ProfileFlyout({
                   showToast("Chrome Web Store link copied!");
                   setShowChromeExt(false);
                 }}
-                className="flex-1 py-2.5 bg-[#0CAA41] hover:bg-[#0C5325] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                className="flex-1 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
               >
                 Copy Extension Link
               </button>
@@ -369,7 +369,7 @@ export default function ProfileFlyout({
       {showDownloadApp && (
         <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E2E7EC] font-sans text-center">
-            <div className="w-12 h-12 bg-[#E6F6EC] text-[#0CAA41] rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 bg-[#EBF5FB] text-[#154360] rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Download size={24} />
             </div>
             <h3 className="text-base font-bold text-[#20262E]">Download RCRD Desktop</h3>
@@ -382,7 +382,7 @@ export default function ProfileFlyout({
                   showToast("Starting Windows desktop installer download...");
                   setShowDownloadApp(false);
                 }}
-                className="flex-1 py-2.5 bg-[#0CAA41] hover:bg-[#0C5325] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                className="flex-1 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
               >
                 Download for Windows
               </button>
@@ -404,7 +404,7 @@ export default function ProfileFlyout({
       {showMobileApp && (
         <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E2E7EC] font-sans text-center">
-            <div className="w-12 h-12 bg-[#E6F6EC] text-[#0CAA41] rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 bg-[#EBF5FB] text-[#154360] rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Smartphone size={24} />
             </div>
             <h3 className="text-base font-bold text-[#20262E]">RCRD for iOS & Android</h3>
@@ -417,7 +417,7 @@ export default function ProfileFlyout({
                   showToast("Redirecting to App Store...");
                   setShowMobileApp(false);
                 }}
-                className="flex-1 py-2.5 bg-[#0CAA41] hover:bg-[#0C5325] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                className="flex-1 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
               >
                 Apple App Store
               </button>

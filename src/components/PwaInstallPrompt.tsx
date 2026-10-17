@@ -109,10 +109,10 @@ export default function PwaInstallPrompt() {
       {!isOpen && hasPromptedOnce && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 px-3.5 py-2 bg-white/95 hover:bg-white text-[#20262E] hover:text-[#0CAA41] text-xs font-bold rounded-full shadow-lg border border-[#E2E7EC] hover:border-[#0CAA41]/40 backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+          className="fixed bottom-5 right-5 z-40 flex items-center gap-2 px-3.5 py-2 bg-white/95 hover:bg-white text-[#20262E] hover:text-[#154360] text-xs font-bold rounded-full shadow-lg border border-[#E2E7EC] hover:border-[#154360]/40 backdrop-blur-md transition-all active:scale-95 cursor-pointer"
           title="Install RCRD App on Android or iPhone"
         >
-          <div className="w-5 h-5 rounded-full bg-[#E6F6EC] flex items-center justify-center text-[#0CAA41]">
+          <div className="w-5 h-5 rounded-full bg-[#EBF5FB] flex items-center justify-center text-[#154360]">
             <Download className="w-3 h-3" />
           </div>
           <span>Install App</span>
@@ -127,7 +127,7 @@ export default function PwaInstallPrompt() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="relative p-5 bg-gradient-to-br from-[#E6F6EC] via-white to-slate-50 border-b border-[#E2E7EC]">
+            <div className="relative p-5 bg-gradient-to-br from-[#EBF5FB] via-white to-slate-50 border-b border-[#E2E7EC]">
               <button
                 onClick={dismissPrompt}
                 className="absolute top-4 right-4 p-1.5 text-[#57636E] hover:text-[#20262E] rounded-full hover:bg-black/5 transition-colors cursor-pointer"
@@ -169,7 +169,7 @@ export default function PwaInstallPrompt() {
                     onClick={() => setSelectedPlatform('android')}
                     className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       selectedPlatform === 'android'
-                        ? 'bg-white text-[#0CAA41] shadow-xs'
+                        ? 'bg-white text-[#154360] shadow-xs'
                         : 'text-[#57636E] hover:text-[#20262E]'
                     }`}
                   >
@@ -181,7 +181,7 @@ export default function PwaInstallPrompt() {
                     onClick={() => setSelectedPlatform('iphone')}
                     className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       selectedPlatform === 'iphone'
-                        ? 'bg-white text-[#0CAA41] shadow-xs'
+                        ? 'bg-white text-[#154360] shadow-xs'
                         : 'text-[#57636E] hover:text-[#20262E]'
                     }`}
                   >
@@ -196,20 +196,20 @@ export default function PwaInstallPrompt() {
                 <div className="space-y-3 bg-[#F9FAFB] p-4 rounded-xl border border-[#E2E7EC]">
                   <div className="flex items-center justify-between text-xs font-bold text-[#20262E]">
                     <span>Installation on Android & Chrome:</span>
-                    <span className="text-[10px] font-bold text-[#0CAA41] bg-[#E6F6EC] px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-bold text-[#154360] bg-[#EBF5FB] px-2 py-0.5 rounded-full">
                       PWA Ready
                     </span>
                   </div>
 
                   <ul className="text-xs text-[#57636E] space-y-2.5 font-medium leading-relaxed">
                     <li className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#E6F6EC] text-[#0CAA41] flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">
+                      <div className="w-5 h-5 rounded-full bg-[#EBF5FB] text-[#154360] flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">
                         1
                       </div>
                       <span>Click the <b>&quot;Install on Android&quot;</b> button below for instant 1-tap installation.</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#E6F6EC] text-[#0CAA41] flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">
+                      <div className="w-5 h-5 rounded-full bg-[#EBF5FB] text-[#154360] flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">
                         2
                       </div>
                       <span>
@@ -217,7 +217,7 @@ export default function PwaInstallPrompt() {
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#E6F6EC] text-[#0CAA41] flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">
+                      <div className="w-5 h-5 rounded-full bg-[#EBF5FB] text-[#154360] flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">
                         3
                       </div>
                       <span>RCRD will be added to your home screen and app launcher.</span>
@@ -228,7 +228,7 @@ export default function PwaInstallPrompt() {
                     <button
                       type="button"
                       onClick={handleInstallClick}
-                      className="w-full mt-2 py-2.5 px-4 bg-[#0CAA41] hover:bg-[#0C5325] text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                      className="w-full mt-2 py-2.5 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
                     >
                       <Download className="w-4 h-4" />
                       <span>Install on Android Now</span>
@@ -242,38 +242,38 @@ export default function PwaInstallPrompt() {
                 <div className="space-y-3 bg-[#F9FAFB] p-4 rounded-xl border border-[#E2E7EC]">
                   <div className="flex items-center justify-between text-xs font-bold text-[#20262E]">
                     <span>Installation on iPhone & iPad (Safari):</span>
-                    <span className="text-[10px] font-bold text-[#0CAA41] bg-[#E6F6EC] px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-bold text-[#154360] bg-[#EBF5FB] px-2 py-0.5 rounded-full">
                       Apple Safari
                     </span>
                   </div>
 
                   <ul className="text-xs text-[#57636E] space-y-2.5 font-medium leading-relaxed">
                     <li className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#E6F6EC] text-[#0CAA41] flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">
+                      <div className="w-5 h-5 rounded-full bg-[#EBF5FB] text-[#154360] flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">
                         1
                       </div>
                       <span>
-                        Tap the <b>Share</b> button <Share2 className="w-3.5 h-3.5 inline text-[#0CAA41]" /> at the bottom bar of Safari.
+                        Tap the <b>Share</b> button <Share2 className="w-3.5 h-3.5 inline text-[#154360]" /> at the bottom bar of Safari.
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#E6F6EC] text-[#0CAA41] flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">
+                      <div className="w-5 h-5 rounded-full bg-[#EBF5FB] text-[#154360] flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">
                         2
                       </div>
                       <span>
-                        Scroll down and tap <span className="font-bold text-[#20262E]"><PlusSquare className="w-3.5 h-3.5 inline text-[#0CAA41]" /> Add to Home Screen</span>.
+                        Scroll down and tap <span className="font-bold text-[#20262E]"><PlusSquare className="w-3.5 h-3.5 inline text-[#154360]" /> Add to Home Screen</span>.
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-[#E6F6EC] text-[#0CAA41] flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">
+                      <div className="w-5 h-5 rounded-full bg-[#EBF5FB] text-[#154360] flex items-center justify-center shrink-0 font-bold text-[11px] mt-0.5">
                         3
                       </div>
                       <span>Tap <b>&quot;Add&quot;</b> at the top right to complete.</span>
                     </li>
                   </ul>
 
-                  <div className="flex items-center gap-2 p-2.5 bg-[#E6F6EC]/40 rounded-xl border border-[#72BAA9]/30 text-[11px] text-[#0C5325] font-semibold">
-                    <CheckCircle2 className="w-4 h-4 shrink-0 text-[#0CAA41]" />
+                  <div className="flex items-center gap-2 p-2.5 bg-[#EBF5FB]/40 rounded-xl border border-[#2980B9]/30 text-[11px] text-[#0E2F44] font-semibold">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-[#154360]" />
                     <span>Launches in full-screen mode like a native iOS App!</span>
                   </div>
                 </div>
@@ -299,7 +299,7 @@ export default function PwaInstallPrompt() {
                         dismissPrompt();
                       }
                     }}
-                    className="px-5 py-2.5 bg-[#0CAA41] hover:bg-[#0C5325] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                    className="px-5 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
                   >
                     <Laptop className="w-3.5 h-3.5" />
                     <span>Got It</span>

@@ -13,7 +13,7 @@ export default function SettingsUsersRedirect() {
   return (
     <div className="flex h-screen w-full items-center justify-center bg-white">
       <div className="flex items-center gap-2 text-sm text-[#57636E] font-medium">
-        <span className="w-4 h-4 border-2 border-[#0CAA41] border-t-transparent rounded-full animate-spin" />
+        <span className="w-4 h-4 border-2 border-[#154360] border-t-transparent rounded-full animate-spin" />
         <span>Loading Users & groups...</span>
       </div>
     </div>

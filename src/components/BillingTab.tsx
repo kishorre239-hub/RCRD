@@ -133,7 +133,7 @@ export default function BillingTab({
               <circle cx="16" cy="16" r="4" fill="#AE2448" />
             </svg>
           </div>
-          <span className="text-2xl font-bold tracking-tight text-slate-900">loom</span>
+          <span className="text-2xl font-bold tracking-tight text-slate-900">rcrd.</span>
         </div>
         <div className="text-xs text-slate-500 mt-1 flex items-center gap-2 font-medium">
           <span>harikishorereddy9908.atlassian.net</span>

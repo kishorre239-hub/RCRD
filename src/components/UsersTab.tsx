@@ -316,7 +316,7 @@ export default function UsersTab() {
             </span>
           </div>
           <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">
-            Global permissions define what people can do on Loom. You can grant permissions to groups and individuals.
+            Global permissions define what people can do on RCRD. You can grant permissions to groups and individuals.
           </p>
         </div>
 

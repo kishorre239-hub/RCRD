@@ -623,7 +623,7 @@ export async function createDriveFolder(name: string, parentId?: string): Promis
 }
 
 /**
- * List all folders in Google Drive (inside GEONIXA LOOM root folder)
+ * List all folders in Google Drive (including Root and all dynamic subfolders)
  */
 export async function listDriveFolders(): Promise<Array<{ id: string; name: string }>> {
   const drive = await getDriveClient();
@@ -632,8 +632,24 @@ export async function listDriveFolders(): Promise<Array<{ id: string; name: stri
   if (!drive) return [];
 
   try {
-    const q = `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+    const folders: Array<{ id: string; name: string }> = [];
 
+    // 1. Include Root folder itself so users can save directly to Root
+    try {
+      const rootMeta = await drive.files.get({
+        fileId: rootId,
+        fields: 'id, name',
+        supportsAllDrives: true,
+      });
+      if (rootMeta.data.id && rootMeta.data.name) {
+        folders.push({ id: rootMeta.data.id, name: `${rootMeta.data.name} (Drive Root)` });
+      }
+    } catch {
+      folders.push({ id: rootId, name: 'Google Drive Root' });
+    }
+
+    // 2. Fetch subfolders inside rootId
+    const q = `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
     const res = await drive.files.list({
       q,
       fields: 'files(id, name, createdTime)',
@@ -643,12 +659,30 @@ export async function listDriveFolders(): Promise<Array<{ id: string; name: stri
     });
 
     const items = res.data.files || [];
-    const folders: Array<{ id: string; name: string }> = [];
-
     for (const f of items) {
-      if (f.id && f.name) {
+      if (f.id && f.name && !folders.some(existing => existing.id === f.id)) {
         folders.push({ id: f.id, name: f.name });
       }
+    }
+
+    // 3. Also fetch any other folders accessible in Google Drive (e.g., created by mentors or outside root)
+    try {
+      const allFoldersRes = await drive.files.list({
+        q: `mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+        fields: 'files(id, name, parents)',
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+        pageSize: 100,
+      });
+      if (allFoldersRes.data.files) {
+        for (const f of allFoldersRes.data.files) {
+          if (f.id && f.name && !folders.some(existing => existing.id === f.id)) {
+            folders.push({ id: f.id, name: f.name });
+          }
+        }
+      }
+    } catch (allErr) {
+      console.warn('Broader folder search warning:', allErr);
     }
 
     return folders;

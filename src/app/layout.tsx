@@ -20,7 +20,7 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "RCRD - one solution",
-  description: "Connect, Collaborate, Create - A simple Loom-like video recording platform.",
+  description: "Connect, Collaborate, Create - A simple video recording and messaging platform.",
   icons: {
     icon: "/ICONS/favicon-square.png",
   },

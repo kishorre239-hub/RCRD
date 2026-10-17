@@ -357,7 +357,7 @@ export default function WatchLaterPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Search for people, tags, folders, Spaces, and Looms" 
+              placeholder="Search for people, tags, folders, Spaces, and Recordings" 
               className="w-full pl-9 pr-4 py-1.5 bg-[#F2F5F7] border border-transparent rounded-lg text-[13px] text-slate-900 focus:bg-white focus:border-[#AE2448] focus:ring-1 focus:ring-[#AE2448] outline-none transition-all placeholder:text-slate-500 font-medium"
             />
           </div>
@@ -424,7 +424,7 @@ export default function WatchLaterPage() {
                 </div>
                 <h3 className="text-[18px] font-bold text-slate-900 mb-2">Nothing saved for later</h3>
                 <p className="text-[14px] text-slate-500 max-w-md">
-                  Add Loom videos to your watch later list to keep track of what you want to view.
+                  Add RCRD videos to your watch later list to keep track of what you want to view.
                 </p>
               </div>
             ) : (

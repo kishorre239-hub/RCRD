@@ -654,7 +654,7 @@ export default function LibraryPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Search for people, tags, folders, Spaces, and Looms" 
+              placeholder="Search for people, tags, folders, Spaces, and Recordings" 
               className="w-full pl-9 pr-4 py-1.5 bg-[#F2F5F7] border border-transparent rounded-lg text-[13px] text-slate-900 focus:bg-white focus:border-[#AE2448] focus:ring-1 focus:ring-[#AE2448] outline-none transition-all placeholder:text-slate-500 font-medium"
             />
           </div>
@@ -887,7 +887,7 @@ export default function LibraryPage() {
                     <div className="space-y-0.5">
                       {[
                         { id: 'all', label: 'All types' },
-                        { id: 'screen', label: 'Screen Recordings (Loom)' },
+                        { id: 'screen', label: 'Screen Recordings (RCRD)' },
                         { id: 'meetings', label: 'Meeting Recordings' },
                         { id: 'upload', label: 'Uploaded Videos (MP4/WebM)' },
                       ].map(opt => (

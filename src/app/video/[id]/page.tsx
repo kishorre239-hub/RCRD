@@ -243,7 +243,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
         console.warn("Failed to fetch video, falling back to mock data due to DB error.", err);
         setVideo({
           id,
-          title: "Loom Message - 24 September 2026",
+          title: "RCRD Message - 24 September 2026",
           status: "ready",
           createdAt: Date.now() - 1000 * 60 * 28,
           ownerId: "user1",
@@ -1146,7 +1146,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                       <div className="flex items-start justify-between py-4 border-b border-gray-100 group">
                         <div>
                           <h4 className="text-sm font-bold text-gray-900">Record a reply</h4>
-                          <p className="text-xs text-gray-400 mt-0.5">Allow viewers to comment with a Loom</p>
+                          <p className="text-xs text-gray-400 mt-0.5">Allow viewers to comment with a video</p>
                         </div>
                         <button 
                           onClick={() => setRecordReply(!recordReply)}

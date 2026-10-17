@@ -514,7 +514,7 @@ function JoinMeetingContent() {
 
       {/* Footer */}
       <footer className="py-4 px-6 text-center text-xs text-slate-400 border-t border-slate-200/70 bg-white/50">
-        <span>© {new Date().getFullYear()} RCRD Workspace · Powered by Loom Video & Screen Recording Engine</span>
+        <span>© {new Date().getFullYear()} RCRD Workspace · Powered by RCRD Video & Screen Recording Engine</span>
       </footer>
 
     </div>

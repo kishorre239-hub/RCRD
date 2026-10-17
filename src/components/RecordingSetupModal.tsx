@@ -95,11 +95,9 @@ export default function RecordingSetupModal({
   // Save / Upload settings
   const [videoTitle, setVideoTitle] = useState('');
   const [folders, setFolders] = useState<FolderOption[]>([]);
-  // Use real active MEETING folder ID in GEONIXA LOOM
-  const [selectedFolderId, setSelectedFolderId] = useState<string>('1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW');
+  const [selectedFolderId, setSelectedFolderId] = useState<string>(defaultFolderId || '');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [savedVideoId, setSavedVideoId] = useState<string | null>(null);
 
   // Auto-detect user's actual audio and camera hardware names dynamically
   useEffect(() => {
@@ -125,34 +123,47 @@ export default function RecordingSetupModal({
     detectDevices();
 
     // Fetch dynamic folders from Google Drive
-    getCourses()
-      .then(res => {
-        if (Array.isArray(res) && res.length > 0) {
-          setFolders(res);
-        } else {
-          setFolders([
-            { id: '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW', name: 'MEETING' },
-            { id: '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7', name: 'GEONIXA LOOM' }
-          ]);
+    async function fetchDynamicFolders() {
+      try {
+        const res = await fetch('/api/folders', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setFolders(data);
+            if (defaultFolderId) {
+              setSelectedFolderId(defaultFolderId);
+            } else {
+              setSelectedFolderId(prev => (prev && data.some(d => d.id === prev) ? prev : data[0].id));
+            }
+            return;
+          }
         }
-        if (defaultFolderId) {
-          setSelectedFolderId(defaultFolderId);
+      } catch {
+        // Continue to fallback
+      }
+
+      try {
+        const fallbackCourses = await getCourses();
+        if (Array.isArray(fallbackCourses) && fallbackCourses.length > 0) {
+          setFolders(fallbackCourses);
+          if (defaultFolderId) {
+            setSelectedFolderId(defaultFolderId);
+          } else {
+            setSelectedFolderId(prev => (prev && fallbackCourses.some(d => d.id === prev) ? prev : fallbackCourses[0].id));
+          }
         }
-      })
-      .catch(() => {
-        setFolders([
-          { id: '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW', name: 'MEETING' },
-          { id: '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7', name: 'GEONIXA LOOM' }
-        ]);
-      });
+      } catch {}
+    }
+
+    fetchDynamicFolders();
   }, [isOpen, defaultFolderId]);
 
   // Live Microphone Activity Monitor for audio meter bar
   useEffect(() => {
     if (!isOpen || !micOn || phase !== 'configuring') {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-      setAudioLevel(0);
-      return;
+      const timer = setTimeout(() => setAudioLevel(0), 0);
+      return () => clearTimeout(timer);
     }
 
     let audioTrack: MediaStreamTrack | null = null;
@@ -556,22 +567,19 @@ export default function RecordingSetupModal({
     const finalTitle = videoTitle.trim() || `Recording · ${new Date().toLocaleDateString('en-US')}`;
 
     try {
-      const res = await uploadVideo(
+      await uploadVideo(
         recordedBlob,
-        selectedFolderId || '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW',
+        selectedFolderId || (folders[0]?.id ?? ''),
         (percent) => {
           setUploadProgress(percent);
         },
         finalTitle,
         {
           folderName: targetCourse?.name || 'MEETING',
-          isMeeting: selectedFolderId === 'MEETING' || selectedFolderId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' || selectedFolderId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg',
+          isMeeting: targetCourse?.name?.toLowerCase().includes('meeting') ?? false,
         }
       );
 
-      if (res?.videoId) {
-        setSavedVideoId(res.videoId);
-      }
       showToast('Video saved to Library & Course folder!');
       if (onRecordingComplete) {
         onRecordingComplete();
@@ -617,21 +625,18 @@ export default function RecordingSetupModal({
         className="hidden" 
       />
 
-      {/* ── PHASE 1: CONFIGURING (LOOM POPUP AT TOP-RIGHT) ── */}
+      {/* ── PHASE 1: CONFIGURING (CENTERED POPUP) ── */}
       {phase === 'configuring' && (
-        <>
-          {/* Subtle click-outside backdrop ONLY in configuring phase */}
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[9990] flex items-center justify-center p-4 transition-opacity animate-in fade-in duration-200" 
+          onClick={handleClose}
+        >
+          {/* Centered Widget Card */}
           <div 
-            className="fixed inset-0 bg-black/10 z-[9990] transition-opacity" 
-            onClick={handleClose}
-          />
-
-          {/* Floating Widget Card at Top-Right */}
-          <div 
-            className="fixed top-14 right-8 w-[320px] bg-white rounded-[26px] shadow-[0_20px_50px_rgba(0,0,0,0.18)] z-[9995] border border-slate-200/90 p-5 overflow-visible animate-in fade-in zoom-in-95 duration-200 select-none font-sans"
+            className="w-[340px] max-w-full bg-white rounded-[26px] shadow-[0_25px_60px_rgba(0,0,0,0.25)] z-[9995] border border-slate-200/90 p-5 overflow-visible animate-in fade-in zoom-in-95 duration-200 select-none font-sans relative"
             onClick={e => e.stopPropagation()}
           >
-            {/* Header: Loom Brand Icon + Title + Help & Home Actions */}
+            {/* Header: RCRD Brand Icon + Title + Help & Home Actions */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-[#2F70F2] flex items-center justify-center text-white shadow-xs">
@@ -640,7 +645,7 @@ export default function RecordingSetupModal({
                     <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" />
                   </svg>
                 </div>
-                <span className="text-[17px] font-bold text-slate-900 tracking-tight">Loom</span>
+                <span className="text-[17px] font-bold text-slate-900 tracking-tight">RCRD</span>
               </div>
 
               <div className="flex items-center gap-1">
@@ -773,14 +778,14 @@ export default function RecordingSetupModal({
                       </div>
                       <div className="py-1">
                         {[
-                          { id: 'Public', label: 'Public', icon: <Globe size={16} className="text-[#2F70F2]" /> },
-                          { id: 'Open', label: 'Open', icon: <Unlock size={16} className="text-slate-700" /> },
-                          { id: 'Restricted', label: 'Restricted', icon: <Lock size={16} className="text-slate-700" /> },
+                          { id: 'Public' as const, label: 'Public', icon: <Globe size={16} className="text-[#2F70F2]" /> },
+                          { id: 'Open' as const, label: 'Open', icon: <Unlock size={16} className="text-slate-700" /> },
+                          { id: 'Restricted' as const, label: 'Restricted', icon: <Lock size={16} className="text-slate-700" /> },
                         ].map((opt) => (
                           <div
                             key={opt.id}
                             onClick={() => {
-                              setVideoAccess(opt.id as any);
+                              setVideoAccess(opt.id);
                               setShowAccessMenu(false);
                             }}
                             className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-colors ${videoAccess === opt.id ? 'bg-blue-50/70 text-[#2F70F2]' : 'hover:bg-slate-50 text-slate-700'}`}
@@ -808,13 +813,13 @@ export default function RecordingSetupModal({
                     onChange={e => setSelectedFolderId(e.target.value)}
                     className="max-w-[170px] text-xs font-semibold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 outline-none cursor-pointer truncate"
                   >
-                    <option value="1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW">MEETING</option>
-                    <option value="1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7">GEONIXA LOOM</option>
-                    {folders
-                      .filter(f => f.id !== '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' && f.id !== '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' && f.id !== '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7' && f.name !== 'MEETING')
-                      .map(f => (
+                    {folders.length === 0 ? (
+                      <option value={selectedFolderId}>Loading folders...</option>
+                    ) : (
+                      folders.map(f => (
                         <option key={f.id} value={f.id}>{f.name}</option>
-                      ))}
+                      ))
+                    )}
                   </select>
                 </div>
               </div>
@@ -836,7 +841,7 @@ export default function RecordingSetupModal({
               {/* 6. Footer Tip Banner */}
               {showTip && (
                 <div className="bg-[#F0F6FF] border border-[#DCEBFF] rounded-2xl p-3 mt-3.5 text-[11px] text-slate-600 leading-snug">
-                  <p>Get the <span className="text-[#2F70F2] underline cursor-pointer">Chrome extension</span> or <span className="text-[#2F70F2] underline cursor-pointer">Desktop app</span> to use Loom anywhere.</p>
+                  <p>Get the <span className="text-[#2F70F2] underline cursor-pointer">Chrome extension</span> or <span className="text-[#2F70F2] underline cursor-pointer">Desktop app</span> to use RCRD anywhere.</p>
                   <button 
                     type="button"
                     onClick={() => setShowTip(false)}
@@ -861,7 +866,7 @@ export default function RecordingSetupModal({
 
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* ── PHASE 1.5: REQUESTING PERMISSION NOTIFICATION ── */}
@@ -1127,13 +1132,13 @@ export default function RecordingSetupModal({
                     onChange={e => setSelectedFolderId(e.target.value)}
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-[#2F70F2] outline-none transition-all appearance-none cursor-pointer font-medium"
                   >
-                    <option value="1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW">MEETING (Google Drive)</option>
-                    <option value="1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7">GEONIXA LOOM (Root Drive)</option>
-                    {folders
-                      .filter(f => f.id !== '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' && f.id !== '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' && f.id !== '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7' && f.name !== 'MEETING')
-                      .map(f => (
+                    {folders.length === 0 ? (
+                      <option value={selectedFolderId}>Loading folders...</option>
+                    ) : (
+                      folders.map(f => (
                         <option key={f.id} value={f.id}>{f.name}</option>
-                      ))}
+                      ))
+                    )}
                   </select>
                   <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 </div>

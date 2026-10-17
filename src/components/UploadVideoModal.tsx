@@ -32,7 +32,6 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const [uploadedVideoId, setUploadedVideoId] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -40,9 +39,7 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
         .then((data) => {
           if (Array.isArray(data)) {
             setCourses(data);
-            if (data.length > 0 && selectedCourseId === "root") {
-              setSelectedCourseId(data[0].id);
-            }
+            setSelectedCourseId(prev => (data.length > 0 && prev === "root" ? data[0].id : prev));
           }
         })
         .catch(() => {});
@@ -101,7 +98,6 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
         { folderName: targetFolder?.name }
       );
 
-      setUploadedVideoId(res.videoId);
       setUploadState("success");
       if (onUploadComplete) {
         onUploadComplete(res.videoId, targetCourseId || undefined);

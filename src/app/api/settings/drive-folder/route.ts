@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       folderId: settings?.driveRootFolderId || process.env.DRIVE_DEFAULT_FOLDER_ID || '',
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching drive folder:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    let raw = body.folderId || body.driveFolderLink || body.link || '';
+    const raw = body.folderId || body.driveFolderLink || body.link || '';
     
     // Extract actual Google Drive folder ID if a URL was pasted
     const folderMatch = String(raw).match(/folders\/([a-zA-Z0-9_-]+)/);
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json({ success: true, folderId });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving drive folder:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

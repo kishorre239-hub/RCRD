@@ -18,10 +18,10 @@ export async function GET(req: Request) {
         driveRootFolderId: process.env.DRIVE_DEFAULT_FOLDER_ID || '',
         maxVideoSizeMb: 500,
         allowPublicSharing: true,
-        platformName: 'Geonixa Loom',
+        platformName: 'RCRD',
       }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching settings:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -45,11 +45,11 @@ async function handleUpdate(req: Request) {
     const body = await req.json();
     const settingsCol = await getCollection<SystemSettings>('system_settings');
 
-    const updateData: Partial<SystemSettings> = {
+    const updateData: Partial<SystemSettings> & { _id?: unknown } = {
       ...body,
       updatedAt: Date.now(),
     };
-    delete (updateData as any)._id;
+    delete updateData._id;
 
     await settingsCol.updateOne(
       {},
@@ -59,7 +59,7 @@ async function handleUpdate(req: Request) {
 
     const updated = await settingsCol.findOne({});
     return NextResponse.json(updated);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating settings:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

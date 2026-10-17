@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import {
   Search, ChevronLeft, ChevronRight, Calendar as CalendarLucide,
   Clock, ExternalLink, Plus, Copy, Check,
@@ -11,7 +10,7 @@ import {
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, SettingsIcon,
-  UserIcon, WorkspaceIcon, NotificationIcon, CalendarIcon
+  UserIcon, WorkspaceIcon, CalendarIcon
 } from "@/components/CustomIcons";
 import { getCourses } from "@/lib/api";
 import RcrdLogo from "@/components/RcrdLogo";
@@ -117,7 +116,15 @@ function SidebarItem({
 
 export default function CalendarPage() {
   const router = useRouter();
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [meetings, setMeetings] = useState<Meeting[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const local = localStorage.getItem(STORAGE_KEY);
+      return local ? JSON.parse(local) : [];
+    } catch {
+      return [];
+    }
+  });
   const [courses, setCourses] = useState<Course[]>([]);
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date(2026, 9, 1)); // October 2026
   const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
@@ -136,15 +143,7 @@ export default function CalendarPage() {
 
   // Load meetings & courses
   useEffect(() => {
-    // 1. Load from local cache
-    try {
-      const local = localStorage.getItem(STORAGE_KEY);
-      if (local) {
-        setMeetings(JSON.parse(local));
-      }
-    } catch {}
-
-    // 2. Fetch from backend API
+    // Fetch from backend API
     fetch("/api/meetings")
       .then((res) => (res.ok ? res.json() : []))
       .then((data: Meeting[]) => {

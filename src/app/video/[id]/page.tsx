@@ -3,7 +3,7 @@
 import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Share, Link as LinkIcon, MoreHorizontal, Search, HelpCircle, Bell, 
+  Share, Link as LinkIcon, MoreHorizontal, Search, 
   MessageSquare, Edit2, ChevronRight, Scissors, VolumeX, Type, Zap, Download, CheckCircle2, Video as VideoIcon,
   AtSign, Smile, Mic, Trash2, Link2, CornerDownRight, Bookmark
 } from 'lucide-react';

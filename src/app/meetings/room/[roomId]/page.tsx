@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import Image from "next/image";
 import RcrdLogo from "@/components/RcrdLogo";
 import {
   Monitor, Mic, MicOff, VideoOff, FileText, Trash2,

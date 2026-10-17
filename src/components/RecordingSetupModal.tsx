@@ -584,6 +584,9 @@ export default function RecordingSetupModal({
       );
 
       showToast('Video saved to Library & Course folder!');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('video-updated'));
+      }
       if (onRecordingComplete) {
         onRecordingComplete();
       }

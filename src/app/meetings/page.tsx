@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import {
   Search, Video, Folder,
   Users, Shield, ChevronDown, X,
@@ -10,12 +9,12 @@ import {
   Trash2, Calendar,
   Eye, EyeOff, Share2, Mail,
   Monitor, Play,
-  HelpCircle, CheckCircle2, ChevronRight, Pause,
+  CheckCircle2, ChevronRight,
   Link2, ExternalLink
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
-  UsersIcon, UserIcon, WorkspaceIcon, NotificationIcon
+  UsersIcon, UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 
 import { getCourses } from "@/lib/api";
@@ -146,63 +145,6 @@ export default function MeetingsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<"AM" | "PM">("PM");
   const [newDuration, setNewDuration] = useState(60);
   const [newCourse, setNewCourse] = useState("");
-  const [autoStep, setAutoStep] = useState<number | null>(null);
-  const [isAutoPlaying, setIsAutoPlaying] = useState<boolean>(false);
-  const [autoProgress, setAutoProgress] = useState<number>(0);
-
-  const startAutoTour = useCallback(() => {
-    setAutoStep(0);
-    setIsAutoPlaying(true);
-    setAutoProgress(0);
-  }, []);
-
-  const stopAutoTour = useCallback(() => {
-    setAutoStep(null);
-    setIsAutoPlaying(false);
-    setAutoProgress(0);
-  }, []);
-
-  // Automatic tutorial transition effect: smoothly auto-advances through features
-  useEffect(() => {
-    if (autoStep === null || !isAutoPlaying) return;
-
-    // Smoothly scroll active feature into view inside the modal
-    const stepTargetId = AUTO_TOUR_STEPS[autoStep]?.targetId;
-    if (stepTargetId) {
-      const el = document.getElementById(stepTargetId);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }
-    }
-
-    const durationPerStep = 3400; // ~3.4s per feature
-    const intervalMs = 50;
-    const progressIncrement = (intervalMs / durationPerStep) * 100;
-    const resetTimer = setTimeout(() => {
-      setAutoProgress(0);
-    }, 0);
-
-    const timer = setInterval(() => {
-      setAutoProgress(prev => {
-        if (prev >= 100) {
-          setAutoStep(curr => {
-            if (curr === null || curr >= AUTO_TOUR_STEPS.length - 1) {
-              setIsAutoPlaying(false);
-              return null; // Automatic walkthrough complete!
-            }
-            return curr + 1;
-          });
-          return 0;
-        }
-        return prev + progressIncrement;
-      });
-    }, intervalMs);
-
-    return () => {
-      clearTimeout(resetTimer);
-      clearInterval(timer);
-    };
-  }, [autoStep, isAutoPlaying]);
 
   // Join Meeting Form
   const [joinId, setJoinId] = useState("");

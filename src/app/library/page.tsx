@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
-  UsersIcon, UserIcon, WorkspaceIcon, NotificationIcon
+  UsersIcon, UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 import { getVideos, getCourses, createCourse, renameCourse, deleteCourse, deleteVideo, updateVideo, syncVideos, addVideoComment, uploadVideo, API_URL } from "@/lib/api";
 import RecordingSetupModal from "@/components/RecordingSetupModal";

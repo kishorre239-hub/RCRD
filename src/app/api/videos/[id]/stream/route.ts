@@ -110,8 +110,18 @@ export async function GET(
       const streamResult = await getDriveFileStream(primaryDriveId, rangeHeader);
 
       if (streamResult && streamResult.stream) {
+        let contentType = (streamResult.headers?.['content-type'] as string) || '';
+        if (!contentType || contentType === 'application/octet-stream' || !contentType.startsWith('video/')) {
+          const isMp4 = Boolean(
+            video?.title?.toLowerCase().endsWith('.mp4') ||
+            (streamResult.metadata?.name && streamResult.metadata.name.toLowerCase().endsWith('.mp4')) ||
+            (video?.mimeType && video.mimeType.includes('mp4'))
+          );
+          contentType = isMp4 ? 'video/mp4' : 'video/webm';
+        }
+
         const responseHeaders: Record<string, string> = {
-          'Content-Type': (streamResult.headers?.['content-type'] as string) || 'video/mp4',
+          'Content-Type': contentType,
           'Accept-Ranges': 'bytes',
           'Cache-Control': 'public, max-age=7200',
         };

@@ -67,8 +67,8 @@ export async function POST(req: Request) {
         isMeeting,
         origin,
       });
-    } catch (e: any) {
-      console.warn('Google Drive session creation warning:', e.message);
+    } catch (e: unknown) {
+      console.warn('Google Drive session creation warning:', (e as Error)?.message || e);
     }
 
     const uploadUrl = sessionResult?.uploadUrl || '';
@@ -78,8 +78,8 @@ export async function POST(req: Request) {
       uploadUrl,
       status: 'UPLOADING',
     });
-  } catch (error: any) {
-    console.error('Error creating video upload session:', error);
+  } catch (error: unknown) {
+    console.error('Error creating video upload session:', (error as Error)?.message || error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

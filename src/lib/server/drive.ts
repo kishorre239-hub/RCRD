@@ -288,9 +288,19 @@ export async function createResumableUploadSession(params: {
     throw new Error('Failed to acquire Google Drive access token');
   }
 
+  const rawTitle = (params.title || `Recording-${Date.now()}`).trim();
+  const hasVideoExt = /\.(webm|mp4|mov|mkv)$/i.test(rawTitle);
+  const targetExt = params.mimeType?.includes('mp4') ? '.mp4' : '.webm';
+  const finalFileName = hasVideoExt ? rawTitle : `${rawTitle}${targetExt}`;
+
+  let cleanMime = (params.mimeType || 'video/webm').split(';')[0].trim();
+  if (!cleanMime || !cleanMime.startsWith('video/')) {
+    cleanMime = 'video/webm';
+  }
+
   const metadata: { name: string; mimeType: string; parents?: string[] } = {
-    name: params.title || `Recording-${Date.now()}.webm`,
-    mimeType: params.mimeType || 'video/webm',
+    name: finalFileName,
+    mimeType: cleanMime,
   };
 
   let targetFolder: string | undefined = undefined;
@@ -320,7 +330,7 @@ export async function createResumableUploadSession(params: {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json; charset=UTF-8',
-    'X-Upload-Content-Type': params.mimeType || 'video/webm',
+    'X-Upload-Content-Type': cleanMime,
   };
 
   if (params.origin) {
@@ -761,9 +771,19 @@ export async function uploadBufferToDrive(params: {
       targetFolder = getRootFolderId();
     }
 
+    const rawName = (params.name || `Recording-${Date.now()}`).trim();
+    const hasVideoExt = /\.(webm|mp4|mov|mkv)$/i.test(rawName);
+    const targetExt = params.mimeType?.includes('mp4') ? '.mp4' : '.webm';
+    const finalFileName = hasVideoExt ? rawName : `${rawName}${targetExt}`;
+
+    let cleanMime = (params.mimeType || 'video/webm').split(';')[0].trim();
+    if (!cleanMime || !cleanMime.startsWith('video/')) {
+      cleanMime = 'video/webm';
+    }
+
     const metadata: { name: string; mimeType: string; parents?: string[] } = {
-      name: params.name || `Recording-${Date.now()}.webm`,
-      mimeType: params.mimeType || 'video/webm',
+      name: finalFileName,
+      mimeType: cleanMime,
     };
     if (targetFolder) {
       metadata.parents = [targetFolder];
@@ -775,7 +795,7 @@ export async function uploadBufferToDrive(params: {
     const res = await drive.files.create({
       requestBody: metadata,
       media: {
-        mimeType: params.mimeType || 'video/webm',
+        mimeType: cleanMime,
         body: stream,
       },
       fields: 'id, name, webViewLink, thumbnailLink',
@@ -1018,7 +1038,7 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
     // 2. Fetch all videos in GEONIXA LOOM or any of its subfolders
     const parentFolderIds = [rootId, ...subfolders.map(f => f.id).filter(Boolean)];
     const parentConditions = parentFolderIds.map(id => `'${id}' in parents`).join(' or ');
-    const videoQ = `(${parentConditions}) and trashed = false and (mimeType contains 'video/' or name contains '.mp4' or name contains '.webm' or name contains '.mov' or mimeType = 'application/vnd.google-apps.vid')`;
+    const videoQ = `(${parentConditions}) and trashed = false and (mimeType contains 'video/' or name contains '.mp4' or name contains '.webm' or name contains '.mov' or mimeType = 'application/vnd.google-apps.vid' or name contains 'Recording' or name contains 'Screen' or name contains 'Meeting' or mimeType = 'application/octet-stream')`;
 
     const res = await drive.files.list({
       q: videoQ,
@@ -1032,11 +1052,30 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
     const videos: DriveVideoItem[] = [];
 
     for (const f of files) {
-      if (
-        (f.mimeType && f.mimeType.startsWith('video/')) ||
-        (f.name && (f.name.endsWith('.mp4') || f.name.endsWith('.webm') || f.name.endsWith('.mov'))) ||
-        f.mimeType === 'application/vnd.google-apps.vid'
-      ) {
+      // Skip subfolders
+      if (f.mimeType === 'application/vnd.google-apps.folder') continue;
+
+      const isVideoMime = Boolean((f.mimeType && f.mimeType.startsWith('video/')) || f.mimeType === 'application/vnd.google-apps.vid');
+      const hasVideoExt = Boolean(f.name && /\.(mp4|webm|mov|mkv)$/i.test(f.name));
+      const isLikelyRecording = Boolean(
+        (f.name && (f.name.toLowerCase().includes('recording') || f.name.toLowerCase().includes('meeting') || f.name.toLowerCase().includes('screen'))) ||
+        (f.size && Number(f.size) > 50000)
+      );
+
+      if (isVideoMime || hasVideoExt || isLikelyRecording) {
+        // Auto-heal file in Google Drive if it lacks extension
+        let currentName = f.name || 'Recording';
+        if (f.id && !hasVideoExt && isLikelyRecording) {
+          const autoFixedName = `${currentName}.webm`;
+          drive.files.update({
+            fileId: f.id,
+            requestBody: { name: autoFixedName },
+            supportsAllDrives: true,
+          }).catch(err => console.warn('Auto-heal drive filename note:', err?.message));
+          currentName = autoFixedName;
+          f.name = autoFixedName;
+        }
+
         const duration = f.videoMediaMetadata?.durationMillis
           ? Math.round(Number(f.videoMediaMetadata.durationMillis) / 1000)
           : 0;
@@ -1052,14 +1091,16 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
           } catch {}
         }
 
+        const effectiveMime = (f.mimeType && f.mimeType.startsWith('video/')) ? f.mimeType : 'video/webm';
+
         videos.push({
           id: f.id || '',
           driveFileId: f.id || '',
-          title: cleanVideoTitle(f.name || '', f.createdTime || undefined),
-          rawName: f.name,
+          title: cleanVideoTitle(currentName, f.createdTime || undefined),
+          rawName: currentName,
           ownerName: 'Google Drive User',
           ownerEmail: 'admin@rcrd.com',
-          mimeType: f.mimeType || 'video/mp4',
+          mimeType: effectiveMime,
           size: f.size ? Number(f.size) : 0,
           duration,
           thumbnailUrl,

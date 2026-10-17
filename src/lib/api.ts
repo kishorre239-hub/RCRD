@@ -114,13 +114,14 @@ async function uploadViaDriveChunks(
 
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
+        const cleanChunkMime = (file.type || 'video/webm').split(';')[0].trim() || 'video/webm';
         const res = await fetch(`${API_URL}/videos/drive-chunk`, {
           method: 'PUT',
           headers: {
             'x-upload-url': uploadUrl,
             'x-content-range': contentRange,
             'x-video-id': videoId,
-            'Content-Type': file.type || 'video/webm',
+            'Content-Type': cleanChunkMime,
           },
           body: chunk,
         });
@@ -182,6 +183,7 @@ export const uploadVideo = async (
 
   const safeTitle = title || `Recording ${new Date().toLocaleDateString('en-US')}`;
   const isMeeting = Boolean(options?.isMeeting || courseId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' || courseId === 'MEETING' || safeTitle.toLowerCase().includes('meeting'));
+  const cleanMimeType = (file.type || 'video/webm').split(';')[0].trim() || 'video/webm';
 
   // Step 1: Attempt to create a direct resumable upload session on Google Drive
   try {
@@ -193,7 +195,7 @@ export const uploadVideo = async (
       },
       body: JSON.stringify({
         title: safeTitle,
-        mimeType: file.type || 'video/webm',
+        mimeType: cleanMimeType,
         size: file.size,
         courseId: courseId || (isMeeting ? '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' : null),
         folderName: options?.folderName,
@@ -213,7 +215,7 @@ export const uploadVideo = async (
         },
         body: JSON.stringify({
           title: safeTitle,
-          mimeType: file.type || 'video/webm',
+          mimeType: cleanMimeType,
           size: file.size,
           courseId: courseId || (isMeeting ? '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' : null),
           folderName: options?.folderName,

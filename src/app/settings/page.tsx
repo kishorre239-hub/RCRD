@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { 
   Search, ExternalLink, 
   ChevronDown, Info, Download, Globe, HardDrive,
@@ -10,10 +9,10 @@ import {
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
-  UsersIcon, UserIcon, WorkspaceIcon, NotificationIcon
+  UsersIcon, UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 import { 
-  saveDriveFolder, getDriveFolder, API_URL 
+  saveDriveFolder, getDriveFolder 
 } from '@/lib/api';
 import BillingTab from '@/components/BillingTab';
 import UsersTab from '@/components/UsersTab';
@@ -242,9 +241,11 @@ export default function SettingsPage() {
         setTimeout(() => setActiveTab(tabParam), 0);
       }
       if (params.get('google_connected') === 'true') {
-        setGoogleConnected(true);
-        setDriveSaveMessage("✓ Successfully connected to your 5 TB Google Drive account!");
-        setTimeout(() => setDriveSaveMessage(""), 5000);
+        setTimeout(() => {
+          setGoogleConnected(true);
+          setDriveSaveMessage("✓ Successfully connected to your 5 TB Google Drive account!");
+          setTimeout(() => setDriveSaveMessage(""), 5000);
+        }, 0);
       }
     }
 
@@ -908,22 +909,22 @@ export default function SettingsPage() {
                           <p className="font-bold">5 TB Google Drive Account Connected</p>
                           <p className="text-xs text-emerald-700">All recorded videos and courses will upload directly into your personal Google One Drive without quota limits.</p>
                         </div>
-                        <button 
-                          onClick={() => { window.location.href = '/api/auth/google?redirect=/settings'; }}
-                          className="ml-auto text-xs underline text-emerald-900 hover:text-emerald-950"
+                        <a 
+                          href="/api/auth/google?redirect=/settings"
+                          className="ml-auto text-xs underline text-emerald-900 hover:text-emerald-950 cursor-pointer"
                         >
                           Reconnect
-                        </button>
+                        </a>
                       </div>
                     ) : (
                       <div className="flex items-center gap-3">
-                        <button 
-                          onClick={() => { window.location.href = '/api/auth/google?redirect=/settings'; }}
-                          className="w-fit bg-[#0CAA41] hover:bg-[#0C5325] text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2 shadow-sm"
+                        <a 
+                          href="/api/auth/google?redirect=/settings"
+                          className="w-fit bg-[#0CAA41] hover:bg-[#0C5325] text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
                         >
                           <Cloud className="w-4 h-4" />
                           Connect 5 TB Google Drive (kishorre239@gmail.com)
-                        </button>
+                        </a>
                         <span className="text-xs text-[#57636E]">Sign in once to authorize video uploads to your 5 TB storage.</span>
                       </div>
                     )}

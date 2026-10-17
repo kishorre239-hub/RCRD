@@ -11,7 +11,9 @@ export async function PUT(req: Request) {
     const uploadUrl = req.headers.get('x-upload-url') || '';
     const contentRange = req.headers.get('x-content-range') || req.headers.get('content-range') || '';
     const videoId = req.headers.get('x-video-id') || '';
-    const mimeType = req.headers.get('content-type') || 'video/webm';
+    const rawMime = req.headers.get('content-type') || 'video/webm';
+    let mimeType = rawMime.split(';')[0].trim() || 'video/webm';
+    if (!mimeType.startsWith('video/')) mimeType = 'video/webm';
 
     if (!uploadUrl || !uploadUrl.startsWith('https://www.googleapis.com')) {
       return NextResponse.json({ error: 'Valid Google Drive upload URL is required' }, { status: 400 });
@@ -51,6 +53,24 @@ export async function PUT(req: Request) {
       } catch {}
 
       const driveFileId = String(driveData.id || '');
+      const rawDriveName = String(driveData.name || '');
+
+      // Ensure Google Drive file has proper video extension (.webm) so Google Drive transcoding and web player work!
+      if (driveFileId && rawDriveName && !/\.(webm|mp4|mov|mkv)$/i.test(rawDriveName)) {
+        try {
+          const { getDriveClient } = await import('@/lib/server/drive');
+          const driveClient = await getDriveClient();
+          if (driveClient) {
+            await driveClient.files.update({
+              fileId: driveFileId,
+              requestBody: { name: `${rawDriveName}.webm` },
+              supportsAllDrives: true,
+            });
+          }
+        } catch (healErr) {
+          console.warn('Drive chunk filename patch notice:', healErr);
+        }
+      }
 
       if (videoId) {
         try {

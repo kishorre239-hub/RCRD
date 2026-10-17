@@ -37,8 +37,34 @@ export async function GET(req: Request) {
     const { videos: driveVideos, connected: driveConnected } = await listDriveVideosAndFolders();
     const driveIdSet = new Set(driveVideos.map(dv => dv.id));
 
+interface VideoMapItem {
+  id: string;
+  driveFileId?: string;
+  title: string;
+  rawName?: string | null;
+  ownerName?: string;
+  ownerEmail?: string;
+  mimeType?: string;
+  size?: number;
+  duration?: number;
+  thumbnailUrl?: string;
+  thumbnailLink?: string;
+  directThumbnailUrl?: string;
+  status?: string;
+  isPublic?: boolean;
+  views?: number;
+  comments?: unknown[];
+  courseId?: string;
+  createdAt?: number | string;
+  updatedAt?: number | string;
+  webViewLink?: string | null;
+  webContentLink?: string | null;
+  editorData?: unknown;
+  [key: string]: unknown;
+}
+
     // Merge database videos and Google Drive videos, avoiding duplicates by driveFileId / id
-    const videoMap = new Map<string, Record<string, unknown>>();
+    const videoMap = new Map<string, VideoMapItem>();
 
     // Helper to test if a video matches the requested courseId
     const matchesCourse = (videoCourseId?: string) => {
@@ -109,7 +135,7 @@ export async function GET(req: Request) {
               ...v,
               id: driveId,
               title: v.title || existing.title,
-              views: Math.max(v.views || 0, existing.views || 0),
+              views: Math.max(Number(v.views || 0), Number(existing.views || 0)),
               comments: Array.isArray(v.comments) && v.comments.length > 0 ? v.comments : existing.comments,
               editorData: v.editorData || existing.editorData,
             });
@@ -119,9 +145,9 @@ export async function GET(req: Request) {
     }
 
     const allVideos = Array.from(videoMap.values())
-      .filter(v => {
-        if (!v.id || v.id.startsWith('local:')) return false;
-        if (v.mimeType && v.mimeType.startsWith('image/')) return false;
+      .filter((v: VideoMapItem) => {
+        if (!v.id || (typeof v.id === 'string' && v.id.startsWith('local:'))) return false;
+        if (typeof v.mimeType === 'string' && v.mimeType.startsWith('image/')) return false;
         if (typeof v.title === 'string' && /\.(png|jpg|jpeg|gif|webp)$/i.test(v.title)) return false;
         if (!matchesCourse(v.courseId)) return false;
         return true;

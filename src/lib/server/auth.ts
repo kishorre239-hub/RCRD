@@ -61,7 +61,7 @@ export function verifyToken(token: string): TokenPayload | null {
       iat: decoded.iat,
       exp: decoded.exp,
     };
-  } catch (error) {
+  } catch {
     // If token expired, still extract payload so user sessions & recording uploads don't abruptly crash with 401
     try {
       const decoded = jwt.decode(token) as any;

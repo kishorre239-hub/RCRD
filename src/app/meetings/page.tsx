@@ -292,7 +292,7 @@ export default function MeetingsPage() {
       clearTimeout(timer);
       clearInterval(interval);
     };
-  }, []);
+  }, [openScheduleModal]);
 
   const save = useCallback((list: Meeting[], singleUpdated?: Meeting) => {
     setMeetings(list);

@@ -1,9 +1,6 @@
 import { google, drive_v3 } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
-
-let driveClient: drive_v3.Drive | null = null;
-
 // The user's Google Drive root folder: GEONIXA LOOM
 export const DEFAULT_ROOT_FOLDER_ID = '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7';
 
@@ -74,7 +71,6 @@ let cachedOAuthTokens: any = null;
 
 export async function saveOAuthTokens(tokens: any) {
   cachedOAuthTokens = tokens;
-  driveClient = null;
 
   try {
     const fs = await import('fs');

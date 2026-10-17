@@ -14,7 +14,6 @@ const DEFAULT_DIRECT_URI = 'mongodb://harikishorereddy9908_db_user:GeonixaLoom@a
 const uri = process.env.MONGODB_URI || DEFAULT_DIRECT_URI || DEFAULT_SRV_URI;
 
 declare global {
-  // eslint-disable-next-line no-var
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 

@@ -3,9 +3,23 @@ import fs from 'fs';
 import path from 'path';
 // The user's Google Drive root folder: GEONIXA LOOM
 export const DEFAULT_ROOT_FOLDER_ID = '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7';
+export const DEFAULT_MEETING_FOLDER_ID = '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW';
+
+export function extractDriveFolderId(input?: string | null): string {
+  if (!input || input === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || input === 'root' || input === 'all') {
+    return DEFAULT_ROOT_FOLDER_ID;
+  }
+  const trimmed = input.trim();
+  const match = trimmed.match(/folders\/([a-zA-Z0-9_-]+)/);
+  if (match) return match[1];
+  const idMatch = trimmed.match(/^([a-zA-Z0-9_-]{20,})$/);
+  if (idMatch) return idMatch[1];
+  return trimmed || DEFAULT_ROOT_FOLDER_ID;
+}
 
 export function getRootFolderId(): string {
-  return process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.DRIVE_DEFAULT_FOLDER_ID || DEFAULT_ROOT_FOLDER_ID;
+  const raw = process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.DRIVE_DEFAULT_FOLDER_ID || DEFAULT_ROOT_FOLDER_ID;
+  return extractDriveFolderId(raw);
 }
 
 // Embedded fallback credentials for seamless Vercel serverless deployment
@@ -205,7 +219,7 @@ export async function getMeetingFolderId(): Promise<string> {
     const createdId = await createDriveFolder('MEETING', rootId);
     return createdId || rootId;
   } catch {
-    return '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg';
+    return DEFAULT_MEETING_FOLDER_ID;
   }
 }
 
@@ -547,7 +561,7 @@ export async function createDriveFolder(name: string, parentId?: string): Promis
   if (!drive) return null;
 
   try {
-    const rootId = parentId || getRootFolderId();
+    const rootId = extractDriveFolderId(parentId || getRootFolderId());
     const metadata: { name: string; mimeType: string; parents?: string[] } = {
       name: name.trim(),
       mimeType: 'application/vnd.google-apps.folder',

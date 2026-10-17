@@ -181,7 +181,7 @@ export const uploadVideo = async (
   let token = await ensureValidAuthToken();
 
   const safeTitle = title || `Recording ${new Date().toLocaleDateString('en-US')}`;
-  const isMeeting = Boolean(options?.isMeeting || courseId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || courseId === 'MEETING' || safeTitle.toLowerCase().includes('meeting'));
+  const isMeeting = Boolean(options?.isMeeting || courseId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' || courseId === 'MEETING' || safeTitle.toLowerCase().includes('meeting'));
 
   // Step 1: Attempt to create a direct resumable upload session on Google Drive
   try {
@@ -195,7 +195,7 @@ export const uploadVideo = async (
         title: safeTitle,
         mimeType: file.type || 'video/webm',
         size: file.size,
-        courseId: courseId || (isMeeting ? '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' : null),
+        courseId: courseId || (isMeeting ? '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' : null),
         folderName: options?.folderName,
         isMeeting,
       }),
@@ -215,7 +215,7 @@ export const uploadVideo = async (
           title: safeTitle,
           mimeType: file.type || 'video/webm',
           size: file.size,
-          courseId: courseId || (isMeeting ? '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' : null),
+          courseId: courseId || (isMeeting ? '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' : null),
           folderName: options?.folderName,
           isMeeting,
         }),
@@ -280,7 +280,7 @@ export const uploadVideo = async (
     if (isMeeting) {
       formData.append('isMeeting', 'true');
     }
-    const finalCourseId = isMeeting ? (courseId || '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4') : courseId;
+    const finalCourseId = isMeeting ? (courseId || '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW') : courseId;
     if (finalCourseId) {
       formData.append('courseId', finalCourseId);
     }
@@ -311,7 +311,7 @@ export const getDriveFolder = async () => {
 
 // Video Folder / Collection categories for Loom recordings
 export const getCourses = async (): Promise<Array<{ id: string; name: string }>> => {
-  const meetingFolder = { id: '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4', name: 'MEETING' };
+  const meetingFolder = { id: '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW', name: 'MEETING' };
   try {
     const response = await fetchWithAuth('/folders');
     if (response.ok) {

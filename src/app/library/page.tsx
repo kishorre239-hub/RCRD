@@ -334,12 +334,18 @@ export default function LibraryPage() {
     if (!name || name.trim() === '') return;
 
     try {
-      await createCourse(name.trim());
-      showToast(`${name} created successfully`);
-      fetchData();
-    } catch (err) {
+      const created = await createCourse(name.trim());
+      if (created && created.id) {
+        setCourses(prev => {
+          if (prev.some(c => c.id === created.id)) return prev;
+          return [...prev, created];
+        });
+      }
+      showToast(`${name} created successfully in Google Drive`);
+      await fetchData();
+    } catch (err: unknown) {
       console.error(err);
-      showToast(`Failed to create folder ${name}.`);
+      showToast(`Failed to create folder ${name}: ${(err as Error)?.message || 'Error'}`);
     }
   };
 

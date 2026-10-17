@@ -14,12 +14,12 @@ export async function POST(req: Request) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    let user: any = null;
+    let user: User | null = null;
     try {
       const usersCol = await getCollection<User>('users');
       user = await usersCol.findOne({ email: cleanEmail });
-    } catch (dbErr) {
-      console.warn('MongoDB connection error during login, checking dev/demo account:', (dbErr as any)?.message);
+    } catch (dbErr: unknown) {
+      console.warn('MongoDB connection error during login, checking dev/demo account:', (dbErr as Error)?.message);
     }
 
     // Handle dev/demo accounts fallback
@@ -68,8 +68,8 @@ export async function POST(req: Request) {
       email: cleanEmail,
       role: cleanRole,
     });
-  } catch (error: any) {
-    console.error('Login error in loom-app:', error);
+  } catch (error: unknown) {
+    console.error('Login error in loom-app:', (error as Error)?.message || error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

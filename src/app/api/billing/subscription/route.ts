@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
-import { User, Workspace, Video, SubscriptionRecord } from '@/lib/server/types';
+import { User, Video, SubscriptionRecord } from '@/lib/server/types';
 import { SAAS_PLANS, getPlan, formatBytes } from '@/lib/plans';
 import { ObjectId } from 'mongodb';
 
@@ -69,8 +69,8 @@ export async function GET(req: Request) {
       },
       allPlans: Object.values(SAAS_PLANS),
     });
-  } catch (error: any) {
-    console.error('Error fetching billing subscription:', error);
+  } catch (error: unknown) {
+    console.error('Error fetching billing subscription:', (error as Error)?.message || error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -38,7 +38,7 @@ export async function GET(req: Request) {
     const driveIdSet = new Set(driveVideos.map(dv => dv.id));
 
     // Merge database videos and Google Drive videos, avoiding duplicates by driveFileId / id
-    const videoMap = new Map<string, Record<string, any>>();
+    const videoMap = new Map<string, Record<string, unknown>>();
 
     // Helper to test if a video matches the requested courseId
     const matchesCourse = (videoCourseId?: string) => {

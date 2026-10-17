@@ -4,9 +4,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
-  Search, Settings, Video, Folder,
-  Users, Building, Shield, ChevronDown, X, Home,
-  Bookmark, Plus, Copy, Check, Clock, FileText,
+  Search, Video, Folder,
+  Users, Shield, ChevronDown, X,
+  Plus, Copy, Check, Clock, FileText,
   Trash2, Calendar,
   Eye, EyeOff, Share2, Mail,
   Monitor, Play,
@@ -199,6 +199,23 @@ export default function MeetingsPage() {
   const [joinPwd, setJoinPwd] = useState("");
   const [joinName, setJoinName] = useState("");
 
+  const openScheduleModal = useCallback(() => {
+    const d = new Date(Date.now() + 15 * 60000);
+    const remainder = 15 - (d.getMinutes() % 15);
+    if (remainder < 15) {
+      d.setMinutes(d.getMinutes() + remainder);
+    }
+    setNewDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    let h = d.getHours();
+    const p = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    setSelectedHour(String(h).padStart(2, '0'));
+    setSelectedMinute(String(d.getMinutes()).padStart(2, '0'));
+    setSelectedPeriod(p);
+    setNewDuration(60);
+    setShowCreate(true);
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setNow(Date.now());
@@ -385,23 +402,6 @@ export default function MeetingsPage() {
         countdown: "Upcoming",
       };
     }
-  };
-
-  const openScheduleModal = () => {
-    const d = new Date(Date.now() + 15 * 60000);
-    const remainder = 15 - (d.getMinutes() % 15);
-    if (remainder < 15) {
-      d.setMinutes(d.getMinutes() + remainder);
-    }
-    setNewDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-    let h = d.getHours();
-    const p = h >= 12 ? "PM" : "AM";
-    h = h % 12 || 12;
-    setSelectedHour(String(h).padStart(2, '0'));
-    setSelectedMinute(String(d.getMinutes()).padStart(2, '0'));
-    setSelectedPeriod(p);
-    setNewDuration(60);
-    setShowCreate(true);
   };
 
 
@@ -1590,7 +1590,6 @@ export default function MeetingsPage() {
       {showShare && (() => {
         const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
         const directMeetingLink = `${origin}/meeting/${showShare.id}?pwd=${encodeURIComponent(showShare.password)}`;
-        const cleanMeetingLink = `${origin}/meeting/${showShare.id}`;
         const msgText = `🎓 *Class Meeting Invitation*\n*Topic:* ${showShare.title}\n\n🔗 *Meeting Link:* ${directMeetingLink}\n📋 *Meeting ID:* ${showShare.id}\n🔑 *Passcode:* ${showShare.password}\n⏰ *Time:* ${fmt(showShare.scheduledAt)}\n⏱️ *Duration:* ${formatDuration(showShare.duration)}\n\n👉 Click the meeting link to join directly, or open the link and enter the Meeting ID & Passcode.`;
         const waUrl = `https://wa.me/?text=${encodeURIComponent(msgText)}`;
         const emailSubject = encodeURIComponent(`Meeting Invite: ${showShare.title}`);

@@ -80,8 +80,8 @@ export async function POST(req: Request) {
       planName: selectedPlan.name,
       testMode: false,
     });
-  } catch (error: any) {
-    console.error('Billing order error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Billing order error:', (error as Error)?.message || error);
+    return NextResponse.json({ error: (error as Error)?.message || 'Internal Server Error' }, { status: 500 });
   }
 }

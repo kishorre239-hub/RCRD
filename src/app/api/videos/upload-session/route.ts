@@ -2,12 +2,12 @@ import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { createResumableUploadSession } from '@/lib/server/drive';
-import { Video } from '@/lib/server/types';
+import { Video, User } from '@/lib/server/types';
 
 export async function POST(req: Request) {
   try {
     const authResult = await authenticateRequest(req);
-    const user: any = (authResult.authenticated && authResult.user ? authResult.user : null) || {
+    const user: User = (authResult.authenticated && authResult.user ? authResult.user : null) || {
       _id: 'default-admin',
       id: 'default-admin',
       name: 'System User',

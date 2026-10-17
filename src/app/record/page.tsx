@@ -98,14 +98,17 @@ export default function RecordPage() {
   // Set default video title when recording completes or media is ready
   useEffect(() => {
     if (mediaBlob && !videoTitle) {
-      if (selectedFileName) {
-        setVideoTitle(selectedFileName.replace(/\.[^/.]+$/, ''));
-      } else {
-        const d = new Date();
-        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-        setVideoTitle(`Screen Recording · ${dateStr} (${timeStr})`);
-      }
+      const timer = setTimeout(() => {
+        if (selectedFileName) {
+          setVideoTitle(selectedFileName.replace(/\.[^/.]+$/, ''));
+        } else {
+          const d = new Date();
+          const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+          setVideoTitle(`Screen Recording · ${dateStr} (${timeStr})`);
+        }
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [mediaBlob, videoTitle, selectedFileName]);
 

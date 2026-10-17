@@ -97,7 +97,7 @@ export async function POST(req: Request) {
             }
           }
         );
-      } catch (e) {
+      } catch {
         // Workspace ID may be string-based or not found
       }
     }
@@ -108,8 +108,8 @@ export async function POST(req: Request) {
       message: `Successfully upgraded to ${plan.name}! Storage and features have been applied.`,
       expiresAt,
     });
-  } catch (error: any) {
-    console.error('Billing verification error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Billing verification error:', (error as Error)?.message || error);
+    return NextResponse.json({ error: (error as Error)?.message || 'Internal Server Error' }, { status: 500 });
   }
 }

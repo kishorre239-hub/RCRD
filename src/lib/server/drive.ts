@@ -138,17 +138,11 @@ export async function getOAuth2Client(): Promise<any> {
   return oauth2Client;
 }
 
-export function getDriveClient(): drive_v3.Drive | null {
-  if (driveClient) return driveClient;
-
-  // 1. If OAuth tokens exist in memory, use OAuth client
-  if (cachedOAuthTokens) {
-    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
-    oauth2Client.setCredentials(cachedOAuthTokens);
-    driveClient = google.drive({ version: 'v3', auth: oauth2Client });
-    return driveClient;
+export async function getDriveClient(): Promise<drive_v3.Drive | null> {
+  // 1. If OAuth tokens exist in memory, file, or DB, use OAuth client
+  const oauth2Client = await getOAuth2Client();
+  if (oauth2Client) {
+    return google.drive({ version: 'v3', auth: oauth2Client });
   }
 
   // 2. Otherwise use Service Account
@@ -163,12 +157,11 @@ export function getDriveClient(): drive_v3.Drive | null {
     scopes: ['https://www.googleapis.com/auth/drive'],
   });
 
-  driveClient = google.drive({ version: 'v3', auth });
-  return driveClient;
+  return google.drive({ version: 'v3', auth });
 }
 
 export async function getMeetingFolderId(): Promise<string> {
-  const drive = getDriveClient();
+  const drive = await getDriveClient();
   const rootId = getRootFolderId();
   if (!drive) return rootId;
   try {
@@ -358,7 +351,7 @@ export function formatDriveThumbnailUrl(link?: string | null): string {
  * Get file details by fileId from Google Drive
  */
 export async function getFileMetadata(fileId: string) {
-  const drive = getDriveClient();
+  const drive = await getDriveClient();
   if (!drive) return null;
 
   try {
@@ -402,7 +395,7 @@ export async function getFileMetadata(fileId: string) {
  * Stream a video file directly from Google Drive with byte-range support
  */
 export async function getDriveFileStream(fileId: string, rangeHeader?: string | null) {
-  const drive = getDriveClient();
+  const drive = await getDriveClient();
   if (!drive) return null;
 
   try {
@@ -445,7 +438,7 @@ export async function getDriveFileStream(fileId: string, rangeHeader?: string | 
  * Delete a file from Google Drive
  */
 export async function deleteDriveFile(fileId: string): Promise<boolean> {
-  const drive = getDriveClient();
+  const drive = await getDriveClient();
   if (!drive) return false;
 
   try {
@@ -468,7 +461,7 @@ export async function deleteDriveFile(fileId: string): Promise<boolean> {
  * Rename a file or folder in Google Drive
  */
 export async function renameDriveFile(fileId: string, newTitle: string): Promise<boolean> {
-  const drive = getDriveClient();
+  const drive = await getDriveClient();
   if (!drive || !fileId || fileId.startsWith('local:')) return false;
 
   try {
@@ -523,7 +516,7 @@ export async function renameDriveFile(fileId: string, newTitle: string): Promise
  * Create a folder in Google Drive
  */
 export async function createDriveFolder(name: string, parentId?: string): Promise<string | null> {
-  const drive = getDriveClient();
+  const drive = await getDriveClient();
   if (!drive) return null;
 
   try {
@@ -556,7 +549,7 @@ export async function createDriveFolder(name: string, parentId?: string): Promis
  * List all folders in Google Drive (inside GEONIXA LOOM root folder)
  */
 export async function listDriveFolders(): Promise<Array<{ id: string; name: string }>> {
-  const drive = getDriveClient();
+  const drive = await getDriveClient();
   const rootId = getRootFolderId();
 
   if (!drive) return [];
@@ -592,7 +585,7 @@ export async function listDriveFolders(): Promise<Array<{ id: string; name: stri
  * Persist video editor cuts, overlays, audio tracks directly onto the Google Drive file
  */
 export async function updateDriveFileEditorData(fileId: string, editorData: unknown): Promise<boolean> {
-  const drive = getDriveClient();
+  const drive = await getDriveClient();
   if (!drive || !fileId || fileId.startsWith('local:')) return false;
 
   try {
@@ -633,7 +626,7 @@ export async function uploadBufferToDrive(params: {
   folderName?: string;
   isMeeting?: boolean;
 }): Promise<{ id: string; webViewLink?: string; thumbnailLink?: string } | null> {
-  const drive = getDriveClient();
+  const drive = await getDriveClient();
   if (!drive) return null;
 
   try {
@@ -697,7 +690,7 @@ export async function uploadBufferToDrive(params: {
  * Find or create a folder with a given name inside root Drive folder
  */
 export async function getOrCreateNamedDriveFolder(folderName: string): Promise<string> {
-  const drive = getDriveClient();
+  const drive = await getDriveClient();
   const rootId = getRootFolderId();
   if (!drive) return rootId || '';
 
@@ -731,7 +724,7 @@ export async function getOrCreateNamedDriveFolder(folderName: string): Promise<s
  * Move a file in Google Drive to a destination folder (or root folder)
  */
 export async function moveDriveFile(fileId: string, targetFolderId?: string, targetFolderName?: string): Promise<boolean> {
-  const drive = getDriveClient();
+  const drive = await getDriveClient();
   if (!drive || !fileId || fileId.startsWith('local:')) return false;
 
   try {
@@ -825,7 +818,7 @@ export async function getDriveStorageStatus(): Promise<{
   user?: drive_v3.Schema$User;
   error?: string;
 }> {
-  const drive = getDriveClient();
+  const drive = await getDriveClient();
   if (!drive) return { connected: false, message: 'Google Drive credentials unavailable' };
 
   try {
@@ -888,7 +881,7 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
   folders: DriveFolderItem[];
   connected: boolean;
 }> {
-  const drive = getDriveClient();
+  const drive = await getDriveClient();
   const rootId = getRootFolderId();
   if (!drive) {
     return { videos: driveCache.videos, folders: driveCache.folders, connected: false };

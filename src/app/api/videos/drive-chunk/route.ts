@@ -45,17 +45,17 @@ export async function PUT(req: Request) {
 
     // 200/201 indicates upload is completely finished!
     if (driveRes.ok) {
-      let driveData: any = {};
+      let driveData: Record<string, unknown> = {};
       try {
         driveData = await driveRes.json();
       } catch {}
 
-      const driveFileId = driveData.id || '';
+      const driveFileId = String(driveData.id || '');
 
       if (videoId) {
         try {
           const videosCol = await getCollection<Video>('videos');
-          let filter: any = {};
+          let filter: Record<string, unknown> = {};
           try {
             filter = { _id: new ObjectId(videoId) };
           } catch {
@@ -66,7 +66,7 @@ export async function PUT(req: Request) {
             $set: {
               driveFileId: driveFileId || undefined,
               status: 'READY',
-              webViewLink: driveData.webViewLink || (driveFileId ? `https://drive.google.com/file/d/${driveFileId}/view` : undefined),
+              webViewLink: (driveData.webViewLink as string) || (driveFileId ? `https://drive.google.com/file/d/${driveFileId}/view` : undefined),
               updatedAt: Date.now(),
             },
           });
@@ -85,8 +85,8 @@ export async function PUT(req: Request) {
     const errText = await driveRes.text();
     console.error(`Google Drive chunk error ${driveRes.status}:`, errText);
     return NextResponse.json({ error: 'Drive upload error', details: errText }, { status: driveRes.status });
-  } catch (error: any) {
-    console.error('Error in drive-chunk proxy:', error);
+  } catch (error: unknown) {
+    console.error('Error in drive-chunk proxy:', (error as Error)?.message || error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

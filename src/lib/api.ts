@@ -349,38 +349,16 @@ export const getCourses = async (): Promise<Array<{ id: string; name: string }>>
 };
 
 export const createCourse = async (name: string): Promise<{ id: string; name: string }> => {
-  try {
-    const response = await fetchWithAuth('/folders', {
-      method: 'POST',
-      body: JSON.stringify({ name: name.trim() }),
-    });
-    if (response.ok) {
-      const created = await response.json();
-      if (typeof window !== 'undefined') {
-        try {
-          const stored = localStorage.getItem('loom_video_folders');
-          const folders = stored ? JSON.parse(stored) : [];
-          folders.push(created);
-          localStorage.setItem('loom_video_folders', JSON.stringify(folders));
-        } catch {}
-      }
-      return created;
-    }
-  } catch (err) {
-    console.error('Create folder API failed:', err);
+  const response = await fetchWithAuth('/folders', {
+    method: 'POST',
+    body: JSON.stringify({ name: name.trim() }),
+  });
+  if (response.ok) {
+    const created = await response.json();
+    return created;
   }
-
-  // Fallback
-  const fallback = { id: `folder-${Date.now()}`, name: name.trim() };
-  if (typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem('loom_video_folders');
-      const folders = stored ? JSON.parse(stored) : [];
-      folders.push(fallback);
-      localStorage.setItem('loom_video_folders', JSON.stringify(folders));
-    } catch {}
-  }
-  return fallback;
+  const errData = await response.json().catch(() => ({}));
+  throw new Error(errData.error || 'Failed to create folder on Google Drive');
 };
 
 export const renameCourse = async (id: string, name: string): Promise<{ id: string; name: string }> => {

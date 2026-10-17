@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { getFileMetadata } from '@/lib/server/drive';
 import { Video } from '@/lib/server/types';
@@ -43,7 +42,7 @@ export async function GET(
     let video: Video | null = null;
     try {
       const videosCol = await getCollection<Video>('videos');
-      let filter: any = {};
+      let filter: Record<string, unknown> = {};
       try {
         filter = { $or: [{ _id: new ObjectId(id) }, { id }, { driveFileId: id }] };
       } catch {
@@ -57,7 +56,7 @@ export async function GET(
     const driveFileId = video?.driveFileId || id;
 
     // Resolve the actual Google Drive CDN thumbnail URL
-    let cdnThumbnailUrl = (video as any)?.directThumbnailUrl || '';
+    let cdnThumbnailUrl = (video as unknown as { directThumbnailUrl?: string })?.directThumbnailUrl || '';
     if (!cdnThumbnailUrl && video?.thumbnailLink && !video.thumbnailLink.startsWith('/api/videos/')) {
       cdnThumbnailUrl = video.thumbnailLink;
     }
@@ -108,7 +107,7 @@ export async function GET(
     } catch {}
 
     return getPlaceholderThumbnail(video?.title);
-  } catch (error: any) {
+  } catch {
     return getPlaceholderThumbnail('Recording');
   }
 }

@@ -45,8 +45,8 @@ export async function GET(req: Request) {
           await videosCol.insertOne(newVideo);
         }
       }
-    } catch (dbErr: any) {
-      console.warn('MongoDB sync note in /api/videos/sync:', dbErr?.message);
+    } catch (dbErr: unknown) {
+      console.warn('MongoDB sync note in /api/videos/sync:', (dbErr as Error)?.message);
     }
 
     return NextResponse.json({
@@ -58,8 +58,8 @@ export async function GET(req: Request) {
       videos,
       folders,
     });
-  } catch (error: any) {
-    console.error('Error syncing videos:', error);
+  } catch (error: unknown) {
+    console.error('Error syncing videos:', (error as Error)?.message || error);
     return NextResponse.json({ 
       success: true,
       driveConnected: true,

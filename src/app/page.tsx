@@ -5,17 +5,20 @@ import { useRouter } from "next/navigation";
 import { 
   Search, Video, 
   Share2, Shield,
-  ChevronDown, Zap, Upload, Calendar
+  ChevronDown, Upload, Calendar
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
-  UsersIcon, UserIcon, WorkspaceIcon, NotificationIcon
+  UsersIcon, UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 import Image from "next/image";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import RecordingSetupModal from "@/components/RecordingSetupModal";
 import UploadVideoModal from "@/components/UploadVideoModal";
+import RcrdLogo from "@/components/RcrdLogo";
+import ProfileFlyout, { getStoredProfile } from "@/components/ProfileFlyout";
+import HariInsights from "@/components/HariInsights";
 
 export default function HomePage() {
   const router = useRouter();
@@ -23,49 +26,34 @@ export default function HomePage() {
   // App States
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profile, setProfile] = useState(getStoredProfile());
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const hasSeenTour = localStorage.getItem("hasSeenTour");
-      if (!hasSeenTour) {
-        const driverObj = driver({
-          showProgress: true,
-          steps: [
-            { element: '#tour-sidebar-home', popover: { title: 'Dashboard', description: 'This is your main dashboard where you can start a recording instantly.' } },
-            { element: '#tour-sidebar-library', popover: { title: 'My Library', description: 'Access all your past recorded videos, folders, and shared content.' } },
-            { element: '#tour-sidebar-meetings', popover: { title: 'Meetings', description: 'Schedule or join live meetings and access past meeting recordings.' } },
-            { element: '#tour-sidebar-settings', popover: { title: 'Settings', description: 'Manage your profile, team settings, and recording preferences.' } },
-            { element: '#tour-record-btn', popover: { title: 'Record Video', description: 'Click here anytime to start a new screen or camera recording.' } },
-          ],
-          onDestroyStarted: () => {
-            if (!driverObj.hasNextStep() || confirm("Are you sure you want to skip the tutorial?")) {
-              localStorage.setItem("hasSeenTour", "true");
-              driverObj.destroy();
-            }
-          },
-        });
-        driverObj.drive();
-      }
-    }
+    const handleProfileUpdate = () => {
+      setProfile(getStoredProfile());
+    };
+    window.addEventListener("rcrd_profile_updated", handleProfileUpdate);
+    return () => window.removeEventListener("rcrd_profile_updated", handleProfileUpdate);
   }, []);
 
   return (
-    <div className="relative flex h-full w-full bg-white text-[#20262E] font-sans overflow-hidden selection:bg-[#0CAA41]/20">
+    <div className="relative flex h-full w-full bg-[#F5F6F8] text-[#20262E] font-sans overflow-hidden selection:bg-[#0CAA41]/20">
       
-      {/* Background Ambient Glow in Sunset Orange */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#0CAA41]/5 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#0CAA41]/5 blur-[120px] pointer-events-none"></div>
+      {/* Background Ambient Glow in Glassdoor Mint */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#E6F6EC]/30 blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#E6F6EC]/30 blur-[120px] pointer-events-none"></div>
 
       {/* Sidebar - Crisp Light Mode */}
       <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-[#E2E7EC] bg-white z-20 h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden">
         <div className="h-16 flex items-center px-6 border-b border-[#E2E7EC] flex-shrink-0">
-          <div className="flex items-center justify-center w-full cursor-pointer group" onClick={() => router.push('/')}>
-            <Image src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." width={120} height={48} className="h-12 w-auto object-contain transition-transform group-hover:scale-105" style={{ filter: "hue-rotate(131deg) saturate(1.4)" }} />
+          <div className="flex items-center justify-start w-full cursor-pointer group" onClick={() => router.push('/')}>
+            <RcrdLogo className="h-8 w-auto transition-transform group-hover:scale-105" />
           </div>
         </div>
 
         <div className="p-5 border-b border-[#E2E7EC] flex-shrink-0">
-          <div className="flex items-center justify-between p-3 bg-[#F5F6F8] hover:bg-slate-100 rounded-xl cursor-pointer transition-all border border-[#E2E7EC] hover:border-[#E2E7EC] group">
+          <div className="flex items-center justify-between p-3 bg-[#F5F6F8] hover:bg-[#E6F6EC]/40 rounded-xl cursor-pointer transition-all border border-[#E2E7EC] group">
             <div>
               <div className="text-sm font-semibold text-[#20262E] group-hover:text-[#0CAA41] transition-colors">RCRD Workspace</div>
               <div className="flex items-center gap-2 mt-1.5">
@@ -73,9 +61,12 @@ export default function HomePage() {
                 <span className="text-xs text-[#57636E]">Team Space</span>
               </div>
             </div>
-            <ChevronDown className="w-4 h-4 text-[#57636E] group-hover:text-[#57636E] transition-colors" />
+            <ChevronDown className="w-4 h-4 text-[#57636E] group-hover:text-[#20262E] transition-colors" />
           </div>
-          <button className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#E6F6EC]/50 border border-[#E2E7EC] hover:border-[#0CAA41]/30 rounded-xl text-sm font-semibold text-[#20262E] transition-all shadow-sm hover:shadow-md cursor-pointer">
+          <button 
+            onClick={() => router.push('/settings?tab=users')}
+            className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#E6F6EC]/50 border border-[#E2E7EC] hover:border-[#0CAA41]/30 rounded-xl text-sm font-semibold text-[#20262E] transition-all shadow-xs cursor-pointer"
+          >
             <UsersIcon size={16} className="text-[#0CAA41]" />
             Invite Teammates
           </button>
@@ -94,7 +85,7 @@ export default function HomePage() {
             <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#57636E] mb-3">Workspace Admin</h3>
             <nav className="space-y-1">
               <SidebarItem icon={<UserIcon size={18} />} label="Manage Users" href="/settings?tab=users" />
-              <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" />
+              <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" href="/settings" />
               <SidebarItem icon={<Shield size={18} />} label="Billing & Plans" href="/settings?tab=billing" />
             </nav>
           </div>
@@ -104,7 +95,7 @@ export default function HomePage() {
           <button 
             id="tour-record-btn"
             onClick={() => setIsRecordModalOpen(true)}
-            className="w-full bg-[#0CAA41] hover:bg-[#0C5325] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(12, 170, 65,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(12, 170, 65,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+            className="w-full bg-[#0CAA41] hover:bg-[#0C5325] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(12,170,65,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(12,83,37,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <VideoCameraIcon size={20} />
             <span>Record Video</span>
@@ -113,91 +104,87 @@ export default function HomePage() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full min-w-0 relative z-10 bg-white overflow-hidden">
+      <main className="flex-1 flex flex-col h-full min-w-0 relative z-10 bg-[#F5F6F8] overflow-hidden">
         
-        {/* Top Header */}
-        <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-[#E2E7EC] shrink-0 z-20 shadow-sm">
+        {/* Top Header - Clean, 4th image type icons removed */}
+        <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-[#E2E7EC] shrink-0 z-20 shadow-xs">
           <div className="flex-1 max-w-2xl relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E] group-focus-within:text-[#0CAA41] transition-colors" />
             <input 
               type="text" 
               placeholder="Search for videos, folders, tags, or people..." 
-              className="w-full pl-11 pr-4 py-2 bg-[#F5F6F8] border border-[#E2E7EC]/60 rounded-xl text-sm text-[#20262E] focus:bg-white focus:border-[#0CAA41] focus:ring-4 focus:ring-[#0CAA41]/10 outline-none transition-all placeholder:text-[#57636E] font-medium"
+              className="w-full pl-11 pr-4 py-2 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:bg-white focus:border-[#0CAA41] focus:ring-4 focus:ring-[#0CAA41]/10 outline-none transition-all placeholder:text-[#57636E] font-medium"
             />
           </div>
-          <div className="flex items-center gap-5 ml-4 shrink-0">
-            <button className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-4 py-2 rounded-xl text-xs font-bold tracking-wide transition-all flex items-center gap-2 shadow-sm cursor-pointer">
-              <Zap size={14} className="text-white fill-white" /> Upgrade
-            </button>
-            <button className="text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] p-2 rounded-xl transition-colors relative cursor-pointer">
-              <NotificationIcon size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-[#0CAA41] rounded-full border-2 border-white"></span>
-            </button>
-            <div className="w-9 h-9 rounded-xl bg-[#0CAA41] text-white flex items-center justify-center text-sm font-bold cursor-pointer shadow-md hover:scale-105 transition-transform border border-[#0CAA41]">
-              HR
+          
+          {/* Header Action: Profile Avatar (Opens 5th Image Profile Flyout) */}
+          <div className="flex items-center ml-4 shrink-0">
+            <div 
+              onClick={() => setIsProfileOpen(true)}
+              className="w-9 h-9 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-sm font-bold cursor-pointer shadow-sm hover:scale-105 transition-transform ring-2 ring-[#E6F6EC]"
+              title="Open profile menu"
+            >
+              {profile.avatarText}
             </div>
           </div>
         </header>
 
         {/* Dashboard Content */}
-        <div className="flex-1 overflow-y-auto flex flex-col items-center pt-20 px-8 relative custom-scrollbar min-h-0 bg-white">
+        <div className="flex-1 overflow-y-auto flex flex-col items-center pt-10 px-8 relative custom-scrollbar min-h-0 bg-[#F5F6F8]">
           
-          {/* Animated Clean Orb / Camera Graphic */}
-          {/* Animated Clean Orb / Camera Graphic in Sunset Orange */}
-          <div className="relative mb-10 w-48 h-48 flex items-center justify-center group cursor-pointer" onClick={() => setIsRecordModalOpen(true)}>
-            <div className="absolute inset-0 flex items-center justify-center blur-md opacity-40 group-hover:opacity-75 group-hover:scale-110 transition-all duration-700">
+          {/* Animated Clean Orb / Camera Graphic in Glassdoor Green */}
+          <div className="relative mb-6 w-40 h-40 flex items-center justify-center group cursor-pointer" onClick={() => setIsRecordModalOpen(true)}>
+            <div className="absolute inset-0 flex items-center justify-center blur-md opacity-30 group-hover:opacity-60 group-hover:scale-110 transition-all duration-700">
               <Image 
-                src="/ICONS/WhatsApp_Image_2026-09-25_at_11.50.51_AM-removebg-preview.png" 
-                width={160} 
-                height={160} 
+                src="/ICONS/center-orb.svg" 
+                width={140} 
+                height={140} 
                 className="w-full h-full object-contain" 
-                style={{ filter: "hue-rotate(131deg) saturate(1.4)" }}
                 alt="" 
               />
             </div>
             
             <Image 
-              src="/ICONS/WhatsApp_Image_2026-09-25_at_11.50.51_AM-removebg-preview.png" 
-              alt="icon" 
-              width={160}
-              height={160}
-              className="relative z-10 w-40 h-40 object-contain animate-float group-hover:scale-110 transition-transform duration-500" 
-              style={{ filter: "hue-rotate(131deg) saturate(1.4)" }}
+              src="/ICONS/center-orb.svg" 
+              alt="Record Orb" 
+              width={140}
+              height={140}
+              className="relative z-10 w-32 h-32 object-contain animate-float group-hover:scale-110 transition-transform duration-500" 
             />
             
-            {/* Floating particles in Teal and Berry Crimson */}
-            <div className="absolute top-2 right-2 w-3 h-3 bg-[#72BAA9] rounded-full opacity-80 animate-bounce delay-75"></div>
-            <div className="absolute bottom-4 left-0 w-2.5 h-2.5 bg-[#0CAA41] rounded-full opacity-80 animate-bounce delay-300"></div>
+            {/* Floating particles in Mint and Glassdoor Green */}
+            <div className="absolute top-2 right-2 w-3 h-3 bg-[#0CAA41] rounded-full opacity-80 animate-bounce delay-75"></div>
+            <div className="absolute bottom-4 left-0 w-2.5 h-2.5 bg-[#0C5325] rounded-full opacity-80 animate-bounce delay-300"></div>
           </div>
 
-          <h1 className="text-4xl font-extrabold text-[#0C5325] mb-4 tracking-tight text-center">
+          <h1 className="text-3xl font-extrabold text-[#20262E] mb-3 tracking-tight text-center">
             Capture Your Screen in Seconds
           </h1>
-          <p className="text-[#57636E] mb-10 max-w-lg text-center text-lg leading-relaxed">
+          <p className="text-[#57636E] mb-8 max-w-lg text-center text-base leading-relaxed">
             Record, share, and collaborate with async video messages that bring your team closer together.
           </p>
 
-          {/* Action Buttons: Start Recording + Upload Video (in particular folder) + Schedule Meeting */}
-          <div className="flex flex-wrap items-center justify-center gap-4">
+          {/* Action Buttons: Start Recording + Upload Video + Schedule Meeting */}
+          <div className="flex flex-wrap items-center justify-center gap-4 mb-12">
             
             {/* 1. Start Recording Button */}
             <button 
               onClick={() => setIsRecordModalOpen(true)}
-              className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-7 py-3.5 rounded-2xl font-bold flex items-center gap-3 transition-all shadow-[0_8px_20px_rgba(12, 170, 65,0.35)] hover:shadow-[0_12px_28px_rgba(12, 83, 37,0.45)] transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+              className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2.5 transition-all shadow-[0_8px_20px_rgba(12,170,65,0.35)] hover:shadow-[0_12px_28px_rgba(12,83,37,0.45)] transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
             >
-              <div className="bg-white/20 p-1.5 rounded-lg">
-                <VideoCameraIcon size={18} className="text-white" />
+              <div className="bg-white/20 p-1 rounded-lg">
+                <VideoCameraIcon size={16} className="text-white" />
               </div>
               <span>Start Recording</span>
             </button>
 
-            {/* 2. Upload Video Button (styled with Sage Teal #72BAA9 and Pistachio #E6F6EC) */}
+            {/* 2. Upload Video Button */}
             <button 
               onClick={() => setIsUploadModalOpen(true)}
-              className="bg-white hover:bg-[#E6F6EC]/40 text-[#0C5325] border-2 border-[#72BAA9] hover:border-[#0C5325] px-7 py-3.5 rounded-2xl font-bold flex items-center gap-3 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+              className="bg-white hover:bg-[#E6F6EC]/40 text-[#20262E] border-2 border-[#E2E7EC] hover:border-[#0CAA41] px-6 py-3 rounded-2xl font-bold flex items-center gap-2.5 transition-all shadow-xs hover:shadow-sm transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
             >
-              <div className="bg-[#E6F6EC] p-1.5 rounded-lg text-[#0C5325]">
-                <Upload size={18} className="stroke-[2.5]" />
+              <div className="bg-[#E6F6EC] p-1 rounded-lg text-[#0CAA41]">
+                <Upload size={16} className="stroke-[2.5]" />
               </div>
               <span>Upload a Video</span>
             </button>
@@ -205,16 +192,28 @@ export default function HomePage() {
             {/* 3. Schedule Meeting Button */}
             <button 
               onClick={() => router.push('/meetings?schedule=true')}
-              className="bg-white hover:bg-[#E6F6EC]/40 text-[#0C5325] border-2 border-[#0CAA41] hover:border-[#0C5325] px-7 py-3.5 rounded-2xl font-bold flex items-center gap-3 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+              className="bg-white hover:bg-[#E6F6EC]/40 text-[#20262E] border-2 border-[#E2E7EC] hover:border-[#0CAA41] px-6 py-3 rounded-2xl font-bold flex items-center gap-2.5 transition-all shadow-xs hover:shadow-sm transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
             >
-              <div className="bg-[#E6F6EC] p-1.5 rounded-lg text-[#0CAA41]">
-                <Calendar size={18} className="stroke-[2.5]" />
+              <div className="bg-[#E6F6EC] p-1 rounded-lg text-[#0CAA41]">
+                <Calendar size={16} className="stroke-[2.5]" />
               </div>
               <span>Schedule Meeting</span>
             </button>
           </div>
 
+          {/* Hari's Insights Grid (Matching Image 5) */}
+          <HariInsights 
+            userName={profile.name.split(" ")[0]}
+            onStartRecord={() => setIsRecordModalOpen(true)}
+          />
+
         </div>
+
+        {/* Profile Sidebar Flyout (5th Image) */}
+        <ProfileFlyout
+          isOpen={isProfileOpen}
+          onClose={() => setIsProfileOpen(false)}
+        />
 
         {/* RECORDING SETUP MODAL */}
         <RecordingSetupModal

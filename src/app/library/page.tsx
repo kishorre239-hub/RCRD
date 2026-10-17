@@ -13,9 +13,10 @@ import {
   HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
   UsersIcon, UserIcon, WorkspaceIcon, NotificationIcon
 } from "@/components/CustomIcons";
-import Image from "next/image";
 import { getVideos, getCourses, createCourse, renameCourse, deleteCourse, deleteVideo, updateVideo, syncVideos, addVideoComment, uploadVideo, API_URL } from "@/lib/api";
 import RecordingSetupModal from "@/components/RecordingSetupModal";
+import RcrdLogo from "@/components/RcrdLogo";
+import ProfileFlyout, { getStoredProfile, UserProfileData } from "@/components/ProfileFlyout";
 
 interface CommentData {
   id: string;
@@ -57,6 +58,14 @@ export default function LibraryPage() {
   // --- Recording Setup Modal State ---
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [now, setNow] = useState<number>(0);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profile, setProfile] = useState<UserProfileData>(getStoredProfile());
+
+  useEffect(() => {
+    const handleUpdate = () => setProfile(getStoredProfile());
+    window.addEventListener("rcrd_profile_updated", handleUpdate);
+    return () => window.removeEventListener("rcrd_profile_updated", handleUpdate);
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.search.includes('record=true')) {
@@ -594,7 +603,7 @@ export default function LibraryPage() {
       <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-[#E2E7EC] bg-white z-20 h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden">
         <div className="h-16 flex items-center px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-center w-full cursor-pointer group" onClick={() => router.push('/')}>
-            <Image src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." width={120} height={48} className="h-12 w-auto object-contain transition-transform group-hover:scale-105"  style={{ filter: "hue-rotate(131deg) saturate(1.4)" }}/>
+            <RcrdLogo className="h-8 w-auto" />
           </div>
         </div>
 
@@ -658,18 +667,13 @@ export default function LibraryPage() {
               className="w-full pl-9 pr-4 py-1.5 bg-[#F5F6F8] border border-transparent rounded-lg text-[13px] text-[#20262E] focus:bg-white focus:border-[#0CAA41] focus:ring-1 focus:ring-[#0CAA41] outline-none transition-all placeholder:text-[#57636E] font-medium"
             />
           </div>
-          <div className="flex items-center gap-4 ml-4 shrink-0">
-            <button className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all">
-              Upgrade
-            </button>
-            <button className="text-[#57636E] hover:bg-slate-100 p-1.5 rounded-md transition-colors">
-              <div className="w-5 h-5 border-2 border-slate-500 rounded-full flex items-center justify-center text-[11px] font-bold">?</div>
-            </button>
-            <button className="text-[#57636E] hover:bg-slate-100 p-1.5 rounded-md transition-colors">
-              <NotificationIcon size={18} />
-            </button>
-            <div className="w-7 h-7 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-[11px] font-bold cursor-pointer">
-              HR
+          <div className="flex items-center ml-4 shrink-0">
+            <div 
+              onClick={() => setIsProfileOpen(true)}
+              className="w-9 h-9 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-sm font-bold cursor-pointer shadow-sm hover:scale-105 transition-transform ring-2 ring-[#E6F6EC]"
+              title="Open profile menu"
+            >
+              {profile.avatarText}
             </div>
           </div>
         </header>
@@ -1859,6 +1863,13 @@ export default function LibraryPage() {
         })()}
 
       </main>
+
+      {/* Profile Flyout (Image 5) */}
+      <ProfileFlyout
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        videoCount={videos.length}
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import RcrdLogo from "@/components/RcrdLogo";
 import {
   Calendar, Clock, Lock, User, Video, Play,
   CheckCircle2, AlertCircle, Eye, EyeOff, Copy,
@@ -258,14 +259,7 @@ function JoinMeetingContent() {
       {/* Top Navbar */}
       <header className="h-16 px-6 sm:px-10 flex items-center justify-between border-b border-[#E2E7EC]/80 bg-white/80 backdrop-blur-md sticky top-0 z-20">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => router.push("/meetings")}>
-          <Image
-            src="/ICONS/COMPANY_NAME-cropped.png"
-            alt="RCRD."
-            width={110}
-            height={40}
-            className="h-9 w-auto object-contain hover:opacity-90 transition-opacity"
-            priority
-           style={{ filter: "hue-rotate(131deg) saturate(1.4)" }}/>
+          <RcrdLogo className="h-8 w-auto" />
           <div className="h-4 w-px bg-slate-200 hidden sm:block" />
           <span className="text-xs font-bold text-[#57636E] uppercase tracking-wider hidden sm:inline">
             Classroom Portal

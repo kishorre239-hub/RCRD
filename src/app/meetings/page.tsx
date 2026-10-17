@@ -19,6 +19,8 @@ import {
 } from "@/components/CustomIcons";
 
 import { getCourses } from "@/lib/api";
+import RcrdLogo from "@/components/RcrdLogo";
+import ProfileFlyout, { getStoredProfile, UserProfileData } from "@/components/ProfileFlyout";
 
 interface Course { id: string; name: string; }
 interface Meeting {
@@ -117,6 +119,14 @@ export default function MeetingsPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [now, setNow] = useState<number>(0);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profile, setProfile] = useState<UserProfileData>(getStoredProfile());
+
+  useEffect(() => {
+    const handleUpdate = () => setProfile(getStoredProfile());
+    window.addEventListener("rcrd_profile_updated", handleUpdate);
+    return () => window.removeEventListener("rcrd_profile_updated", handleUpdate);
+  }, []);
 
   // Helper date generators
   const getTodayString = () => {
@@ -535,13 +545,7 @@ export default function MeetingsPage() {
       {/* Sidebar - Crisp Modern Zoom Light Mode */}
       <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-[#E2E7EC]/90 bg-white z-20 h-full shadow-[2px_0_12px_rgba(0,0,0,0.03)] overflow-hidden">
         <div className="h-16 flex items-center px-6 border-b border-[#E2E7EC] cursor-pointer group flex-shrink-0" onClick={() => router.push('/')}>
-          <Image
-            src="/ICONS/COMPANY_NAME-cropped.png"
-            alt="RCRD."
-            width={120}
-            height={48}
-            className="h-11 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
-           style={{ filter: "hue-rotate(131deg) saturate(1.4)" }}/>
+          <RcrdLogo className="h-8 w-auto" />
         </div>
 
         {/* User Workspace Profile */}
@@ -614,19 +618,13 @@ export default function MeetingsPage() {
             />
           </div>
 
-          <div className="flex items-center gap-3 ml-4 shrink-0">
-            <button className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm">
-              Upgrade Plan
-            </button>
-            <button className="text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 p-2 rounded-xl transition-colors">
-              <HelpCircle size={18} />
-            </button>
-            <button className="text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 p-2 rounded-xl transition-colors relative">
-              <NotificationIcon size={18} />
-              <span className="w-2 h-2 bg-[#0CAA41] rounded-full absolute top-2 right-2 ring-2 ring-white" />
-            </button>
-            <div className="w-8 h-8 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-xs font-bold ring-2 ring-[#0CAA41]/20 cursor-pointer shadow-sm">
-              HR
+          <div className="flex items-center ml-4 shrink-0">
+            <div 
+              onClick={() => setIsProfileOpen(true)}
+              className="w-9 h-9 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-sm font-bold cursor-pointer shadow-sm hover:scale-105 transition-transform ring-2 ring-[#E6F6EC]"
+              title="Open profile menu"
+            >
+              {profile.avatarText}
             </div>
           </div>
         </header>
@@ -1000,112 +998,17 @@ export default function MeetingsPage() {
               </div>
               
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={autoStep === null ? startAutoTour : stopAutoTour}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
-                    autoStep !== null 
-                      ? "bg-slate-800 hover:bg-slate-900 text-white" 
-                      : "bg-[#E6F6EC] hover:bg-[#E6F6EC] text-[#0C5325] border border-[#0CAA41]/30"
-                  }`}
-                  title={autoStep !== null ? "Stop automatic tutorial" : "Watch automatic feature tutorial"}
-                >
-                  {autoStep !== null ? (
-                    <>
-                      <Pause size={12} />
-                      Stop Tutorial
-                    </>
-                  ) : (
-                    <>
-                      <Play size={12} className="fill-[#0CAA41] text-[#0C5325]" />
-                      Auto Tutorial
-                    </>
-                  )}
-                </button>
-                <button onClick={() => { setShowCreate(false); stopAutoTour(); }} className="p-2 text-[#57636E] hover:text-[#20262E] hover:bg-slate-200 rounded-xl transition-colors cursor-pointer">
+                <button onClick={() => setShowCreate(false)} className="p-2 text-[#57636E] hover:text-[#20262E] hover:bg-slate-200 rounded-xl transition-colors cursor-pointer">
                   <X size={18} />
                 </button>
               </div>
             </div>
 
-            {/* Automatic Interactive Walkthrough Banner */}
-            {autoStep !== null && (
-              <div className="relative bg-gradient-to-r from-[#0CAA41] via-[#0C5325] to-[#0CAA41] text-white px-6 py-3 shadow-md animate-in slide-in-from-top-2 duration-300">
-                {/* Real-time animated progress bar */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-white/20 overflow-hidden">
-                  <div 
-                    className="h-full bg-blue-300 transition-all duration-75 ease-linear"
-                    style={{ width: `${autoProgress}%` }}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between gap-4 pt-1">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="w-6 h-6 rounded-full bg-white/20 text-white font-black text-xs flex items-center justify-center shrink-0 border border-white/30">
-                      {autoStep + 1}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-200 bg-white/10 px-1.5 py-0.5 rounded">
-                          Feature {autoStep + 1} of {AUTO_TOUR_STEPS.length}
-                        </span>
-                        {isAutoPlaying ? (
-                          <span className="flex items-center gap-1 text-[10px] text-emerald-300 font-semibold animate-pulse">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            Auto-playing
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-amber-300 font-semibold">
-                            Paused
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs font-bold text-white truncate mt-0.5">
-                        {AUTO_TOUR_STEPS[autoStep].title}: <span className="font-normal text-blue-100">{AUTO_TOUR_STEPS[autoStep].desc}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setIsAutoPlaying(p => !p)}
-                      className="px-2.5 py-1 bg-white/15 hover:bg-white/25 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer text-white"
-                      title={isAutoPlaying ? "Pause walkthrough" : "Resume walkthrough"}
-                    >
-                      {isAutoPlaying ? <Pause size={12} /> : <Play size={12} className="fill-white" />}
-                      {isAutoPlaying ? "Pause" : "Resume"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={stopAutoTour}
-                      className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-blue-100 hover:text-white rounded-lg text-xs font-medium transition-colors cursor-pointer"
-                    >
-                      Close
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Body */}
             <div className="p-6 overflow-y-auto max-h-[75vh] space-y-6">
               
-              {/* STEP 1: Topic & Folder Row */}
-              <div 
-                id="tour-topic-folder" 
-                className={`p-4 rounded-2xl border transition-all duration-500 ${
-                  autoStep === 0 
-                    ? "border-[#0CAA41] bg-[#E6F6EC]/50 ring-4 ring-[#0CAA41]/20 shadow-md scale-[1.01]" 
-                    : "border-[#E2E7EC] bg-white"
-                }`}
-              >
-                {autoStep === 0 && (
-                  <div className="mb-3 flex items-center gap-2 text-xs text-[#0C5325] font-bold bg-[#E6F6EC]/70 px-3 py-1.5 rounded-lg border border-[#0CAA41]/30 animate-in fade-in">
-                    <span className="w-2 h-2 rounded-full bg-[#0CAA41] animate-ping" />
-                    <span>Auto-showing: {AUTO_TOUR_STEPS[0].title} — {AUTO_TOUR_STEPS[0].desc}</span>
-                  </div>
-                )}
+              {/* Topic & Folder Row */}
+              <div className="p-4 rounded-2xl border border-[#E2E7EC] bg-white">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
@@ -1128,31 +1031,17 @@ export default function MeetingsPage() {
                       onChange={e => setNewCourse(e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-[#E2E7EC] focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/15 rounded-xl text-xs outline-none transition-all shadow-xs cursor-pointer font-medium text-[#20262E]"
                     >
-                      <option value="">📁 None (Root Library)</option>
+                      <option value="">None (Root Library)</option>
                       {courses.map(c => (
-                        <option key={c.id} value={c.id}>📁 {c.name}</option>
+                        <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
                   </div>
                 </div>
               </div>
 
-              {/* STEP 2 & 3: Date & Time Section (Full width, no cramped columns) */}
-              <div 
-                id="tour-datetime" 
-                className={`p-4 rounded-2xl border transition-all duration-500 space-y-4 ${
-                  autoStep === 2 
-                    ? "border-[#0CAA41] bg-[#E6F6EC]/50 ring-4 ring-[#0CAA41]/20 shadow-md scale-[1.01]" 
-                    : "border-[#E2E7EC] bg-white"
-                }`}
-              >
-                {autoStep === 2 && (
-                  <div className="flex items-center gap-2 text-xs text-[#0C5325] font-bold bg-[#E6F6EC]/70 px-3 py-1.5 rounded-lg border border-[#0CAA41]/30 animate-in fade-in">
-                    <span className="w-2 h-2 rounded-full bg-[#0CAA41] animate-ping" />
-                    <span>Auto-showing: {AUTO_TOUR_STEPS[2].title} — {AUTO_TOUR_STEPS[2].desc}</span>
-                  </div>
-                )}
-                
+              {/* Date & Time Section */}
+              <div className="p-4 rounded-2xl border border-[#E2E7EC] bg-white space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider">
@@ -1163,7 +1052,7 @@ export default function MeetingsPage() {
                     </span>
                   </div>
 
-                  {/* Clean, spacious Start Time row */}
+                  {/* Clean Start Time row */}
                   <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                     {/* Date input */}
                     <div className="flex-1 min-w-[160px]">
@@ -1208,26 +1097,12 @@ export default function MeetingsPage() {
                   </div>
                 </div>
 
-                {/* Quick Start Presets (Inside Step 2 container) */}
-                <div 
-                  id="tour-presets" 
-                  className={`pt-3 border-t border-[#E2E7EC] transition-all duration-500 ${
-                    autoStep === 1 
-                      ? "p-2 rounded-xl border border-[#0CAA41] bg-[#E6F6EC]/40 ring-4 ring-[#0CAA41]/20 shadow-xs" 
-                      : ""
-                  }`}
-                >
+                {/* Quick Start Presets */}
+                <div className="pt-3 border-t border-[#E2E7EC]">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold text-[#57636E] uppercase tracking-wider flex items-center gap-1.5">
-                      <Clock size={12} className="text-[#0CAA41]" />
-                      1-Click Quick Start Presets:
+                    <span className="text-[11px] font-bold text-[#57636E] uppercase tracking-wider">
+                      Quick Start Presets:
                     </span>
-                    {autoStep === 1 && (
-                      <span className="text-[11px] text-[#0C5325] font-bold flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#0CAA41] animate-ping" />
-                        Auto-highlighting quick presets
-                      </span>
-                    )}
                   </div>
                   
                   <div className="flex flex-wrap gap-1.5">
@@ -1243,7 +1118,7 @@ export default function MeetingsPage() {
                       }}
                       className="px-3 py-1.5 bg-[#E6F6EC] hover:bg-[#E6F6EC] text-[#0C5325] text-xs font-semibold rounded-lg transition-colors border border-[#0CAA41]/30 shadow-2xs cursor-pointer"
                     >
-                      ⚡ In 15 mins
+                      In 15 mins
                     </button>
                     <button 
                       type="button"
@@ -1257,7 +1132,7 @@ export default function MeetingsPage() {
                       }}
                       className="px-3 py-1.5 bg-[#E6F6EC] hover:bg-[#E6F6EC] text-[#0C5325] text-xs font-semibold rounded-lg transition-colors border border-[#0CAA41]/30 shadow-2xs cursor-pointer"
                     >
-                      ⚡ In 30 mins
+                      In 30 mins
                     </button>
                     <button 
                       type="button"
@@ -1271,7 +1146,7 @@ export default function MeetingsPage() {
                       }}
                       className="px-3 py-1.5 bg-[#E6F6EC] hover:bg-[#E6F6EC] text-[#0C5325] text-xs font-semibold rounded-lg transition-colors border border-[#0CAA41]/30 shadow-2xs cursor-pointer"
                     >
-                      ⚡ In 1 hour
+                      In 1 hour
                     </button>
                     <button 
                       type="button"
@@ -1282,7 +1157,7 @@ export default function MeetingsPage() {
                       }}
                       className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-xs font-semibold rounded-lg transition-colors border border-[#E2E7EC] shadow-2xs cursor-pointer"
                     >
-                      📅 Tomorrow 10 AM
+                      Tomorrow 10 AM
                     </button>
                     <button 
                       type="button"
@@ -1293,28 +1168,14 @@ export default function MeetingsPage() {
                       }}
                       className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-xs font-semibold rounded-lg transition-colors border border-[#E2E7EC] shadow-2xs cursor-pointer"
                     >
-                      📅 Tomorrow 2 PM
+                      Tomorrow 2 PM
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* STEP 4: Meeting Duration (Full-width, zero overlap!) */}
-              <div 
-                id="tour-duration" 
-                className={`p-4 rounded-2xl border transition-all duration-500 space-y-3 ${
-                  autoStep === 3 
-                    ? "border-[#0CAA41] bg-[#E6F6EC]/50 ring-4 ring-[#0CAA41]/20 shadow-md scale-[1.01]" 
-                    : "border-[#E2E7EC] bg-white"
-                }`}
-              >
-                {autoStep === 3 && (
-                  <div className="flex items-center gap-2 text-xs text-[#0C5325] font-bold bg-[#E6F6EC]/70 px-3 py-1.5 rounded-lg border border-[#0CAA41]/30 animate-in fade-in">
-                    <span className="w-2 h-2 rounded-full bg-[#0CAA41] animate-ping" />
-                    <span>Auto-showing: {AUTO_TOUR_STEPS[3].title} — {AUTO_TOUR_STEPS[3].desc}</span>
-                  </div>
-                )}
-                
+              {/* Meeting Duration */}
+              <div className="p-4 rounded-2xl border border-[#E2E7EC] bg-white space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider">
@@ -1323,11 +1184,11 @@ export default function MeetingsPage() {
                     <p className="text-[11px] text-[#57636E] font-normal">How long should this session run?</p>
                   </div>
                   <span className="text-xs font-bold text-[#0C5325] bg-[#E6F6EC] px-2.5 py-1 rounded-lg border border-[#0CAA41]/30 shadow-2xs">
-                    ⏱️ Selected: {formatDuration(newDuration)}
+                    Selected: {formatDuration(newDuration)}
                   </span>
                 </div>
 
-                {/* 1-Click Duration Chips */}
+                {/* Duration Chips */}
                 <div className="flex flex-wrap gap-2">
                   {DURATION_PRESETS.map(preset => {
                     const isSelected = newDuration === preset.value;
@@ -1336,20 +1197,19 @@ export default function MeetingsPage() {
                         key={preset.value}
                         type="button"
                         onClick={() => setNewDuration(preset.value)}
-                        className={`px-3 py-2 text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                        className={`px-3 py-2 text-xs rounded-xl transition-all flex items-center justify-center cursor-pointer ${
                           isSelected
                             ? "bg-[#0CAA41] text-white font-bold shadow-sm ring-2 ring-[#0CAA41]/20 scale-105"
                             : "bg-slate-100 hover:bg-slate-200 text-[#20262E] font-semibold"
                         }`}
                       >
-                        <Clock size={12} className={isSelected ? "text-white" : "text-[#57636E]"} />
                         {preset.label}
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Optional Custom Dropdown for custom hours & minutes */}
+                {/* Custom duration dropdown */}
                 <div className="pt-2 flex items-center gap-3 text-xs text-[#57636E] font-medium">
                   <span className="text-[#57636E]">Or fine-tune:</span>
                   <div className="flex items-center gap-2">
@@ -1383,25 +1243,11 @@ export default function MeetingsPage() {
                 </div>
               </div>
 
-              {/* STEP 5: Live Schedule Overview Banner */}
+              {/* Live Schedule Overview Banner */}
               {(() => {
                 const summary = getModalSummary();
                 return (
-                  <div 
-                    id="tour-summary" 
-                    className={`rounded-2xl border transition-all duration-500 p-4 ${
-                      autoStep === 4 
-                        ? "border-[#0CAA41] bg-[#E6F6EC]/70 ring-4 ring-[#0CAA41]/20 shadow-md scale-[1.01]" 
-                        : "border-[#0CAA41]/30/80 bg-gradient-to-r from-blue-50/90 via-indigo-50/40 to-blue-50/90 shadow-xs"
-                    }`}
-                  >
-                    {autoStep === 4 && (
-                      <div className="mb-3 flex items-center gap-2 text-xs text-[#0C5325] font-bold bg-[#E6F6EC]/70 px-3 py-1.5 rounded-lg border border-[#0CAA41]/30 animate-in fade-in">
-                        <span className="w-2 h-2 rounded-full bg-[#0CAA41] animate-ping" />
-                        <span>Auto-showing: {AUTO_TOUR_STEPS[4].title} — {AUTO_TOUR_STEPS[4].desc}</span>
-                      </div>
-                    )}
-                    
+                  <div className="rounded-2xl border border-[#0CAA41]/30 bg-gradient-to-r from-emerald-50/70 via-teal-50/40 to-emerald-50/70 shadow-xs p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-[#0CAA41] text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -1412,30 +1258,28 @@ export default function MeetingsPage() {
                             {newTitle.trim() || "Untitled Meeting"}
                           </p>
                           <p className="text-xs text-[#57636E] mt-0.5 font-medium">
-                            📅 {summary.dateStr} · ⏰ {summary.timeRange}
+                            {summary.dateStr} · {summary.timeRange}
                           </p>
                         </div>
                       </div>
                       
                       <div className="text-right shrink-0">
                         <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-white text-[#0C5325] border border-[#0CAA41]/30 shadow-2xs">
-                          ⏳ {summary.countdown}
+                          Starts in {summary.countdown}
                         </span>
                       </div>
                     </div>
 
                     <div className="mt-3 pt-3 border-t border-[#0CAA41]/20 flex items-center justify-between text-xs flex-wrap gap-2">
-                      <span className="text-[#20262E] font-semibold flex items-center gap-1.5">
-                        <Clock size={13} className="text-[#0CAA41]" />
+                      <span className="text-[#20262E] font-semibold">
                         Meeting Duration: <span className="text-[#0C5325] font-bold bg-white px-2 py-0.5 rounded border border-[#0CAA41]/30">{summary.durationStr}</span>
                       </span>
                       {newCourse ? (
-                        <span className="text-[#57636E] font-medium flex items-center gap-1 text-[11px]">
-                          <Folder size={12} className="text-[#72BAA9]" />
+                        <span className="text-[#57636E] font-medium text-[11px]">
                           Folder: <strong className="text-[#20262E]">{courses.find(c => c.id === newCourse)?.name || 'Selected Folder'}</strong>
                         </span>
                       ) : (
-                        <span className="text-[#57636E] text-[11px]">📁 Save location: Root Library</span>
+                        <span className="text-[#57636E] text-[11px]">Save location: Root Library</span>
                       )}
                     </div>
                   </div>
@@ -1470,20 +1314,11 @@ export default function MeetingsPage() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-[#E2E7EC] flex justify-between items-center bg-[#F5F6F8]">
-              <button
-                type="button"
-                onClick={autoStep === null ? startAutoTour : stopAutoTour}
-                className="text-xs font-semibold text-[#0CAA41] hover:text-[#0C5325] flex items-center gap-1.5 cursor-pointer"
-              >
-                {autoStep !== null ? <Pause size={12} /> : <Play size={12} className="fill-[#0CAA41]" />}
-                {autoStep !== null ? "Stop Walkthrough" : "Watch Auto Tutorial"}
-              </button>
-
+            <div className="px-6 py-4 border-t border-[#E2E7EC] flex justify-end items-center bg-[#F5F6F8]">
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => { setShowCreate(false); stopAutoTour(); }}
+                  onClick={() => setShowCreate(false)}
                   className="px-4 py-2 bg-white border border-[#E2E7EC] text-[#20262E] text-xs font-semibold rounded-xl hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer"
                 >
                   Cancel
@@ -1780,6 +1615,13 @@ export default function MeetingsPage() {
           </button>
         </div>
       )}
+
+      {/* Profile Flyout (Image 5) */}
+      <ProfileFlyout
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        videoCount={meetings.length}
+      />
 
     </div>
   );

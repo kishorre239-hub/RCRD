@@ -10,6 +10,8 @@ import {
 import { getVideo, updateVideo, incrementVideoView, addVideoComment, deleteVideoComment, updateVideoComment, API_URL } from '@/lib/api';
 import VideoPlayer from '@/components/VideoPlayer';
 import VideoEditorModal from '@/components/VideoEditorModal';
+import RcrdLogo from "@/components/RcrdLogo";
+import ProfileFlyout, { getStoredProfile, UserProfileData } from "@/components/ProfileFlyout";
 
 interface VideoComment {
   id: string;
@@ -56,6 +58,15 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profile, setProfile] = useState<UserProfileData>(getStoredProfile());
+
+  useEffect(() => {
+    const handleUpdate = () => setProfile(getStoredProfile());
+    window.addEventListener("rcrd_profile_updated", handleUpdate);
+    return () => window.removeEventListener("rcrd_profile_updated", handleUpdate);
+  }, []);
+
   const [floatingReactions, setFloatingReactions] = useState<{ id: number; emoji: string; left: number; size: number; delay: number }[]>([]);
   const [activeReactionEmoji, setActiveReactionEmoji] = useState<string | null>(null);
 
@@ -307,13 +318,12 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
       {/* Main Navbar */}
       <header className="h-14 border-b border-[#E2E7EC] bg-white flex items-center justify-between px-4 shrink-0 sticky top-0 z-50">
         <div className="flex items-center justify-center cursor-pointer group pl-12" onClick={() => router.push('/')}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." className="h-12 w-auto object-contain transition-transform group-hover:scale-105"  style={{ filter: "hue-rotate(131deg) saturate(1.4)" }}/>
+          <RcrdLogo className="h-8 w-auto" />
         </div>
         
         <div className="flex items-center gap-3">
           {/* Action Buttons */}
-          <button className="hidden md:flex items-center gap-2 bg-[#115E59] hover:bg-[#0F514D] text-white px-3 py-1.5 rounded-full text-sm font-semibold transition-all shadow-sm hover:shadow">
+          <button className="hidden md:flex items-center gap-2 bg-[#0CAA41] hover:bg-[#0C5325] text-white px-3 py-1.5 rounded-full text-sm font-semibold transition-all shadow-sm hover:shadow">
             <Share className="w-4 h-4" />
             Share
           </button>
@@ -323,7 +333,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
             className="hidden md:flex items-center gap-2 bg-[#F3F4F6] hover:bg-gray-200 text-[#20262E] p-1.5 rounded-full transition-all hover:scale-105"
             title="Copy Link"
           >
-            {copied ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <LinkIcon className="w-4 h-4" />}
+            {copied ? <CheckCircle2 className="w-4 h-4 text-[#0CAA41]" /> : <LinkIcon className="w-4 h-4" />}
           </button>
 
           <button 
@@ -360,21 +370,14 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
           </button>
 
           <div className="h-4 w-px bg-gray-300 mx-1 hidden md:block"></div>
-
-          {/* Icons */}
-          <button className="p-1.5 hover:bg-gray-100 rounded-full text-[#57636E] transition-colors hidden sm:block">
-            <Search className="w-5 h-5" />
-          </button>
-          <button className="p-1.5 hover:bg-gray-100 rounded-full text-[#57636E] transition-colors hidden sm:block hover:rotate-12">
-            <HelpCircle className="w-5 h-5" />
-          </button>
-          <button className="p-1.5 hover:bg-gray-100 rounded-full text-[#57636E] transition-colors hover:rotate-12">
-            <Bell className="w-5 h-5" />
-          </button>
           
-          {/* Avatar */}
-          <div className="w-8 h-8 bg-[#115E59] text-white rounded-full flex items-center justify-center text-xs font-bold ml-1 cursor-pointer hover:ring-2 ring-offset-2 ring-[#115E59] transition-all">
-            {video?.ownerName ? video.ownerName.split(' ').map(n => n[0]).join('') : 'HR'}
+          {/* Avatar (Opens ProfileFlyout) */}
+          <div 
+            onClick={() => setIsProfileOpen(true)}
+            className="w-8 h-8 bg-[#0CAA41] text-white rounded-full flex items-center justify-center text-xs font-bold ml-1 cursor-pointer hover:ring-2 ring-offset-2 ring-[#0CAA41] transition-all shadow-xs"
+            title="Open profile menu"
+          >
+            {profile.avatarText}
           </div>
         </div>
       </header>
@@ -1353,6 +1356,12 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
           <span>{toastMessage}</span>
         </div>
       )}
+
+      {/* Profile Flyout (Image 5) */}
+      <ProfileFlyout
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+      />
     </div>
   );
 }

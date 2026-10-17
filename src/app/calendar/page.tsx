@@ -14,6 +14,8 @@ import {
   UserIcon, WorkspaceIcon, NotificationIcon, CalendarIcon
 } from "@/components/CustomIcons";
 import { getCourses } from "@/lib/api";
+import RcrdLogo from "@/components/RcrdLogo";
+import ProfileFlyout, { getStoredProfile, UserProfileData } from "@/components/ProfileFlyout";
 
 interface Course {
   id: string;
@@ -123,6 +125,14 @@ export default function CalendarPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profile, setProfile] = useState<UserProfileData>(getStoredProfile());
+
+  useEffect(() => {
+    const handleUpdate = () => setProfile(getStoredProfile());
+    window.addEventListener("rcrd_profile_updated", handleUpdate);
+    return () => window.removeEventListener("rcrd_profile_updated", handleUpdate);
+  }, []);
 
   // Load meetings & courses
   useEffect(() => {
@@ -311,14 +321,7 @@ export default function CalendarPage() {
             className="flex items-center justify-center w-full cursor-pointer group"
             onClick={() => router.push("/")}
           >
-            <Image
-              src="/ICONS/COMPANY_NAME-cropped.png"
-              alt="RCRD."
-              width={120}
-              height={48}
-              className="h-12 w-auto object-contain transition-transform group-hover:scale-105"
-              style={{ filter: "hue-rotate(131deg) saturate(1.4)" }}
-            />
+            <RcrdLogo className="h-8 w-auto" />
           </div>
         </div>
 
@@ -395,18 +398,13 @@ export default function CalendarPage() {
             />
           </div>
 
-          <div className="flex items-center gap-4 ml-6 shrink-0">
-            <button
-              onClick={() => router.push("/settings?tab=billing")}
-              className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+          <div className="flex items-center ml-6 shrink-0">
+            <div 
+              onClick={() => setIsProfileOpen(true)}
+              className="w-9 h-9 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-sm font-bold cursor-pointer shadow-sm hover:scale-105 transition-transform ring-2 ring-[#E6F6EC]"
+              title="Open profile menu"
             >
-              <Sparkles size={14} /> Upgrade
-            </button>
-            <div className="w-8 h-8 rounded-full bg-slate-100 text-[#57636E] flex items-center justify-center cursor-pointer hover:bg-slate-200 transition-colors">
-              <NotificationIcon size={18} />
-            </div>
-            <div className="w-8 h-8 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-xs font-bold cursor-pointer shadow-sm">
-              HR
+              {profile.avatarText}
             </div>
           </div>
         </header>
@@ -880,6 +878,12 @@ export default function CalendarPage() {
           <span className="text-xs font-bold">{toast.msg}</span>
         </div>
       )}
+      {/* Profile Flyout (Image 5) */}
+      <ProfileFlyout
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        videoCount={meetings.length}
+      />
     </div>
   );
 }

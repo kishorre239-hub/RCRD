@@ -18,6 +18,8 @@ import {
 import BillingTab from '@/components/BillingTab';
 import UsersTab from '@/components/UsersTab';
 import RecordingSetupModal from '@/components/RecordingSetupModal';
+import RcrdLogo from "@/components/RcrdLogo";
+import ProfileFlyout, { getStoredProfile, UserProfileData } from "@/components/ProfileFlyout";
 
 interface PushDeviceSetting {
   email?: boolean;
@@ -96,6 +98,14 @@ function PushRow({
 export default function SettingsPage() {
   const router = useRouter();
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profile, setProfile] = useState<UserProfileData>(getStoredProfile());
+
+  useEffect(() => {
+    const handleUpdate = () => setProfile(getStoredProfile());
+    window.addEventListener("rcrd_profile_updated", handleUpdate);
+    return () => window.removeEventListener("rcrd_profile_updated", handleUpdate);
+  }, []);
   
   // Tab State
   const [activeTab, setActiveTab] = useState(() => {
@@ -372,7 +382,7 @@ export default function SettingsPage() {
       <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-[#E2E7EC] bg-white z-20 h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden">
         <div className="h-16 flex items-center px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-center w-full cursor-pointer group" onClick={() => router.push('/')}>
-            <Image src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." width={120} height={48} className="h-12 w-auto object-contain transition-transform group-hover:scale-105"  style={{ filter: "hue-rotate(131deg) saturate(1.4)" }}/>
+            <RcrdLogo className="h-8 w-auto" />
           </div>
         </div>
 
@@ -455,17 +465,14 @@ export default function SettingsPage() {
               className="w-full pl-10 pr-4 py-2 bg-[#F5F6F8] border-none rounded-lg text-[14px] focus:outline-none focus:ring-2 focus:ring-[#0CAA41]/20 transition-shadow"
             />
           </div>
-          <div className="flex items-center gap-4 ml-4">
-            <button 
-              onClick={() => setActiveTab('billing')}
-              className="bg-[#0CAA41] hover:bg-[#0C5325] text-white text-[13px] font-bold px-4 py-1.5 rounded-lg transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+          <div className="flex items-center ml-4">
+            <div 
+              onClick={() => setIsProfileOpen(true)}
+              className="w-9 h-9 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-sm font-bold cursor-pointer shadow-sm hover:scale-105 transition-transform ring-2 ring-[#E6F6EC]"
+              title="Open profile menu"
             >
-              <span>Upgrade</span>
-              <span className="bg-white/20 text-[10px] px-1.5 py-0.5 rounded font-mono font-bold">PRO</span>
-            </button>
-            <button className="text-[#57636E] hover:text-[#20262E] w-8 h-8 flex items-center justify-center border border-[#E2E7EC] rounded-full">?</button>
-            <button className="text-[#57636E] hover:text-[#20262E]"><NotificationIcon size={20} /></button>
-            <div className="w-8 h-8 bg-[#0CAA41] text-white font-bold text-[12px] flex items-center justify-center rounded-full">HR</div>
+              {profile.avatarText}
+            </div>
           </div>
         </header>
 
@@ -1075,6 +1082,12 @@ export default function SettingsPage() {
         isOpen={isRecordModalOpen}
         onClose={() => setIsRecordModalOpen(false)}
         onRecordingComplete={() => router.push('/library')}
+      />
+
+      {/* Profile Flyout (Image 5) */}
+      <ProfileFlyout
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
       />
     </div>
   );

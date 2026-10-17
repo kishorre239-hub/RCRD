@@ -68,6 +68,7 @@ function getServiceAccountCredentials(): Record<string, unknown> | null {
 }
 
 let cachedOAuthTokens: any = null;
+let cachedDocCredentials: { clientId?: string; clientSecret?: string } | null = null;
 
 export async function saveOAuthTokens(tokens: any) {
   cachedOAuthTokens = tokens;
@@ -85,9 +86,11 @@ export async function saveOAuthTokens(tokens: any) {
   try {
     const { getCollection } = await import('@/lib/server/db');
     const tokensCol = await getCollection('system_settings');
+    const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || cachedDocCredentials?.clientId;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET || cachedDocCredentials?.clientSecret;
     await tokensCol.updateOne(
       { key: 'google_oauth_tokens' },
-      { $set: { key: 'google_oauth_tokens', tokens, updatedAt: Date.now() } },
+      { $set: { key: 'google_oauth_tokens', clientId, clientSecret, tokens, updatedAt: Date.now() } },
       { upsert: true }
     );
   } catch (err) {
@@ -113,9 +116,17 @@ export async function getOAuthTokens(): Promise<any> {
     const { getCollection } = await import('@/lib/server/db');
     const tokensCol = await getCollection('system_settings');
     const doc = await tokensCol.findOne({ key: 'google_oauth_tokens' });
-    if (doc && (doc as any).tokens) {
-      cachedOAuthTokens = (doc as any).tokens;
-      return cachedOAuthTokens;
+    if (doc) {
+      if ((doc as any).clientId) {
+        cachedDocCredentials = {
+          clientId: (doc as any).clientId,
+          clientSecret: (doc as any).clientSecret,
+        };
+      }
+      if ((doc as any).tokens) {
+        cachedOAuthTokens = (doc as any).tokens;
+        return cachedOAuthTokens;
+      }
     }
   } catch {}
 
@@ -126,11 +137,31 @@ export async function getOAuth2Client(): Promise<any> {
   const tokens = await getOAuthTokens();
   if (!tokens) return null;
 
-  const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || cachedDocCredentials?.clientId;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || cachedDocCredentials?.clientSecret;
 
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
   oauth2Client.setCredentials(tokens);
+
+  // Proactively refresh if token is expired or about to expire
+  try {
+    if (tokens.expiry_date && Date.now() >= tokens.expiry_date - 60000 && tokens.refresh_token) {
+      const tokenRes = await oauth2Client.getAccessToken();
+      if (tokenRes.token) {
+        tokens.access_token = tokenRes.token;
+        tokens.expiry_date = Date.now() + 3500 * 1000;
+        saveOAuthTokens(tokens).catch(() => {});
+      }
+    }
+  } catch (refreshErr) {
+    console.warn('Proactive token refresh warning:', refreshErr);
+  }
+
+  // Auto-save refreshed tokens whenever googleapis refreshes in background
+  oauth2Client.on('tokens', (newTokens: any) => {
+    saveOAuthTokens({ ...tokens, ...newTokens }).catch(() => {});
+  });
+
   return oauth2Client;
 }
 

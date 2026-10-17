@@ -311,16 +311,21 @@ export const getDriveFolder = async () => {
 
 // Video Folder / Collection categories for Loom recordings
 export const getCourses = async (): Promise<Array<{ id: string; name: string }>> => {
-  const meetingFolder = { id: '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW', name: 'MEETING' };
   try {
     const response = await fetchWithAuth('/folders');
     if (response.ok) {
       const data = await response.json();
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
+        // Strip out any legacy dummy mock folders
+        const cleanData = data.filter(
+          (f: { id?: string; name?: string }) => f && f.id && f.name &&
+          f.id !== 'screen-shares' && f.id !== 'team-updates' &&
+          f.name !== 'Screen Shares' && f.name !== 'Team Updates'
+        );
         if (typeof window !== 'undefined') {
-          localStorage.setItem('loom_video_folders', JSON.stringify(data));
+          localStorage.setItem('loom_video_folders', JSON.stringify(cleanData));
         }
-        return data;
+        return cleanData;
       }
     }
   } catch (err) {
@@ -333,19 +338,20 @@ export const getCourses = async (): Promise<Array<{ id: string; name: string }>>
       if (stored) {
         const parsed: Array<{ id: string; name: string }> = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          if (!parsed.some(f => f.id === meetingFolder.id || f.name === 'MEETING')) {
-            parsed.unshift(meetingFolder);
+          const cleanParsed = parsed.filter(
+            (f: { id?: string; name?: string }) => f && f.id && f.name &&
+            f.id !== 'screen-shares' && f.id !== 'team-updates' &&
+            f.name !== 'Screen Shares' && f.name !== 'Team Updates'
+          );
+          if (cleanParsed.length > 0) {
+            localStorage.setItem('loom_video_folders', JSON.stringify(cleanParsed));
+            return cleanParsed;
           }
-          return parsed;
         }
       }
     } catch {}
   }
-  return [
-    meetingFolder,
-    { id: 'screen-shares', name: 'Screen Shares' },
-    { id: 'team-updates', name: 'Team Updates' }
-  ];
+  return [];
 };
 
 export const createCourse = async (name: string): Promise<{ id: string; name: string }> => {

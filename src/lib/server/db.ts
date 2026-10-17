@@ -1,4 +1,4 @@
-import { MongoClient, Db, Collection } from 'mongodb';
+import { MongoClient, Db, Collection, Document } from 'mongodb';
 import dns from 'dns';
 
 // Enable public DNS servers to guarantee SRV record resolution across all local and cloud networks
@@ -42,7 +42,7 @@ export async function getMongoClient(): Promise<MongoClient> {
   try {
     return await clientPromise;
   } catch (err) {
-    console.warn('Retrying MongoDB connection due to prior failure:', (err as any)?.message);
+    console.warn('Retrying MongoDB connection due to prior failure:', (err as Error)?.message);
     client = new MongoClient(uri, clientOptions);
     clientPromise = client.connect();
     if (process.env.NODE_ENV === 'development') {
@@ -57,7 +57,7 @@ export async function getDb(dbName: string = 'loom'): Promise<Db> {
   return clientInstance.db(dbName);
 }
 
-export async function getCollection<T extends Record<string, any> = any>(
+export async function getCollection<T extends Document = Document>(
   collectionName: string,
   dbName: string = 'loom'
 ): Promise<Collection<T>> {

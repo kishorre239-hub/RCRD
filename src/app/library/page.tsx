@@ -241,11 +241,24 @@ export default function LibraryPage() {
         }
       });
 
-      // Merge Google Drive folders into courses list
-      const combinedCourses = [...coursesData];
+      // Merge Google Drive folders into courses list (strictly filtering dummy data)
+      const isDummy = (item: { id?: string; name?: string }) => {
+        if (!item) return true;
+        const name = (item.name || '').toLowerCase();
+        const id = (item.id || '').toLowerCase();
+        return id === 'screen-shares' || id === 'team-updates' || name === 'screen shares' || name === 'team updates';
+      };
+
+      const combinedCourses: Course[] = [];
+      for (const c of coursesData) {
+        if (!isDummy(c) && !combinedCourses.some(x => x.id === c.id || x.name.toLowerCase() === c.name.toLowerCase())) {
+          combinedCourses.push(c);
+        }
+      }
+
       if (syncResult && syncResult.folders && Array.isArray(syncResult.folders)) {
         for (const df of syncResult.folders) {
-          if (!combinedCourses.some(c => c.id === df.id || c.name.toLowerCase() === df.name.toLowerCase())) {
+          if (!isDummy(df) && !combinedCourses.some(c => c.id === df.id || c.name.toLowerCase() === df.name.toLowerCase())) {
             combinedCourses.push(df);
           }
         }
@@ -1773,11 +1786,8 @@ export default function LibraryPage() {
         {showMoveModal && (() => {
           const moveVid = videos.find(v => v.id === showMoveModal);
           const allDestinations = [
-            { id: 'root', name: 'Home / All Recordings', icon: 'home' },
-            { id: 'screen-shares', name: 'Screen Shares', icon: 'folder' },
-            { id: 'team-updates', name: 'Team Updates', icon: 'folder' },
-            { id: 'MEETING', name: 'Live Meetings', icon: 'folder' },
-            ...courses.filter(c => !['screen-shares', 'team-updates', 'MEETING'].includes(c.id)).map(c => ({
+            { id: 'root', name: 'GEONIXA LOOM (Home / Root)', icon: 'home' },
+            ...courses.filter(c => !['screen-shares', 'team-updates'].includes(c.id) && !['Screen Shares', 'Team Updates'].includes(c.name)).map(c => ({
               id: c.id,
               name: c.name,
               icon: 'folder',

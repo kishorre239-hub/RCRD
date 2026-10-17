@@ -89,10 +89,19 @@ function getServiceAccountCredentials(): Record<string, unknown> | null {
   return null;
 }
 
-let cachedOAuthTokens: any = null;
+export interface OAuthTokensData {
+  access_token?: string | null;
+  refresh_token?: string | null;
+  scope?: string;
+  token_type?: string | null;
+  expiry_date?: number | null;
+  id_token?: string | null;
+}
+
+let cachedOAuthTokens: OAuthTokensData | null = null;
 let cachedDocCredentials: { clientId?: string; clientSecret?: string } | null = null;
 
-export async function saveOAuthTokens(tokens: any) {
+export async function saveOAuthTokens(tokens: OAuthTokensData) {
   cachedOAuthTokens = tokens;
 
   try {
@@ -120,7 +129,7 @@ export async function saveOAuthTokens(tokens: any) {
   }
 }
 
-export async function getOAuthTokens(): Promise<any> {
+export async function getOAuthTokens(): Promise<OAuthTokensData | null> {
   if (cachedOAuthTokens) return cachedOAuthTokens;
 
   try {
@@ -137,16 +146,20 @@ export async function getOAuthTokens(): Promise<any> {
   try {
     const { getCollection } = await import('@/lib/server/db');
     const tokensCol = await getCollection('system_settings');
-    const doc = await tokensCol.findOne({ key: 'google_oauth_tokens' });
+    const doc = await tokensCol.findOne({ key: 'google_oauth_tokens' }) as {
+      clientId?: string;
+      clientSecret?: string;
+      tokens?: OAuthTokensData;
+    } | null;
     if (doc) {
-      if ((doc as any).clientId) {
+      if (doc.clientId) {
         cachedDocCredentials = {
-          clientId: (doc as any).clientId,
-          clientSecret: (doc as any).clientSecret,
+          clientId: doc.clientId,
+          clientSecret: doc.clientSecret,
         };
       }
-      if ((doc as any).tokens) {
-        cachedOAuthTokens = (doc as any).tokens;
+      if (doc.tokens) {
+        cachedOAuthTokens = doc.tokens;
         return cachedOAuthTokens;
       }
     }
@@ -155,7 +168,7 @@ export async function getOAuthTokens(): Promise<any> {
   return null;
 }
 
-export async function getOAuth2Client(): Promise<any> {
+export async function getOAuth2Client(): Promise<InstanceType<typeof google.auth.OAuth2> | null> {
   const tokens = await getOAuthTokens();
   if (!tokens) return null;
 
@@ -180,8 +193,8 @@ export async function getOAuth2Client(): Promise<any> {
   }
 
   // Auto-save refreshed tokens whenever googleapis refreshes in background
-  oauth2Client.on('tokens', (newTokens: any) => {
-    saveOAuthTokens({ ...tokens, ...newTokens }).catch(() => {});
+  oauth2Client.on('tokens', (newTokens: OAuthTokensData) => {
+    saveOAuthTokens({ ...tokens, ...newTokens });
   });
 
   return oauth2Client;
@@ -284,10 +297,8 @@ export async function createResumableUploadSession(params: {
   if (params.folderId && params.folderId !== 'root' && params.folderId !== 'all') {
     if (params.folderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || params.folderId === 'MEETING' || params.folderId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || params.folderId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW') {
       targetFolder = await getMeetingFolderId();
-    } else if (params.folderId === 'screen-shares') {
-      targetFolder = await getOrCreateNamedDriveFolder('Screen Shares');
-    } else if (params.folderId === 'team-updates') {
-      targetFolder = await getOrCreateNamedDriveFolder('Team Updates');
+    } else if (params.folderId === 'screen-shares' || params.folderId === 'team-updates') {
+      targetFolder = getRootFolderId();
     } else if (params.folderName && params.folderName.trim()) {
       targetFolder = await getOrCreateNamedDriveFolder(params.folderName.trim());
     } else if (params.folderId.startsWith('folder-')) {
@@ -700,10 +711,8 @@ export async function uploadBufferToDrive(params: {
     if (params.folderId && params.folderId !== 'root' && params.folderId !== 'all') {
       if (params.folderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || params.folderId === 'MEETING' || params.folderId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || params.folderId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW') {
         targetFolder = await getMeetingFolderId();
-      } else if (params.folderId === 'screen-shares') {
-        targetFolder = await getOrCreateNamedDriveFolder('Screen Shares');
-      } else if (params.folderId === 'team-updates') {
-        targetFolder = await getOrCreateNamedDriveFolder('Team Updates');
+      } else if (params.folderId === 'screen-shares' || params.folderId === 'team-updates') {
+        targetFolder = getRootFolderId();
       } else if (params.folderName && params.folderName.trim()) {
         targetFolder = await getOrCreateNamedDriveFolder(params.folderName.trim());
       } else if (params.folderId.startsWith('folder-')) {
@@ -805,10 +814,8 @@ export async function moveDriveFile(fileId: string, targetFolderId?: string, tar
     let destinationFolderId = targetFolderId;
     if (!destinationFolderId || destinationFolderId === 'root' || destinationFolderId === 'workspace' || destinationFolderId === 'folder-all' || destinationFolderId === 'all') {
       destinationFolderId = rootId;
-    } else if (destinationFolderId === 'screen-shares') {
-      destinationFolderId = await getOrCreateNamedDriveFolder('Screen Shares');
-    } else if (destinationFolderId === 'team-updates') {
-      destinationFolderId = await getOrCreateNamedDriveFolder('Team Updates');
+    } else if (destinationFolderId === 'screen-shares' || destinationFolderId === 'team-updates') {
+      destinationFolderId = rootId;
     } else if (destinationFolderId === 'MEETING' || destinationFolderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || destinationFolderId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || destinationFolderId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW') {
       destinationFolderId = await getMeetingFolderId();
     } else if (targetFolderName && targetFolderName.trim()) {

@@ -45,8 +45,16 @@ export function generateToken(user: { id?: string; email: string; role: string; 
  */
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as any;
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as (jwt.JwtPayload & {
+      sub?: string;
+      email?: string;
+      role?: string;
+      roles?: string[];
+      id?: string;
+      name?: string;
+    });
     const email = decoded.sub || decoded.email;
+    if (!email) return null;
     const rawRole = decoded.role || (decoded.roles && decoded.roles[0]) || 'STUDENT';
     const cleanRole = String(rawRole).toUpperCase().replace(/^ROLE_/, '');
     const roleWithPrefix = `ROLE_${cleanRole}`;
@@ -64,9 +72,17 @@ export function verifyToken(token: string): TokenPayload | null {
   } catch {
     // If token expired, still extract payload so user sessions & recording uploads don't abruptly crash with 401
     try {
-      const decoded = jwt.decode(token) as any;
+      const decoded = jwt.decode(token) as (jwt.JwtPayload & {
+        sub?: string;
+        email?: string;
+        role?: string;
+        roles?: string[];
+        id?: string;
+        name?: string;
+      }) | null;
       if (decoded && (decoded.sub || decoded.email)) {
         const email = decoded.sub || decoded.email;
+        if (!email) return null;
         const rawRole = decoded.role || (decoded.roles && decoded.roles[0]) || 'STUDENT';
         const cleanRole = String(rawRole).toUpperCase().replace(/^ROLE_/, '');
         const roleWithPrefix = `ROLE_${cleanRole}`;
@@ -132,7 +148,7 @@ export async function authenticateRequest(
   }
 
   // Find user in MongoDB
-  let user: any = null;
+  let user: (User & { id?: string }) | null = null;
   try {
     const usersCol = await getCollection<User>('users');
     user = await usersCol.findOne({ email: payload.email.toLowerCase() });
@@ -145,7 +161,7 @@ export async function authenticateRequest(
       }
     }
   } catch (dbErr) {
-    console.warn('MongoDB query warning in authenticateRequest, using token payload:', (dbErr as any)?.message);
+    console.warn('MongoDB query warning in authenticateRequest, using token payload:', (dbErr as Error)?.message);
   }
 
   if (!user) {
@@ -156,10 +172,10 @@ export async function authenticateRequest(
       email: payload.email,
       role: payload.role?.replace(/^ROLE_/, '') || 'ADMIN',
       status: 'Active',
-    } as any;
+    } as unknown as (User & { id?: string });
   }
 
-  const currentUser = user as any;
+  const currentUser = user;
 
   // Normalize ID
   if (currentUser && !currentUser.id && currentUser._id) {

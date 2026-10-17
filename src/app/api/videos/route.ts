@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get('courseId');
 
-    const isMeetingFilter = courseId === 'MEETING' || courseId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || courseId === '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S';
+    const isMeetingFilter = courseId === 'MEETING' || courseId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' || courseId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || courseId === '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S';
 
     let dbVideos: Video[] = [];
     try {
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
       const query: Record<string, unknown> = {};
       if (courseId) {
         if (isMeetingFilter) {
-          query.courseId = { $in: ['MEETING', '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg', '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S'] };
+          query.courseId = { $in: ['MEETING', '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW', '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg', '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S'] };
         } else {
           query.courseId = courseId;
         }
@@ -70,7 +70,7 @@ interface VideoMapItem {
     const matchesCourse = (videoCourseId?: string) => {
       if (!courseId) return true;
       if (isMeetingFilter) {
-        return videoCourseId === 'MEETING' || videoCourseId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || videoCourseId === '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S';
+        return videoCourseId === 'MEETING' || videoCourseId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' || videoCourseId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || videoCourseId === '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S';
       }
       return videoCourseId === courseId;
     };

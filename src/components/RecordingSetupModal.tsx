@@ -95,8 +95,8 @@ export default function RecordingSetupModal({
   // Save / Upload settings
   const [videoTitle, setVideoTitle] = useState('');
   const [folders, setFolders] = useState<FolderOption[]>([]);
-  // Use real MEETING folder ID discovered on user's Google Drive
-  const [selectedFolderId, setSelectedFolderId] = useState<string>('16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg');
+  // Use real active MEETING folder ID in GEONIXA LOOM
+  const [selectedFolderId, setSelectedFolderId] = useState<string>('1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [savedVideoId, setSavedVideoId] = useState<string | null>(null);
@@ -131,7 +131,7 @@ export default function RecordingSetupModal({
           setFolders(res);
         } else {
           setFolders([
-            { id: '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg', name: 'MEETING' },
+            { id: '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW', name: 'MEETING' },
             { id: '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7', name: 'GEONIXA LOOM' }
           ]);
         }
@@ -141,7 +141,7 @@ export default function RecordingSetupModal({
       })
       .catch(() => {
         setFolders([
-          { id: '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg', name: 'MEETING' },
+          { id: '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW', name: 'MEETING' },
           { id: '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7', name: 'GEONIXA LOOM' }
         ]);
       });
@@ -558,14 +558,14 @@ export default function RecordingSetupModal({
     try {
       const res = await uploadVideo(
         recordedBlob,
-        selectedFolderId || '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg',
+        selectedFolderId || '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW',
         (percent) => {
           setUploadProgress(percent);
         },
         finalTitle,
         {
           folderName: targetCourse?.name || 'MEETING',
-          isMeeting: selectedFolderId === 'MEETING' || selectedFolderId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg',
+          isMeeting: selectedFolderId === 'MEETING' || selectedFolderId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' || selectedFolderId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg',
         }
       );
 
@@ -808,10 +808,10 @@ export default function RecordingSetupModal({
                     onChange={e => setSelectedFolderId(e.target.value)}
                     className="max-w-[170px] text-xs font-semibold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 outline-none cursor-pointer truncate"
                   >
-                    <option value="16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg">MEETING</option>
+                    <option value="1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW">MEETING</option>
                     <option value="1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7">GEONIXA LOOM</option>
                     {folders
-                      .filter(f => f.id !== '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' && f.id !== '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7' && f.name !== 'MEETING')
+                      .filter(f => f.id !== '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' && f.id !== '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' && f.id !== '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7' && f.name !== 'MEETING')
                       .map(f => (
                         <option key={f.id} value={f.id}>{f.name}</option>
                       ))}
@@ -1127,10 +1127,10 @@ export default function RecordingSetupModal({
                     onChange={e => setSelectedFolderId(e.target.value)}
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-[#2F70F2] outline-none transition-all appearance-none cursor-pointer font-medium"
                   >
-                    <option value="16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg">MEETING (Google Drive)</option>
+                    <option value="1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW">MEETING (Google Drive)</option>
                     <option value="1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7">GEONIXA LOOM (Root Drive)</option>
                     {folders
-                      .filter(f => f.id !== '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' && f.id !== '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7' && f.name !== 'MEETING')
+                      .filter(f => f.id !== '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' && f.id !== '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' && f.id !== '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7' && f.name !== 'MEETING')
                       .map(f => (
                         <option key={f.id} value={f.id}>{f.name}</option>
                       ))}

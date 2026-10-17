@@ -282,7 +282,7 @@ export async function createResumableUploadSession(params: {
 
   let targetFolder: string | undefined = undefined;
   if (params.folderId && params.folderId !== 'root' && params.folderId !== 'all') {
-    if (params.folderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || params.folderId === 'MEETING') {
+    if (params.folderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || params.folderId === 'MEETING' || params.folderId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || params.folderId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW') {
       targetFolder = await getMeetingFolderId();
     } else if (params.folderId === 'screen-shares') {
       targetFolder = await getOrCreateNamedDriveFolder('Screen Shares');
@@ -698,7 +698,7 @@ export async function uploadBufferToDrive(params: {
   try {
     let targetFolder: string | undefined = undefined;
     if (params.folderId && params.folderId !== 'root' && params.folderId !== 'all') {
-      if (params.folderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || params.folderId === 'MEETING') {
+      if (params.folderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || params.folderId === 'MEETING' || params.folderId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || params.folderId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW') {
         targetFolder = await getMeetingFolderId();
       } else if (params.folderId === 'screen-shares') {
         targetFolder = await getOrCreateNamedDriveFolder('Screen Shares');
@@ -809,7 +809,7 @@ export async function moveDriveFile(fileId: string, targetFolderId?: string, tar
       destinationFolderId = await getOrCreateNamedDriveFolder('Screen Shares');
     } else if (destinationFolderId === 'team-updates') {
       destinationFolderId = await getOrCreateNamedDriveFolder('Team Updates');
-    } else if (destinationFolderId === 'MEETING' || destinationFolderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4') {
+    } else if (destinationFolderId === 'MEETING' || destinationFolderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || destinationFolderId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || destinationFolderId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW') {
       destinationFolderId = await getMeetingFolderId();
     } else if (targetFolderName && targetFolderName.trim()) {
       destinationFolderId = await getOrCreateNamedDriveFolder(targetFolderName.trim());

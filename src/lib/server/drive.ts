@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 // The user's Google Drive root folder: GEONIXA LOOM
 export const DEFAULT_ROOT_FOLDER_ID = '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7';
-export const DEFAULT_MEETING_FOLDER_ID = '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW';
+export const DEFAULT_MEETING_FOLDER_ID = DEFAULT_ROOT_FOLDER_ID;
 
 export function extractDriveFolderId(input?: string | null): string {
   if (!input) return DEFAULT_ROOT_FOLDER_ID;
@@ -228,19 +228,22 @@ export async function getMeetingFolderId(): Promise<string> {
   if (!drive) return rootId;
   try {
     const res = await drive.files.list({
-      q: `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and name = 'MEETING' and trashed = false`,
+      q: `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
       fields: 'files(id, name)',
-      pageSize: 1,
+      pageSize: 100,
       supportsAllDrives: true,
       includeItemsFromAllDrives: true,
     });
-    if (res.data.files && res.data.files.length > 0 && res.data.files[0].id) {
-      return res.data.files[0].id;
+    const match = (res.data.files || []).find(
+      f => f.name?.toLowerCase().trim() === 'meeting' || f.name?.toLowerCase().trim() === 'meetings'
+    );
+    if (match && match.id) {
+      return match.id;
     }
     const createdId = await createDriveFolder('MEETING', rootId);
     return createdId || rootId;
   } catch {
-    return DEFAULT_MEETING_FOLDER_ID;
+    return rootId;
   }
 }
 
@@ -317,8 +320,6 @@ export async function createResumableUploadSession(params: {
     } else {
       targetFolder = extractDriveFolderId(params.folderId);
     }
-  } else if (params.isMeeting) {
-    targetFolder = await getMeetingFolderId();
   } else {
     targetFolder = getRootFolderId();
   }
@@ -475,7 +476,9 @@ export async function getDriveFileStream(fileId: string, rangeHeader?: string | 
       supportsAllDrives: true,
     });
 
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = {
+      'Accept-Encoding': 'identity',
+    };
     if (rangeHeader) {
       headers['Range'] = rangeHeader;
     }
@@ -592,19 +595,23 @@ export async function createDriveFolder(name: string, parentId?: string): Promis
   try {
     const rootId = extractDriveFolderId(parentId || getRootFolderId());
     const folderName = name.trim();
+    if (!folderName) return null;
 
-    // Check if an active folder with this exact name already exists under rootId
+    // Check if an active folder with this exact name already exists under rootId (case-insensitive)
     try {
       const existing = await drive.files.list({
-        q: `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and name = '${folderName.replace(/'/g, "\\'")}' and trashed = false`,
+        q: `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
         fields: 'files(id, name)',
-        pageSize: 1,
+        pageSize: 100,
         supportsAllDrives: true,
         includeItemsFromAllDrives: true,
       });
-      if (existing.data.files && existing.data.files.length > 0 && existing.data.files[0].id) {
+      const match = (existing.data.files || []).find(
+        f => f.name?.toLowerCase().trim() === folderName.toLowerCase()
+      );
+      if (match && match.id) {
         driveCache.timestamp = 0;
-        return existing.data.files[0].id;
+        return match.id;
       }
     } catch (checkErr) {
       console.warn('Folder duplicate check warning:', checkErr);
@@ -642,23 +649,7 @@ export async function listDriveFolders(): Promise<Array<{ id: string; name: stri
   if (!drive) return [];
 
   try {
-    const folders: Array<{ id: string; name: string }> = [];
-
-    // 1. Include Root folder itself so users can save directly to Root
-    try {
-      const rootMeta = await drive.files.get({
-        fileId: rootId,
-        fields: 'id, name',
-        supportsAllDrives: true,
-      });
-      if (rootMeta.data.id && rootMeta.data.name) {
-        folders.push({ id: rootMeta.data.id, name: `${rootMeta.data.name} (Drive Root)` });
-      }
-    } catch {
-      folders.push({ id: rootId, name: 'Google Drive Root' });
-    }
-
-    // 2. Fetch subfolders inside rootId
+    // Strictly fetch ONLY active subfolders whose parent is GEONIXA LOOM (rootId)
     const q = `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
     const res = await drive.files.list({
       q,
@@ -669,30 +660,18 @@ export async function listDriveFolders(): Promise<Array<{ id: string; name: stri
     });
 
     const items = res.data.files || [];
-    for (const f of items) {
-      if (f.id && f.name && !folders.some(existing => existing.id === f.id)) {
-        folders.push({ id: f.id, name: f.name });
-      }
-    }
+    const folders: Array<{ id: string; name: string }> = [];
+    const seenNames = new Set<string>();
 
-    // 3. Also fetch any other folders accessible in Google Drive (e.g., created by mentors or outside root)
-    try {
-      const allFoldersRes = await drive.files.list({
-        q: `mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
-        fields: 'files(id, name, parents)',
-        supportsAllDrives: true,
-        includeItemsFromAllDrives: true,
-        pageSize: 100,
-      });
-      if (allFoldersRes.data.files) {
-        for (const f of allFoldersRes.data.files) {
-          if (f.id && f.name && !folders.some(existing => existing.id === f.id)) {
-            folders.push({ id: f.id, name: f.name });
-          }
-        }
+    for (const f of items) {
+      if (!f.id || !f.name) continue;
+      // Do not list root folder as its own subfolder
+      if (f.id === rootId) continue;
+      const lowerName = f.name.toLowerCase().trim();
+      if (!folders.some(existing => existing.id === f.id) && !seenNames.has(lowerName)) {
+        seenNames.add(lowerName);
+        folders.push({ id: f.id, name: f.name.trim() });
       }
-    } catch (allErr) {
-      console.warn('Broader folder search warning:', allErr);
     }
 
     return folders;
@@ -765,8 +744,6 @@ export async function uploadBufferToDrive(params: {
       } else {
         targetFolder = extractDriveFolderId(params.folderId);
       }
-    } else if (params.isMeeting) {
-      targetFolder = await getMeetingFolderId();
     } else {
       targetFolder = getRootFolderId();
     }
@@ -823,29 +800,32 @@ export async function getOrCreateNamedDriveFolder(folderName: string): Promise<s
   const rootId = getRootFolderId();
   if (!drive) return rootId || '';
 
-  try {
-    let q = `mimeType = 'application/vnd.google-apps.folder' and name = '${folderName.replace(/'/g, "\\'")}' and trashed = false`;
-    if (rootId) {
-      q += ` and '${rootId}' in parents`;
-    }
+  const cleanName = folderName.trim();
+  if (!cleanName || cleanName.toLowerCase() === 'personal library' || cleanName.toLowerCase() === 'root') {
+    return rootId;
+  }
 
+  try {
     const listRes = await drive.files.list({
-      q,
+      q: `'${rootId}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
       fields: 'files(id, name)',
       supportsAllDrives: true,
       includeItemsFromAllDrives: true,
-      pageSize: 1,
+      pageSize: 100,
     });
 
-    if (listRes.data.files && listRes.data.files.length > 0 && listRes.data.files[0].id) {
-      return listRes.data.files[0].id;
+    const match = (listRes.data.files || []).find(
+      f => f.name?.toLowerCase().trim() === cleanName.toLowerCase()
+    );
+    if (match && match.id) {
+      return match.id;
     }
 
-    const createdId = await createDriveFolder(folderName, rootId);
-    return createdId || rootId || '';
+    const createdId = await createDriveFolder(cleanName, rootId);
+    return createdId || rootId;
   } catch (err) {
     console.warn(`Could not get/create Drive folder "${folderName}":`, err);
-    return rootId || '';
+    return rootId;
   }
 }
 
@@ -1093,6 +1073,9 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
 
         const effectiveMime = (f.mimeType && f.mimeType.startsWith('video/')) ? f.mimeType : 'video/webm';
 
+        const parentId = (f.parents && f.parents[0]) || '';
+        const courseId = (parentId === rootId) ? '' : parentId;
+
         videos.push({
           id: f.id || '',
           driveFileId: f.id || '',
@@ -1109,7 +1092,7 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
           isPublic: true,
           views: 0,
           comments: [],
-          courseId: (f.parents && f.parents[0]) || '',
+          courseId,
           createdAt: f.createdTime ? new Date(f.createdTime).getTime() : Date.now(),
           updatedAt: f.createdTime ? new Date(f.createdTime).getTime() : Date.now(),
           webViewLink: f.webViewLink,

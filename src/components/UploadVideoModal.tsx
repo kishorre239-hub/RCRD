@@ -39,7 +39,6 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
         .then((data) => {
           if (Array.isArray(data)) {
             setCourses(data);
-            setSelectedCourseId(prev => (data.length > 0 && prev === "root" ? data[0].id : prev));
           }
         })
         .catch(() => {});

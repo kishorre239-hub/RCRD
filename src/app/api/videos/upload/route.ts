@@ -51,8 +51,8 @@ export async function POST(req: Request) {
       }
     } catch {}
 
-    const isMeeting = Boolean(formData.get('isMeeting') === 'true' || courseId === 'MEETING' || courseId === '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S' || (title && title.toLowerCase().includes('meeting')));
-    const finalCourseId = courseId || (isMeeting ? '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S' : null);
+    const isMeeting = Boolean(formData.get('isMeeting') === 'true' || courseId === 'MEETING');
+    const finalCourseId = courseId || null;
 
     const now = Date.now();
     let driveFileId = '';

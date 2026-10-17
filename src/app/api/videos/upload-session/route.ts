@@ -27,9 +27,8 @@ export async function POST(req: Request) {
 
     const now = Date.now();
 
-    const isMeeting = Boolean(body.isMeeting || body.source === 'meeting' || courseId === 'MEETING' || courseId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' || (title && title.toLowerCase().includes('meeting')));
-    // Only default to MEETING folder if the user did NOT choose a specific folder
-    const finalCourseId = courseId || (isMeeting ? '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' : null);
+    const isMeeting = Boolean(body.isMeeting || body.source === 'meeting' || courseId === 'MEETING');
+    const finalCourseId = courseId || null;
 
     const videoDoc: Video = {
       title,

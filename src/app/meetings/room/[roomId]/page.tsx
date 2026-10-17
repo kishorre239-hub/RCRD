@@ -106,7 +106,7 @@ export default function ClassRoomPage() {
 
   const [showTutorial, setShowTutorial] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
-  const [uploadCourse, setUploadCourse] = useState("1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW");
+  const [uploadCourse, setUploadCourse] = useState("");
   const [uploadTitle, setUploadTitle] = useState("");
   const [uploadDesc, setUploadDesc] = useState("");
   const [isCourseDropdownOpen, setIsCourseDropdownOpen] = useState(false);
@@ -675,7 +675,7 @@ export default function ClassRoomPage() {
         const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
         const autoName = `Meeting - ${meeting?.title || roomId} · ${dateStr} (${timeStr})`;
         setUploadTitle(autoName);
-        setUploadCourse(prev => prev || meeting?.courseId || "1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW");
+        setUploadCourse(prev => prev || meeting?.courseId || "");
         setShowUpload(true);
       };
       rec.onerror = () => showToast("Recording error occurred.", false);
@@ -741,9 +741,9 @@ export default function ClassRoomPage() {
       const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
       const vidTitle = uploadTitle.trim() || `Meeting - ${meeting?.title || roomId} · ${dateStr} (${timeStr})`;
-      const targetFolder = uploadCourse || "1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW";
+      const targetFolder = uploadCourse || "";
       const selectedCourse = courses.find(c => c.id === targetFolder);
-      const folderName = selectedCourse ? selectedCourse.name : (targetFolder === "1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW" ? "MEETING" : undefined);
+      const folderName = selectedCourse ? selectedCourse.name : undefined;
 
       try {
         await uploadVideo(recBlob, targetFolder, p => setUploadProgress(p), vidTitle, { 
@@ -756,7 +756,7 @@ export default function ClassRoomPage() {
         const fd = new FormData();
         fd.append('file', recBlob, `${vidTitle}.webm`);
         fd.append('title', vidTitle);
-        fd.append('courseId', targetFolder);
+        if (targetFolder) fd.append('courseId', targetFolder);
         if (folderName) fd.append('folderName', folderName);
         fd.append('isMeeting', 'true');
         const token = await ensureValidAuthToken();
@@ -782,8 +782,8 @@ export default function ClassRoomPage() {
         body: JSON.stringify({ id: roomId, status: 'ended' }),
       }).catch(() => {});
 
-      const destName = selectedCourse?.name || (targetFolder === "1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW" ? "MEETING" : "Selected Folder");
-      showToast(`Recording saved to Google Drive ${destName} folder!`);
+      const destName = selectedCourse?.name || "Personal Library (Root)";
+      showToast(`Recording saved to Google Drive ${destName}!`);
       setTimeout(() => router.push("/meetings"), 2000);
     } catch (e: unknown) {
       const err = e as Error;
@@ -2931,9 +2931,7 @@ export default function ClassRoomPage() {
                         className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-slate-400 text-[#20262E] rounded-xl text-sm flex items-center justify-between outline-none transition-colors"
                       >
                         <span className="font-medium">
-                          {uploadCourse === "1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW" 
-                            ? "MEETING (Google Drive)" 
-                            : (uploadCourse ? (courses.find(c => c.id === uploadCourse)?.name || "Selected Folder") : "Library Root (no folder)")}
+                          {uploadCourse ? (courses.find(c => c.id === uploadCourse)?.name || "Selected Folder") : "Library Root (no folder)"}
                         </span>
                         <ChevronDown size={16} className={`text-[#57636E] transition-transform ${isCourseDropdownOpen ? "rotate-180" : ""}`} />
                       </button>
@@ -2943,19 +2941,12 @@ export default function ClassRoomPage() {
                           <div className="max-h-48 overflow-y-auto py-1">
                             <button 
                               type="button"
-                              onClick={() => { setUploadCourse("1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW"); setIsCourseDropdownOpen(false); }}
-                              className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#0CAA41] hover:text-white transition-colors ${uploadCourse === "1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW" ? "bg-[#0CAA41] text-white" : "text-[#20262E]"}`}
-                            >
-                              MEETING (Google Drive)
-                            </button>
-                            <button 
-                              type="button"
                               onClick={() => { setUploadCourse(""); setIsCourseDropdownOpen(false); }}
                               className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#0CAA41] hover:text-white transition-colors ${!uploadCourse ? "bg-[#0CAA41] text-white" : "text-[#20262E]"}`}
                             >
                               Library Root (no folder)
                             </button>
-                            {courses.filter(c => c.id !== "1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW" && c.name !== "MEETING").map(c => (
+                            {courses.filter(c => c.id !== "1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW").map(c => (
                               <button 
                                 key={c.id}
                                 type="button"

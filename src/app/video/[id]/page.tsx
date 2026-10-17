@@ -60,13 +60,6 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
   const [isSaved, setIsSaved] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [profile, setProfile] = useState<UserProfileData>(getStoredProfile());
-
-  useEffect(() => {
-    const handleUpdate = () => setProfile(getStoredProfile());
-    window.addEventListener("rcrd_profile_updated", handleUpdate);
-    return () => window.removeEventListener("rcrd_profile_updated", handleUpdate);
-  }, []);
 
   const [floatingReactions, setFloatingReactions] = useState<{ id: number; emoji: string; left: number; size: number; delay: number }[]>([]);
   const [activeReactionEmoji, setActiveReactionEmoji] = useState<string | null>(null);

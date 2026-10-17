@@ -182,7 +182,7 @@ export const uploadVideo = async (
   let token = await ensureValidAuthToken();
 
   const safeTitle = title || `Recording ${new Date().toLocaleDateString('en-US')}`;
-  const isMeeting = Boolean(options?.isMeeting || courseId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' || courseId === 'MEETING' || safeTitle.toLowerCase().includes('meeting'));
+  const isMeeting = Boolean(options?.isMeeting || courseId === 'MEETING');
   const cleanMimeType = (file.type || 'video/webm').split(';')[0].trim() || 'video/webm';
 
   // Step 1: Attempt to create a direct resumable upload session on Google Drive
@@ -197,7 +197,7 @@ export const uploadVideo = async (
         title: safeTitle,
         mimeType: cleanMimeType,
         size: file.size,
-        courseId: courseId || (isMeeting ? '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' : null),
+        courseId: courseId || null,
         folderName: options?.folderName,
         isMeeting,
       }),
@@ -217,7 +217,7 @@ export const uploadVideo = async (
           title: safeTitle,
           mimeType: cleanMimeType,
           size: file.size,
-          courseId: courseId || (isMeeting ? '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' : null),
+          courseId: courseId || null,
           folderName: options?.folderName,
           isMeeting,
         }),
@@ -282,7 +282,7 @@ export const uploadVideo = async (
     if (isMeeting) {
       formData.append('isMeeting', 'true');
     }
-    const finalCourseId = isMeeting ? (courseId || '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW') : courseId;
+    const finalCourseId = courseId || null;
     if (finalCourseId) {
       formData.append('courseId', finalCourseId);
     }

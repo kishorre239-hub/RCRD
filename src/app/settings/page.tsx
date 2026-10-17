@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Search, ExternalLink, 
+  ExternalLink, 
   ChevronDown, Info, Download, Globe, HardDrive,
   Shield, Share2, Bell, Cloud, Check, X
 } from "lucide-react";
@@ -100,13 +100,6 @@ export default function SettingsPage() {
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [profile, setProfile] = useState<UserProfileData>(getStoredProfile());
-
-  useEffect(() => {
-    const handleUpdate = () => setProfile(getStoredProfile());
-    window.addEventListener("rcrd_profile_updated", handleUpdate);
-    return () => window.removeEventListener("rcrd_profile_updated", handleUpdate);
-  }, []);
   
   // Tab State
   const [activeTab, setActiveTab] = useState(() => {

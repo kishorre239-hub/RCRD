@@ -126,16 +126,21 @@ export async function GET(
           'Cache-Control': 'public, max-age=7200',
         };
 
+        let responseStatus = streamResult.status || 200;
+
         if (streamResult.headers?.['content-range']) {
           responseHeaders['Content-Range'] = streamResult.headers['content-range'] as string;
+          responseStatus = 206;
         }
         if (streamResult.headers?.['content-length']) {
           responseHeaders['Content-Length'] = streamResult.headers['content-length'] as string;
+        } else if (streamResult.metadata?.size && !streamResult.headers?.['content-range']) {
+          responseHeaders['Content-Length'] = streamResult.metadata.size.toString();
         }
 
         const webStream = Readable.toWeb(streamResult.stream as Readable);
         return new Response(webStream as unknown as BodyInit, {
-          status: streamResult.status || 200,
+          status: responseStatus,
           headers: responseHeaders,
         });
       }

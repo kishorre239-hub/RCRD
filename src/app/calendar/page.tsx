@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Search, ChevronLeft, ChevronRight, Calendar as CalendarLucide,
+  ChevronLeft, ChevronRight, Calendar as CalendarLucide,
   Clock, ExternalLink, Plus, Copy, Check,
   CheckCircle2, Sparkles, Folder, Play, Info,
   CalendarDays, ListFilter, X
@@ -135,13 +135,6 @@ export default function CalendarPage() {
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [profile, setProfile] = useState<UserProfileData>(getStoredProfile());
-
-  useEffect(() => {
-    const handleUpdate = () => setProfile(getStoredProfile());
-    window.addEventListener("rcrd_profile_updated", handleUpdate);
-    return () => window.removeEventListener("rcrd_profile_updated", handleUpdate);
-  }, []);
 
   // Load meetings & courses
   useEffect(() => {

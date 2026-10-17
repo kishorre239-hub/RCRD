@@ -21,38 +21,28 @@ interface BeforeInstallPromptEvent extends Event {
 export default function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(display-mode: standalone)').matches || 
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+  });
   const [selectedPlatform, setSelectedPlatform] = useState<'android' | 'iphone'>('android');
   const [hasPromptedOnce, setHasPromptedOnce] = useState(false);
 
   useEffect(() => {
-    // 1. Check if already installed in standalone mode
-    const isStandalone = 
-      window.matchMedia('(display-mode: standalone)').matches || 
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-    
-    if (isStandalone) {
-      setIsInstalled(true);
-      return;
-    }
+    if (isInstalled) return;
 
-    // 2. Register Service Worker
+    // 1. Register Service Worker
     if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
       navigator.serviceWorker.register('/sw.js').catch((err) => {
         console.warn('SW registration skipped or failed:', err);
       });
     }
 
-    // 3. Detect user platform
+    // 2. Detect user platform
     const userAgent = navigator.userAgent.toLowerCase();
     const isIOS = /iphone|ipad|ipod/.test(userAgent);
-    const isAndroid = /android/.test(userAgent);
-
-    if (isIOS) {
-      setSelectedPlatform('iphone');
-    } else {
-      setSelectedPlatform('android');
-    }
+    setSelectedPlatform(isIOS ? 'iphone' : 'android');
 
     // 4. Capture BeforeInstallPromptEvent (Android & Chrome)
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -69,7 +59,7 @@ export default function PwaInstallPrompt() {
     // Re-prompt after 3 days if not installed
     const shouldShow = !dismissedTime || (now - dismissedTime > 3 * 24 * 60 * 60 * 1000);
 
-    if (shouldShow && !isStandalone) {
+    if (shouldShow && !isInstalled) {
       const timer = setTimeout(() => {
         setIsOpen(true);
         setHasPromptedOnce(true);

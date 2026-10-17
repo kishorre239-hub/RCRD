@@ -572,13 +572,13 @@ export default function RecordingSetupModal({
     try {
       await uploadVideo(
         recordedBlob,
-        selectedFolderId || (folders[0]?.id ?? ''),
+        selectedFolderId || '',
         (percent) => {
           setUploadProgress(percent);
         },
         finalTitle,
         {
-          folderName: targetCourse?.name || 'MEETING',
+          folderName: targetCourse?.name,
           isMeeting: targetCourse?.name?.toLowerCase().includes('meeting') ?? false,
         }
       );

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Search, Video, Folder,
+  Video, Folder,
   Users, Shield, ChevronDown, X,
   Plus, Copy, Check, Clock, FileText,
   Trash2, Calendar,
@@ -93,13 +93,6 @@ export default function MeetingsPage() {
   const [now, setNow] = useState<number>(0);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [profile, setProfile] = useState<UserProfileData>(getStoredProfile());
-
-  useEffect(() => {
-    const handleUpdate = () => setProfile(getStoredProfile());
-    window.addEventListener("rcrd_profile_updated", handleUpdate);
-    return () => window.removeEventListener("rcrd_profile_updated", handleUpdate);
-  }, []);
 
   // Helper date generators
   const getTodayString = () => {

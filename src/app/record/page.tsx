@@ -183,7 +183,7 @@ export default function RecordPage() {
         finalTitle,
         {
           folderName: selectedCourse?.name,
-          isMeeting: selectedCourseId === 'MEETING' || selectedCourseId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW'
+          isMeeting: selectedCourseId === 'MEETING'
         }
       );
       
@@ -203,9 +203,7 @@ export default function RecordPage() {
   };
 
   const currentFolder = courses.find(c => c.id === selectedCourseId);
-  const currentFolderName = selectedCourseId === 'MEETING' || selectedCourseId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' 
-    ? 'MEETING' 
-    : (currentFolder?.name || 'Personal Library (Root)');
+  const currentFolderName = currentFolder?.name || (selectedCourseId === 'MEETING' ? 'MEETING' : 'Personal Library (Root)');
 
   return (
     <div className="h-full w-full overflow-y-auto custom-scrollbar bg-[#F9FAFB] dark:bg-[#0f1115] text-[#20262E] dark:text-white p-6 sm:p-8">
@@ -527,9 +525,8 @@ export default function RecordPage() {
                         className="w-full px-4 py-2.5 rounded-xl border border-[#E2E7EC] dark:border-slate-700 bg-white dark:bg-[#16181d] text-[#20262E] dark:text-white font-medium text-sm focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-all cursor-pointer disabled:opacity-60"
                       >
                         <option value="">Personal Library (Root Google Drive)</option>
-                        <option value="1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW">MEETING (Google Drive)</option>
                         {courses
-                          .filter(c => c.id !== '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' && c.name !== 'MEETING')
+                          .filter(c => c.id !== '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW')
                           .map(c => (
                             <option key={c.id} value={c.id}>
                               {c.name} (Google Drive)

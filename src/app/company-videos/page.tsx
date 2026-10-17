@@ -64,10 +64,10 @@ export default function CompanyVideosPage() {
   if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
 
   return (
-    <div className="flex h-screen bg-[#F9FAFB] dark:bg-[#0f1115] text-slate-900 dark:text-slate-100 font-sans">
+    <div className="flex h-screen bg-[#F9FAFB] dark:bg-[#0f1115] text-[#20262E] dark:text-slate-100 font-sans">
       <main className="flex-1 flex flex-col h-full overflow-hidden">
-        <header className="h-16 flex items-center px-4 md:px-8 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-[#16181d]/50 ">
-          <Link href="/" className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors mr-6">
+        <header className="h-16 flex items-center px-4 md:px-8 border-b border-[#E2E7EC] dark:border-slate-800 bg-white/50 dark:bg-[#16181d]/50 ">
+          <Link href="/" className="flex items-center gap-2 text-[#57636E] hover:text-[#20262E] dark:hover:text-white transition-colors mr-6">
             <ArrowLeft size={20} />
             <span className="font-medium hidden sm:inline">Back to App</span>
           </Link>
@@ -80,16 +80,16 @@ export default function CompanyVideosPage() {
         <div className="flex-1 overflow-y-auto p-8">
           <div className="max-w-6xl mx-auto">
             {videos.length === 0 ? (
-              <div className="text-center py-20 text-slate-500">
+              <div className="text-center py-20 text-[#57636E]">
                 <Building className="w-12 h-12 mx-auto mb-4 opacity-30" />
                 <p className="text-lg">No videos have been shared with the company yet.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {videos.map(video => (
-                  <Link href={`/video/${video.id}`} key={video.id} className="group flex flex-col bg-white dark:bg-[#16181d] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 hover:-translate-y-1">
+                  <Link href={`/video/${video.id}`} key={video.id} className="group flex flex-col bg-white dark:bg-[#16181d] border border-[#E2E7EC] dark:border-slate-800 rounded-xl overflow-hidden hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 hover:-translate-y-1">
                     <div className="relative aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden cursor-pointer flex items-center justify-center">
-                      <Play className="w-12 h-12 text-slate-300 dark:text-slate-600 group-hover:scale-110 transition-transform duration-500" />
+                      <Play className="w-12 h-12 text-slate-300 dark:text-[#57636E] group-hover:scale-110 transition-transform duration-500" />
                       <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <div className="w-12 h-12 rounded-full bg-white/20  flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
                           <Play className="w-5 h-5 text-white fill-white ml-1" />
@@ -101,11 +101,11 @@ export default function CompanyVideosPage() {
                     </div>
                     <div className="p-4 flex-1 flex flex-col">
                       <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold text-slate-900 dark:text-white line-clamp-1 group-hover:text-[#6E1A37] dark:group-hover:text-indigo-400 transition-colors cursor-pointer" title={video.title}>
+                        <h3 className="font-semibold text-[#20262E] dark:text-white line-clamp-1 group-hover:text-[#0C5325] dark:group-hover:text-indigo-400 transition-colors cursor-pointer" title={video.title}>
                           {video.title}
                         </h3>
                       </div>
-                      <div className="flex flex-col text-xs text-slate-500 dark:text-slate-400 mt-auto">
+                      <div className="flex flex-col text-xs text-[#57636E] dark:text-[#57636E] mt-auto">
                         <span className="mb-1">Shared by: {video.ownerId.slice(-6)}...</span>
                         <div className="flex items-center">
                           <span>{video.courseName || 'Uncategorized'}</span>

@@ -3,21 +3,35 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-outfit), Arial, Helvetica, sans-serif;
-  --font-outfit: var(--font-outfit), sans-serif;
-  --color-primary: #AE2448;
-  --color-primary-hover: #6E1A37;
-  --color-primary-light: #D5E7B5;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-heading: "Glassdoor Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-glassdoor: "Glassdoor Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-outfit: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --color-primary: #0CAA41;
+  --color-primary-hover: #0C5325;
+  --color-primary-light: #E6F6EC;
   --color-surface: #FFFFFF;
-  --color-border: #E2E8F0;
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #475569;
-  --color-text-muted: #94A3B8;
+  --color-border: #E2E7EC;
+  --color-canvas: #F5F6F8;
+  --color-text-primary: #20262E;
+  --color-text-secondary: #57636E;
+  --color-text-muted: #57636E;
+  --color-slate-500: #57636E;
+  --color-slate-400: #57636E;
+  --color-gray-500: #57636E;
+  --color-gray-400: #57636E;
+  --color-slate-200: #E2E7EC;
+  --color-gray-200: #E2E7EC;
+  --color-slate-100: #F5F6F8;
+  --color-gray-100: #F5F6F8;
+  --color-slate-50: #F5F6F8;
+  --color-gray-50: #F5F6F8;
 }
 
 :root {
-  --background: #F8FAFC;
-  --foreground: #0F172A;
+  --background: #F5F6F8;
+  --foreground: #20262E;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 html,
@@ -28,6 +42,17 @@ body {
   margin: 0;
   padding: 0;
   overscroll-behavior: none;
+  background-color: #F5F6F8;
+  color: #20262E;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #20262E;
+  font-family: "Glassdoor Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 body {

@@ -19,7 +19,7 @@ export function Tabs({ tabs, activeTab, onChange, className = "" }: TabsProps) {
             className={`px-6 py-4 text-sm font-bold border-b-2 transition-colors ${
               isActive 
                 ? "border-primary text-primary" 
-                : "border-transparent text-text-secondary hover:text-text-primary hover:border-gray-300"
+                : "border-transparent text-text-secondary hover:text-text-primary hover:border-[#E2E7EC]"
             }`}
           >
             {tab.label}

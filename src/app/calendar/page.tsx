@@ -99,12 +99,12 @@ function SidebarItem({
       onClick={() => href && router.push(href)}
       className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold cursor-pointer transition-all ${
         active
-          ? "bg-[#D5E7B5] text-[#AE2448] shadow-xs font-bold border border-[#AE2448]/20"
-          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium"
+          ? "bg-[#E6F6EC] text-[#0CAA41] shadow-xs font-bold border border-[#0CAA41]/20"
+          : "text-[#57636E] hover:bg-[#F5F6F8] hover:text-[#20262E] font-medium"
       }`}
     >
       <div className="flex items-center gap-3">
-        <div className={active ? "text-[#AE2448]" : "text-slate-400"}>
+        <div className={active ? "text-[#0CAA41]" : "text-[#57636E]"}>
           {icon}
         </div>
         <span className="text-sm">{label}</span>
@@ -302,11 +302,11 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#FFFFFF] text-[#0F172A] font-sans overflow-hidden antialiased">
+    <div className="flex h-screen w-full bg-[#FFFFFF] text-[#20262E] font-sans overflow-hidden antialiased">
       {/* SIDEBAR */}
-      <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-slate-200 bg-white z-20 h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden">
+      <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-[#E2E7EC] bg-white z-20 h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden">
         {/* Brand Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-slate-100 flex-shrink-0">
+        <div className="h-16 flex items-center px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div
             className="flex items-center justify-center w-full cursor-pointer group"
             onClick={() => router.push("/")}
@@ -323,25 +323,25 @@ export default function CalendarPage() {
         </div>
 
         {/* Workspace Card */}
-        <div className="p-5 border-b border-slate-100 flex-shrink-0">
-          <div className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl cursor-pointer transition-all border border-slate-100 hover:border-slate-200 group">
+        <div className="p-5 border-b border-[#E2E7EC] flex-shrink-0">
+          <div className="flex items-center justify-between p-3 bg-[#F5F6F8] hover:bg-slate-100 rounded-xl cursor-pointer transition-all border border-[#E2E7EC] hover:border-[#E2E7EC] group">
             <div>
-              <div className="text-sm font-semibold text-slate-800 group-hover:text-[#AE2448] transition-colors">
+              <div className="text-sm font-semibold text-[#20262E] group-hover:text-[#0CAA41] transition-colors">
                 RCRD Workspace
               </div>
               <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] uppercase tracking-wider bg-[#D5E7B5] px-2 py-0.5 rounded text-[#AE2448] font-bold border border-[#AE2448]/20">
+                <span className="text-[10px] uppercase tracking-wider bg-[#E6F6EC] px-2 py-0.5 rounded text-[#0CAA41] font-bold border border-[#0CAA41]/20">
                   Pro Plan
                 </span>
-                <span className="text-xs text-slate-500">Team Space</span>
+                <span className="text-xs text-[#57636E]">Team Space</span>
               </div>
             </div>
           </div>
           <button
             onClick={() => router.push("/settings?tab=users")}
-            className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 transition-all shadow-xs cursor-pointer"
+            className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-xs font-bold text-[#20262E] hover:text-[#20262E] transition-all shadow-xs cursor-pointer"
           >
-            <UserIcon size={16} className="text-[#AE2448]" />
+            <UserIcon size={16} className="text-[#0CAA41]" />
             Invite Teammates
           </button>
         </div>
@@ -357,7 +357,7 @@ export default function CalendarPage() {
           </nav>
 
           <div>
-            <h3 className="px-3 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-2">
+            <h3 className="px-3 text-[11px] font-extrabold uppercase tracking-wider text-[#57636E] mb-2">
               Workspace Admin
             </h3>
             <nav className="space-y-1">
@@ -369,10 +369,10 @@ export default function CalendarPage() {
         </div>
 
         {/* Bottom Record Video button */}
-        <div className="p-5 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
+        <div className="p-5 border-t border-[#E2E7EC] bg-[#F5F6F8]/50 flex-shrink-0">
           <button
             onClick={() => router.push("/meetings?schedule=true")}
-            className="w-full bg-[#AE2448] hover:bg-[#6E1A37] text-white py-3.5 px-6 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(174, 36, 72,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(174, 36, 72,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+            className="w-full bg-[#0CAA41] hover:bg-[#0C5325] text-white py-3.5 px-6 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(12, 170, 65,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(12, 170, 65,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <CalendarLucide size={18} className="text-white" />
             <span>Schedule Class</span>
@@ -383,29 +383,29 @@ export default function CalendarPage() {
       {/* MAIN CALENDAR CONTENT */}
       <main className="flex-1 flex flex-col h-full min-w-0 bg-white overflow-hidden">
         {/* Top Header */}
-        <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-slate-200 shrink-0 z-10 flex-shrink-0">
+        <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-[#E2E7EC] shrink-0 z-10 flex-shrink-0">
           <div className="flex-1 max-w-xl relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search class meetings by topic, ID, or notes..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[13px] text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-[#AE2448] focus:ring-2 focus:ring-[#AE2448]/15 outline-none transition-all font-medium"
+              className="w-full pl-10 pr-4 py-2 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-[13px] text-[#20262E] placeholder:text-[#57636E] focus:bg-white focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/15 outline-none transition-all font-medium"
             />
           </div>
 
           <div className="flex items-center gap-4 ml-6 shrink-0">
             <button
               onClick={() => router.push("/settings?tab=billing")}
-              className="bg-[#AE2448] hover:bg-[#6E1A37] text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+              className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
             >
               <Sparkles size={14} /> Upgrade
             </button>
-            <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center cursor-pointer hover:bg-slate-200 transition-colors">
+            <div className="w-8 h-8 rounded-full bg-slate-100 text-[#57636E] flex items-center justify-center cursor-pointer hover:bg-slate-200 transition-colors">
               <NotificationIcon size={18} />
             </div>
-            <div className="w-8 h-8 rounded-full bg-[#AE2448] text-white flex items-center justify-center text-xs font-bold cursor-pointer shadow-sm">
+            <div className="w-8 h-8 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-xs font-bold cursor-pointer shadow-sm">
               HR
             </div>
           </div>
@@ -414,16 +414,16 @@ export default function CalendarPage() {
         {/* CALENDAR BODY */}
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-6">
           {/* Hero Banner: Class Meeting Calendar & Google Calendar Integration */}
-          <div className="bg-gradient-to-r from-white via-[#D5E7B5] to-white border-2 border-[#AE2448]/20 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div className="bg-gradient-to-r from-white via-[#E6F6EC] to-white border-2 border-[#0CAA41]/20 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div className="space-y-2 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#D5E7B5] border border-[#AE2448]/30 rounded-full text-xs font-bold text-[#AE2448]">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#E6F6EC] border border-[#0CAA41]/30 rounded-full text-xs font-bold text-[#0CAA41]">
                 <CalendarDays size={14} />
                 <span>Class Meetings Google Calendar</span>
               </div>
-              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+              <h1 className="text-3xl font-extrabold text-[#20262E] tracking-tight">
                 Class Meeting Calendar
               </h1>
-              <p className="text-slate-600 text-sm leading-relaxed">
+              <p className="text-[#57636E] text-sm leading-relaxed">
                 Seamlessly schedule and sync all your student class sessions with <strong>Google Calendar</strong>. Every class meeting includes 1-click Google Calendar sync, room links, and meeting credentials.
               </p>
             </div>
@@ -432,7 +432,7 @@ export default function CalendarPage() {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={() => router.push("/meetings?schedule=true")}
-                className="bg-[#AE2448] hover:bg-[#6E1A37] text-white px-5 py-3 rounded-2xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all hover:scale-102 cursor-pointer"
+                className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-5 py-3 rounded-2xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all hover:scale-102 cursor-pointer"
               >
                 <Plus size={16} /> Schedule Class Meeting
               </button>
@@ -441,7 +441,7 @@ export default function CalendarPage() {
                 href="https://calendar.google.com"
                 target="_blank"
                 rel="noreferrer"
-                className="bg-white hover:bg-[#D5E7B5] text-[#AE2448] border-2 border-[#AE2448] px-5 py-3 rounded-2xl font-bold text-xs flex items-center gap-2 transition-all shadow-xs cursor-pointer"
+                className="bg-white hover:bg-[#E6F6EC] text-[#0CAA41] border-2 border-[#0CAA41] px-5 py-3 rounded-2xl font-bold text-xs flex items-center gap-2 transition-all shadow-xs cursor-pointer"
               >
                 <CalendarLucide size={16} /> Open Google Calendar <ExternalLink size={13} />
               </a>
@@ -449,29 +449,29 @@ export default function CalendarPage() {
           </div>
 
           {/* OPAL GOOGLE CALENDAR TEMPLATES & FREE STATUS CARD */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div className="bg-white border border-[#E2E7EC] rounded-2xl p-6 shadow-xs space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E2E7EC] pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#D5E7B5] text-[#AE2448] flex items-center justify-center shrink-0 border border-[#AE2448]/20">
+                <div className="w-10 h-10 rounded-xl bg-[#E6F6EC] text-[#0CAA41] flex items-center justify-center shrink-0 border border-[#0CAA41]/20">
                   <Sparkles size={20} />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-slate-900">Google Calendar Opal Templates</h3>
-                    <span className="bg-[#D5E7B5] text-emerald-800 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-[#72BAA9]/40">
+                    <h3 className="text-base font-bold text-[#20262E]">Google Calendar Opal Templates</h3>
+                    <span className="bg-[#E6F6EC] text-emerald-800 text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border border-[#72BAA9]/40">
                       ✓ 100% Free
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-[#57636E] mt-0.5">
                     Launch pre-formatted Opal meeting templates or add any class directly to Google Calendar.
                   </p>
                 </div>
               </div>
 
               {/* Free explanation badge */}
-              <div className="text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-600 max-w-sm">
-                <div className="font-bold text-slate-900 flex items-center gap-1.5 mb-0.5">
-                  <Info size={14} className="text-[#AE2448]" /> Is Opal Google Calendar free?
+              <div className="text-xs bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-3 text-[#57636E] max-w-sm">
+                <div className="font-bold text-[#20262E] flex items-center gap-1.5 mb-0.5">
+                  <Info size={14} className="text-[#0CAA41]" /> Is Opal Google Calendar free?
                 </div>
                 <span>
                   <strong>Yes, it is 100% free!</strong> Google Calendar template URLs (Opal) require no billing, API subscriptions, or fees. You and your students can use them completely free.
@@ -481,14 +481,14 @@ export default function CalendarPage() {
 
             {/* Provided Template Quick Buttons */}
             <div className="flex flex-wrap items-center gap-3 pt-1">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Quick Templates:</span>
+              <span className="text-xs font-bold text-[#57636E] uppercase tracking-wider">Quick Templates:</span>
 
               {/* Template 1: Geonixa Class Meeting */}
               <a
                 href={OPAL_TEMPLATE_GEONIXA}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#D5E7B5] text-[#AE2448] border border-[#AE2448] rounded-xl text-xs font-bold transition-all shadow-xs"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#E6F6EC] text-[#0CAA41] border border-[#0CAA41] rounded-xl text-xs font-bold transition-all shadow-xs"
               >
                 <CalendarLucide size={14} />
                 <span>Geonixa Class Session (Google Calendar)</span>
@@ -500,7 +500,7 @@ export default function CalendarPage() {
                 href={OPAL_TEMPLATE_NEW_MEETING}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition-all shadow-xs"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#F5F6F8] text-[#20262E] border border-[#E2E7EC] rounded-xl text-xs font-bold transition-all shadow-xs"
               >
                 <CalendarLucide size={14} />
                 <span>New Meeting (Opal Template)</span>
@@ -510,15 +510,15 @@ export default function CalendarPage() {
           </div>
 
           {/* VIEW SWITCHER & CONTROLS */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-[#E2E7EC] rounded-2xl p-4 shadow-xs">
             {/* View Tabs */}
             <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl">
               <button
                 onClick={() => setViewMode("calendar")}
                 className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
                   viewMode === "calendar"
-                    ? "bg-[#AE2448] text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-[#0CAA41] text-white shadow-xs"
+                    : "text-[#57636E] hover:text-[#20262E]"
                 }`}
               >
                 <CalendarDays size={14} />
@@ -528,8 +528,8 @@ export default function CalendarPage() {
                 onClick={() => setViewMode("agenda")}
                 className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
                   viewMode === "agenda"
-                    ? "bg-[#AE2448] text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-[#0CAA41] text-white shadow-xs"
+                    : "text-[#57636E] hover:text-[#20262E]"
                 }`}
               >
                 <ListFilter size={14} />
@@ -539,8 +539,8 @@ export default function CalendarPage() {
                 onClick={() => setViewMode("gcal")}
                 className={`px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
                   viewMode === "gcal"
-                    ? "bg-[#AE2448] text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "bg-[#0CAA41] text-white shadow-xs"
+                    : "text-[#57636E] hover:text-[#20262E]"
                 }`}
               >
                 <ExternalLink size={14} />
@@ -553,23 +553,23 @@ export default function CalendarPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={jumpToToday}
-                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-lg border border-slate-200 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 bg-[#F5F6F8] hover:bg-slate-100 text-[#20262E] text-xs font-bold rounded-lg border border-[#E2E7EC] transition-colors cursor-pointer"
                 >
                   Today
                 </button>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={prevMonth}
-                    className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors cursor-pointer"
+                    className="p-1.5 hover:bg-slate-100 rounded-lg text-[#57636E] transition-colors cursor-pointer"
                   >
                     <ChevronLeft size={18} />
                   </button>
-                  <span className="text-sm font-bold text-slate-800 min-w-[140px] text-center">
+                  <span className="text-sm font-bold text-[#20262E] min-w-[140px] text-center">
                     {monthName}
                   </span>
                   <button
                     onClick={nextMonth}
-                    className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors cursor-pointer"
+                    className="p-1.5 hover:bg-slate-100 rounded-lg text-[#57636E] transition-colors cursor-pointer"
                   >
                     <ChevronRight size={18} />
                   </button>
@@ -580,9 +580,9 @@ export default function CalendarPage() {
 
           {/* VIEW MODE 1: MONTH CALENDAR GRID */}
           {viewMode === "calendar" && (
-            <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+            <div className="bg-white border border-[#E2E7EC] rounded-2xl overflow-hidden shadow-xs">
               {/* Day headers */}
-              <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50/70 text-center text-xs font-bold text-slate-600 py-3">
+              <div className="grid grid-cols-7 border-b border-[#E2E7EC] bg-[#F5F6F8]/70 text-center text-xs font-bold text-[#57636E] py-3">
                 <span>Sun</span>
                 <span>Mon</span>
                 <span>Tue</span>
@@ -596,7 +596,7 @@ export default function CalendarPage() {
               <div className="grid grid-cols-7 auto-rows-fr divide-x divide-y divide-slate-100">
                 {/* Empty prefix cells */}
                 {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-                  <div key={`empty-${i}`} className="min-h-[110px] bg-slate-50/40 p-2 opacity-30" />
+                  <div key={`empty-${i}`} className="min-h-[110px] bg-[#F5F6F8]/40 p-2 opacity-30" />
                 ))}
 
                 {/* Days of current month */}
@@ -620,27 +620,27 @@ export default function CalendarPage() {
                       }
                       className={`min-h-[115px] p-2 transition-all cursor-pointer flex flex-col justify-between ${
                         isSelected
-                          ? "bg-[#D5E7B5] ring-2 ring-[#AE2448] z-10"
+                          ? "bg-[#E6F6EC] ring-2 ring-[#0CAA41] z-10"
                           : isToday
-                          ? "bg-slate-50/70 hover:bg-slate-100/70"
-                          : "hover:bg-slate-50/70"
+                          ? "bg-[#F5F6F8]/70 hover:bg-slate-100/70"
+                          : "hover:bg-[#F5F6F8]/70"
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <span
                           className={`text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center ${
                             isToday
-                              ? "bg-[#AE2448] text-white shadow-xs"
+                              ? "bg-[#0CAA41] text-white shadow-xs"
                               : isSelected
-                              ? "text-[#AE2448] font-black"
-                              : "text-slate-700"
+                              ? "text-[#0CAA41] font-black"
+                              : "text-[#20262E]"
                           }`}
                         >
                           {dayNum}
                         </span>
 
                         {dayMeetings.length > 0 && (
-                          <span className="text-[10px] bg-[#D5E7B5] text-[#AE2448] font-bold px-1.5 py-0.5 rounded-full border border-[#AE2448]/20">
+                          <span className="text-[10px] bg-[#E6F6EC] text-[#0CAA41] font-bold px-1.5 py-0.5 rounded-full border border-[#0CAA41]/20">
                             {dayMeetings.length} class{dayMeetings.length > 1 ? "es" : ""}
                           </span>
                         )}
@@ -651,7 +651,7 @@ export default function CalendarPage() {
                         {dayMeetings.slice(0, 2).map((m) => (
                           <div
                             key={m.id}
-                            className="text-[11px] font-semibold bg-[#AE2448] text-white px-2 py-1 rounded-md truncate shadow-xs flex items-center gap-1"
+                            className="text-[11px] font-semibold bg-[#0CAA41] text-white px-2 py-1 rounded-md truncate shadow-xs flex items-center gap-1"
                             title={`${m.title} (${fmtTime(m.scheduledAt)})`}
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
@@ -659,7 +659,7 @@ export default function CalendarPage() {
                           </div>
                         ))}
                         {dayMeetings.length > 2 && (
-                          <div className="text-[10px] text-slate-500 font-bold px-1">
+                          <div className="text-[10px] text-[#57636E] font-bold px-1">
                             +{dayMeetings.length - 2} more
                           </div>
                         )}
@@ -673,15 +673,15 @@ export default function CalendarPage() {
 
           {/* VIEW MODE 2: GCAL EMBED / LAUNCHER VIEW */}
           {viewMode === "gcal" && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-xs text-center space-y-6">
-              <div className="w-16 h-16 rounded-3xl bg-[#D5E7B5] border-2 border-[#AE2448] flex items-center justify-center mx-auto text-[#AE2448] shadow-md">
+            <div className="bg-white border border-[#E2E7EC] rounded-2xl p-8 shadow-xs text-center space-y-6">
+              <div className="w-16 h-16 rounded-3xl bg-[#E6F6EC] border-2 border-[#0CAA41] flex items-center justify-center mx-auto text-[#0CAA41] shadow-md">
                 <CalendarDays size={32} />
               </div>
               <div className="max-w-xl mx-auto space-y-2">
-                <h2 className="text-2xl font-extrabold text-slate-900">
+                <h2 className="text-2xl font-extrabold text-[#20262E]">
                   Google Calendar Classroom Sync
                 </h2>
-                <p className="text-sm text-slate-600 leading-relaxed">
+                <p className="text-sm text-[#57636E] leading-relaxed">
                   Open your connected Google Calendar in a new tab to see all your synced class meetings, exam schedules, and notifications in real-time.
                 </p>
               </div>
@@ -691,7 +691,7 @@ export default function CalendarPage() {
                   href="https://calendar.google.com"
                   target="_blank"
                   rel="noreferrer"
-                  className="bg-[#AE2448] hover:bg-[#6E1A37] text-white px-7 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 shadow-sm transition-all hover:scale-105 cursor-pointer"
+                  className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-7 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 shadow-sm transition-all hover:scale-105 cursor-pointer"
                 >
                   <CalendarLucide size={18} /> Launch Google Calendar <ExternalLink size={14} />
                 </a>
@@ -700,7 +700,7 @@ export default function CalendarPage() {
                   href={OPAL_TEMPLATE_GEONIXA}
                   target="_blank"
                   rel="noreferrer"
-                  className="bg-white hover:bg-[#D5E7B5] text-[#AE2448] border-2 border-[#AE2448] px-7 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-all shadow-xs cursor-pointer"
+                  className="bg-white hover:bg-[#E6F6EC] text-[#0CAA41] border-2 border-[#0CAA41] px-7 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 transition-all shadow-xs cursor-pointer"
                 >
                   <span>Geonixa Opal Template</span> <ExternalLink size={14} />
                 </a>
@@ -712,10 +712,10 @@ export default function CalendarPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">
+                <h2 className="text-xl font-bold text-[#20262E]">
                   {selectedDateStr ? `Class Meetings on ${selectedDateStr}` : "All Class Meetings"}
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-[#57636E] mt-0.5">
                   {filteredMeetings.length} scheduled class meeting{filteredMeetings.length === 1 ? "" : "s"} found.
                 </p>
               </div>
@@ -723,7 +723,7 @@ export default function CalendarPage() {
               {selectedDateStr && (
                 <button
                   onClick={() => setSelectedDateStr(null)}
-                  className="text-xs font-bold text-[#AE2448] hover:underline cursor-pointer"
+                  className="text-xs font-bold text-[#0CAA41] hover:underline cursor-pointer"
                 >
                   Show all dates
                 </button>
@@ -731,15 +731,15 @@ export default function CalendarPage() {
             </div>
 
             {filteredMeetings.length === 0 ? (
-              <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center space-y-3">
+              <div className="bg-white border border-[#E2E7EC] rounded-2xl p-12 text-center space-y-3">
                 <CalendarLucide size={36} className="text-slate-300 mx-auto" />
-                <h3 className="text-base font-bold text-slate-700">No Class Meetings Found</h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                <h3 className="text-base font-bold text-[#20262E]">No Class Meetings Found</h3>
+                <p className="text-xs text-[#57636E] max-w-sm mx-auto">
                   There are no scheduled class meetings matching this date or search. Schedule a new class meeting or add from Google Calendar templates!
                 </p>
                 <button
                   onClick={() => router.push("/meetings?schedule=true")}
-                  className="bg-[#AE2448] hover:bg-[#6E1A37] text-white px-5 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-2 cursor-pointer shadow-sm transition-all"
+                  className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-5 py-2.5 rounded-xl text-xs font-bold inline-flex items-center gap-2 cursor-pointer shadow-sm transition-all"
                 >
                   <Plus size={14} /> Schedule Class Now
                 </button>
@@ -754,19 +754,19 @@ export default function CalendarPage() {
                   return (
                     <div
                       key={m.id}
-                      className="bg-white border-2 border-slate-100 hover:border-[#AE2448]/40 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4 group"
+                      className="bg-white border-2 border-[#E2E7EC] hover:border-[#0CAA41]/40 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between space-y-4 group"
                     >
                       {/* Top Row: Title, Course Badge, Status */}
                       <div className="space-y-2">
                         <div className="flex items-start justify-between gap-3">
-                          <h3 className="text-base font-extrabold text-slate-900 group-hover:text-[#AE2448] transition-colors leading-tight">
+                          <h3 className="text-base font-extrabold text-[#20262E] group-hover:text-[#0CAA41] transition-colors leading-tight">
                             {m.title}
                           </h3>
                           <span
                             className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border shrink-0 ${
                               isLive
-                                ? "bg-[#D5E7B5]/40 text-[#6E1A37] border-[#72BAA9]/40 animate-pulse"
-                                : "bg-[#D5E7B5] text-[#AE2448] border-[#AE2448]/30"
+                                ? "bg-[#E6F6EC]/40 text-[#0C5325] border-[#72BAA9]/40 animate-pulse"
+                                : "bg-[#E6F6EC] text-[#0CAA41] border-[#0CAA41]/30"
                             }`}
                           >
                             {isLive ? "● LIVE NOW" : "SCHEDULED"}
@@ -774,38 +774,38 @@ export default function CalendarPage() {
                         </div>
 
                         {/* Folder / Course */}
-                        <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold">
-                          <Folder size={13} className="text-[#AE2448]" />
+                        <div className="flex items-center gap-2 text-xs text-[#57636E] font-semibold">
+                          <Folder size={13} className="text-[#0CAA41]" />
                           <span>{courseName}</span>
                         </div>
                       </div>
 
                       {/* Middle Details: Date, Time, ID & Password */}
-                      <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-2 text-xs">
-                        <div className="flex items-center justify-between text-slate-700">
+                      <div className="bg-[#F5F6F8] rounded-xl p-3 border border-[#E2E7EC] space-y-2 text-xs">
+                        <div className="flex items-center justify-between text-[#20262E]">
                           <div className="flex items-center gap-1.5 font-bold">
-                            <CalendarLucide size={14} className="text-[#AE2448]" />
+                            <CalendarLucide size={14} className="text-[#0CAA41]" />
                             <span>{fmtDate(m.scheduledAt)}</span>
                           </div>
-                          <div className="flex items-center gap-1.5 font-semibold text-slate-600">
-                            <Clock size={13} className="text-slate-400" />
+                          <div className="flex items-center gap-1.5 font-semibold text-[#57636E]">
+                            <Clock size={13} className="text-[#57636E]" />
                             <span>
                               {fmtTime(m.scheduledAt)} ({m.duration || 60}m)
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 font-mono text-[11px] text-slate-600">
+                        <div className="flex items-center justify-between pt-1 border-t border-[#E2E7EC]/60 font-mono text-[11px] text-[#57636E]">
                           <div>
-                            ID: <span className="font-bold text-slate-900">{m.id}</span>
+                            ID: <span className="font-bold text-[#20262E]">{m.id}</span>
                           </div>
                           <div>
-                            Pass: <span className="font-bold text-slate-900">{m.password}</span>
+                            Pass: <span className="font-bold text-[#20262E]">{m.password}</span>
                           </div>
                         </div>
 
                         {m.notes && (
-                          <div className="text-[11px] text-slate-500 line-clamp-1 italic pt-0.5">
+                          <div className="text-[11px] text-[#57636E] line-clamp-1 italic pt-0.5">
                             &quot;{m.notes}&quot;
                           </div>
                         )}
@@ -818,7 +818,7 @@ export default function CalendarPage() {
                           href={gcalUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex-1 py-2.5 px-3 bg-[#D5E7B5] hover:bg-[#D5E7B5] text-[#AE2448] border border-[#AE2448]/30 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                          className="flex-1 py-2.5 px-3 bg-[#E6F6EC] hover:bg-[#E6F6EC] text-[#0CAA41] border border-[#0CAA41]/30 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
                           title="Add this meeting directly to your Google Calendar"
                         >
                           <CalendarLucide size={14} />
@@ -829,7 +829,7 @@ export default function CalendarPage() {
                         {/* Join / Start Room Button */}
                         <button
                           onClick={() => router.push(`/meetings/room/${m.id}?role=mentor`)}
-                          className="py-2.5 px-4 bg-[#AE2448] hover:bg-[#6E1A37] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                          className="py-2.5 px-4 bg-[#0CAA41] hover:bg-[#0C5325] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
                         >
                           <Play size={13} className="fill-white" />
                           <span>Start Room</span>
@@ -844,7 +844,7 @@ export default function CalendarPage() {
                               m.id
                             );
                           }}
-                          className="p-2.5 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-xl transition-colors cursor-pointer"
+                          className="p-2.5 bg-white hover:bg-slate-100 text-[#57636E] border border-[#E2E7EC] rounded-xl transition-colors cursor-pointer"
                           title="Copy meeting invitation details"
                         >
                           {copiedKey === m.id ? (
@@ -869,11 +869,11 @@ export default function CalendarPage() {
           className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 z-[200] border animate-in slide-in-from-bottom-5 duration-200 ${
             toast.ok
               ? "bg-slate-900 text-white border-slate-800"
-              : "bg-[#AE2448] text-white border-[#AE2448]"
+              : "bg-[#0CAA41] text-white border-[#0CAA41]"
           }`}
         >
           {toast.ok ? (
-            <CheckCircle2 size={16} className="text-[#D5E7B5]" />
+            <CheckCircle2 size={16} className="text-[#E6F6EC]" />
           ) : (
             <Info size={16} className="text-white" />
           )}

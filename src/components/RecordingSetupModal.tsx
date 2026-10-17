@@ -633,7 +633,7 @@ export default function RecordingSetupModal({
         >
           {/* Centered Widget Card */}
           <div 
-            className="w-[340px] max-w-full bg-white rounded-[26px] shadow-[0_25px_60px_rgba(0,0,0,0.25)] z-[9995] border border-slate-200/90 p-5 overflow-visible animate-in fade-in zoom-in-95 duration-200 select-none font-sans relative"
+            className="w-[340px] max-w-full bg-white rounded-[26px] shadow-[0_25px_60px_rgba(0,0,0,0.25)] z-[9995] border border-[#E2E7EC]/90 p-5 overflow-visible animate-in fade-in zoom-in-95 duration-200 select-none font-sans relative"
             onClick={e => e.stopPropagation()}
           >
             {/* Header: RCRD Brand Icon + Title + Help & Home Actions */}
@@ -645,13 +645,13 @@ export default function RecordingSetupModal({
                     <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" />
                   </svg>
                 </div>
-                <span className="text-[17px] font-bold text-slate-900 tracking-tight">RCRD</span>
+                <span className="text-[17px] font-bold text-[#20262E] tracking-tight">RCRD</span>
               </div>
 
               <div className="flex items-center gap-1">
                 <button 
                   type="button"
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 transition-colors cursor-pointer"
                   title="Help & Shortcuts"
                 >
                   <HelpCircle size={18} />
@@ -659,7 +659,7 @@ export default function RecordingSetupModal({
                 <button 
                   type="button"
                   onClick={handleClose}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 transition-colors cursor-pointer"
                   title="Close widget"
                 >
                   <Home size={18} />
@@ -667,7 +667,7 @@ export default function RecordingSetupModal({
                 <button 
                   type="button"
                   onClick={handleClose}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer ml-1"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 transition-colors cursor-pointer ml-1"
                   title="Dismiss"
                 >
                   <X size={17} />
@@ -683,17 +683,17 @@ export default function RecordingSetupModal({
                 <button
                   type="button"
                   onClick={() => setShowScreenOptions(!showScreenOptions)}
-                  className="w-full h-12 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-2xl flex items-center justify-between cursor-pointer transition-colors text-slate-800 text-[13.5px] font-medium"
+                  className="w-full h-12 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-2xl flex items-center justify-between cursor-pointer transition-colors text-[#20262E] text-[13.5px] font-medium"
                 >
                   <div className="flex items-center gap-3">
-                    <Monitor size={18} className="text-slate-800 stroke-[2.2]" />
+                    <Monitor size={18} className="text-[#20262E] stroke-[2.2]" />
                     <span>{screenType}</span>
                   </div>
-                  <ChevronDown size={16} className={`text-slate-500 transition-transform ${showScreenOptions ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={16} className={`text-[#57636E] transition-transform ${showScreenOptions ? 'rotate-180' : ''}`} />
                 </button>
 
                 {showScreenOptions && (
-                  <div className="absolute top-full left-0 w-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-[9999] animate-in fade-in zoom-in-95 duration-150 py-1">
+                  <div className="absolute top-full left-0 w-full mt-1.5 bg-white border border-[#E2E7EC] rounded-2xl shadow-xl overflow-hidden z-[9999] animate-in fade-in zoom-in-95 duration-150 py-1">
                     {(['Full Screen', 'Window', 'Current tab', 'Camera only'] as const).map((opt) => (
                       <button
                         key={opt}
@@ -702,7 +702,7 @@ export default function RecordingSetupModal({
                           setScreenType(opt);
                           setShowScreenOptions(false);
                         }}
-                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 text-slate-700 transition-colors cursor-pointer"
+                        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold hover:bg-[#F5F6F8] text-[#20262E] transition-colors cursor-pointer"
                       >
                         <span>{opt}</span>
                         {screenType === opt && <Check size={14} className="text-[#2F70F2]" />}
@@ -716,15 +716,15 @@ export default function RecordingSetupModal({
               <button
                 type="button"
                 onClick={() => setCameraOn(!cameraOn)}
-                className="w-full h-12 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-2xl flex items-center justify-between cursor-pointer transition-colors text-slate-800 text-[13.5px] font-medium"
+                className="w-full h-12 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-2xl flex items-center justify-between cursor-pointer transition-colors text-[#20262E] text-[13.5px] font-medium"
               >
                 <div className="flex items-center gap-3 truncate pr-2">
-                  <Video size={18} className="text-slate-800 stroke-[2.2] shrink-0" />
-                  <span className="truncate text-slate-800">
+                  <Video size={18} className="text-[#20262E] stroke-[2.2] shrink-0" />
+                  <span className="truncate text-[#20262E]">
                     {cameraDeviceName.length > 18 ? cameraDeviceName.substring(0, 18) + '...' : cameraDeviceName}
                   </span>
                 </div>
-                <span className={`px-2.5 py-0.5 rounded-md font-bold text-xs ${cameraOn ? 'bg-[#D5F5C6] text-[#2C7717]' : 'bg-slate-200 text-slate-500'}`}>
+                <span className={`px-2.5 py-0.5 rounded-md font-bold text-xs ${cameraOn ? 'bg-[#D5F5C6] text-[#2C7717]' : 'bg-slate-200 text-[#57636E]'}`}>
                   {cameraOn ? 'On' : 'Off'}
                 </span>
               </button>
@@ -733,7 +733,7 @@ export default function RecordingSetupModal({
               <button
                 type="button"
                 onClick={() => setMicOn(!micOn)}
-                className="w-full h-12 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-2xl flex items-center justify-between cursor-pointer transition-colors text-slate-800 text-[13.5px] font-medium relative overflow-hidden"
+                className="w-full h-12 px-4 bg-slate-100/90 hover:bg-slate-200/70 rounded-2xl flex items-center justify-between cursor-pointer transition-colors text-[#20262E] text-[13.5px] font-medium relative overflow-hidden"
               >
                 {micOn && audioLevel > 5 && (
                   <div 
@@ -742,12 +742,12 @@ export default function RecordingSetupModal({
                   />
                 )}
                 <div className="flex items-center gap-3 truncate pr-2 relative z-10">
-                  <Mic size={18} className="text-slate-800 stroke-[2.2] shrink-0" />
-                  <span className="truncate text-slate-800">
+                  <Mic size={18} className="text-[#20262E] stroke-[2.2] shrink-0" />
+                  <span className="truncate text-[#20262E]">
                     {micDeviceName.length > 18 ? micDeviceName.substring(0, 18) + '...' : micDeviceName}
                   </span>
                 </div>
-                <span className={`px-2.5 py-0.5 rounded-md font-bold text-xs relative z-10 ${micOn ? 'bg-[#D5F5C6] text-[#2C7717]' : 'bg-slate-200 text-slate-500'}`}>
+                <span className={`px-2.5 py-0.5 rounded-md font-bold text-xs relative z-10 ${micOn ? 'bg-[#D5F5C6] text-[#2C7717]' : 'bg-slate-200 text-[#57636E]'}`}>
                   {micOn ? 'On' : 'Off'}
                 </span>
               </button>
@@ -755,32 +755,32 @@ export default function RecordingSetupModal({
               {/* 4. Video access row & Destination Folder */}
               <div className="pt-1.5 space-y-2">
                 <div className="flex items-center justify-between relative">
-                  <span className="text-[13.5px] font-semibold text-slate-700">Video access</span>
+                  <span className="text-[13.5px] font-semibold text-[#20262E]">Video access</span>
                   
                   <button
                     type="button"
                     onClick={() => setShowAccessMenu(!showAccessMenu)}
-                    className="h-8 px-3 rounded-xl border border-slate-300 hover:border-slate-400 bg-white flex items-center gap-1.5 text-xs font-semibold text-slate-700 shadow-xs cursor-pointer transition-colors"
+                    className="h-8 px-3 rounded-xl border border-[#E2E7EC] hover:border-slate-400 bg-white flex items-center gap-1.5 text-xs font-semibold text-[#20262E] shadow-xs cursor-pointer transition-colors"
                   >
-                    {videoAccess === 'Public' && <Globe size={14} className="text-slate-600" />}
-                    {videoAccess === 'Open' && <Unlock size={14} className="text-slate-600" />}
-                    {videoAccess === 'Restricted' && <Lock size={14} className="text-slate-600" />}
+                    {videoAccess === 'Public' && <Globe size={14} className="text-[#57636E]" />}
+                    {videoAccess === 'Open' && <Unlock size={14} className="text-[#57636E]" />}
+                    {videoAccess === 'Restricted' && <Lock size={14} className="text-[#57636E]" />}
                     <span>{videoAccess}</span>
                   </button>
 
                   {showAccessMenu && (
                     <div 
-                      className="absolute right-0 top-10 w-[240px] bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-[9999] animate-in fade-in zoom-in-95 duration-150"
+                      className="absolute right-0 top-10 w-[240px] bg-white rounded-2xl shadow-2xl border border-[#E2E7EC] p-2 z-[9999] animate-in fade-in zoom-in-95 duration-150"
                       onClick={e => e.stopPropagation()}
                     >
-                      <div className="px-3 py-2 text-xs font-bold text-slate-900 border-b border-slate-100">
+                      <div className="px-3 py-2 text-xs font-bold text-[#20262E] border-b border-[#E2E7EC]">
                         Change video access
                       </div>
                       <div className="py-1">
                         {[
                           { id: 'Public' as const, label: 'Public', icon: <Globe size={16} className="text-[#2F70F2]" /> },
-                          { id: 'Open' as const, label: 'Open', icon: <Unlock size={16} className="text-slate-700" /> },
-                          { id: 'Restricted' as const, label: 'Restricted', icon: <Lock size={16} className="text-slate-700" /> },
+                          { id: 'Open' as const, label: 'Open', icon: <Unlock size={16} className="text-[#20262E]" /> },
+                          { id: 'Restricted' as const, label: 'Restricted', icon: <Lock size={16} className="text-[#20262E]" /> },
                         ].map((opt) => (
                           <div
                             key={opt.id}
@@ -788,7 +788,7 @@ export default function RecordingSetupModal({
                               setVideoAccess(opt.id);
                               setShowAccessMenu(false);
                             }}
-                            className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-colors ${videoAccess === opt.id ? 'bg-blue-50/70 text-[#2F70F2]' : 'hover:bg-slate-50 text-slate-700'}`}
+                            className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-colors ${videoAccess === opt.id ? 'bg-blue-50/70 text-[#2F70F2]' : 'hover:bg-[#F5F6F8] text-[#20262E]'}`}
                           >
                             <div className="flex items-center gap-2.5">
                               {opt.icon}
@@ -803,15 +803,15 @@ export default function RecordingSetupModal({
                 </div>
 
                 {/* Destination Folder Selector */}
-                <div className="flex items-center justify-between text-xs text-slate-600 pt-0.5">
-                  <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                <div className="flex items-center justify-between text-xs text-[#57636E] pt-0.5">
+                  <span className="font-semibold text-[#20262E] flex items-center gap-1.5">
                     <Folder size={14} className="text-amber-500" />
                     <span>Drive Folder:</span>
                   </span>
                   <select 
                     value={selectedFolderId}
                     onChange={e => setSelectedFolderId(e.target.value)}
-                    className="max-w-[170px] text-xs font-semibold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 outline-none cursor-pointer truncate"
+                    className="max-w-[170px] text-xs font-semibold text-[#20262E] bg-[#F5F6F8] hover:bg-slate-100 border border-[#E2E7EC] rounded-lg px-2 py-1 outline-none cursor-pointer truncate"
                   >
                     {folders.length === 0 ? (
                       <option value={selectedFolderId}>Loading folders...</option>
@@ -829,23 +829,23 @@ export default function RecordingSetupModal({
                 <button
                   type="button"
                   onClick={startRecordingFlow}
-                  className="w-full h-12 bg-[#FF5841] hover:bg-[#E04833] text-white font-bold rounded-2xl text-[15px] shadow-[0_4px_14px_rgba(255,88,65,0.35)] transition-all transform hover:-translate-y-0.5 active:scale-98 cursor-pointer flex items-center justify-center tracking-wide"
+                  className="w-full h-12 bg-[#0CAA41] hover:bg-[#0C5325] text-white font-bold rounded-2xl text-[15px] shadow-[0_4px_14px_rgba(12, 170, 65,0.35)] transition-all transform hover:-translate-y-0.5 active:scale-98 cursor-pointer flex items-center justify-center tracking-wide"
                 >
                   Start recording
                 </button>
-                <p className="text-[11px] text-slate-400 text-center mt-2 font-medium">
+                <p className="text-[11px] text-[#57636E] text-center mt-2 font-medium">
                   5 minute recording limit
                 </p>
               </div>
 
               {/* 6. Footer Tip Banner */}
               {showTip && (
-                <div className="bg-[#F0F6FF] border border-[#DCEBFF] rounded-2xl p-3 mt-3.5 text-[11px] text-slate-600 leading-snug">
+                <div className="bg-[#F0F6FF] border border-[#DCEBFF] rounded-2xl p-3 mt-3.5 text-[11px] text-[#57636E] leading-snug">
                   <p>Get the <span className="text-[#2F70F2] underline cursor-pointer">Chrome extension</span> or <span className="text-[#2F70F2] underline cursor-pointer">Desktop app</span> to use RCRD anywhere.</p>
                   <button 
                     type="button"
                     onClick={() => setShowTip(false)}
-                    className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 cursor-pointer mt-1.5 block underline"
+                    className="text-[11px] font-semibold text-[#57636E] hover:text-[#20262E] cursor-pointer mt-1.5 block underline"
                   >
                     Dismiss tip
                   </button>
@@ -857,7 +857,7 @@ export default function RecordingSetupModal({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="text-xs font-semibold text-slate-400 hover:text-slate-700 inline-flex items-center gap-1.5 hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-[#57636E] hover:text-[#20262E] inline-flex items-center gap-1.5 hover:underline cursor-pointer"
                 >
                   <Upload size={12} />
                   <span>Upload existing video</span>
@@ -872,7 +872,7 @@ export default function RecordingSetupModal({
       {/* ── PHASE 1.5: REQUESTING PERMISSION NOTIFICATION ── */}
       {phase === 'requesting' && (
         <div className="fixed top-8 left-1/2 -translate-x-1/2 z-[99999] bg-[#1E1E24]/95 text-white px-6 py-3.5 rounded-2xl shadow-2xl border border-white/20 flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
-          <Loader2 className="w-5 h-5 text-[#FF5841] animate-spin shrink-0" />
+          <Loader2 className="w-5 h-5 text-[#0CAA41] animate-spin shrink-0" />
           <div className="text-sm font-semibold">
             Choose what to share in the browser popup...
           </div>
@@ -1049,23 +1049,23 @@ export default function RecordingSetupModal({
       {phase === 'saving' && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
           <div 
-            className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95"
+            className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-[#E2E7EC] overflow-hidden animate-in zoom-in-95"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center justify-between p-5 border-b border-[#E2E7EC] bg-[#F5F6F8]/50">
               <div className="flex items-center gap-2.5">
                 <div className="bg-[#D5F5C6] text-[#2C7717] p-2 rounded-xl">
                   <Check size={18} className="stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-base">Recording Completed</h3>
-                  <p className="text-xs text-slate-500">Ready to save and organize</p>
+                  <h3 className="font-bold text-[#20262E] text-base">Recording Completed</h3>
+                  <p className="text-xs text-[#57636E]">Ready to save and organize</p>
                 </div>
               </div>
               <button 
                 onClick={handleClose} 
-                className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                className="p-2 hover:bg-slate-200 rounded-xl text-[#57636E] hover:text-[#20262E] transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -1074,7 +1074,7 @@ export default function RecordingSetupModal({
             <div className="p-6 space-y-4">
               {/* Video preview playback */}
               {recordedVideoUrl && (
-                <div className="w-full h-44 bg-slate-950 rounded-2xl overflow-hidden relative border border-slate-200 shadow-inner">
+                <div className="w-full h-44 bg-slate-950 rounded-2xl overflow-hidden relative border border-[#E2E7EC] shadow-inner">
                   <video 
                     src={recordedVideoUrl} 
                     controls 
@@ -1098,7 +1098,7 @@ export default function RecordingSetupModal({
 
               {/* Video Title */}
               <div>
-                <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1.5">
+                <label className="text-xs font-bold text-[#20262E] uppercase tracking-wider block mb-1.5">
                   Video Title
                 </label>
                 <input 
@@ -1106,14 +1106,14 @@ export default function RecordingSetupModal({
                   value={videoTitle} 
                   onChange={e => setVideoTitle(e.target.value)} 
                   placeholder="Enter video title..." 
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-[#2F70F2] focus:ring-1 focus:ring-[#2F70F2] outline-none transition-all font-medium"
+                  className="w-full px-4 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:bg-white focus:border-[#2F70F2] focus:ring-1 focus:ring-[#2F70F2] outline-none transition-all font-medium"
                 />
               </div>
 
               {/* Target Folder Selector */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <label className="text-xs font-bold text-[#20262E] uppercase tracking-wider">
                     Target Course / Drive Folder
                   </label>
                   <a
@@ -1130,7 +1130,7 @@ export default function RecordingSetupModal({
                   <select 
                     value={selectedFolderId} 
                     onChange={e => setSelectedFolderId(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-[#2F70F2] outline-none transition-all appearance-none cursor-pointer font-medium"
+                    className="w-full px-4 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:bg-white focus:border-[#2F70F2] outline-none transition-all appearance-none cursor-pointer font-medium"
                   >
                     {folders.length === 0 ? (
                       <option value={selectedFolderId}>Loading folders...</option>
@@ -1140,7 +1140,7 @@ export default function RecordingSetupModal({
                       ))
                     )}
                   </select>
-                  <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#57636E] pointer-events-none" />
                 </div>
               </div>
 
@@ -1150,7 +1150,7 @@ export default function RecordingSetupModal({
                   <a
                     href={recordedVideoUrl}
                     download={`${videoTitle || 'recording'}.webm`}
-                    className="py-3 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="py-3 px-3 bg-slate-100 hover:bg-slate-200 text-[#20262E] rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                     title="Download locally"
                   >
                     <Download size={15} />
@@ -1160,14 +1160,14 @@ export default function RecordingSetupModal({
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="flex-1 py-3 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                  className="flex-1 py-3 px-3 bg-slate-100 hover:bg-slate-200 text-[#20262E] rounded-xl font-bold text-xs transition-colors cursor-pointer"
                 >
                   Close
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveToDrive}
-                  className="flex-[2] py-3 px-4 bg-[#FF5841] hover:bg-[#E04833] text-white rounded-xl font-bold text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+                  className="flex-[2] py-3 px-4 bg-[#0CAA41] hover:bg-[#0C5325] text-white rounded-xl font-bold text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
                 >
                   <Folder size={15} />
                   <span>Save to Course Folder</span>
@@ -1181,21 +1181,21 @@ export default function RecordingSetupModal({
       {/* ── PHASE 5: UPLOADING TO GOOGLE DRIVE OVERLAY ── */}
       {phase === 'uploading' && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 p-8 flex flex-col items-center gap-4 max-w-sm w-full animate-in zoom-in-95">
-            <Loader2 className="w-12 h-12 text-[#FF5841] animate-spin" />
-            <div className="text-lg font-bold text-slate-900">Saving to Course Folder...</div>
-            <div className="text-xs text-slate-500 text-center">
+          <div className="bg-white rounded-3xl shadow-2xl border border-[#E2E7EC] p-8 flex flex-col items-center gap-4 max-w-sm w-full animate-in zoom-in-95">
+            <Loader2 className="w-12 h-12 text-[#0CAA41] animate-spin" />
+            <div className="text-lg font-bold text-[#20262E]">Saving to Course Folder...</div>
+            <div className="text-xs text-[#57636E] text-center">
               Target folder: {folders.find(f => f.id === selectedFolderId)?.name || 'MEETING'}
             </div>
             {uploadProgress > 0 && (
               <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden mt-2">
                 <div 
-                  className="bg-[#FF5841] h-full transition-all duration-300"
+                  className="bg-[#0CAA41] h-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
             )}
-            <div className="text-xs font-mono font-bold text-slate-600">
+            <div className="text-xs font-mono font-bold text-[#57636E]">
               {uploadProgress}%
             </div>
           </div>

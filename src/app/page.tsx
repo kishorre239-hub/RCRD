@@ -50,33 +50,33 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="relative flex h-full w-full bg-white text-slate-800 font-outfit overflow-hidden selection:bg-[#AE2448]/20">
+    <div className="relative flex h-full w-full bg-white text-[#20262E] font-sans overflow-hidden selection:bg-[#0CAA41]/20">
       
       {/* Background Ambient Glow in Sunset Orange */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#AE2448]/5 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#AE2448]/5 blur-[120px] pointer-events-none"></div>
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#0CAA41]/5 blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#0CAA41]/5 blur-[120px] pointer-events-none"></div>
 
       {/* Sidebar - Crisp Light Mode */}
-      <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-slate-200 bg-white z-20 h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden">
-        <div className="h-16 flex items-center px-6 border-b border-slate-100 flex-shrink-0">
+      <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-[#E2E7EC] bg-white z-20 h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden">
+        <div className="h-16 flex items-center px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-center w-full cursor-pointer group" onClick={() => router.push('/')}>
             <Image src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." width={120} height={48} className="h-12 w-auto object-contain transition-transform group-hover:scale-105" style={{ filter: "hue-rotate(131deg) saturate(1.4)" }} />
           </div>
         </div>
 
-        <div className="p-5 border-b border-slate-100 flex-shrink-0">
-          <div className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl cursor-pointer transition-all border border-slate-100 hover:border-slate-200 group">
+        <div className="p-5 border-b border-[#E2E7EC] flex-shrink-0">
+          <div className="flex items-center justify-between p-3 bg-[#F5F6F8] hover:bg-slate-100 rounded-xl cursor-pointer transition-all border border-[#E2E7EC] hover:border-[#E2E7EC] group">
             <div>
-              <div className="text-sm font-semibold text-slate-800 group-hover:text-[#AE2448] transition-colors">RCRD Workspace</div>
+              <div className="text-sm font-semibold text-[#20262E] group-hover:text-[#0CAA41] transition-colors">RCRD Workspace</div>
               <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] uppercase tracking-wider bg-[#D5E7B5] px-2 py-0.5 rounded text-[#AE2448] font-bold border border-[#AE2448]/20">Pro Plan</span>
-                <span className="text-xs text-slate-500">Team Space</span>
+                <span className="text-[10px] uppercase tracking-wider bg-[#E6F6EC] px-2 py-0.5 rounded text-[#0CAA41] font-bold border border-[#0CAA41]/20">Pro Plan</span>
+                <span className="text-xs text-[#57636E]">Team Space</span>
               </div>
             </div>
-            <ChevronDown className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
+            <ChevronDown className="w-4 h-4 text-[#57636E] group-hover:text-[#57636E] transition-colors" />
           </div>
-          <button className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#D5E7B5]/50 border border-slate-200 hover:border-[#AE2448]/30 rounded-xl text-sm font-semibold text-slate-700 transition-all shadow-sm hover:shadow-md cursor-pointer">
-            <UsersIcon size={16} className="text-[#AE2448]" />
+          <button className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#E6F6EC]/50 border border-[#E2E7EC] hover:border-[#0CAA41]/30 rounded-xl text-sm font-semibold text-[#20262E] transition-all shadow-sm hover:shadow-md cursor-pointer">
+            <UsersIcon size={16} className="text-[#0CAA41]" />
             Invite Teammates
           </button>
         </div>
@@ -91,7 +91,7 @@ export default function HomePage() {
           </nav>
 
           <div className="mt-10">
-            <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3">Workspace Admin</h3>
+            <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#57636E] mb-3">Workspace Admin</h3>
             <nav className="space-y-1">
               <SidebarItem icon={<UserIcon size={18} />} label="Manage Users" href="/settings?tab=users" />
               <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" />
@@ -100,11 +100,11 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="p-5 border-t border-slate-100 bg-white flex-shrink-0">
+        <div className="p-5 border-t border-[#E2E7EC] bg-white flex-shrink-0">
           <button 
             id="tour-record-btn"
             onClick={() => setIsRecordModalOpen(true)}
-            className="w-full bg-[#AE2448] hover:bg-[#6E1A37] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(174, 36, 72,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(174, 36, 72,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+            className="w-full bg-[#0CAA41] hover:bg-[#0C5325] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(12, 170, 65,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(12, 170, 65,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <VideoCameraIcon size={20} />
             <span>Record Video</span>
@@ -116,24 +116,24 @@ export default function HomePage() {
       <main className="flex-1 flex flex-col h-full min-w-0 relative z-10 bg-white overflow-hidden">
         
         {/* Top Header */}
-        <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-slate-100 shrink-0 z-20 shadow-sm">
+        <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-[#E2E7EC] shrink-0 z-20 shadow-sm">
           <div className="flex-1 max-w-2xl relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-[#AE2448] transition-colors" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E] group-focus-within:text-[#0CAA41] transition-colors" />
             <input 
               type="text" 
               placeholder="Search for videos, folders, tags, or people..." 
-              className="w-full pl-11 pr-4 py-2 bg-slate-50 border border-slate-200/60 rounded-xl text-sm text-slate-900 focus:bg-white focus:border-[#AE2448] focus:ring-4 focus:ring-[#AE2448]/10 outline-none transition-all placeholder:text-slate-400 font-medium"
+              className="w-full pl-11 pr-4 py-2 bg-[#F5F6F8] border border-[#E2E7EC]/60 rounded-xl text-sm text-[#20262E] focus:bg-white focus:border-[#0CAA41] focus:ring-4 focus:ring-[#0CAA41]/10 outline-none transition-all placeholder:text-[#57636E] font-medium"
             />
           </div>
           <div className="flex items-center gap-5 ml-4 shrink-0">
-            <button className="bg-[#AE2448] hover:bg-[#6E1A37] text-white px-4 py-2 rounded-xl text-xs font-bold tracking-wide transition-all flex items-center gap-2 shadow-sm cursor-pointer">
+            <button className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-4 py-2 rounded-xl text-xs font-bold tracking-wide transition-all flex items-center gap-2 shadow-sm cursor-pointer">
               <Zap size={14} className="text-white fill-white" /> Upgrade
             </button>
-            <button className="text-slate-400 hover:text-slate-700 hover:bg-slate-50 p-2 rounded-xl transition-colors relative cursor-pointer">
+            <button className="text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] p-2 rounded-xl transition-colors relative cursor-pointer">
               <NotificationIcon size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-[#AE2448] rounded-full border-2 border-white"></span>
+              <span className="absolute top-2 right-2 w-2 h-2 bg-[#0CAA41] rounded-full border-2 border-white"></span>
             </button>
-            <div className="w-9 h-9 rounded-xl bg-[#AE2448] text-white flex items-center justify-center text-sm font-bold cursor-pointer shadow-md hover:scale-105 transition-transform border border-[#AE2448]">
+            <div className="w-9 h-9 rounded-xl bg-[#0CAA41] text-white flex items-center justify-center text-sm font-bold cursor-pointer shadow-md hover:scale-105 transition-transform border border-[#0CAA41]">
               HR
             </div>
           </div>
@@ -167,13 +167,13 @@ export default function HomePage() {
             
             {/* Floating particles in Teal and Berry Crimson */}
             <div className="absolute top-2 right-2 w-3 h-3 bg-[#72BAA9] rounded-full opacity-80 animate-bounce delay-75"></div>
-            <div className="absolute bottom-4 left-0 w-2.5 h-2.5 bg-[#AE2448] rounded-full opacity-80 animate-bounce delay-300"></div>
+            <div className="absolute bottom-4 left-0 w-2.5 h-2.5 bg-[#0CAA41] rounded-full opacity-80 animate-bounce delay-300"></div>
           </div>
 
-          <h1 className="text-4xl font-extrabold text-[#6E1A37] mb-4 tracking-tight text-center">
+          <h1 className="text-4xl font-extrabold text-[#0C5325] mb-4 tracking-tight text-center">
             Capture Your Screen in Seconds
           </h1>
-          <p className="text-slate-600 mb-10 max-w-lg text-center text-lg leading-relaxed">
+          <p className="text-[#57636E] mb-10 max-w-lg text-center text-lg leading-relaxed">
             Record, share, and collaborate with async video messages that bring your team closer together.
           </p>
 
@@ -183,7 +183,7 @@ export default function HomePage() {
             {/* 1. Start Recording Button */}
             <button 
               onClick={() => setIsRecordModalOpen(true)}
-              className="bg-[#AE2448] hover:bg-[#6E1A37] text-white px-7 py-3.5 rounded-2xl font-bold flex items-center gap-3 transition-all shadow-[0_8px_20px_rgba(174,36,72,0.35)] hover:shadow-[0_12px_28px_rgba(110,26,55,0.45)] transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+              className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-7 py-3.5 rounded-2xl font-bold flex items-center gap-3 transition-all shadow-[0_8px_20px_rgba(12, 170, 65,0.35)] hover:shadow-[0_12px_28px_rgba(12, 83, 37,0.45)] transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
             >
               <div className="bg-white/20 p-1.5 rounded-lg">
                 <VideoCameraIcon size={18} className="text-white" />
@@ -191,12 +191,12 @@ export default function HomePage() {
               <span>Start Recording</span>
             </button>
 
-            {/* 2. Upload Video Button (styled with Sage Teal #72BAA9 and Pistachio #D5E7B5) */}
+            {/* 2. Upload Video Button (styled with Sage Teal #72BAA9 and Pistachio #E6F6EC) */}
             <button 
               onClick={() => setIsUploadModalOpen(true)}
-              className="bg-white hover:bg-[#D5E7B5]/40 text-[#6E1A37] border-2 border-[#72BAA9] hover:border-[#6E1A37] px-7 py-3.5 rounded-2xl font-bold flex items-center gap-3 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+              className="bg-white hover:bg-[#E6F6EC]/40 text-[#0C5325] border-2 border-[#72BAA9] hover:border-[#0C5325] px-7 py-3.5 rounded-2xl font-bold flex items-center gap-3 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
             >
-              <div className="bg-[#D5E7B5] p-1.5 rounded-lg text-[#6E1A37]">
+              <div className="bg-[#E6F6EC] p-1.5 rounded-lg text-[#0C5325]">
                 <Upload size={18} className="stroke-[2.5]" />
               </div>
               <span>Upload a Video</span>
@@ -205,9 +205,9 @@ export default function HomePage() {
             {/* 3. Schedule Meeting Button */}
             <button 
               onClick={() => router.push('/meetings?schedule=true')}
-              className="bg-white hover:bg-[#D5E7B5]/40 text-[#6E1A37] border-2 border-[#AE2448] hover:border-[#6E1A37] px-7 py-3.5 rounded-2xl font-bold flex items-center gap-3 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+              className="bg-white hover:bg-[#E6F6EC]/40 text-[#0C5325] border-2 border-[#0CAA41] hover:border-[#0C5325] px-7 py-3.5 rounded-2xl font-bold flex items-center gap-3 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
             >
-              <div className="bg-[#D5E7B5] p-1.5 rounded-lg text-[#AE2448]">
+              <div className="bg-[#E6F6EC] p-1.5 rounded-lg text-[#0CAA41]">
                 <Calendar size={18} className="stroke-[2.5]" />
               </div>
               <span>Schedule Meeting</span>
@@ -241,26 +241,26 @@ function SidebarItem({ icon, label, active = false, external = false, href }: { 
     <div 
       onClick={() => href && router.push(href)}
       style={{
-        fontFamily: '"Atlassian Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, system-ui, "Helvetica Neue", sans-serif',
+        fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
         fontSize: '14px',
         fontWeight: 400,
         fontStyle: 'normal',
         lineHeight: '14px',
         letterSpacing: 'normal',
-        color: active ? '#AE2448' : '#292A2E'
+        color: active ? '#0CAA41' : '#292A2E'
       }}
       className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold cursor-pointer transition-all ${
       active 
-        ? "bg-[#D5E7B5] text-[#AE2448] shadow-sm font-bold" 
-        : "hover:bg-slate-50 text-slate-700"
+        ? "bg-[#E6F6EC] text-[#0CAA41] shadow-sm font-bold" 
+        : "hover:bg-[#F5F6F8] text-[#20262E]"
     }`}>
       <div className="flex items-center gap-3">
-        <div className={`${active ? "text-[#AE2448]" : "text-slate-400"}`}>
+        <div className={`${active ? "text-[#0CAA41]" : "text-[#57636E]"}`}>
           {icon}
         </div>
         <span className="text-sm tracking-wide">{label}</span>
       </div>
-      {external && <div className="text-slate-400"><Share2 size={12} className="rotate-45" /></div>}
+      {external && <div className="text-[#57636E]"><Share2 size={12} className="rotate-45" /></div>}
     </div>
   );
 }
@@ -268,7 +268,7 @@ function SidebarItem({ icon, label, active = false, external = false, href }: { 
 
 /* 
 <div className="fixed bottom-4 right-4 flex gap-4 bg-white p-4 shadow-xl rounded-xl z-50">
-  <Link href="/signup" className="font-bold text-[#AE2448] hover:underline">Signup UI</Link>
-  <Link href="/id-cards" className="font-bold text-[#AE2448] hover:underline">ID Cards UI</Link>
+  <Link href="/signup" className="font-bold text-[#0CAA41] hover:underline">Signup UI</Link>
+  <Link href="/id-cards" className="font-bold text-[#0CAA41] hover:underline">ID Cards UI</Link>
 </div>
 */

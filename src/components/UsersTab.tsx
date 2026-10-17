@@ -303,19 +303,19 @@ export default function UsersTab() {
     <div className="space-y-6 pb-20">
       
       {/* Main Users & Groups Card */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.03)] p-7 font-sans">
+      <div className="bg-white border border-[#E2E7EC]/90 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.03)] p-7 font-sans">
         
         {/* Card Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2">
-            <h2 className="text-[20px] font-bold text-slate-900 tracking-tight">
+            <h2 className="text-[20px] font-bold text-[#20262E] tracking-tight">
               Users
             </h2>
-            <span className="text-[14px] text-slate-500 font-medium">
+            <span className="text-[14px] text-[#57636E] font-medium">
               ({users.length})
             </span>
           </div>
-          <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">
+          <p className="text-[13px] text-[#57636E] mt-1 leading-relaxed">
             Global permissions define what people can do on RCRD. You can grant permissions to groups and individuals.
           </p>
         </div>
@@ -331,12 +331,12 @@ export default function UsersTab() {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Enter a name or email address"
-                className="w-full px-3.5 py-2 bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-[13px] text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#AE2448] focus:ring-2 focus:ring-[#AE2448]/10 transition-all"
+                className="w-full px-3.5 py-2 bg-white border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-lg text-[13px] text-[#20262E] placeholder:text-[#57636E] focus:outline-none focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/10 transition-all"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#57636E]"
                 >
                   <X size={14} />
                 </button>
@@ -351,14 +351,14 @@ export default function UsersTab() {
                   setIsRoleDropdownOpen(!isRoleDropdownOpen);
                   setIsMemberDropdownOpen(false);
                 }}
-                className="h-[38px] px-3.5 bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-[13px] font-medium text-slate-700 flex items-center gap-2 transition-colors focus:outline-none focus:border-[#AE2448]"
+                className="h-[38px] px-3.5 bg-white border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-lg text-[13px] font-medium text-[#20262E] flex items-center gap-2 transition-colors focus:outline-none focus:border-[#0CAA41]"
               >
                 <span>{roleFilter}</span>
-                <ChevronDown size={14} className={`text-slate-400 transition-transform ${isRoleDropdownOpen ? "rotate-180" : ""}`} />
+                <ChevronDown size={14} className={`text-[#57636E] transition-transform ${isRoleDropdownOpen ? "rotate-180" : ""}`} />
               </button>
 
               {isRoleDropdownOpen && (
-                <div className="absolute left-0 mt-1.5 w-40 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 mt-1.5 w-40 bg-white border border-[#E2E7EC] rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
                   {(["All Roles", "Admins", "Creators"] as const).map(option => (
                     <button
                       key={option}
@@ -368,12 +368,12 @@ export default function UsersTab() {
                       }}
                       className={`w-full px-3.5 py-2 text-left text-[13px] flex items-center justify-between transition-colors ${
                         roleFilter === option 
-                          ? "bg-[#D5E7B5] text-[#6E1A37] font-semibold" 
-                          : "text-slate-700 hover:bg-slate-50"
+                          ? "bg-[#E6F6EC] text-[#0C5325] font-semibold" 
+                          : "text-[#20262E] hover:bg-[#F5F6F8]"
                       }`}
                     >
                       <span>{option}</span>
-                      {roleFilter === option && <Check size={14} className="text-[#AE2448]" />}
+                      {roleFilter === option && <Check size={14} className="text-[#0CAA41]" />}
                     </button>
                   ))}
                 </div>
@@ -388,14 +388,14 @@ export default function UsersTab() {
                   setIsMemberDropdownOpen(!isMemberDropdownOpen);
                   setIsRoleDropdownOpen(false);
                 }}
-                className="h-[38px] px-3.5 bg-white border border-slate-200 hover:border-slate-300 rounded-lg text-[13px] font-medium text-slate-700 flex items-center gap-2 transition-colors focus:outline-none focus:border-[#AE2448]"
+                className="h-[38px] px-3.5 bg-white border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-lg text-[13px] font-medium text-[#20262E] flex items-center gap-2 transition-colors focus:outline-none focus:border-[#0CAA41]"
               >
                 <span>{memberFilter}</span>
-                <ChevronDown size={14} className={`text-slate-400 transition-transform ${isMemberDropdownOpen ? "rotate-180" : ""}`} />
+                <ChevronDown size={14} className={`text-[#57636E] transition-transform ${isMemberDropdownOpen ? "rotate-180" : ""}`} />
               </button>
 
               {isMemberDropdownOpen && (
-                <div className="absolute left-0 mt-1.5 w-40 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 mt-1.5 w-40 bg-white border border-[#E2E7EC] rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
                   {(["All members", "Active", "Invited"] as const).map(option => (
                     <button
                       key={option}
@@ -405,12 +405,12 @@ export default function UsersTab() {
                       }}
                       className={`w-full px-3.5 py-2 text-left text-[13px] flex items-center justify-between transition-colors ${
                         memberFilter === option 
-                          ? "bg-[#D5E7B5] text-[#6E1A37] font-semibold" 
-                          : "text-slate-700 hover:bg-slate-50"
+                          ? "bg-[#E6F6EC] text-[#0C5325] font-semibold" 
+                          : "text-[#20262E] hover:bg-[#F5F6F8]"
                       }`}
                     >
                       <span>{option}</span>
-                      {memberFilter === option && <Check size={14} className="text-[#AE2448]" />}
+                      {memberFilter === option && <Check size={14} className="text-[#0CAA41]" />}
                     </button>
                   ))}
                 </div>
@@ -424,13 +424,13 @@ export default function UsersTab() {
             <button
               onClick={() => fetchUsers()}
               title="Refresh users"
-              className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-800 rounded-lg transition-colors"
+              className="p-2 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-lg transition-colors"
             >
-              <RefreshCw size={15} className={loading ? "animate-spin text-[#AE2448]" : ""} />
+              <RefreshCw size={15} className={loading ? "animate-spin text-[#0CAA41]" : ""} />
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="bg-[#AE2448] hover:bg-[#6E1A37] text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-all shadow-sm flex items-center gap-1.5"
+              className="bg-[#0CAA41] hover:bg-[#0C5325] text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-all shadow-sm flex items-center gap-1.5"
             >
               <Plus size={16} />
               <span>Add user</span>
@@ -439,10 +439,10 @@ export default function UsersTab() {
         </div>
 
         {/* Users Table */}
-        <div className="border border-slate-200/80 rounded-xl overflow-hidden bg-white">
+        <div className="border border-[#E2E7EC]/80 rounded-xl overflow-hidden bg-white">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-200/80 bg-slate-50/60 text-[12px] font-semibold text-slate-500 uppercase tracking-wider">
+              <tr className="border-b border-[#E2E7EC]/80 bg-[#F5F6F8]/60 text-[12px] font-semibold text-[#57636E] uppercase tracking-wider">
                 <th className="py-3 px-4">Name</th>
                 <th className="py-3 px-4">Role</th>
                 <th className="py-3 px-4">Date added</th>
@@ -454,18 +454,18 @@ export default function UsersTab() {
             <tbody className="divide-y divide-slate-100 text-[13px]">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-[#57636E]">
                     <div className="flex items-center justify-center gap-2 text-xs font-medium">
-                      <RefreshCw size={15} className="animate-spin text-[#AE2448]" />
+                      <RefreshCw size={15} className="animate-spin text-[#0CAA41]" />
                       <span>Loading workspace users...</span>
                     </div>
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
-                    <p className="font-semibold text-slate-700 text-sm">No users found</p>
-                    <p className="text-xs text-slate-400 mt-1">Try adjusting your search or filter settings.</p>
+                  <td colSpan={6} className="py-12 text-center text-[#57636E]">
+                    <p className="font-semibold text-[#20262E] text-sm">No users found</p>
+                    <p className="text-xs text-[#57636E] mt-1">Try adjusting your search or filter settings.</p>
                   </td>
                 </tr>
               ) : (
@@ -473,7 +473,7 @@ export default function UsersTab() {
                   const isAdmin = user.role.toLowerCase() === "admin";
                   const avatarColor = isAdmin 
                     ? "bg-[#72BAA9] text-white" // Emerald Green matching Loom's admin badge
-                    : "bg-[#AE2448] text-white";
+                    : "bg-[#0CAA41] text-white";
 
                   return (
                     <tr 
@@ -482,7 +482,7 @@ export default function UsersTab() {
                         setSelectedUser(user);
                         setShowUserModal(true);
                       }}
-                      className="hover:bg-slate-50/80 cursor-pointer transition-colors group"
+                      className="hover:bg-[#F5F6F8]/80 cursor-pointer transition-colors group"
                     >
                       {/* Name with circular avatar */}
                       <td className="py-3.5 px-4">
@@ -490,39 +490,39 @@ export default function UsersTab() {
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold ${avatarColor} shrink-0`}>
                             {getInitials(user.name)}
                           </div>
-                          <span className="font-semibold text-slate-900 group-hover:text-[#AE2448] transition-colors">
+                          <span className="font-semibold text-[#20262E] group-hover:text-[#0CAA41] transition-colors">
                             {user.name}
                           </span>
                         </div>
                       </td>
 
                       {/* Role */}
-                      <td className="py-3.5 px-4 text-slate-600">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[12px] font-medium bg-slate-100 text-slate-700">
+                      <td className="py-3.5 px-4 text-[#57636E]">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[12px] font-medium bg-slate-100 text-[#20262E]">
                           {user.role}
                         </span>
                       </td>
 
                       {/* Date Added */}
-                      <td className="py-3.5 px-4 text-slate-600">
+                      <td className="py-3.5 px-4 text-[#57636E]">
                         {user.dateAdded}
                       </td>
 
                       {/* Email address */}
-                      <td className="py-3.5 px-4 text-slate-600 font-mono text-[12px]">
+                      <td className="py-3.5 px-4 text-[#57636E] font-mono text-[12px]">
                         {user.email}
                       </td>
 
                       {/* Status */}
                       <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#6E1A37] bg-[#D5E7B5] px-2 py-0.5 rounded-full border border-[#72BAA9]/30/60">
+                        <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#0C5325] bg-[#E6F6EC] px-2 py-0.5 rounded-full border border-[#72BAA9]/30/60">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#72BAA9]" />
                           {user.status}
                         </span>
                       </td>
 
                       {/* Arrow / Action */}
-                      <td className="py-3.5 px-4 text-right text-slate-400 group-hover:text-slate-700 transition-colors">
+                      <td className="py-3.5 px-4 text-right text-[#57636E] group-hover:text-[#20262E] transition-colors">
                         <ChevronRight size={16} />
                       </td>
                     </tr>
@@ -538,22 +538,22 @@ export default function UsersTab() {
       {/* ADD USER MODAL */}
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[480px] overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[480px] overflow-hidden border border-[#E2E7EC] animate-in zoom-in-95 duration-150">
             
             {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div className="px-6 py-5 border-b border-[#E2E7EC] flex items-center justify-between bg-[#F5F6F8]/60">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#D5E7B5] border border-[#AE2448]/20 flex items-center justify-center text-[#AE2448]">
+                <div className="w-9 h-9 rounded-xl bg-[#E6F6EC] border border-[#0CAA41]/20 flex items-center justify-center text-[#0CAA41]">
                   <UserPlus size={18} />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Add User to Workspace</h3>
-                  <p className="text-xs text-slate-500">Invite a teammate with custom permissions.</p>
+                  <h3 className="text-base font-bold text-[#20262E]">Add User to Workspace</h3>
+                  <p className="text-xs text-[#57636E]">Invite a teammate with custom permissions.</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 rounded-lg transition-colors"
               >
                 <X size={18} />
               </button>
@@ -562,7 +562,7 @@ export default function UsersTab() {
             {/* Modal Form */}
             <form onSubmit={handleAddUser} className="p-6 space-y-4">
               <div>
-                <label className="block text-[12px] font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-[12px] font-semibold text-[#20262E] uppercase tracking-wider mb-1.5">
                   Full Name
                 </label>
                 <input
@@ -570,12 +570,12 @@ export default function UsersTab() {
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   placeholder="e.g. Alex Morgan"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#AE2448] focus:bg-white focus:ring-2 focus:ring-[#AE2448]/10 transition-all font-medium"
+                  className="w-full px-3.5 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] placeholder:text-[#57636E] focus:outline-none focus:border-[#0CAA41] focus:bg-white focus:ring-2 focus:ring-[#0CAA41]/10 transition-all font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-[12px] font-semibold text-[#20262E] uppercase tracking-wider mb-1.5">
                   Email Address *
                 </label>
                 <input
@@ -584,12 +584,12 @@ export default function UsersTab() {
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
                   placeholder="colleague@company.com"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#AE2448] focus:bg-white focus:ring-2 focus:ring-[#AE2448]/10 transition-all font-medium"
+                  className="w-full px-3.5 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] placeholder:text-[#57636E] focus:outline-none focus:border-[#0CAA41] focus:bg-white focus:ring-2 focus:ring-[#0CAA41]/10 transition-all font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-[12px] font-semibold text-[#20262E] uppercase tracking-wider mb-1.5">
                   Role & Permissions
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -597,47 +597,47 @@ export default function UsersTab() {
                     onClick={() => setNewRole("Creator")}
                     className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
                       newRole === "Creator"
-                        ? "border-[#AE2448] bg-[#D5E7B5]/50 ring-1 ring-[#AE2448]/20"
-                        : "border-slate-200 hover:border-slate-300 bg-white"
+                        ? "border-[#0CAA41] bg-[#E6F6EC]/50 ring-1 ring-[#0CAA41]/20"
+                        : "border-[#E2E7EC] hover:border-[#E2E7EC] bg-white"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-slate-900">Creator</span>
-                      {newRole === "Creator" && <Check size={14} className="text-[#AE2448]" />}
+                      <span className="font-bold text-sm text-[#20262E]">Creator</span>
+                      {newRole === "Creator" && <Check size={14} className="text-[#0CAA41]" />}
                     </div>
-                    <p className="text-[11px] text-slate-500 leading-snug">Can record, edit, and share videos in the workspace</p>
+                    <p className="text-[11px] text-[#57636E] leading-snug">Can record, edit, and share videos in the workspace</p>
                   </div>
 
                   <div
                     onClick={() => setNewRole("Admin")}
                     className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
                       newRole === "Admin"
-                        ? "border-[#AE2448] bg-[#D5E7B5]/50 ring-1 ring-[#AE2448]/20"
-                        : "border-slate-200 hover:border-slate-300 bg-white"
+                        ? "border-[#0CAA41] bg-[#E6F6EC]/50 ring-1 ring-[#0CAA41]/20"
+                        : "border-[#E2E7EC] hover:border-[#E2E7EC] bg-white"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-slate-900">Admin</span>
-                      {newRole === "Admin" && <Check size={14} className="text-[#AE2448]" />}
+                      <span className="font-bold text-sm text-[#20262E]">Admin</span>
+                      {newRole === "Admin" && <Check size={14} className="text-[#0CAA41]" />}
                     </div>
-                    <p className="text-[11px] text-slate-500 leading-snug">Full workspace access, user management, and billing</p>
+                    <p className="text-[11px] text-[#57636E] leading-snug">Full workspace access, user management, and billing</p>
                   </div>
                 </div>
               </div>
 
               {/* Modal Footer */}
-              <div className="pt-4 flex items-center justify-end gap-2.5 border-t border-slate-100">
+              <div className="pt-4 flex items-center justify-end gap-2.5 border-t border-[#E2E7EC]">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
+                  className="px-4 py-2 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E] text-xs font-semibold rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting || !newEmail.trim()}
-                  className="px-5 py-2 bg-[#AE2448] hover:bg-[#6E1A37] disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="px-5 py-2 bg-[#0CAA41] hover:bg-[#0C5325] disabled:bg-slate-200 disabled:text-[#57636E] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
                 >
                   {isSubmitting ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
                   <span>{isSubmitting ? "Adding..." : "Add user"}</span>
@@ -652,24 +652,24 @@ export default function UsersTab() {
       {/* USER DETAILS & MANAGEMENT DRAWER/MODAL */}
       {showUserModal && selectedUser && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[440px] overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-150 font-sans">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[440px] overflow-hidden border border-[#E2E7EC] animate-in zoom-in-95 duration-150 font-sans">
             
             {/* Header */}
-            <div className="p-6 border-b border-slate-100 flex items-start justify-between">
+            <div className="p-6 border-b border-[#E2E7EC] flex items-start justify-between">
               <div className="flex items-center gap-3.5">
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold ${
-                  selectedUser.role.toLowerCase() === "admin" ? "bg-[#72BAA9] text-white" : "bg-[#AE2448] text-white"
+                  selectedUser.role.toLowerCase() === "admin" ? "bg-[#72BAA9] text-white" : "bg-[#0CAA41] text-white"
                 }`}>
                   {getInitials(selectedUser.name)}
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">{selectedUser.name}</h3>
-                  <p className="text-xs text-slate-500 font-mono mt-0.5">{selectedUser.email}</p>
+                  <h3 className="text-base font-bold text-[#20262E]">{selectedUser.name}</h3>
+                  <p className="text-xs text-[#57636E] font-mono mt-0.5">{selectedUser.email}</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowUserModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 rounded-lg transition-colors"
               >
                 <X size={18} />
               </button>
@@ -678,26 +678,26 @@ export default function UsersTab() {
             {/* Content */}
             <div className="p-6 space-y-5">
               
-              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-2.5 text-xs">
+              <div className="bg-[#F5F6F8] border border-[#E2E7EC]/80 rounded-xl p-4 space-y-2.5 text-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Status</span>
-                  <span className="font-semibold text-[#6E1A37] bg-[#D5E7B5] px-2 py-0.5 rounded-full border border-[#72BAA9]/30/60">
+                  <span className="text-[#57636E] font-medium">Status</span>
+                  <span className="font-semibold text-[#0C5325] bg-[#E6F6EC] px-2 py-0.5 rounded-full border border-[#72BAA9]/30/60">
                     {selectedUser.status}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">Date added</span>
-                  <span className="font-semibold text-slate-800">{selectedUser.dateAdded}</span>
+                  <span className="text-[#57636E] font-medium">Date added</span>
+                  <span className="font-semibold text-[#20262E]">{selectedUser.dateAdded}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500 font-medium">User ID</span>
-                  <span className="font-mono text-slate-700">{selectedUser.id}</span>
+                  <span className="text-[#57636E] font-medium">User ID</span>
+                  <span className="font-mono text-[#20262E]">{selectedUser.id}</span>
                 </div>
               </div>
 
               {/* Role Toggle */}
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#57636E] mb-2">
                   Change Workspace Role
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -706,8 +706,8 @@ export default function UsersTab() {
                     onClick={() => handleChangeRole(selectedUser.id, "Admin")}
                     className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
                       selectedUser.role === "Admin"
-                        ? "bg-[#AE2448] text-white border-[#AE2448] shadow-xs"
-                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                        ? "bg-[#0CAA41] text-white border-[#0CAA41] shadow-xs"
+                        : "bg-white text-[#20262E] border-[#E2E7EC] hover:bg-[#F5F6F8]"
                     }`}
                   >
                     Admin
@@ -717,8 +717,8 @@ export default function UsersTab() {
                     onClick={() => handleChangeRole(selectedUser.id, "Creator")}
                     className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
                       selectedUser.role === "Creator"
-                        ? "bg-[#AE2448] text-white border-[#AE2448] shadow-xs"
-                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                        ? "bg-[#0CAA41] text-white border-[#0CAA41] shadow-xs"
+                        : "bg-white text-[#20262E] border-[#E2E7EC] hover:bg-[#F5F6F8]"
                     }`}
                   >
                     Creator
@@ -728,10 +728,10 @@ export default function UsersTab() {
 
               {/* Remove User Action */}
               {selectedUser.email !== "harikishorereddy9908@gmail.com" && (
-                <div className="pt-2 border-t border-slate-100">
+                <div className="pt-2 border-t border-[#E2E7EC]">
                   <button
                     onClick={() => handleRemoveUser(selectedUser.id)}
-                    className="w-full py-2.5 bg-[#AE2448]/10 hover:bg-[#AE2448]/20 text-[#AE2448] font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 border border-[#AE2448]/30/60"
+                    className="w-full py-2.5 bg-[#0CAA41]/10 hover:bg-[#0CAA41]/20 text-[#0CAA41] font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 border border-[#0CAA41]/30/60"
                   >
                     <Trash2 size={14} /> Remove User from Workspace
                   </button>
@@ -741,10 +741,10 @@ export default function UsersTab() {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+            <div className="px-6 py-4 bg-[#F5F6F8] border-t border-[#E2E7EC] flex justify-end">
               <button
                 onClick={() => setShowUserModal(false)}
-                className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl transition-colors shadow-xs"
+                className="px-4 py-2 bg-white border border-[#E2E7EC] hover:bg-slate-100 text-[#20262E] text-xs font-semibold rounded-xl transition-colors shadow-xs"
               >
                 Done
               </button>
@@ -759,9 +759,9 @@ export default function UsersTab() {
         <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 z-[100] border animate-in slide-in-from-bottom-5 duration-150 ${
           toastMessage.ok 
             ? "bg-slate-900 text-white border-slate-800" 
-            : "bg-[#AE2448] text-white border-[#6E1A37]"
+            : "bg-[#0CAA41] text-white border-[#0C5325]"
         }`}>
-          {toastMessage.ok ? <Check size={15} className="text-[#D5E7B5]" /> : <AlertCircle size={15} className="text-white" />}
+          {toastMessage.ok ? <Check size={15} className="text-[#E6F6EC]" /> : <AlertCircle size={15} className="text-white" />}
           <span className="text-xs font-semibold">{toastMessage.text}</span>
         </div>
       )}

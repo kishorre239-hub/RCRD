@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 const outfit = Outfit({
-  variable: "--font-outfit",
+  variable: "--font-sans",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
 });
@@ -31,9 +31,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} ${outfit.className} h-full w-full antialiased font-outfit overflow-hidden`}
+      className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} h-full w-full antialiased font-sans bg-[#F5F6F8] text-[#20262E] overflow-hidden`}
     >
-      <body suppressHydrationWarning className="h-full w-full overflow-hidden flex flex-col m-0 p-0">{children}</body>
+      <body suppressHydrationWarning className="h-full w-full overflow-hidden flex flex-col m-0 p-0 font-sans bg-[#F5F6F8] text-[#20262E]">{children}</body>
     </html>
   );
 }

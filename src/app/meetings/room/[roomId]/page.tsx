@@ -63,13 +63,13 @@ const STORAGE_KEY = "rcrd_meetings";
 const NOTES_KEY = "rcrd_notes";
 
 const STEPS = [
-  { icon: "1", title: "Share Your Screen", desc: "Click the green Share Screen button in the toolbar below. Choose the window or tab you want participants to see.", color: "bg-[#D5E7B5]0" },
-  { icon: "2", title: "Start Recording", desc: "Once your screen is shared, click Record. A 3-second countdown starts, then recording begins automatically.", color: "bg-[#AE2448]" },
-  { icon: "3", title: "Present & Collaborate", desc: "Talk and present. Your screen + microphone audio will be recorded. Participants join with the Meeting ID & password.", color: "bg-[#AE2448]" },
-  { icon: "4", title: "Stop & Save", desc: "Click Stop & Save when done. Choose folder and save to Library. It syncs to Google Drive automatically.", color: "bg-[#D5E7B5]/400" },
+  { icon: "1", title: "Share Your Screen", desc: "Click the green Share Screen button in the toolbar below. Choose the window or tab you want participants to see.", color: "bg-[#E6F6EC]0" },
+  { icon: "2", title: "Start Recording", desc: "Once your screen is shared, click Record. A 3-second countdown starts, then recording begins automatically.", color: "bg-[#0CAA41]" },
+  { icon: "3", title: "Present & Collaborate", desc: "Talk and present. Your screen + microphone audio will be recorded. Participants join with the Meeting ID & password.", color: "bg-[#0CAA41]" },
+  { icon: "4", title: "Stop & Save", desc: "Click Stop & Save when done. Choose folder and save to Library. It syncs to Google Drive automatically.", color: "bg-[#E6F6EC]/400" },
 ];
 
-const WHITEBOARD_COLORS = ["#0F172A", "#AE2448", "#DC2626", "#16A34A", "#D97706", "#9333EA", "#0284C7", "#EA580C"];
+const WHITEBOARD_COLORS = ["#20262E", "#0CAA41", "#DC2626", "#16A34A", "#D97706", "#9333EA", "#0284C7", "#EA580C"];
 
 export default function ClassRoomPage() {
   const router = useRouter();
@@ -143,7 +143,7 @@ export default function ClassRoomPage() {
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [penColor, setPenColor] = useState("#AE2448");
+  const [penColor, setPenColor] = useState("#0CAA41");
   const [penSize, setPenSize] = useState(3);
   const [isEraser, setIsEraser] = useState(false);
   const [eraserSize, setEraserSize] = useState(24);
@@ -533,14 +533,14 @@ export default function ClassRoomPage() {
         const ctx = canvas.getContext("2d");
         const renderScreen = () => {
           if (!ctx) return;
-          ctx.fillStyle = "#0f172a";
+          ctx.fillStyle = "#20262E";
           ctx.fillRect(0, 0, 1280, 720);
-          ctx.fillStyle = "#1e293b";
+          ctx.fillStyle = "#20262E";
           ctx.fillRect(40, 40, 1200, 640);
-          ctx.fillStyle = "#38bdf8";
+          ctx.fillStyle = "#0CAA41";
           ctx.font = "bold 32px sans-serif";
           ctx.fillText("🖥️ Presentation Screen Share (Active Stream)", 80, 120);
-          ctx.fillStyle = "#94a3b8";
+          ctx.fillStyle = "#57636E";
           ctx.font = "20px sans-serif";
           ctx.fillText("Sharing classroom slides & notes live with attendees...", 80, 180);
           requestAnimationFrame(renderScreen);
@@ -588,8 +588,8 @@ export default function ClassRoomPage() {
             if (!ctx) return;
             frame++;
             const grad = ctx.createLinearGradient(0, 0, 640, 360);
-            grad.addColorStop(0, "#0f172a");
-            grad.addColorStop(1, "#1e293b");
+            grad.addColorStop(0, "#20262E");
+            grad.addColorStop(1, "#0C5325");
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, 640, 360);
             const bounce = Math.sin(frame * 0.05) * 5;
@@ -889,7 +889,7 @@ export default function ClassRoomPage() {
     saveCanvasState();
     const ctx = canvasRef.current.getContext("2d");
     if (ctx) {
-      const textColor = penColor.toUpperCase() === "#FFFFFF" ? "#0F172A" : penColor;
+      const textColor = penColor.toUpperCase() === "#FFFFFF" ? "#20262E" : penColor;
       ctx.font = `bold ${textFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
       ctx.fillStyle = textColor;
       ctx.textBaseline = "top";
@@ -1034,8 +1034,8 @@ export default function ClassRoomPage() {
   // Student waiting lobby
   if (isScheduledFuture && !isMentor && !bypassLobby) {
     return (
-      <div className="h-screen bg-[#0F172A] flex flex-col justify-between p-6 text-white font-sans selection:bg-[#AE2448]/30 relative overflow-hidden">
-        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#AE2448]/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="h-screen bg-[#20262E] flex flex-col justify-between p-6 text-white font-sans selection:bg-[#0CAA41]/30 relative overflow-hidden">
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#0CAA41]/10 rounded-full blur-[140px] pointer-events-none" />
         <div className="flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
             <Image src="/ICONS/COMPANY_NAME-cropped.png" alt="RCRD." width={110} height={36} className="h-8 w-auto object-contain opacity-90"  style={{ filter: "hue-rotate(131deg) saturate(1.4)" }}/>
@@ -1050,49 +1050,49 @@ export default function ClassRoomPage() {
 
         <div className="flex-1 flex items-center justify-center z-10 py-8">
           <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-8 max-w-lg w-full text-center shadow-2xl space-y-6">
-            <div className="w-20 h-20 bg-[#D5E7B5]0/10 border border-[#AE2448]/30 rounded-3xl flex items-center justify-center mx-auto text-[#AE2448] shadow-lg shadow-[rgba(174, 36, 72,0.1)] animate-pulse">
+            <div className="w-20 h-20 bg-[#E6F6EC]0/10 border border-[#0CAA41]/30 rounded-3xl flex items-center justify-center mx-auto text-[#0CAA41] shadow-lg shadow-[rgba(12, 170, 65,0.1)] animate-pulse">
               <Lock size={36} />
             </div>
             <div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#D5E7B5]/10 border border-amber-500/20 text-[#D5E7B5] text-xs font-bold rounded-full mb-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#E6F6EC]/10 border border-amber-500/20 text-[#E6F6EC] text-xs font-bold rounded-full mb-3">
                 <Clock size={12} /> Scheduled Class Session
               </span>
               <h1 className="text-2xl font-black text-white tracking-tight mb-2">
                 {meeting?.title || "Class Meeting"}
               </h1>
-              {courseName && <p className="text-xs font-bold text-[#AE2448]">📁 {courseName}</p>}
+              {courseName && <p className="text-xs font-bold text-[#0CAA41]">📁 {courseName}</p>}
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-5">
-              <p className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 mb-3">Opens Automatically In</p>
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#57636E] mb-3">Opens Automatically In</p>
               <div className="flex items-center justify-center gap-3">
                 {remDays > 0 && (
                   <div className="flex flex-col items-center">
                     <span className="text-3xl font-mono font-black text-white bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl">{String(remDays).padStart(2, '0')}</span>
-                    <span className="text-[10px] text-slate-500 uppercase font-bold mt-1">Days</span>
+                    <span className="text-[10px] text-[#57636E] uppercase font-bold mt-1">Days</span>
                   </div>
                 )}
                 <div className="flex flex-col items-center">
                   <span className="text-3xl font-mono font-black text-white bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl">{String(remHours).padStart(2, '0')}</span>
-                  <span className="text-[10px] text-slate-500 uppercase font-bold mt-1">Hours</span>
+                  <span className="text-[10px] text-[#57636E] uppercase font-bold mt-1">Hours</span>
                 </div>
-                <span className="text-2xl font-black text-slate-600 mb-4">:</span>
+                <span className="text-2xl font-black text-[#57636E] mb-4">:</span>
                 <div className="flex flex-col items-center">
-                  <span className="text-3xl font-mono font-black text-[#AE2448] bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl">{String(remMins).padStart(2, '0')}</span>
-                  <span className="text-[10px] text-slate-500 uppercase font-bold mt-1">Mins</span>
+                  <span className="text-3xl font-mono font-black text-[#0CAA41] bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl">{String(remMins).padStart(2, '0')}</span>
+                  <span className="text-[10px] text-[#57636E] uppercase font-bold mt-1">Mins</span>
                 </div>
-                <span className="text-2xl font-black text-slate-600 mb-4">:</span>
+                <span className="text-2xl font-black text-[#57636E] mb-4">:</span>
                 <div className="flex flex-col items-center">
                   <span className="text-3xl font-mono font-black text-[#72BAA9] bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl">{String(remSecs).padStart(2, '0')}</span>
-                  <span className="text-[10px] text-slate-500 uppercase font-bold mt-1">Secs</span>
+                  <span className="text-[10px] text-[#57636E] uppercase font-bold mt-1">Secs</span>
                 </div>
               </div>
             </div>
 
-            <button onClick={() => setBypassLobby(true)} className="w-full py-3 px-4 bg-gradient-to-r from-[#AE2448] to-[#6E1A37] hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <button onClick={() => setBypassLobby(true)} className="w-full py-3 px-4 bg-gradient-to-r from-[#0CAA41] to-[#0C5325] hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
               ⚡ Enter Classroom Immediately (Skip Waiting)
             </button>
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
+            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-[#57636E]">
               <span>Joined as: <strong className="text-slate-300">{studentName}</strong></span>
               <span>Meeting ID: <strong className="text-slate-300 font-mono">{roomId}</strong></span>
             </div>
@@ -1113,19 +1113,19 @@ export default function ClassRoomPage() {
           <span className="text-white/80 text-xs font-bold truncate max-w-[220px]">{meeting?.title || "Class Room"}</span>
           
           {isScheduledFuture && isMentor && (
-            <span className="flex items-center gap-1.5 text-[11px] text-[#D5E7B5] font-bold bg-[#D5E7B5]/20 border border-amber-500/30 rounded-full px-2.5 py-0.5 animate-pulse">
+            <span className="flex items-center gap-1.5 text-[11px] text-[#E6F6EC] font-bold bg-[#E6F6EC]/20 border border-amber-500/30 rounded-full px-2.5 py-0.5 animate-pulse">
               <Clock size={11} /> Starts in {remHours}h {remMins}m {remSecs}s
             </span>
           )}
 
           {isSharing && recState !== "recording" && recState !== "paused" && (
-            <span className="flex items-center gap-1.5 text-[11px] text-green-400 font-semibold bg-[#D5E7B5]/400/20 border border-green-500/30 rounded-full px-2.5 py-0.5">
+            <span className="flex items-center gap-1.5 text-[11px] text-green-400 font-semibold bg-[#E6F6EC]/400/20 border border-green-500/30 rounded-full px-2.5 py-0.5">
               <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />Screen Sharing Active
             </span>
           )}
           {recState === "recording" && (
-            <span className="flex items-center gap-1.5 text-[11px] text-[#AE2448] font-bold bg-[#AE2448]/20 border border-[#AE2448]/30 rounded-full px-2.5 py-0.5 animate-pulse">
-              <span className="w-1.5 h-1.5 bg-[#AE2448] rounded-full" />REC {fmtT(recTimer)}
+            <span className="flex items-center gap-1.5 text-[11px] text-[#0CAA41] font-bold bg-[#0CAA41]/20 border border-[#0CAA41]/30 rounded-full px-2.5 py-0.5 animate-pulse">
+              <span className="w-1.5 h-1.5 bg-[#0CAA41] rounded-full" />REC {fmtT(recTimer)}
             </span>
           )}
           {recState === "paused" && (
@@ -1134,7 +1134,7 @@ export default function ClassRoomPage() {
             </span>
           )}
           {isHandRaised && (
-            <span className="flex items-center gap-1 text-[11px] text-[#D5E7B5] font-bold bg-[#D5E7B5]/20 border border-amber-500/30 rounded-full px-2.5 py-0.5 animate-bounce">
+            <span className="flex items-center gap-1 text-[11px] text-[#E6F6EC] font-bold bg-[#E6F6EC]/20 border border-amber-500/30 rounded-full px-2.5 py-0.5 animate-bounce">
               ✋ Hand Raised
             </span>
           )}
@@ -1162,7 +1162,7 @@ export default function ClassRoomPage() {
             onClick={() => setRightPanel(p => p === "notes" ? null : "notes")}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${rightPanel === "notes" ? "bg-white/20 text-white" : "text-white/50 hover:text-white hover:bg-white/10"}`}
           >
-            <FileText size={13} />Notes {notes.length > 0 && <span className="bg-[#D5E7B5]0 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">{notes.length}</span>}
+            <FileText size={13} />Notes {notes.length > 0 && <span className="bg-[#E6F6EC]0 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold">{notes.length}</span>}
           </button>
         </div>
       </div>
@@ -1235,7 +1235,7 @@ export default function ClassRoomPage() {
                           onClick={() => setPenColor(c)}
                           style={{ backgroundColor: c }}
                           className={`w-4 h-4 rounded-full border transition-transform hover:scale-125 cursor-pointer ${
-                            penColor.toUpperCase() === c.toUpperCase() ? "border-white scale-125 ring-2 ring-[#AE2448]/20" : "border-slate-500"
+                            penColor.toUpperCase() === c.toUpperCase() ? "border-white scale-125 ring-2 ring-[#0CAA41]/20" : "border-slate-500"
                           }`}
                           title={`Color ${c}`}
                         />
@@ -1271,7 +1271,7 @@ export default function ClassRoomPage() {
                     <button
                       type="button"
                       onClick={() => applyText()}
-                      className="px-2.5 py-1 rounded-md bg-[#AE2448] hover:bg-[#D5E7B5]0 text-white text-[11px] font-bold flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-md bg-[#0CAA41] hover:bg-[#E6F6EC]0 text-white text-[11px] font-bold flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
                       title="Done (or press Enter)"
                     >
                       <Check size={11} /> Done
@@ -1281,7 +1281,7 @@ export default function ClassRoomPage() {
                     <button
                       type="button"
                       onClick={() => setTextBox(null)}
-                      className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                      className="p-1 rounded-md text-[#57636E] hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
                       title="Cancel (Esc)"
                     >
                       <X size={11} />
@@ -1308,15 +1308,15 @@ export default function ClassRoomPage() {
                     }}
                     placeholder="Type text here..."
                     rows={1}
-                    className="bg-white/95 border-2 border-dashed border-[#AE2448] rounded-xl px-3 py-1.5 outline-none font-bold placeholder:text-slate-400 resize-none shadow-xl focus:border-[#AE2448] focus:bg-white min-w-[180px] max-w-[650px] transition-all text-slate-900"
+                    className="bg-white/95 border-2 border-dashed border-[#0CAA41] rounded-xl px-3 py-1.5 outline-none font-bold placeholder:text-[#57636E] resize-none shadow-xl focus:border-[#0CAA41] focus:bg-white min-w-[180px] max-w-[650px] transition-all text-[#20262E]"
                     style={{
                       fontSize: `${textFontSize}px`,
                       lineHeight: 1.25,
-                      color: penColor.toUpperCase() === '#FFFFFF' ? '#0F172A' : penColor,
+                      color: penColor.toUpperCase() === '#FFFFFF' ? '#20262E' : penColor,
                       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                     }}
                   />
-                  <span className="text-[10px] text-slate-600 bg-white/95 px-1.5 py-0.5 rounded shadow-xs font-semibold mt-1 ml-1 select-none border border-slate-200">
+                  <span className="text-[10px] text-[#57636E] bg-white/95 px-1.5 py-0.5 rounded shadow-xs font-semibold mt-1 ml-1 select-none border border-[#E2E7EC]">
                     Enter: stamp text • Shift+Enter: new line • Esc: cancel
                   </span>
                 </div>
@@ -1359,7 +1359,7 @@ export default function ClassRoomPage() {
                     <button
                       onClick={() => { setActiveTool("pen"); setIsEraser(false); setShowSizePicker(prev => !prev); }}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        activeTool === "pen" && !isEraser ? "bg-[#AE2448] text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
+                        activeTool === "pen" && !isEraser ? "bg-[#0CAA41] text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
                       }`}
                       title="Pen tool"
                     >
@@ -1368,9 +1368,9 @@ export default function ClassRoomPage() {
                     </button>
                     {showSizePicker && !isEraser && (
                       <div className="absolute bottom-[115%] left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 rounded-xl p-3 w-48 shadow-2xl z-[120]">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">Pen Size: {penSize}px</p>
+                        <p className="text-[10px] text-[#57636E] font-bold uppercase mb-2">Pen Size: {penSize}px</p>
                         <input type="range" min={1} max={40} value={penSize} onChange={e => setPenSize(Number(e.target.value))} className="w-full accent-blue-500 cursor-pointer" />
-                        <div className="flex justify-between text-[10px] text-slate-400 mt-1"><span>1px</span><span>40px</span></div>
+                        <div className="flex justify-between text-[10px] text-[#57636E] mt-1"><span>1px</span><span>40px</span></div>
                       </div>
                     )}
                   </div>
@@ -1380,7 +1380,7 @@ export default function ClassRoomPage() {
                     <button
                       onClick={() => { setActiveTool("pen"); setIsEraser(!isEraser); setShowSizePicker(isEraser ? false : showSizePicker); }}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        isEraser ? "bg-[#AE2448] text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
+                        isEraser ? "bg-[#0CAA41] text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
                       }`}
                       title="Eraser tool"
                     >
@@ -1389,9 +1389,9 @@ export default function ClassRoomPage() {
                     </button>
                     {isEraser && (
                       <div className="absolute bottom-[115%] left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 rounded-xl p-3 w-48 shadow-2xl z-[120]">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">Eraser Size: {eraserSize}px</p>
+                        <p className="text-[10px] text-[#57636E] font-bold uppercase mb-2">Eraser Size: {eraserSize}px</p>
                         <input type="range" min={10} max={100} value={eraserSize} onChange={e => setEraserSize(Number(e.target.value))} className="w-full accent-amber-500 cursor-pointer" />
-                        <div className="flex justify-between text-[10px] text-slate-400 mt-1"><span>10px</span><span>100px</span></div>
+                        <div className="flex justify-between text-[10px] text-[#57636E] mt-1"><span>10px</span><span>100px</span></div>
                       </div>
                     )}
                   </div>
@@ -1405,11 +1405,11 @@ export default function ClassRoomPage() {
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
                       canUndo
                         ? "bg-slate-800 hover:bg-slate-700 text-white shadow cursor-pointer"
-                        : "bg-slate-800/40 text-slate-600 cursor-not-allowed"
+                        : "bg-slate-800/40 text-[#57636E] cursor-not-allowed"
                     }`}
                     title="Reverse: Restore previous erased data (Undo)"
                   >
-                    <RotateCcw size={13} className="text-[#D5E7B5]" />
+                    <RotateCcw size={13} className="text-[#E6F6EC]" />
                     <span>Reverse</span>
                   </button>
 
@@ -1420,11 +1420,11 @@ export default function ClassRoomPage() {
                     className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
                       canRedo
                         ? "bg-slate-800 hover:bg-slate-700 text-white shadow cursor-pointer"
-                        : "bg-slate-800/40 text-slate-600 cursor-not-allowed"
+                        : "bg-slate-800/40 text-[#57636E] cursor-not-allowed"
                     }`}
                     title="Redo"
                   >
-                    <RotateCw size={13} className="text-[#AE2448]" />
+                    <RotateCw size={13} className="text-[#0CAA41]" />
                   </button>
 
                   <div className="w-px h-6 bg-slate-700 shrink-0" />
@@ -1450,7 +1450,7 @@ export default function ClassRoomPage() {
                       }
                     }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      activeTool === "text" ? "bg-[#AE2448] text-white shadow-lg ring-2 ring-purple-400/50" : "bg-slate-800 text-slate-300 hover:text-white"
+                      activeTool === "text" ? "bg-[#0CAA41] text-white shadow-lg ring-2 ring-purple-400/50" : "bg-slate-800 text-slate-300 hover:text-white"
                     }`}
                     title="Type text on whiteboard (Click anywhere on board to place)"
                   >
@@ -1480,7 +1480,7 @@ export default function ClassRoomPage() {
                   {/* Clear Whiteboard */}
                   <button
                     onClick={clearWhiteboard}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800 text-slate-300 hover:bg-[#AE2448] hover:text-white transition-all shrink-0"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800 text-slate-300 hover:bg-[#0CAA41] hover:text-white transition-all shrink-0"
                     title="Clear Whiteboard"
                   >
                     <Trash2 size={14} />
@@ -1489,7 +1489,7 @@ export default function ClassRoomPage() {
                   {/* Exit Board */}
                   <button
                     onClick={() => setShowWhiteboard(false)}
-                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-[#AE2448] text-slate-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 shrink-0"
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-[#0CAA41] text-slate-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 shrink-0"
                   >
                     <X size={13} /> Exit
                   </button>
@@ -1502,7 +1502,7 @@ export default function ClassRoomPage() {
           {isSharing && !showWhiteboard && (
             <div className="absolute top-4 right-4 z-30 flex flex-col items-end gap-3 pointer-events-auto">
               {/* Host Video Card */}
-              <div className="w-64 h-40 bg-slate-900/95 rounded-2xl overflow-hidden border-2 border-[#AE2448] shadow-2xl relative group">
+              <div className="w-64 h-40 bg-slate-900/95 rounded-2xl overflow-hidden border-2 border-[#0CAA41] shadow-2xl relative group">
                 {cameraOn ? (
                   <video
                     ref={(el) => {
@@ -1519,18 +1519,18 @@ export default function ClassRoomPage() {
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-slate-800/90 text-white">
-                    <div className="w-14 h-14 rounded-full bg-[#AE2448] flex items-center justify-center font-extrabold text-xl shadow-lg ring-2 ring-[#AE2448]/20">
+                    <div className="w-14 h-14 rounded-full bg-[#0CAA41] flex items-center justify-center font-extrabold text-xl shadow-lg ring-2 ring-[#0CAA41]/20">
                       HR
                     </div>
-                    <span className="text-[11px] font-medium text-slate-400 mt-2">Camera is off</span>
+                    <span className="text-[11px] font-medium text-[#57636E] mt-2">Camera is off</span>
                   </div>
                 )}
                 <div className="absolute bottom-2 left-2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-sm text-[11px] font-bold text-white shadow">
-                  {micOn ? <Mic size={12} className="text-[#72BAA9]" /> : <MicOff size={12} className="text-[#AE2448]" />}
+                  {micOn ? <Mic size={12} className="text-[#72BAA9]" /> : <MicOff size={12} className="text-[#0CAA41]" />}
                   <span>You (Host)</span>
                 </div>
                 {isHandRaised && (
-                  <div className="absolute top-2 right-2 bg-[#D5E7B5] text-slate-950 px-2 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 shadow-lg animate-bounce">
+                  <div className="absolute top-2 right-2 bg-[#E6F6EC] text-slate-950 px-2 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 shadow-lg animate-bounce">
                     ✋ Hand Raised
                   </div>
                 )}
@@ -1539,7 +1539,7 @@ export default function ClassRoomPage() {
               {/* Connected Student Mini Avatar Badges */}
               <div className="flex gap-2">
                 {participants.filter(p => p.id !== myParticipantId).map((p, idx) => {
-                  const colors = ["bg-[#AE2448]", "bg-[#72BAA9]", "bg-[#AE2448]", "bg-rose-600", "bg-[#AE2448]"];
+                  const colors = ["bg-[#0CAA41]", "bg-[#72BAA9]", "bg-[#0CAA41]", "bg-rose-600", "bg-[#0CAA41]"];
                   const color = colors[idx % colors.length];
                   return (
                     <div key={p.id} className="w-24 h-16 bg-slate-900/90 rounded-xl border border-slate-700/80 overflow-hidden relative shadow-lg flex items-center justify-center">
@@ -1562,7 +1562,7 @@ export default function ClassRoomPage() {
             <div className="relative z-10 w-full h-full p-6 flex flex-col justify-between overflow-y-auto">
               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto w-full items-center">
                 {/* Host Tile */}
-                <div className="w-full h-64 md:h-72 bg-slate-900/90 rounded-2xl border-2 border-[#AE2448]/60 overflow-hidden relative shadow-2xl flex items-center justify-center group">
+                <div className="w-full h-64 md:h-72 bg-slate-900/90 rounded-2xl border-2 border-[#0CAA41]/60 overflow-hidden relative shadow-2xl flex items-center justify-center group">
                   {cameraOn ? (
                     <video
                       ref={(el) => {
@@ -1579,7 +1579,7 @@ export default function ClassRoomPage() {
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center">
-                      <div className="w-20 h-20 rounded-full bg-[#AE2448] text-white flex items-center justify-center text-2xl font-black shadow-xl ring-4 ring-[#AE2448]/20">
+                      <div className="w-20 h-20 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-2xl font-black shadow-xl ring-4 ring-[#0CAA41]/20">
                         {isMentor ? "HR" : (studentName ? studentName.substring(0, 2).toUpperCase() : "ME")}
                       </div>
                       <span className="text-sm font-semibold text-slate-300 mt-3">
@@ -1588,11 +1588,11 @@ export default function ClassRoomPage() {
                     </div>
                   )}
                   <div className="absolute bottom-3 left-3 flex items-center gap-2 px-3 py-1 rounded-xl bg-black/70 backdrop-blur-sm text-xs font-bold text-white shadow">
-                    {micOn ? <Mic size={13} className="text-[#72BAA9]" /> : <MicOff size={13} className="text-[#AE2448]" />}
+                    {micOn ? <Mic size={13} className="text-[#72BAA9]" /> : <MicOff size={13} className="text-[#0CAA41]" />}
                     <span>{isMentor ? "You (Host)" : (studentName || "You")}</span>
                   </div>
                   {isHandRaised && (
-                    <div className="absolute top-3 right-3 bg-[#D5E7B5] text-slate-950 px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-lg animate-bounce">
+                    <div className="absolute top-3 right-3 bg-[#E6F6EC] text-slate-950 px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-lg animate-bounce">
                       ✋ Hand Raised
                     </div>
                   )}
@@ -1601,7 +1601,7 @@ export default function ClassRoomPage() {
                 {/* Real Joined Students / Other Attendees */}
                 {participants.filter(p => p.id !== myParticipantId).length > 0 ? (
                   participants.filter(p => p.id !== myParticipantId).map((p, idx) => {
-                    const colors = ["bg-[#AE2448]", "bg-[#72BAA9]", "bg-[#AE2448]", "bg-rose-600", "bg-[#AE2448]"];
+                    const colors = ["bg-[#0CAA41]", "bg-[#72BAA9]", "bg-[#0CAA41]", "bg-rose-600", "bg-[#0CAA41]"];
                     const color = colors[idx % colors.length];
                     return (
                       <div key={p.id} className="w-full h-64 md:h-72 bg-slate-900/90 rounded-2xl border border-slate-700/80 overflow-hidden relative shadow-2xl flex flex-col items-center justify-center">
@@ -1609,13 +1609,13 @@ export default function ClassRoomPage() {
                           {p.avatar || p.name.substring(0, 2).toUpperCase()}
                         </div>
                         <span className="text-sm font-semibold text-slate-300 mt-3">{p.name}</span>
-                        <span className="text-[10px] text-slate-500">{p.role}</span>
+                        <span className="text-[10px] text-[#57636E]">{p.role}</span>
                         <div className="absolute bottom-3 left-3 flex items-center gap-2 px-3 py-1 rounded-xl bg-black/70 backdrop-blur-sm text-xs font-bold text-white shadow">
-                          {p.isMuted ? <MicOff size={13} className="text-[#AE2448]" /> : <Mic size={13} className="text-[#72BAA9]" />}
+                          {p.isMuted ? <MicOff size={13} className="text-[#0CAA41]" /> : <Mic size={13} className="text-[#72BAA9]" />}
                           <span>{p.name}</span>
                         </div>
                         {p.isHandRaised && (
-                          <div className="absolute top-3 right-3 bg-[#D5E7B5] text-slate-950 px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-lg animate-bounce">
+                          <div className="absolute top-3 right-3 bg-[#E6F6EC] text-slate-950 px-2.5 py-1 rounded-full text-xs font-black flex items-center gap-1 shadow-lg animate-bounce">
                             ✋ Hand Raised
                           </div>
                         )}
@@ -1625,18 +1625,18 @@ export default function ClassRoomPage() {
                 ) : (
                   /* Waiting for Students State Card */
                   <div className="w-full h-64 md:h-72 bg-slate-900/60 rounded-2xl border-2 border-dashed border-slate-700/80 overflow-hidden relative shadow-xl flex flex-col items-center justify-center p-6 text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-[#D5E7B5]0/10 border border-[#AE2448]/30 flex items-center justify-center text-[#AE2448] mb-3 animate-pulse">
+                    <div className="w-14 h-14 rounded-2xl bg-[#E6F6EC]0/10 border border-[#0CAA41]/30 flex items-center justify-center text-[#0CAA41] mb-3 animate-pulse">
                       <Users size={24} />
                     </div>
                     <h4 className="text-sm font-bold text-white mb-1">Waiting for students to join...</h4>
-                    <p className="text-xs text-slate-400 max-w-xs mb-3">
+                    <p className="text-xs text-[#57636E] max-w-xs mb-3">
                       Share the Meeting ID with students. They can join from any browser or device instantly.
                     </p>
                     <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-mono text-white mb-3">
-                      <span>ID: <strong className="text-[#AE2448]">{roomId}</strong></span>
+                      <span>ID: <strong className="text-[#0CAA41]">{roomId}</strong></span>
                       {meeting?.password && (
                         <>
-                          <span className="text-slate-600">|</span>
+                          <span className="text-[#57636E]">|</span>
                           <span>Pass: <strong className="text-[#72BAA9]">{meeting.password}</strong></span>
                         </>
                       )}
@@ -1651,7 +1651,7 @@ export default function ClassRoomPage() {
                         navigator.clipboard.writeText(info);
                         showToast("Meeting link & credentials copied! Share with your students.");
                       }}
-                      className="px-4 py-2 bg-[#AE2448] hover:bg-[#D5E7B5]0 text-white rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-2 bg-[#0CAA41] hover:bg-[#E6F6EC]0 text-white rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer"
                     >
                       <Copy size={13} /> Copy Meeting Link & Details
                     </button>
@@ -1664,7 +1664,7 @@ export default function ClassRoomPage() {
                 <div className="flex justify-center pt-4 pb-1">
                   <button
                     onClick={startScreenShare}
-                    className="px-7 py-3 bg-gradient-to-r from-[#AE2448] to-[#6E1A37] hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl flex items-center gap-2.5 shadow-xl shadow-blue-900/40 transition-all hover:scale-105"
+                    className="px-7 py-3 bg-gradient-to-r from-[#0CAA41] to-[#0C5325] hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl flex items-center gap-2.5 shadow-xl shadow-blue-900/40 transition-all hover:scale-105"
                   >
                     <Monitor size={18} /> Share Screen to Teach
                   </button>
@@ -1698,20 +1698,20 @@ export default function ClassRoomPage() {
         {/* ─── Right Drawer Panel (Chat / Participants / Notes) ──────── */}
         {rightPanel && (
           <div className={`w-96 flex flex-col shrink-0 z-30 transition-colors shadow-2xl ${
-            rightPanel === "notes" ? "bg-white border-l border-slate-200 text-slate-800" : "bg-[#2C2C2E] border-l border-white/10 text-white"
+            rightPanel === "notes" ? "bg-white border-l border-[#E2E7EC] text-[#20262E]" : "bg-[#2C2C2E] border-l border-white/10 text-white"
           }`}>
             {/* Drawer Tabs Header */}
             <div className={`h-12 border-b flex items-center justify-between px-3 transition-colors ${
-              rightPanel === "notes" ? "bg-slate-50 border-slate-200" : "bg-[#242426] border-white/10"
+              rightPanel === "notes" ? "bg-[#F5F6F8] border-[#E2E7EC]" : "bg-[#242426] border-white/10"
             }`}>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setRightPanel("chat")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                     rightPanel === "chat"
-                      ? "bg-[#AE2448] text-white shadow"
+                      ? "bg-[#0CAA41] text-white shadow"
                       : rightPanel === "notes"
-                        ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                        ? "text-[#57636E] hover:text-[#20262E] hover:bg-slate-100"
                         : "text-white/60 hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -1721,9 +1721,9 @@ export default function ClassRoomPage() {
                   onClick={() => setRightPanel("participants")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                     rightPanel === "participants"
-                      ? "bg-[#AE2448] text-white shadow"
+                      ? "bg-[#0CAA41] text-white shadow"
                       : rightPanel === "notes"
-                        ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                        ? "text-[#57636E] hover:text-[#20262E] hover:bg-slate-100"
                         : "text-white/60 hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -1733,7 +1733,7 @@ export default function ClassRoomPage() {
                   onClick={() => setRightPanel("notes")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
                     rightPanel === "notes"
-                      ? "bg-[#AE2448] text-white shadow"
+                      ? "bg-[#0CAA41] text-white shadow"
                       : "text-white/60 hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -1743,7 +1743,7 @@ export default function ClassRoomPage() {
               <button
                 onClick={() => setRightPanel(null)}
                 className={`p-1 rounded-lg transition-colors ${
-                  rightPanel === "notes" ? "text-slate-400 hover:text-slate-700 hover:bg-slate-200" : "text-white/50 hover:text-white hover:bg-white/10"
+                  rightPanel === "notes" ? "text-[#57636E] hover:text-[#20262E] hover:bg-slate-200" : "text-white/50 hover:text-white hover:bg-white/10"
                 }`}
               >
                 <X size={15} />
@@ -1759,7 +1759,7 @@ export default function ClassRoomPage() {
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="font-bold text-white flex items-center gap-1.5">
                           {msg.sender}
-                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${msg.role === "Host" ? "bg-[#D5E7B5]0/30 text-blue-300" : "bg-white/10 text-slate-300"}`}>
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${msg.role === "Host" ? "bg-[#E6F6EC]0/30 text-blue-300" : "bg-white/10 text-slate-300"}`}>
                             {msg.role}
                           </span>
                         </span>
@@ -1773,7 +1773,7 @@ export default function ClassRoomPage() {
                   <div ref={chatBottomRef} />
                 </div>
                 {!isMentor && (!securitySettings.allowChat || participants.find(p => p.name === studentName || p.id === "p1")?.canChat === false) ? (
-                  <div className="p-3 border-t border-white/10 bg-[#242426] text-center text-xs text-[#D5E7B5]/90 font-medium flex items-center justify-center gap-1.5">
+                  <div className="p-3 border-t border-white/10 bg-[#242426] text-center text-xs text-[#E6F6EC]/90 font-medium flex items-center justify-center gap-1.5">
                     <Lock size={12} /> Chat is restricted by the host.
                   </div>
                 ) : (
@@ -1783,9 +1783,9 @@ export default function ClassRoomPage() {
                       value={chatInput}
                       onChange={e => setChatInput(e.target.value)}
                       placeholder="Type a message to everyone..."
-                      className="flex-1 bg-white/10 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/40 focus:border-[#AE2448] outline-none"
+                      className="flex-1 bg-white/10 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-white/40 focus:border-[#0CAA41] outline-none"
                     />
-                    <button type="submit" className="p-2 bg-[#AE2448] hover:bg-[#D5E7B5]0 rounded-xl text-white transition-colors" title="Send message">
+                    <button type="submit" className="p-2 bg-[#0CAA41] hover:bg-[#E6F6EC]0 rounded-xl text-white transition-colors" title="Send message">
                       <Send size={14} />
                     </button>
                   </form>
@@ -1805,7 +1805,7 @@ export default function ClassRoomPage() {
                           setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
                           showToast("All participants muted.");
                         }}
-                        className="text-[11px] font-bold text-[#AE2448] hover:text-[#AE2448]"
+                        className="text-[11px] font-bold text-[#0CAA41] hover:text-[#0CAA41]"
                       >
                         Mute All
                       </button>
@@ -1824,7 +1824,7 @@ export default function ClassRoomPage() {
                           setIsHandRaised(false);
                           showToast("All hands lowered.");
                         }}
-                        className="text-[11px] font-bold text-[#D5E7B5] hover:text-[#D5E7B5]"
+                        className="text-[11px] font-bold text-[#E6F6EC] hover:text-[#E6F6EC]"
                       >
                         Lower Hands
                       </button>
@@ -1833,8 +1833,8 @@ export default function ClassRoomPage() {
                 </div>
                 <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
                   {participants.map((p, idx) => {
-                    const colors = ["bg-[#AE2448]", "bg-[#72BAA9]", "bg-[#AE2448]", "bg-rose-600", "bg-[#AE2448]"];
-                    const color = p.role === "Host" ? "bg-[#AE2448]" : colors[idx % colors.length];
+                    const colors = ["bg-[#0CAA41]", "bg-[#72BAA9]", "bg-[#0CAA41]", "bg-rose-600", "bg-[#0CAA41]"];
+                    const color = p.role === "Host" ? "bg-[#0CAA41]" : colors[idx % colors.length];
                     return (
                       <div key={p.id} className="flex items-center justify-between p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-colors">
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -1844,12 +1844,12 @@ export default function ClassRoomPage() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
                               <span className="text-xs font-bold text-white truncate max-w-[100px]">{p.name}</span>
-                              <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${p.role === "Host" ? "bg-[#D5E7B5]0/30 text-blue-300" : "bg-white/10 text-slate-300"}`}>
+                              <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${p.role === "Host" ? "bg-[#E6F6EC]0/30 text-blue-300" : "bg-white/10 text-slate-300"}`}>
                                 {p.role}
                               </span>
                             </div>
                             {p.isHandRaised && (
-                              <span className="text-[10px] text-[#D5E7B5] font-bold flex items-center gap-1 mt-0.5">
+                              <span className="text-[10px] text-[#E6F6EC] font-bold flex items-center gap-1 mt-0.5">
                                 ✋ Hand Raised
                               </span>
                             )}
@@ -1866,7 +1866,7 @@ export default function ClassRoomPage() {
                                   setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, isMuted: !item.isMuted } : item));
                                   showToast(p.isMuted ? `Unmuted ${p.name}` : `Muted ${p.name}`);
                                 }}
-                                className={`p-1.5 rounded-lg transition-colors ${p.isMuted ? "bg-[#AE2448]/20 text-[#AE2448] hover:bg-[#AE2448]/30" : "bg-[#72BAA9]/20 text-[#72BAA9] hover:bg-[#72BAA9]/30"}`}
+                                className={`p-1.5 rounded-lg transition-colors ${p.isMuted ? "bg-[#0CAA41]/20 text-[#0CAA41] hover:bg-[#0CAA41]/30" : "bg-[#72BAA9]/20 text-[#72BAA9] hover:bg-[#72BAA9]/30"}`}
                                 title={p.isMuted ? "Unmute this participant" : "Mute this participant"}
                               >
                                 {p.isMuted ? <MicOff size={13} /> : <Mic size={13} />}
@@ -1878,7 +1878,7 @@ export default function ClassRoomPage() {
                                   setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, isVideoOn: !item.isVideoOn } : item));
                                   showToast(p.isVideoOn ? `Stopped ${p.name}'s video` : `Allowed ${p.name}'s video`);
                                 }}
-                                className={`p-1.5 rounded-lg transition-colors ${p.isVideoOn ? "bg-[#D5E7B5]0/20 text-[#AE2448] hover:bg-[#D5E7B5]0/30" : "bg-white/5 text-slate-400 hover:bg-white/10"}`}
+                                className={`p-1.5 rounded-lg transition-colors ${p.isVideoOn ? "bg-[#E6F6EC]0/20 text-[#0CAA41] hover:bg-[#E6F6EC]0/30" : "bg-white/5 text-[#57636E] hover:bg-white/10"}`}
                                 title={p.isVideoOn ? "Stop video" : "Ask to start video"}
                               >
                                 {p.isVideoOn ? <Camera size={13} /> : <VideoOff size={13} />}
@@ -1890,7 +1890,7 @@ export default function ClassRoomPage() {
                                   setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, canScreenShare: item.canScreenShare === false ? true : false } : item));
                                   showToast(p.canScreenShare === false ? `Allowed screen share for ${p.name}` : `Revoked screen share for ${p.name}`);
                                 }}
-                                className={`p-1.5 rounded-lg transition-colors ${p.canScreenShare !== false ? "bg-white/5 text-[#72BAA9] hover:bg-white/10" : "bg-[#AE2448]/20 text-[#AE2448] hover:bg-[#AE2448]/30"}`}
+                                className={`p-1.5 rounded-lg transition-colors ${p.canScreenShare !== false ? "bg-white/5 text-[#72BAA9] hover:bg-white/10" : "bg-[#0CAA41]/20 text-[#0CAA41] hover:bg-[#0CAA41]/30"}`}
                                 title={p.canScreenShare !== false ? "Screen share enabled for attendee" : "Screen share disabled for attendee"}
                               >
                                 <Monitor size={13} />
@@ -1902,7 +1902,7 @@ export default function ClassRoomPage() {
                                   setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, canChat: item.canChat === false ? true : false } : item));
                                   showToast(p.canChat === false ? `Allowed chat for ${p.name}` : `Revoked chat for ${p.name}`);
                                 }}
-                                className={`p-1.5 rounded-lg transition-colors ${p.canChat !== false ? "bg-white/5 text-[#AE2448] hover:bg-white/10" : "bg-[#AE2448]/20 text-[#AE2448] hover:bg-[#AE2448]/30"}`}
+                                className={`p-1.5 rounded-lg transition-colors ${p.canChat !== false ? "bg-white/5 text-[#0CAA41] hover:bg-white/10" : "bg-[#0CAA41]/20 text-[#0CAA41] hover:bg-[#0CAA41]/30"}`}
                                 title={p.canChat !== false ? "Chat enabled for attendee" : "Chat disabled for attendee"}
                               >
                                 <MessageSquare size={13} />
@@ -1915,7 +1915,7 @@ export default function ClassRoomPage() {
                                     setParticipants(prev => prev.map(item => item.id === p.id ? { ...item, isHandRaised: false } : item));
                                     showToast(`Lowered ${p.name}'s hand`);
                                   }}
-                                  className="p-1.5 rounded-lg bg-[#D5E7B5]/20 text-[#D5E7B5] hover:bg-[#D5E7B5]/30 transition-colors"
+                                  className="p-1.5 rounded-lg bg-[#E6F6EC]/20 text-[#E6F6EC] hover:bg-[#E6F6EC]/30 transition-colors"
                                   title="Lower Hand"
                                 >
                                   <Hand size={13} />
@@ -1928,7 +1928,7 @@ export default function ClassRoomPage() {
                                   setParticipants(prev => prev.filter(item => item.id !== p.id));
                                   showToast(`Removed ${p.name} from meeting.`);
                                 }}
-                                className="p-1.5 rounded-lg hover:bg-[#AE2448]/20 text-white/40 hover:text-[#AE2448] transition-colors"
+                                className="p-1.5 rounded-lg hover:bg-[#0CAA41]/20 text-white/40 hover:text-[#0CAA41] transition-colors"
                                 title="Remove attendee"
                               >
                                 <X size={13} />
@@ -1936,8 +1936,8 @@ export default function ClassRoomPage() {
                             </>
                           ) : (
                             <>
-                              {p.isMuted ? <MicOff size={13} className="text-[#AE2448]" /> : <Mic size={13} className="text-[#72BAA9]" />}
-                              {p.isVideoOn ? <Camera size={13} className="text-[#AE2448]" /> : <VideoOff size={13} className="text-slate-500" />}
+                              {p.isMuted ? <MicOff size={13} className="text-[#0CAA41]" /> : <Mic size={13} className="text-[#72BAA9]" />}
+                              {p.isVideoOn ? <Camera size={13} className="text-[#0CAA41]" /> : <VideoOff size={13} className="text-[#57636E]" />}
                             </>
                           )}
                         </div>
@@ -1955,16 +1955,16 @@ export default function ClassRoomPage() {
 
             {/* TAB 3: Class Notes (PURE WHITE THEME, File Attachments & Import Notes) */}
             {rightPanel === "notes" && (
-              <div className="flex-1 flex flex-col min-h-0 bg-white text-slate-800">
+              <div className="flex-1 flex flex-col min-h-0 bg-white text-[#20262E]">
                 {/* 3 Sub-tabs + Upload Notes Header */}
-                <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-2.5 py-1.5">
+                <div className="flex items-center justify-between border-b border-[#E2E7EC] bg-[#F5F6F8] px-2.5 py-1.5">
                   <div className="flex gap-1">
                     {(["host", "participant", "group"] as const).map(t => (
                       <button
                         key={t}
                         onClick={() => setNoteType(t)}
                         className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                          noteType === t ? "bg-white text-[#AE2448] shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-800"
+                          noteType === t ? "bg-white text-[#0CAA41] shadow-sm border border-[#E2E7EC]" : "text-[#57636E] hover:text-[#20262E]"
                         }`}
                       >
                         {t === "host" ? "Host" : t === "participant" ? "Participant" : "Group"}
@@ -1975,7 +1975,7 @@ export default function ClassRoomPage() {
                   {/* Upload Notes File Button */}
                   <button
                     onClick={() => importNotesInputRef.current?.click()}
-                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-[#AE2448] bg-[#D5E7B5] hover:bg-[#D5E7B5] rounded-lg transition-colors border border-[#AE2448]/30"
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-[#0CAA41] bg-[#E6F6EC] hover:bg-[#E6F6EC] rounded-lg transition-colors border border-[#0CAA41]/30"
                     title="Upload notes from a file (.txt, .json, .md)"
                   >
                     <FileUp size={13} />
@@ -1994,49 +1994,49 @@ export default function ClassRoomPage() {
                 {noteType === "host" && (
                   <>
                     {!isMentor ? (
-                      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-500 space-y-3 bg-white">
-                        <div className="w-12 h-12 rounded-full bg-[#D5E7B5]/40 border border-[#72BAA9]/30 flex items-center justify-center text-[#AE2448] shadow">
+                      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-[#57636E] space-y-3 bg-white">
+                        <div className="w-12 h-12 rounded-full bg-[#E6F6EC]/40 border border-[#72BAA9]/30 flex items-center justify-center text-[#0CAA41] shadow">
                           <Lock size={22} />
                         </div>
-                        <h4 className="text-sm font-bold text-slate-800">Host Only Access</h4>
-                        <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
+                        <h4 className="text-sm font-bold text-[#20262E]">Host Only Access</h4>
+                        <p className="text-xs text-[#57636E] max-w-xs leading-relaxed">
                           This section contains private host meeting notes. Only the host has access to view or write notes here.
                         </p>
                       </div>
                     ) : (
                       <>
-                        <div className="p-2.5 bg-[#D5E7B5]/80 border-b border-[#AE2448]/20 flex items-center gap-2 text-[11px] text-[#6E1A37] font-semibold">
+                        <div className="p-2.5 bg-[#E6F6EC]/80 border-b border-[#0CAA41]/20 flex items-center gap-2 text-[11px] text-[#0C5325] font-semibold">
                           <Shield size={13} /> Private Host Section (Host only)
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white">
                           {notes.filter(n => n.type === "host").length === 0 ? (
-                            <div className="text-center py-12 text-slate-400 text-xs">
+                            <div className="text-center py-12 text-[#57636E] text-xs">
                               <FileText size={24} className="mx-auto mb-2 opacity-50" />
                               No host notes yet. Add private notes or attach files below.
                             </div>
                           ) : (
                             notes.filter(n => n.type === "host").map(n => (
-                              <div key={n.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5 relative group shadow-sm">
-                                <div className="flex items-center justify-between text-[10px] text-slate-500">
-                                  <span className="font-bold text-[#AE2448]">{n.author} (Host Note)</span>
+                              <div key={n.id} className="bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-3 space-y-1.5 relative group shadow-sm">
+                                <div className="flex items-center justify-between text-[10px] text-[#57636E]">
+                                  <span className="font-bold text-[#0CAA41]">{n.author} (Host Note)</span>
                                   <span>{new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                                <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                                <p className="text-xs text-[#20262E] leading-relaxed whitespace-pre-wrap">{n.content}</p>
                                 {n.attachment && (
-                                  <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 shadow-sm">
+                                  <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-white border border-[#E2E7EC] shadow-sm">
                                     <div className="flex items-center gap-2 min-w-0">
-                                      <div className="w-7 h-7 rounded-lg bg-[#D5E7B5] text-[#AE2448] flex items-center justify-center shrink-0">
+                                      <div className="w-7 h-7 rounded-lg bg-[#E6F6EC] text-[#0CAA41] flex items-center justify-center shrink-0">
                                         <Paperclip size={13} />
                                       </div>
                                       <div className="min-w-0">
-                                        <p className="text-xs font-semibold text-slate-800 truncate">{n.attachment.name}</p>
-                                        <p className="text-[10px] text-slate-400">{(n.attachment.size / 1024).toFixed(1)} KB</p>
+                                        <p className="text-xs font-semibold text-[#20262E] truncate">{n.attachment.name}</p>
+                                        <p className="text-[10px] text-[#57636E]">{(n.attachment.size / 1024).toFixed(1)} KB</p>
                                       </div>
                                     </div>
                                     <a
                                       href={n.attachment.dataUrl}
                                       download={n.attachment.name}
-                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#D5E7B5] text-slate-600 hover:text-[#AE2448] transition-colors shrink-0"
+                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#E6F6EC] text-[#57636E] hover:text-[#0CAA41] transition-colors shrink-0"
                                       title="Download attachment"
                                     >
                                       <Download size={13} />
@@ -2045,7 +2045,7 @@ export default function ClassRoomPage() {
                                 )}
                                 <button
                                   onClick={() => saveNotes(notes.filter(item => item.id !== n.id))}
-                                  className="absolute top-2 right-2 text-slate-400 hover:text-[#AE2448] opacity-0 group-hover:opacity-100 transition-opacity"
+                                  className="absolute top-2 right-2 text-[#57636E] hover:text-[#0CAA41] opacity-0 group-hover:opacity-100 transition-opacity"
                                   title="Delete note"
                                 >
                                   <Trash2 size={12} />
@@ -2054,17 +2054,17 @@ export default function ClassRoomPage() {
                             ))
                           )}
                         </div>
-                        <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2">
+                        <div className="p-3 border-t border-[#E2E7EC] bg-[#F5F6F8] space-y-2">
                           {noteAttachment && (
-                            <div className="flex items-center justify-between p-2 bg-[#D5E7B5] border border-[#AE2448]/30 rounded-xl text-xs text-blue-900">
+                            <div className="flex items-center justify-between p-2 bg-[#E6F6EC] border border-[#0CAA41]/30 rounded-xl text-xs text-blue-900">
                               <div className="flex items-center gap-1.5 truncate">
-                                <Paperclip size={13} className="text-[#AE2448] shrink-0" />
+                                <Paperclip size={13} className="text-[#0CAA41] shrink-0" />
                                 <span className="font-semibold truncate">{noteAttachment.name}</span>
-                                <span className="text-[10px] text-[#AE2448] shrink-0">({(noteAttachment.size / 1024).toFixed(1)} KB)</span>
+                                <span className="text-[10px] text-[#0CAA41] shrink-0">({(noteAttachment.size / 1024).toFixed(1)} KB)</span>
                               </div>
                               <button
                                 onClick={() => setNoteAttachment(null)}
-                                className="text-[#AE2448] hover:text-[#AE2448] p-0.5"
+                                className="text-[#0CAA41] hover:text-[#0CAA41] p-0.5"
                                 title="Remove attachment"
                               >
                                 <X size={13} />
@@ -2077,13 +2077,13 @@ export default function ClassRoomPage() {
                             placeholder="Add a private host note... (Ctrl+Enter)"
                             onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) addNote(); }}
                             rows={3}
-                            className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#AE2448] outline-none resize-none shadow-sm"
+                            className="w-full bg-white border border-[#E2E7EC] rounded-xl p-2.5 text-xs text-[#20262E] placeholder-slate-400 focus:border-[#0CAA41] outline-none resize-none shadow-sm"
                           />
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
                               onClick={() => noteFileInputRef.current?.click()}
-                              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
+                              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[#E2E7EC] hover:bg-slate-100 text-[#20262E] rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
                               title="Attach a file to this note"
                             >
                               <Paperclip size={13} />
@@ -2097,7 +2097,7 @@ export default function ClassRoomPage() {
                             />
                             <button
                               onClick={addNote}
-                              className="flex-1 py-2 bg-[#AE2448] hover:bg-[#D5E7B5]0 text-white rounded-xl text-xs font-bold transition-all shadow"
+                              className="flex-1 py-2 bg-[#0CAA41] hover:bg-[#E6F6EC]0 text-white rounded-xl text-xs font-bold transition-all shadow"
                             >
                               Save Host Note
                             </button>
@@ -2114,56 +2114,56 @@ export default function ClassRoomPage() {
                     {isMentor ? (
                       <>
                         {/* Host chooses which participant's private channel to view */}
-                        <div className="p-2 border-b border-slate-200 bg-slate-100/70 flex gap-1.5 overflow-x-auto custom-scrollbar">
+                        <div className="p-2 border-b border-[#E2E7EC] bg-slate-100/70 flex gap-1.5 overflow-x-auto custom-scrollbar">
                           {participants.filter(p => p.role === "Student").length === 0 ? (
-                            <span className="text-[11px] text-slate-400 px-2 py-1">No students joined yet</span>
+                            <span className="text-[11px] text-[#57636E] px-2 py-1">No students joined yet</span>
                           ) : (
                             participants.filter(p => p.role === "Student").map(p => (
                               <button
                                 key={p.id}
                                 onClick={() => setSelectedParticipantId(p.id)}
                                 className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                                  selectedParticipantId === p.id ? "bg-[#AE2448] text-white shadow" : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                                  selectedParticipantId === p.id ? "bg-[#0CAA41] text-white shadow" : "bg-white text-[#57636E] border border-[#E2E7EC] hover:bg-[#F5F6F8]"
                                 }`}
                               >
-                                <span className="w-1.5 h-1.5 rounded-full bg-[#D5E7B5]0" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#E6F6EC]0" />
                                 {p.name}
                               </button>
                             ))
                           )}
                         </div>
-                        <div className="p-2 bg-[#D5E7B5]/40 border-b border-[#72BAA9]/30 text-[11px] text-[#6E1A37] flex items-center gap-1.5 font-medium">
+                        <div className="p-2 bg-[#E6F6EC]/40 border-b border-[#72BAA9]/30 text-[11px] text-[#0C5325] flex items-center gap-1.5 font-medium">
                           <Lock size={12} /> Private 1-on-1 thread with {participants.find(p => p.id === selectedParticipantId)?.name || "Participant"}
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white">
                           {notes.filter(n => n.type === "participant" && (n.participantId === selectedParticipantId || n.author === participants.find(p => p.id === selectedParticipantId)?.name)).length === 0 ? (
-                            <div className="text-center py-12 text-slate-400 text-xs">
+                            <div className="text-center py-12 text-[#57636E] text-xs">
                               <FileText size={24} className="mx-auto mb-2 opacity-50" />
                               No private messages with {participants.find(p => p.id === selectedParticipantId)?.name || "this student"} yet.
                             </div>
                           ) : (
                             notes.filter(n => n.type === "participant" && (n.participantId === selectedParticipantId || n.author === participants.find(p => p.id === selectedParticipantId)?.name)).map(n => (
-                              <div key={n.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5 shadow-sm">
-                                <div className="flex items-center justify-between text-[10px] text-slate-500">
-                                  <span className={`font-bold ${n.author === "Host" ? "text-[#AE2448]" : "text-[#6E1A37]"}`}>{n.author}</span>
+                              <div key={n.id} className="bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-3 space-y-1.5 shadow-sm">
+                                <div className="flex items-center justify-between text-[10px] text-[#57636E]">
+                                  <span className={`font-bold ${n.author === "Host" ? "text-[#0CAA41]" : "text-[#0C5325]"}`}>{n.author}</span>
                                   <span>{new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                                <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                                <p className="text-xs text-[#20262E] leading-relaxed whitespace-pre-wrap">{n.content}</p>
                                 {n.attachment && (
-                                  <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 shadow-sm">
+                                  <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-white border border-[#E2E7EC] shadow-sm">
                                     <div className="flex items-center gap-2 min-w-0">
-                                      <div className="w-7 h-7 rounded-lg bg-[#D5E7B5] text-[#AE2448] flex items-center justify-center shrink-0">
+                                      <div className="w-7 h-7 rounded-lg bg-[#E6F6EC] text-[#0CAA41] flex items-center justify-center shrink-0">
                                         <Paperclip size={13} />
                                       </div>
                                       <div className="min-w-0">
-                                        <p className="text-xs font-semibold text-slate-800 truncate">{n.attachment.name}</p>
-                                        <p className="text-[10px] text-slate-400">{(n.attachment.size / 1024).toFixed(1)} KB</p>
+                                        <p className="text-xs font-semibold text-[#20262E] truncate">{n.attachment.name}</p>
+                                        <p className="text-[10px] text-[#57636E]">{(n.attachment.size / 1024).toFixed(1)} KB</p>
                                       </div>
                                     </div>
                                     <a
                                       href={n.attachment.dataUrl}
                                       download={n.attachment.name}
-                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#D5E7B5] text-slate-600 hover:text-[#AE2448] transition-colors shrink-0"
+                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#E6F6EC] text-[#57636E] hover:text-[#0CAA41] transition-colors shrink-0"
                                       title="Download attachment"
                                     >
                                       <Download size={13} />
@@ -2174,17 +2174,17 @@ export default function ClassRoomPage() {
                             ))
                           )}
                         </div>
-                        <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2">
+                        <div className="p-3 border-t border-[#E2E7EC] bg-[#F5F6F8] space-y-2">
                           {noteAttachment && (
-                            <div className="flex items-center justify-between p-2 bg-[#D5E7B5] border border-[#AE2448]/30 rounded-xl text-xs text-blue-900">
+                            <div className="flex items-center justify-between p-2 bg-[#E6F6EC] border border-[#0CAA41]/30 rounded-xl text-xs text-blue-900">
                               <div className="flex items-center gap-1.5 truncate">
-                                <Paperclip size={13} className="text-[#AE2448] shrink-0" />
+                                <Paperclip size={13} className="text-[#0CAA41] shrink-0" />
                                 <span className="font-semibold truncate">{noteAttachment.name}</span>
-                                <span className="text-[10px] text-[#AE2448] shrink-0">({(noteAttachment.size / 1024).toFixed(1)} KB)</span>
+                                <span className="text-[10px] text-[#0CAA41] shrink-0">({(noteAttachment.size / 1024).toFixed(1)} KB)</span>
                               </div>
                               <button
                                 onClick={() => setNoteAttachment(null)}
-                                className="text-[#AE2448] hover:text-[#AE2448] p-0.5"
+                                className="text-[#0CAA41] hover:text-[#0CAA41] p-0.5"
                                 title="Remove attachment"
                               >
                                 <X size={13} />
@@ -2197,13 +2197,13 @@ export default function ClassRoomPage() {
                             placeholder={`Reply privately to ${participants.find(p => p.id === selectedParticipantId)?.name || "Participant"}... (Ctrl+Enter)`}
                             onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) addNote(); }}
                             rows={3}
-                            className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#AE2448] outline-none resize-none shadow-sm"
+                            className="w-full bg-white border border-[#E2E7EC] rounded-xl p-2.5 text-xs text-[#20262E] placeholder-slate-400 focus:border-[#0CAA41] outline-none resize-none shadow-sm"
                           />
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
                               onClick={() => noteFileInputRef.current?.click()}
-                              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
+                              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[#E2E7EC] hover:bg-slate-100 text-[#20262E] rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
                               title="Attach a file to this note"
                             >
                               <Paperclip size={13} />
@@ -2211,7 +2211,7 @@ export default function ClassRoomPage() {
                             </button>
                             <button
                               onClick={addNote}
-                              className="flex-1 py-2 bg-[#AE2448] hover:bg-[#D5E7B5]0 text-white rounded-xl text-xs font-bold transition-all shadow"
+                              className="flex-1 py-2 bg-[#0CAA41] hover:bg-[#E6F6EC]0 text-white rounded-xl text-xs font-bold transition-all shadow"
                             >
                               Send Private Note
                             </button>
@@ -2221,38 +2221,38 @@ export default function ClassRoomPage() {
                     ) : (
                       <>
                         {/* Student only sees their private thread with Host */}
-                        <div className="p-2.5 bg-[#D5E7B5]/40 border-b border-[#72BAA9]/30 text-[11px] text-[#6E1A37] flex items-center gap-1.5 font-medium">
+                        <div className="p-2.5 bg-[#E6F6EC]/40 border-b border-[#72BAA9]/30 text-[11px] text-[#0C5325] flex items-center gap-1.5 font-medium">
                           <Lock size={12} /> Private 1-on-1 with Host (Invisible to other students)
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white">
                           {notes.filter(n => n.type === "participant" && (n.participantId === (participants.find(p => p.name === studentName)?.id || myParticipantId) || n.author === studentName)).length === 0 ? (
-                            <div className="text-center py-12 text-slate-400 text-xs">
+                            <div className="text-center py-12 text-[#57636E] text-xs">
                               <FileText size={24} className="mx-auto mb-2 opacity-50" />
                               No private messages sent to the host yet.
                             </div>
                           ) : (
                             notes.filter(n => n.type === "participant" && (n.participantId === (participants.find(p => p.name === studentName)?.id || myParticipantId) || n.author === studentName)).map(n => (
-                              <div key={n.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5 shadow-sm">
-                                <div className="flex items-center justify-between text-[10px] text-slate-500">
-                                  <span className={`font-bold ${n.author === "Host" ? "text-[#AE2448]" : "text-[#72BAA9]"}`}>{n.author}</span>
+                              <div key={n.id} className="bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-3 space-y-1.5 shadow-sm">
+                                <div className="flex items-center justify-between text-[10px] text-[#57636E]">
+                                  <span className={`font-bold ${n.author === "Host" ? "text-[#0CAA41]" : "text-[#72BAA9]"}`}>{n.author}</span>
                                   <span>{new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                                <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                                <p className="text-xs text-[#20262E] leading-relaxed whitespace-pre-wrap">{n.content}</p>
                                 {n.attachment && (
-                                  <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 shadow-sm">
+                                  <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-white border border-[#E2E7EC] shadow-sm">
                                     <div className="flex items-center gap-2 min-w-0">
-                                      <div className="w-7 h-7 rounded-lg bg-[#D5E7B5] text-[#AE2448] flex items-center justify-center shrink-0">
+                                      <div className="w-7 h-7 rounded-lg bg-[#E6F6EC] text-[#0CAA41] flex items-center justify-center shrink-0">
                                         <Paperclip size={13} />
                                       </div>
                                       <div className="min-w-0">
-                                        <p className="text-xs font-semibold text-slate-800 truncate">{n.attachment.name}</p>
-                                        <p className="text-[10px] text-slate-400">{(n.attachment.size / 1024).toFixed(1)} KB</p>
+                                        <p className="text-xs font-semibold text-[#20262E] truncate">{n.attachment.name}</p>
+                                        <p className="text-[10px] text-[#57636E]">{(n.attachment.size / 1024).toFixed(1)} KB</p>
                                       </div>
                                     </div>
                                     <a
                                       href={n.attachment.dataUrl}
                                       download={n.attachment.name}
-                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#D5E7B5] text-slate-600 hover:text-[#AE2448] transition-colors shrink-0"
+                                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#E6F6EC] text-[#57636E] hover:text-[#0CAA41] transition-colors shrink-0"
                                       title="Download attachment"
                                     >
                                       <Download size={13} />
@@ -2263,17 +2263,17 @@ export default function ClassRoomPage() {
                             ))
                           )}
                         </div>
-                        <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2">
+                        <div className="p-3 border-t border-[#E2E7EC] bg-[#F5F6F8] space-y-2">
                           {noteAttachment && (
-                            <div className="flex items-center justify-between p-2 bg-[#D5E7B5] border border-[#AE2448]/30 rounded-xl text-xs text-blue-900">
+                            <div className="flex items-center justify-between p-2 bg-[#E6F6EC] border border-[#0CAA41]/30 rounded-xl text-xs text-blue-900">
                               <div className="flex items-center gap-1.5 truncate">
-                                <Paperclip size={13} className="text-[#AE2448] shrink-0" />
+                                <Paperclip size={13} className="text-[#0CAA41] shrink-0" />
                                 <span className="font-semibold truncate">{noteAttachment.name}</span>
-                                <span className="text-[10px] text-[#AE2448] shrink-0">({(noteAttachment.size / 1024).toFixed(1)} KB)</span>
+                                <span className="text-[10px] text-[#0CAA41] shrink-0">({(noteAttachment.size / 1024).toFixed(1)} KB)</span>
                               </div>
                               <button
                                 onClick={() => setNoteAttachment(null)}
-                                className="text-[#AE2448] hover:text-[#AE2448] p-0.5"
+                                className="text-[#0CAA41] hover:text-[#0CAA41] p-0.5"
                                 title="Remove attachment"
                               >
                                 <X size={13} />
@@ -2286,13 +2286,13 @@ export default function ClassRoomPage() {
                             placeholder="Send a private message to Host... (Ctrl+Enter)"
                             onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) addNote(); }}
                             rows={3}
-                            className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#AE2448] outline-none resize-none shadow-sm"
+                            className="w-full bg-white border border-[#E2E7EC] rounded-xl p-2.5 text-xs text-[#20262E] placeholder-slate-400 focus:border-[#0CAA41] outline-none resize-none shadow-sm"
                           />
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
                               onClick={() => noteFileInputRef.current?.click()}
-                              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
+                              className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[#E2E7EC] hover:bg-slate-100 text-[#20262E] rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
                               title="Attach a file to this note"
                             >
                               <Paperclip size={13} />
@@ -2300,7 +2300,7 @@ export default function ClassRoomPage() {
                             </button>
                             <button
                               onClick={addNote}
-                              className="flex-1 py-2 bg-[#AE2448] hover:bg-[#D5E7B5]/400 text-white rounded-xl text-xs font-bold transition-all shadow"
+                              className="flex-1 py-2 bg-[#0CAA41] hover:bg-[#E6F6EC]/400 text-white rounded-xl text-xs font-bold transition-all shadow"
                             >
                               Send Message to Host
                             </button>
@@ -2314,38 +2314,38 @@ export default function ClassRoomPage() {
                 {/* Sub-tab 3: GROUP (Everyone sees and has access) */}
                 {noteType === "group" && (
                   <>
-                    <div className="p-2.5 bg-[#D5E7B5]/40 border-b border-[#72BAA9]/30 text-[11px] text-[#6E1A37] flex items-center gap-1.5 font-medium">
+                    <div className="p-2.5 bg-[#E6F6EC]/40 border-b border-[#72BAA9]/30 text-[11px] text-[#0C5325] flex items-center gap-1.5 font-medium">
                       <Users size={12} /> Group Collaborative Notes (Everyone has access)
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-white">
                       {notes.filter(n => n.type === "group").length === 0 ? (
-                        <div className="text-center py-12 text-slate-400 text-xs">
+                        <div className="text-center py-12 text-[#57636E] text-xs">
                           <FileText size={24} className="mx-auto mb-2 opacity-50" />
                           No group notes yet. Everyone in the meeting can read and post here.
                         </div>
                       ) : (
                         notes.filter(n => n.type === "group").map(n => (
-                          <div key={n.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5 shadow-sm">
-                            <div className="flex items-center justify-between text-[10px] text-slate-500">
+                          <div key={n.id} className="bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-3 space-y-1.5 shadow-sm">
+                            <div className="flex items-center justify-between text-[10px] text-[#57636E]">
                               <span className="font-bold text-[#72BAA9]">{n.author}</span>
                               <span>{new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
-                            <p className="text-xs text-slate-800 leading-relaxed whitespace-pre-wrap">{n.content}</p>
+                            <p className="text-xs text-[#20262E] leading-relaxed whitespace-pre-wrap">{n.content}</p>
                             {n.attachment && (
-                              <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-white border border-slate-200 shadow-sm">
+                              <div className="mt-2 flex items-center justify-between p-2 rounded-lg bg-white border border-[#E2E7EC] shadow-sm">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <div className="w-7 h-7 rounded-lg bg-[#D5E7B5] text-[#AE2448] flex items-center justify-center shrink-0">
+                                  <div className="w-7 h-7 rounded-lg bg-[#E6F6EC] text-[#0CAA41] flex items-center justify-center shrink-0">
                                     <Paperclip size={13} />
                                   </div>
                                   <div className="min-w-0">
-                                    <p className="text-xs font-semibold text-slate-800 truncate">{n.attachment.name}</p>
-                                    <p className="text-[10px] text-slate-400">{(n.attachment.size / 1024).toFixed(1)} KB</p>
+                                    <p className="text-xs font-semibold text-[#20262E] truncate">{n.attachment.name}</p>
+                                    <p className="text-[10px] text-[#57636E]">{(n.attachment.size / 1024).toFixed(1)} KB</p>
                                   </div>
                                 </div>
                                 <a
                                   href={n.attachment.dataUrl}
                                   download={n.attachment.name}
-                                  className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#D5E7B5] text-slate-600 hover:text-[#AE2448] transition-colors shrink-0"
+                                  className="p-1.5 rounded-lg bg-slate-100 hover:bg-[#E6F6EC] text-[#57636E] hover:text-[#0CAA41] transition-colors shrink-0"
                                   title="Download attachment"
                                 >
                                   <Download size={13} />
@@ -2357,17 +2357,17 @@ export default function ClassRoomPage() {
                       )}
                     </div>
                     {!isReadonly && (
-                      <div className="p-3 border-t border-slate-200 bg-slate-50 space-y-2">
+                      <div className="p-3 border-t border-[#E2E7EC] bg-[#F5F6F8] space-y-2">
                         {noteAttachment && (
-                          <div className="flex items-center justify-between p-2 bg-[#D5E7B5] border border-[#AE2448]/30 rounded-xl text-xs text-blue-900">
+                          <div className="flex items-center justify-between p-2 bg-[#E6F6EC] border border-[#0CAA41]/30 rounded-xl text-xs text-blue-900">
                             <div className="flex items-center gap-1.5 truncate">
-                              <Paperclip size={13} className="text-[#AE2448] shrink-0" />
+                              <Paperclip size={13} className="text-[#0CAA41] shrink-0" />
                               <span className="font-semibold truncate">{noteAttachment.name}</span>
-                              <span className="text-[10px] text-[#AE2448] shrink-0">({(noteAttachment.size / 1024).toFixed(1)} KB)</span>
+                              <span className="text-[10px] text-[#0CAA41] shrink-0">({(noteAttachment.size / 1024).toFixed(1)} KB)</span>
                             </div>
                             <button
                               onClick={() => setNoteAttachment(null)}
-                              className="text-[#AE2448] hover:text-[#AE2448] p-0.5"
+                              className="text-[#0CAA41] hover:text-[#0CAA41] p-0.5"
                               title="Remove attachment"
                             >
                               <X size={13} />
@@ -2380,13 +2380,13 @@ export default function ClassRoomPage() {
                           placeholder="Post a note to group... (Ctrl+Enter)"
                           onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) addNote(); }}
                           rows={3}
-                          className="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs text-slate-800 placeholder-slate-400 focus:border-[#AE2448] outline-none resize-none shadow-sm"
+                          className="w-full bg-white border border-[#E2E7EC] rounded-xl p-2.5 text-xs text-[#20262E] placeholder-slate-400 focus:border-[#0CAA41] outline-none resize-none shadow-sm"
                         />
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
                             onClick={() => noteFileInputRef.current?.click()}
-                            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
+                            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-[#E2E7EC] hover:bg-slate-100 text-[#20262E] rounded-xl text-xs font-bold transition-all shadow-sm shrink-0"
                             title="Attach a file to this note"
                           >
                             <Paperclip size={13} />
@@ -2439,7 +2439,7 @@ export default function ClassRoomPage() {
                   navigator.clipboard.writeText(directLink);
                   showToast("Meeting link copied to clipboard!");
                 }}
-                className="text-[#AE2448] hover:text-[#72BAA9] font-sans font-semibold transition-colors cursor-pointer"
+                className="text-[#0CAA41] hover:text-[#72BAA9] font-sans font-semibold transition-colors cursor-pointer"
                 title="Copy Student Meeting Link"
               >
                 Copy Link
@@ -2456,8 +2456,8 @@ export default function ClassRoomPage() {
             onClick={toggleMic}
             className="w-16 h-[58px] hover:bg-[#333333] rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group"
           >
-            {micOn ? <Mic size={20} className="text-white" /> : <MicOff size={20} className="text-[#AE2448]" />}
-            <span className={`text-[10px] ${micOn ? 'text-white' : 'text-[#AE2448]'} font-semibold`}>
+            {micOn ? <Mic size={20} className="text-white" /> : <MicOff size={20} className="text-[#0CAA41]" />}
+            <span className={`text-[10px] ${micOn ? 'text-white' : 'text-[#0CAA41]'} font-semibold`}>
               {micOn ? "Mute" : "Unmute"}
             </span>
           </button>
@@ -2467,8 +2467,8 @@ export default function ClassRoomPage() {
             onClick={toggleCamera}
             className="w-16 h-[58px] hover:bg-[#333333] rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group"
           >
-            {cameraOn ? <Camera size={20} className="text-white" /> : <VideoOff size={20} className="text-[#AE2448]" />}
-            <span className={`text-[10px] ${cameraOn ? 'text-white' : 'text-[#AE2448]'} font-semibold`}>
+            {cameraOn ? <Camera size={20} className="text-white" /> : <VideoOff size={20} className="text-[#0CAA41]" />}
+            <span className={`text-[10px] ${cameraOn ? 'text-white' : 'text-[#0CAA41]'} font-semibold`}>
               {cameraOn ? "Stop Video" : "Start Video"}
             </span>
           </button>
@@ -2481,10 +2481,10 @@ export default function ClassRoomPage() {
               onClick={isSharing ? stopScreenShare : startScreenShare}
               className="w-[84px] h-[58px] hover:bg-[#333333] rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group"
             >
-              <div className={`p-1.5 rounded-lg ${isSharing ? 'bg-[#AE2448]' : 'bg-[#72BAA9]'}`}>
+              <div className={`p-1.5 rounded-lg ${isSharing ? 'bg-[#0CAA41]' : 'bg-[#72BAA9]'}`}>
                 <Monitor size={17} className="text-white" />
               </div>
-              <span className={`text-[10px] font-bold ${isSharing ? 'text-[#AE2448]' : 'text-[#72BAA9]'}`}>
+              <span className={`text-[10px] font-bold ${isSharing ? 'text-[#0CAA41]' : 'text-[#72BAA9]'}`}>
                 {isSharing ? "Stop Share" : "Share Screen"}
               </span>
             </button>
@@ -2496,10 +2496,10 @@ export default function ClassRoomPage() {
               onClick={() => setShowWhiteboard(!showWhiteboard)}
               className="w-[80px] h-[58px] hover:bg-[#333333] rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group"
             >
-              <div className={`p-1.5 rounded-lg ${showWhiteboard ? 'bg-[#AE2448]' : 'bg-white/10'}`}>
+              <div className={`p-1.5 rounded-lg ${showWhiteboard ? 'bg-[#0CAA41]' : 'bg-white/10'}`}>
                 <Edit3 size={17} className="text-white" />
               </div>
-              <span className={`text-[10px] font-bold ${showWhiteboard ? 'text-[#AE2448]' : 'text-white'}`}>
+              <span className={`text-[10px] font-bold ${showWhiteboard ? 'text-[#0CAA41]' : 'text-white'}`}>
                 Whiteboard
               </span>
             </button>
@@ -2511,7 +2511,7 @@ export default function ClassRoomPage() {
               {recState === "idle" && (
                 <button onClick={startRecording} className="w-16 h-[58px] hover:bg-[#333333] rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group">
                   <div className="w-[18px] h-[18px] rounded-full border-2 border-white flex items-center justify-center">
-                    <div className="w-[8px] h-[8px] rounded-full bg-[#AE2448]" />
+                    <div className="w-[8px] h-[8px] rounded-full bg-[#0CAA41]" />
                   </div>
                   <span className="text-[10px] text-white font-semibold">Record</span>
                 </button>
@@ -2523,8 +2523,8 @@ export default function ClassRoomPage() {
                     <span className="text-[10px] text-white">Pause</span>
                   </button>
                   <button onClick={stopRecording} className="w-14 h-[58px] hover:bg-[#333333] rounded-xl flex flex-col items-center justify-center gap-1 transition-colors">
-                    <StopCircle size={18} className="text-[#AE2448]" />
-                    <span className="text-[10px] text-[#AE2448] font-bold">Stop</span>
+                    <StopCircle size={18} className="text-[#0CAA41]" />
+                    <span className="text-[10px] text-[#0CAA41] font-bold">Stop</span>
                   </button>
                 </div>
               )}
@@ -2535,8 +2535,8 @@ export default function ClassRoomPage() {
                     <span className="text-[10px] text-[#72BAA9]">Resume</span>
                   </button>
                   <button onClick={stopRecording} className="w-14 h-[58px] hover:bg-[#333333] rounded-xl flex flex-col items-center justify-center gap-1 transition-colors">
-                    <StopCircle size={18} className="text-[#AE2448]" />
-                    <span className="text-[10px] text-[#AE2448] font-bold">Stop</span>
+                    <StopCircle size={18} className="text-[#0CAA41]" />
+                    <span className="text-[10px] text-[#0CAA41] font-bold">Stop</span>
                   </button>
                 </div>
               )}
@@ -2551,8 +2551,8 @@ export default function ClassRoomPage() {
               onClick={() => setShowSecurityPopup(!showSecurityPopup)}
               className={`w-16 h-[58px] hover:bg-[#333333] rounded-xl flex flex-col items-center justify-center gap-1 transition-colors group ${showSecurityPopup ? "bg-white/15" : ""}`}
             >
-              <Shield size={20} className={showSecurityPopup ? "text-[#AE2448]" : "text-white"} />
-              <span className={`text-[10px] font-semibold ${showSecurityPopup ? "text-[#AE2448]" : "text-white"}`}>Security</span>
+              <Shield size={20} className={showSecurityPopup ? "text-[#0CAA41]" : "text-white"} />
+              <span className={`text-[10px] font-semibold ${showSecurityPopup ? "text-[#0CAA41]" : "text-white"}`}>Security</span>
             </button>
 
             {/* Zoom-Style Security Popover */}
@@ -2563,7 +2563,7 @@ export default function ClassRoomPage() {
               >
                 <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
                   <div className="flex items-center gap-2">
-                    <Shield size={18} className="text-[#AE2448]" />
+                    <Shield size={18} className="text-[#0CAA41]" />
                     <div>
                       <h4 className="text-xs font-bold text-white">Security Controls</h4>
                       <p className="text-[10px] text-white/50">{isMentor ? "Host Administration" : "Meeting Policy"}</p>
@@ -2582,7 +2582,7 @@ export default function ClassRoomPage() {
                       {/* Lock Meeting */}
                       <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                         <div className="flex items-center gap-2">
-                          <Lock size={14} className={securitySettings.lockMeeting ? "text-[#AE2448]" : "text-white/60"} />
+                          <Lock size={14} className={securitySettings.lockMeeting ? "text-[#0CAA41]" : "text-white/60"} />
                           <div>
                             <div className="text-xs font-semibold text-white">Lock Meeting</div>
                             <div className="text-[10px] text-white/40">No new participants can join</div>
@@ -2594,7 +2594,7 @@ export default function ClassRoomPage() {
                             setSecuritySettings(s => ({ ...s, lockMeeting: next }));
                             showToast(next ? "Meeting locked. No new attendees can enter." : "Meeting unlocked.");
                           }}
-                          className={`w-9 h-5 rounded-full transition-colors relative ${securitySettings.lockMeeting ? "bg-[#AE2448]" : "bg-white/20"}`}
+                          className={`w-9 h-5 rounded-full transition-colors relative ${securitySettings.lockMeeting ? "bg-[#0CAA41]" : "bg-white/20"}`}
                         >
                           <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${securitySettings.lockMeeting ? "left-5" : "left-0.5"}`} />
                         </button>
@@ -2626,7 +2626,7 @@ export default function ClassRoomPage() {
                       {/* Share Screen */}
                       <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                         <div className="flex items-center gap-2">
-                          <Monitor size={14} className="text-[#AE2448]" />
+                          <Monitor size={14} className="text-[#0CAA41]" />
                           <span className="text-xs font-medium text-white">Share Screen</span>
                         </div>
                         <button
@@ -2635,7 +2635,7 @@ export default function ClassRoomPage() {
                             setSecuritySettings(s => ({ ...s, allowScreenShare: next }));
                             showToast(next ? "Participants allowed to share screen." : "Participant screen sharing disabled.");
                           }}
-                          className={`w-9 h-5 rounded-full transition-colors relative ${securitySettings.allowScreenShare ? "bg-[#AE2448]" : "bg-white/20"}`}
+                          className={`w-9 h-5 rounded-full transition-colors relative ${securitySettings.allowScreenShare ? "bg-[#0CAA41]" : "bg-white/20"}`}
                         >
                           <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${securitySettings.allowScreenShare ? "left-5" : "left-0.5"}`} />
                         </button>
@@ -2644,7 +2644,7 @@ export default function ClassRoomPage() {
                       {/* Chat */}
                       <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                         <div className="flex items-center gap-2">
-                          <MessageSquare size={14} className="text-[#AE2448]" />
+                          <MessageSquare size={14} className="text-[#0CAA41]" />
                           <span className="text-xs font-medium text-white">Chat with Everyone</span>
                         </div>
                         <button
@@ -2653,7 +2653,7 @@ export default function ClassRoomPage() {
                             setSecuritySettings(s => ({ ...s, allowChat: next }));
                             showToast(next ? "Participant chat enabled." : "Participant chat disabled.");
                           }}
-                          className={`w-9 h-5 rounded-full transition-colors relative ${securitySettings.allowChat ? "bg-[#AE2448]" : "bg-white/20"}`}
+                          className={`w-9 h-5 rounded-full transition-colors relative ${securitySettings.allowChat ? "bg-[#0CAA41]" : "bg-white/20"}`}
                         >
                           <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${securitySettings.allowChat ? "left-5" : "left-0.5"}`} />
                         </button>
@@ -2671,7 +2671,7 @@ export default function ClassRoomPage() {
                             setSecuritySettings(s => ({ ...s, allowUnmute: next }));
                             showToast(next ? "Participants can unmute themselves." : "Participants cannot unmute themselves.");
                           }}
-                          className={`w-9 h-5 rounded-full transition-colors relative ${securitySettings.allowUnmute ? "bg-[#AE2448]" : "bg-white/20"}`}
+                          className={`w-9 h-5 rounded-full transition-colors relative ${securitySettings.allowUnmute ? "bg-[#0CAA41]" : "bg-white/20"}`}
                         >
                           <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${securitySettings.allowUnmute ? "left-5" : "left-0.5"}`} />
                         </button>
@@ -2689,7 +2689,7 @@ export default function ClassRoomPage() {
                             setSecuritySettings(s => ({ ...s, allowVideo: next }));
                             showToast(next ? "Participants can start video." : "Participant video disabled.");
                           }}
-                          className={`w-9 h-5 rounded-full transition-colors relative ${securitySettings.allowVideo ? "bg-[#AE2448]" : "bg-white/20"}`}
+                          className={`w-9 h-5 rounded-full transition-colors relative ${securitySettings.allowVideo ? "bg-[#0CAA41]" : "bg-white/20"}`}
                         >
                           <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${securitySettings.allowVideo ? "left-5" : "left-0.5"}`} />
                         </button>
@@ -2698,7 +2698,7 @@ export default function ClassRoomPage() {
                       {/* Raise Hand & Reactions */}
                       <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
                         <div className="flex items-center gap-2">
-                          <Smile size={14} className="text-[#D5E7B5]" />
+                          <Smile size={14} className="text-[#E6F6EC]" />
                           <span className="text-xs font-medium text-white">Raise Hand & Reactions</span>
                         </div>
                         <button
@@ -2707,7 +2707,7 @@ export default function ClassRoomPage() {
                             setSecuritySettings(s => ({ ...s, allowRaiseHand: next }));
                             showToast(next ? "Hand raise enabled for participants." : "Hand raise disabled for participants.");
                           }}
-                          className={`w-9 h-5 rounded-full transition-colors relative ${securitySettings.allowRaiseHand ? "bg-[#AE2448]" : "bg-white/20"}`}
+                          className={`w-9 h-5 rounded-full transition-colors relative ${securitySettings.allowRaiseHand ? "bg-[#0CAA41]" : "bg-white/20"}`}
                         >
                           <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-transform ${securitySettings.allowRaiseHand ? "left-5" : "left-0.5"}`} />
                         </button>
@@ -2721,7 +2721,7 @@ export default function ClassRoomPage() {
                           setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
                           showToast("All participants muted.");
                         }}
-                        className="w-full py-1.5 px-3 bg-[#AE2448]/20 hover:bg-[#AE2448]/30 text-[#AE2448] rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-1.5 px-3 bg-[#0CAA41]/20 hover:bg-[#0CAA41]/30 text-[#0CAA41] rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2"
                       >
                         <VolumeX size={14} /> Mute All Participants
                       </button>
@@ -2749,7 +2749,7 @@ export default function ClassRoomPage() {
                     </div>
                     <div className="flex items-center justify-between p-2 rounded-xl bg-white/5">
                       <span>Meeting Lock</span>
-                      <span className={securitySettings.lockMeeting ? "text-[#AE2448] font-bold" : "text-slate-400 font-bold"}>
+                      <span className={securitySettings.lockMeeting ? "text-[#0CAA41] font-bold" : "text-[#57636E] font-bold"}>
                         {securitySettings.lockMeeting ? "Locked" : "Unlocked"}
                       </span>
                     </div>
@@ -2766,7 +2766,7 @@ export default function ClassRoomPage() {
           >
             <div className="relative">
               <UsersIcon size={20} className="text-white" />
-              <span className="absolute -top-1 -right-2 bg-[#AE2448] text-white text-[9px] font-bold px-1.5 rounded-full">
+              <span className="absolute -top-1 -right-2 bg-[#0CAA41] text-white text-[9px] font-bold px-1.5 rounded-full">
                 {participants.length}
               </span>
             </div>
@@ -2788,8 +2788,8 @@ export default function ClassRoomPage() {
               onClick={() => setShowReactionsPopup(!showReactionsPopup)}
               className={`w-16 h-[58px] hover:bg-[#333333] rounded-xl flex flex-col items-center justify-center gap-1 transition-colors ${isHandRaised || showReactionsPopup ? "bg-white/15" : ""}`}
             >
-              <Smile size={20} className={isHandRaised ? "text-[#D5E7B5]" : "text-white"} />
-              <span className={`text-[10px] font-semibold ${isHandRaised ? "text-[#D5E7B5]" : "text-white"}`}>
+              <Smile size={20} className={isHandRaised ? "text-[#E6F6EC]" : "text-white"} />
+              <span className={`text-[10px] font-semibold ${isHandRaised ? "text-[#E6F6EC]" : "text-white"}`}>
                 {isHandRaised ? "✋ Raised" : "Reactions"}
               </span>
             </button>
@@ -2820,8 +2820,8 @@ export default function ClassRoomPage() {
                   onClick={toggleHandRaise}
                   className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md ${
                     isHandRaised
-                      ? "bg-[#D5E7B5] hover:bg-[#AE2448] text-slate-950 font-black"
-                      : "bg-[#AE2448] hover:bg-[#D5E7B5]0 text-white"
+                      ? "bg-[#E6F6EC] hover:bg-[#0CAA41] text-slate-950 font-black"
+                      : "bg-[#0CAA41] hover:bg-[#E6F6EC]0 text-white"
                   }`}
                 >
                   <Hand size={16} />
@@ -2846,7 +2846,7 @@ export default function ClassRoomPage() {
 
         {/* Right Side: End Call */}
         <div className="flex items-center justify-end min-w-[120px]">
-          <button onClick={endClass} className="h-9 px-5 bg-[#AE2448] hover:bg-[#6E1A37] text-white text-xs font-bold rounded-lg transition-all shadow-md">
+          <button onClick={endClass} className="h-9 px-5 bg-[#0CAA41] hover:bg-[#0C5325] text-white text-xs font-bold rounded-lg transition-all shadow-md">
             {isMentor ? "End Call" : "Leave"}
           </button>
         </div>
@@ -2876,7 +2876,7 @@ export default function ClassRoomPage() {
               ))}
             </div>
             <div className="p-6 pt-0">
-              <button onClick={() => setShowTutorial(false)} className="w-full py-3 bg-[#AE2448] hover:bg-[#D5E7B5]0 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all">
+              <button onClick={() => setShowTutorial(false)} className="w-full py-3 bg-[#0CAA41] hover:bg-[#E6F6EC]0 text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all">
                 <ChevronRight size={16} />Got it, Start Teaching
               </button>
             </div>
@@ -2887,13 +2887,13 @@ export default function ClassRoomPage() {
       {/* ─── Upload Modal ────────────────────────────────────────── */}
       {showUpload && recBlob && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 transition-opacity animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-md overflow-visible transform transition-all animate-in zoom-in-95 duration-200">
-            <div className="px-6 pt-6 pb-4 border-b border-slate-100 flex items-start justify-between">
+          <div className="bg-white border border-[#E2E7EC] rounded-2xl shadow-2xl w-full max-w-md overflow-visible transform transition-all animate-in zoom-in-95 duration-200">
+            <div className="px-6 pt-6 pb-4 border-b border-[#E2E7EC] flex items-start justify-between">
               <div>
-                <h2 className="text-[18px] font-bold text-slate-900">Save Recording</h2>
-                <p className="text-[13px] text-slate-500 mt-0.5">{fmtT(recTimer)} · {(recBlob.size / 1024 / 1024).toFixed(1)} MB</p>
+                <h2 className="text-[18px] font-bold text-[#20262E]">Save Recording</h2>
+                <p className="text-[13px] text-[#57636E] mt-0.5">{fmtT(recTimer)} · {(recBlob.size / 1024 / 1024).toFixed(1)} MB</p>
               </div>
-              <button onClick={() => { setShowUpload(false); router.push("/meetings"); }} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+              <button onClick={() => { setShowUpload(false); router.push("/meetings"); }} className="p-1.5 text-[#57636E] hover:text-[#57636E] hover:bg-slate-100 rounded-lg transition-colors">
                 <X size={18} />
               </button>
             </div>
@@ -2901,57 +2901,57 @@ export default function ClassRoomPage() {
               {uploadState === "idle" && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Video Title</label>
+                    <label className="block text-[12px] font-semibold text-[#57636E] uppercase tracking-wider mb-1.5">Video Title</label>
                     <input
                       type="text"
                       value={uploadTitle}
                       onChange={e => setUploadTitle(e.target.value)}
                       placeholder={meeting?.title ? `${meeting.title} - Recording` : `Meeting Recording`}
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 hover:border-slate-400 focus:border-[#AE2448] focus:ring-2 focus:ring-[#AE2448]/20 text-slate-900 placeholder-slate-400 rounded-xl text-sm outline-none transition-all"
+                      className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-slate-400 focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/20 text-[#20262E] placeholder-slate-400 rounded-xl text-sm outline-none transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Description <span className="text-slate-400 normal-case font-normal">(optional)</span></label>
+                    <label className="block text-[12px] font-semibold text-[#57636E] uppercase tracking-wider mb-1.5">Description <span className="text-[#57636E] normal-case font-normal">(optional)</span></label>
                     <textarea
                       value={uploadDesc}
                       onChange={e => setUploadDesc(e.target.value)}
                       placeholder="Add a brief description..."
                       rows={2}
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 hover:border-slate-400 focus:border-[#AE2448] focus:ring-2 focus:ring-[#AE2448]/20 text-slate-900 placeholder-slate-400 rounded-xl text-sm outline-none transition-all resize-none"
+                      className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-slate-400 focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/20 text-[#20262E] placeholder-slate-400 rounded-xl text-sm outline-none transition-all resize-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Save to Folder</label>
+                    <label className="block text-[12px] font-semibold text-[#57636E] uppercase tracking-wider mb-1.5">Save to Folder</label>
                     <div className="relative">
                       <button 
                         type="button"
                         onClick={() => setIsCourseDropdownOpen(!isCourseDropdownOpen)}
-                        className="w-full px-3.5 py-2.5 bg-white border border-slate-300 hover:border-slate-400 text-slate-800 rounded-xl text-sm flex items-center justify-between outline-none transition-colors"
+                        className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-slate-400 text-[#20262E] rounded-xl text-sm flex items-center justify-between outline-none transition-colors"
                       >
                         <span className="font-medium">
                           {uploadCourse === "1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW" 
                             ? "📁 MEETING (Google Drive)" 
                             : (uploadCourse ? (courses.find(c => c.id === uploadCourse)?.name || "Selected Folder") : "Library Root (no folder)")}
                         </span>
-                        <ChevronDown size={16} className={`text-slate-400 transition-transform ${isCourseDropdownOpen ? "rotate-180" : ""}`} />
+                        <ChevronDown size={16} className={`text-[#57636E] transition-transform ${isCourseDropdownOpen ? "rotate-180" : ""}`} />
                       </button>
                       
                       {isCourseDropdownOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-1">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#E2E7EC] rounded-xl shadow-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-1">
                           <div className="max-h-48 overflow-y-auto py-1">
                             <button 
                               type="button"
                               onClick={() => { setUploadCourse("1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW"); setIsCourseDropdownOpen(false); }}
-                              className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#AE2448] hover:text-white transition-colors ${uploadCourse === "1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW" ? "bg-[#AE2448] text-white" : "text-slate-700"}`}
+                              className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#0CAA41] hover:text-white transition-colors ${uploadCourse === "1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW" ? "bg-[#0CAA41] text-white" : "text-[#20262E]"}`}
                             >
                               📁 MEETING (Google Drive)
                             </button>
                             <button 
                               type="button"
                               onClick={() => { setUploadCourse(""); setIsCourseDropdownOpen(false); }}
-                              className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#AE2448] hover:text-white transition-colors ${!uploadCourse ? "bg-[#AE2448] text-white" : "text-slate-700"}`}
+                              className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#0CAA41] hover:text-white transition-colors ${!uploadCourse ? "bg-[#0CAA41] text-white" : "text-[#20262E]"}`}
                             >
                               Library Root (no folder)
                             </button>
@@ -2960,7 +2960,7 @@ export default function ClassRoomPage() {
                                 key={c.id}
                                 type="button"
                                 onClick={() => { setUploadCourse(c.id); setIsCourseDropdownOpen(false); }}
-                                className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#AE2448] hover:text-white transition-colors ${uploadCourse === c.id ? "bg-[#AE2448] text-white" : "text-slate-700"}`}
+                                className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#0CAA41] hover:text-white transition-colors ${uploadCourse === c.id ? "bg-[#0CAA41] text-white" : "text-[#20262E]"}`}
                               >
                                 📁 {c.name}
                               </button>
@@ -2972,37 +2972,37 @@ export default function ClassRoomPage() {
                   </div>
 
                   <div className="flex gap-3 pt-1">
-                    <button onClick={() => { setShowUpload(false); router.push("/meetings"); }} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition-colors">Discard</button>
-                    <button onClick={handleUpload} className="flex-1 py-2.5 bg-[#AE2448] hover:bg-[#6E1A37] text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"><Upload size={15} />Upload to Library</button>
+                    <button onClick={() => { setShowUpload(false); router.push("/meetings"); }} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-sm font-semibold rounded-xl transition-colors">Discard</button>
+                    <button onClick={handleUpload} className="flex-1 py-2.5 bg-[#0CAA41] hover:bg-[#0C5325] text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"><Upload size={15} />Upload to Library</button>
                   </div>
                 </div>
               )}
               {uploadState === "uploading" && (
                 <div className="flex flex-col items-center gap-4 py-6 animate-in fade-in">
-                  <Loader2 className="w-10 h-10 text-[#AE2448] animate-spin" />
+                  <Loader2 className="w-10 h-10 text-[#0CAA41] animate-spin" />
                   <div className="w-full">
-                    <div className="flex justify-between mb-2"><span className="text-sm text-slate-500">Uploading...</span><span className="text-sm text-[#AE2448] font-bold">{uploadProgress}%</span></div>
-                    <div className="w-full bg-slate-100 rounded-full h-2"><div className="bg-[#AE2448] h-2 rounded-full transition-all" style={{ width: uploadProgress + "%" }} /></div>
+                    <div className="flex justify-between mb-2"><span className="text-sm text-[#57636E]">Uploading...</span><span className="text-sm text-[#0CAA41] font-bold">{uploadProgress}%</span></div>
+                    <div className="w-full bg-slate-100 rounded-full h-2"><div className="bg-[#0CAA41] h-2 rounded-full transition-all" style={{ width: uploadProgress + "%" }} /></div>
                   </div>
                 </div>
               )}
               {uploadState === "done" && (
                 <div className="flex flex-col items-center gap-3 py-6 animate-in zoom-in-95">
-                  <div className="w-14 h-14 bg-[#D5E7B5]/40 border border-[#72BAA9]/30 rounded-full flex items-center justify-center"><Check size={24} className="text-green-500" /></div>
-                  <p className="text-base font-bold text-slate-900">Recording Saved!</p>
-                  <p className="text-sm text-slate-500 text-center">Available in Library. Redirecting...</p>
+                  <div className="w-14 h-14 bg-[#E6F6EC]/40 border border-[#72BAA9]/30 rounded-full flex items-center justify-center"><Check size={24} className="text-green-500" /></div>
+                  <p className="text-base font-bold text-[#20262E]">Recording Saved!</p>
+                  <p className="text-sm text-[#57636E] text-center">Available in Library. Redirecting...</p>
                 </div>
               )}
               {uploadState === "error" && (
                 <div className="flex flex-col items-center gap-3 py-6 animate-in zoom-in-95">
-                  <div className="w-14 h-14 bg-[#AE2448]/10 border border-[#AE2448]/30 rounded-full flex items-center justify-center"><AlertCircle size={24} className="text-[#AE2448]" /></div>
-                  <p className="text-base font-bold text-slate-900">Upload Failed</p>
-                  <p className="text-xs text-slate-500 text-center max-w-sm px-2">
+                  <div className="w-14 h-14 bg-[#0CAA41]/10 border border-[#0CAA41]/30 rounded-full flex items-center justify-center"><AlertCircle size={24} className="text-[#0CAA41]" /></div>
+                  <p className="text-base font-bold text-[#20262E]">Upload Failed</p>
+                  <p className="text-xs text-[#57636E] text-center max-w-sm px-2">
                     {uploadErrorMsg || "Upload encountered an issue. You can retry direct Google Drive upload or download your recording locally."}
                   </p>
                   <div className="flex gap-3 w-full mt-2">
-                    <a href={URL.createObjectURL(recBlob)} download={(meeting?.title || "class") + "-recording.webm"} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl text-center transition-colors">Download</a>
-                    <button onClick={handleUpload} className="flex-1 py-2.5 bg-[#AE2448] hover:bg-[#6E1A37] text-white text-sm font-bold rounded-xl transition-colors">Try Again</button>
+                    <a href={URL.createObjectURL(recBlob)} download={(meeting?.title || "class") + "-recording.webm"} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-sm font-semibold rounded-xl text-center transition-colors">Download</a>
+                    <button onClick={handleUpload} className="flex-1 py-2.5 bg-[#0CAA41] hover:bg-[#0C5325] text-white text-sm font-bold rounded-xl transition-colors">Try Again</button>
                   </div>
                 </div>
               )}

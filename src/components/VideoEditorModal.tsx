@@ -1491,7 +1491,7 @@ export default function VideoEditorModal({
               {/* Quick How-To Banner */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-[#0CAA41]/30/80 rounded-2xl p-3 space-y-2">
                 <span className="text-xs font-bold text-[#0C5325]0 flex items-center gap-1.5">
-                  💡 How to Cut Video in 3 Steps:
+                  How to Cut Video in 3 Steps:
                 </span>
                 <div className="text-[11px] text-[#57636E] space-y-1 font-medium leading-relaxed">
                   <div className="flex items-start gap-1.5">
@@ -1601,7 +1601,7 @@ export default function VideoEditorModal({
                         className="py-1.5 px-2 bg-white hover:bg-[#0CAA41]/20 border border-[#0CAA41]/30 rounded-lg text-xs font-bold text-[#20262E] flex items-center justify-center gap-1 transition-all cursor-pointer"
                         title="Set start of cut to current video playhead"
                       >
-                        📍 Start at Now ({formatTimeStr(currentTime)})
+                        Start at Now ({formatTimeStr(currentTime)})
                       </button>
                       <button
                         type="button"
@@ -1612,7 +1612,7 @@ export default function VideoEditorModal({
                         className="py-1.5 px-2 bg-white hover:bg-[#0CAA41]/20 border border-[#0CAA41]/30 rounded-lg text-xs font-bold text-[#20262E] flex items-center justify-center gap-1 transition-all cursor-pointer"
                         title="Set end of cut to current video playhead"
                       >
-                        📍 End at Now ({formatTimeStr(currentTime)})
+                        End at Now ({formatTimeStr(currentTime)})
                       </button>
                     </div>
 
@@ -1660,7 +1660,7 @@ export default function VideoEditorModal({
                       >
                         <div className="flex items-center gap-1.5 text-sm">
                           <Check className="w-4 h-4 stroke-[3]" />
-                          <span>✂️ Keep Only This Range ({formatTimeStr(activeCut.start)} → {formatTimeStr(activeCut.end)})</span>
+                          <span>Keep Only This Range ({formatTimeStr(activeCut.start)} → {formatTimeStr(activeCut.end)})</span>
                         </div>
                         <span className="text-[10px] font-medium text-[#E6F6EC]">
                           Keeps this clip & cuts out remaining parts (00:00 to {formatTimeStr(activeCut.start)} & {formatTimeStr(activeCut.end)} to End)
@@ -1674,7 +1674,7 @@ export default function VideoEditorModal({
                         title="Cuts out and deletes only this selected section"
                       >
                         <Scissors className="w-3.5 h-3.5 text-[#0CAA41]" />
-                        <span>❌ Delete This Range Instead (Cut Out {formatTimeStr(activeCut.start)} → {formatTimeStr(activeCut.end)})</span>
+                        <span>Delete This Range Instead (Cut Out {formatTimeStr(activeCut.start)} → {formatTimeStr(activeCut.end)})</span>
                       </button>
 
                       <button
@@ -2608,7 +2608,7 @@ export default function VideoEditorModal({
             <span>Total: {formatTimeStr(duration)}</span>
             {completedCuts.length > 0 && (
               <span className="text-[#0C5325] font-bold bg-[#E6F6EC]/40 px-1.5 py-0.5 rounded border border-[#72BAA9]/30">
-                ✂️ Trimmed: {formatTimeStr(Math.max(0, duration - completedCuts.reduce((acc, c) => acc + Math.max(0, c.end - c.start), 0)))}
+                Trimmed: {formatTimeStr(Math.max(0, duration - completedCuts.reduce((acc, c) => acc + Math.max(0, c.end - c.start), 0)))}
               </span>
             )}
           </div>
@@ -2692,7 +2692,7 @@ export default function VideoEditorModal({
                     className="absolute -top-11 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-slate-900/95 backdrop-blur text-white px-2.5 py-1 rounded-xl shadow-2xl border border-slate-700 z-50 whitespace-nowrap"
                   >
                     <span className="text-[10px] font-mono text-[#E6F6EC] font-bold px-1">
-                      🟢 Keep: {formatTimeStr(activeCut.start)} - {formatTimeStr(activeCut.end)}
+                      Keep: {formatTimeStr(activeCut.start)} - {formatTimeStr(activeCut.end)}
                     </span>
                     <button 
                       onClick={trimToActiveSelection} 
@@ -2923,7 +2923,7 @@ export default function VideoEditorModal({
                 </div>
 
                 <div className="p-2.5 bg-[#E6F6EC]/40 border border-[#72BAA9]/30 rounded-xl text-[11px] text-[#0C5325] font-semibold">
-                  💡 Tip: Clicking on any subtitle in the list automatically jumps the playhead to that exact second so you can see and edit it live!
+                  Tip: Clicking on any subtitle in the list automatically jumps the playhead to that exact second so you can see and edit it live!
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-[#E2E7EC]">
@@ -2999,7 +2999,7 @@ export default function VideoEditorModal({
                 </div>
 
                 <div className="p-2.5 bg-[#E6F6EC]/40 border border-[#0CAA41]/30 rounded-xl text-[11px] text-[#0C5325] font-semibold">
-                  💡 Tip: Use the Quick Presets (3s, 5s, 10s, Full) to effortlessly set how long images stay on screen!
+                  Tip: Use the Quick Presets (3s, 5s, 10s, Full) to effortlessly set how long images stay on screen!
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-[#E2E7EC]">
@@ -3075,7 +3075,7 @@ export default function VideoEditorModal({
                 </div>
 
                 <div className="p-2.5 bg-[#E6F6EC]/40/70 border border-[#72BAA9]/30 rounded-xl text-[11px] text-[#0C5325] font-semibold">
-                  💡 Tip: The music automatically loops and syncs seamlessly with cuts and video playback!
+                  Tip: The music automatically loops and syncs seamlessly with cuts and video playback!
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-[#E2E7EC]">
@@ -3153,7 +3153,7 @@ export default function VideoEditorModal({
                 </div>
 
                 <div className="p-2.5 bg-[#E6F6EC]/70 border border-[#0CAA41]/30 rounded-xl text-[11px] text-[#0C5325]0 font-semibold">
-                  🎉 You are now ready to create high-impact videos like in CapCut and InShot!
+                  You are now ready to create high-impact videos like in CapCut and InShot!
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-[#E2E7EC]">
@@ -3172,7 +3172,7 @@ export default function VideoEditorModal({
                     }}
                     className="px-5 py-2.5 bg-[#0CAA41] hover:bg-[#0C5325] text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-[rgba(12, 170, 65,0.2)] transition-all cursor-pointer"
                   >
-                    <span>Start Editing Now 🚀</span>
+                    <span>Start Editing Now</span>
                     <Check className="w-4 h-4 stroke-[3]" />
                   </button>
                 </div>

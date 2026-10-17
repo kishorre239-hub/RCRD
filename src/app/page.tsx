@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { 
   Search, Video, 
   Share2, Shield,
-  ChevronDown, Upload, Calendar
+  ChevronDown, Upload, Calendar, X
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
@@ -18,7 +18,7 @@ import RecordingSetupModal from "@/components/RecordingSetupModal";
 import UploadVideoModal from "@/components/UploadVideoModal";
 import RcrdLogo from "@/components/RcrdLogo";
 import ProfileFlyout, { getStoredProfile } from "@/components/ProfileFlyout";
-import HariInsights from "@/components/HariInsights";
+import AppHeader from "@/components/AppHeader";
 
 export default function HomePage() {
   const router = useRouter();
@@ -27,6 +27,7 @@ export default function HomePage() {
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState(getStoredProfile());
 
   useEffect(() => {
@@ -44,12 +45,32 @@ export default function HomePage() {
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#E6F6EC]/30 blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-[#E6F6EC]/30 blur-[120px] pointer-events-none"></div>
 
-      {/* Sidebar - Crisp Light Mode */}
-      <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-[#E2E7EC] bg-white z-20 h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden">
-        <div className="h-16 flex items-center px-6 border-b border-[#E2E7EC] flex-shrink-0">
-          <div className="flex items-center justify-start w-full cursor-pointer group" onClick={() => router.push('/')}>
+      {/* Mobile Drawer Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-xs transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Crisp Light Mode with Mobile Drawer Support */}
+      <aside className={`w-[280px] flex-shrink-0 flex-col border-r border-[#E2E7EC] bg-white h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden transition-all duration-300 ${
+        isMobileMenuOpen 
+          ? "fixed inset-y-0 left-0 flex z-50 shadow-2xl" 
+          : "hidden md:flex z-20"
+      }`}>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
+          <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
             <RcrdLogo className="h-8 w-auto transition-transform group-hover:scale-105" />
           </div>
+          <button 
+            type="button"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="md:hidden p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         <div className="p-5 border-b border-[#E2E7EC] flex-shrink-0">
@@ -64,7 +85,7 @@ export default function HomePage() {
             <ChevronDown className="w-4 h-4 text-[#57636E] group-hover:text-[#20262E] transition-colors" />
           </div>
           <button 
-            onClick={() => router.push('/settings?tab=users')}
+            onClick={() => { router.push('/settings?tab=users'); setIsMobileMenuOpen(false); }}
             className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#E6F6EC]/50 border border-[#E2E7EC] hover:border-[#0CAA41]/30 rounded-xl text-sm font-semibold text-[#20262E] transition-all shadow-xs cursor-pointer"
           >
             <UsersIcon size={16} className="text-[#0CAA41]" />
@@ -94,7 +115,7 @@ export default function HomePage() {
         <div className="p-5 border-t border-[#E2E7EC] bg-white flex-shrink-0">
           <button 
             id="tour-record-btn"
-            onClick={() => setIsRecordModalOpen(true)}
+            onClick={() => { setIsRecordModalOpen(true); setIsMobileMenuOpen(false); }}
             className="w-full bg-[#0CAA41] hover:bg-[#0C5325] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(12,170,65,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(12,83,37,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <VideoCameraIcon size={20} />
@@ -106,28 +127,12 @@ export default function HomePage() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-full min-w-0 relative z-10 bg-[#F5F6F8] overflow-hidden">
         
-        {/* Top Header - Clean, 4th image type icons removed */}
-        <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-[#E2E7EC] shrink-0 z-20 shadow-xs">
-          <div className="flex-1 max-w-2xl relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E] group-focus-within:text-[#0CAA41] transition-colors" />
-            <input 
-              type="text" 
-              placeholder="Search for videos, folders, tags, or people..." 
-              className="w-full pl-11 pr-4 py-2 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:bg-white focus:border-[#0CAA41] focus:ring-4 focus:ring-[#0CAA41]/10 outline-none transition-all placeholder:text-[#57636E] font-medium"
-            />
-          </div>
-          
-          {/* Header Action: Profile Avatar (Opens 5th Image Profile Flyout) */}
-          <div className="flex items-center ml-4 shrink-0">
-            <div 
-              onClick={() => setIsProfileOpen(true)}
-              className="w-9 h-9 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-sm font-bold cursor-pointer shadow-sm hover:scale-105 transition-transform ring-2 ring-[#E6F6EC]"
-              title="Open profile menu"
-            >
-              {profile.avatarText}
-            </div>
-          </div>
-        </header>
+        {/* Top Header - Unified Fixed h-16, Centered Search, Image 5 Avatar */}
+        <AppHeader 
+          placeholder="Search for videos, folders, tags, or people..."
+          onOpenProfile={() => setIsProfileOpen(true)}
+          onToggleMobileSidebar={() => setIsMobileMenuOpen(prev => !prev)}
+        />
 
         {/* Dashboard Content */}
         <div className="flex-1 overflow-y-auto flex flex-col items-center pt-10 px-8 relative custom-scrollbar min-h-0 bg-[#F5F6F8]">
@@ -200,12 +205,6 @@ export default function HomePage() {
               <span>Schedule Meeting</span>
             </button>
           </div>
-
-          {/* Hari's Insights Grid (Matching Image 5) */}
-          <HariInsights 
-            userName={profile.name.split(" ")[0]}
-            onStartRecord={() => setIsRecordModalOpen(true)}
-          />
 
         </div>
 

@@ -6,7 +6,7 @@ import {
   Search, ChevronLeft, ChevronRight, Calendar as CalendarLucide,
   Clock, ExternalLink, Plus, Copy, Check,
   CheckCircle2, Sparkles, Folder, Play, Info,
-  CalendarDays, ListFilter
+  CalendarDays, ListFilter, X
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, SettingsIcon,
@@ -15,6 +15,7 @@ import {
 import { getCourses } from "@/lib/api";
 import RcrdLogo from "@/components/RcrdLogo";
 import ProfileFlyout, { getStoredProfile, UserProfileData } from "@/components/ProfileFlyout";
+import AppHeader from "@/components/AppHeader";
 
 interface Course {
   id: string;
@@ -58,12 +59,12 @@ function makeGoogleCalendarUrl(m: Meeting, courseName?: string) {
     const roomUrl = `${origin}/meetings/room/${m.id}?role=participant`;
 
     const details = [
-      `📚 Class Meeting: ${m.title}`,
-      courseName ? `📁 Folder / Course: ${courseName}` : "",
-      `🔑 Meeting ID: ${m.id}`,
-      `🔒 Password: ${m.password}`,
-      `🌐 Join Live Classroom: ${roomUrl}`,
-      m.notes ? `\n📝 Notes:\n${m.notes}` : "",
+      `Class Meeting: ${m.title}`,
+      courseName ? `Folder / Course: ${courseName}` : "",
+      `Meeting ID: ${m.id}`,
+      `Password: ${m.password}`,
+      `Join Live Classroom: ${roomUrl}`,
+      m.notes ? `\nNotes:\n${m.notes}` : "",
       `\n(Opal Google Calendar integration)`
     ]
       .filter(Boolean)
@@ -133,6 +134,7 @@ export default function CalendarPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfileData>(getStoredProfile());
 
   useEffect(() => {
@@ -312,16 +314,36 @@ export default function CalendarPage() {
 
   return (
     <div className="flex h-screen w-full bg-[#FFFFFF] text-[#20262E] font-sans overflow-hidden antialiased">
-      {/* SIDEBAR */}
-      <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-[#E2E7EC] bg-white z-20 h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden">
+      {/* Mobile Drawer Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-xs transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* SIDEBAR - with Mobile Drawer Support */}
+      <aside className={`w-[280px] flex-shrink-0 flex-col border-r border-[#E2E7EC] bg-white h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden transition-all duration-300 ${
+        isMobileMenuOpen 
+          ? "fixed inset-y-0 left-0 flex z-50 shadow-2xl" 
+          : "hidden md:flex z-20"
+      }`}>
         {/* Brand Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-[#E2E7EC] flex-shrink-0">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div
-            className="flex items-center justify-center w-full cursor-pointer group"
-            onClick={() => router.push("/")}
+            className="flex items-center justify-start cursor-pointer group"
+            onClick={() => { router.push("/"); setIsMobileMenuOpen(false); }}
           >
-            <RcrdLogo className="h-8 w-auto" />
+            <RcrdLogo className="h-8 w-auto transition-transform group-hover:scale-105" />
           </div>
+          <button 
+            type="button"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="md:hidden p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Workspace Card */}
@@ -340,7 +362,7 @@ export default function CalendarPage() {
             </div>
           </div>
           <button
-            onClick={() => router.push("/settings?tab=users")}
+            onClick={() => { router.push("/settings?tab=users"); setIsMobileMenuOpen(false); }}
             className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-xs font-bold text-[#20262E] hover:text-[#20262E] transition-all shadow-xs cursor-pointer"
           >
             <UserIcon size={16} className="text-[#0CAA41]" />
@@ -373,7 +395,7 @@ export default function CalendarPage() {
         {/* Bottom Record Video button */}
         <div className="p-5 border-t border-[#E2E7EC] bg-[#F5F6F8]/50 flex-shrink-0">
           <button
-            onClick={() => router.push("/meetings?schedule=true")}
+            onClick={() => { router.push("/meetings?schedule=true"); setIsMobileMenuOpen(false); }}
             className="w-full bg-[#0CAA41] hover:bg-[#0C5325] text-white py-3.5 px-6 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(12, 170, 65,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(12, 170, 65,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <CalendarLucide size={18} className="text-white" />
@@ -384,29 +406,14 @@ export default function CalendarPage() {
 
       {/* MAIN CALENDAR CONTENT */}
       <main className="flex-1 flex flex-col h-full min-w-0 bg-white overflow-hidden">
-        {/* Top Header */}
-        <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-[#E2E7EC] shrink-0 z-10 flex-shrink-0">
-          <div className="flex-1 max-w-xl relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search class meetings by topic, ID, or notes..."
-              className="w-full pl-10 pr-4 py-2 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-[13px] text-[#20262E] placeholder:text-[#57636E] focus:bg-white focus:border-[#0CAA41] focus:ring-2 focus:ring-[#0CAA41]/15 outline-none transition-all font-medium"
-            />
-          </div>
-
-          <div className="flex items-center ml-6 shrink-0">
-            <div 
-              onClick={() => setIsProfileOpen(true)}
-              className="w-9 h-9 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-sm font-bold cursor-pointer shadow-sm hover:scale-105 transition-transform ring-2 ring-[#E6F6EC]"
-              title="Open profile menu"
-            >
-              {profile.avatarText}
-            </div>
-          </div>
-        </header>
+        {/* Top Header - Unified Fixed h-16, Centered Search, Image 5 Avatar */}
+        <AppHeader 
+          placeholder="Search class meetings by topic, ID, or notes..."
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onOpenProfile={() => setIsProfileOpen(true)}
+          onToggleMobileSidebar={() => setIsMobileMenuOpen(prev => !prev)}
+        />
 
         {/* CALENDAR BODY */}
         <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-6">
@@ -837,7 +844,7 @@ export default function CalendarPage() {
                           onClick={() => {
                             const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3001";
                             copyText(
-                              `📚 Class Meeting: ${m.title}\n📅 Date: ${fmtDate(m.scheduledAt)} at ${fmtTime(m.scheduledAt)}\n🔑 ID: ${m.id} | Pass: ${m.password}\n🌐 Link: ${origin}/meetings/room/${m.id}?role=participant`,
+                              `Class Meeting: ${m.title}\nDate: ${fmtDate(m.scheduledAt)} at ${fmtTime(m.scheduledAt)}\nID: ${m.id} | Pass: ${m.password}\nLink: ${origin}/meetings/room/${m.id}?role=participant`,
                               m.id
                             );
                           }}

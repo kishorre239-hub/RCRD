@@ -85,7 +85,7 @@ export default function BillingTab({
       } catch {}
 
       const planName = planId === 'business_ai' ? 'Business + AI' : 'Business';
-      showToast(`🎉 Upgraded to ${planName} for ${people} user${people > 1 ? 's' : ''}!`);
+      showToast(`Upgraded to ${planName} for ${people} user${people > 1 ? 's' : ''}!`);
     } catch (err: unknown) {
       console.warn("Upgrade note:", (err as Error)?.message);
       setCurrentPlanId(planId);

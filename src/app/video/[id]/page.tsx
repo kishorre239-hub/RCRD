@@ -12,6 +12,7 @@ import VideoPlayer from '@/components/VideoPlayer';
 import VideoEditorModal from '@/components/VideoEditorModal';
 import RcrdLogo from "@/components/RcrdLogo";
 import ProfileFlyout, { getStoredProfile, UserProfileData } from "@/components/ProfileFlyout";
+import UserAvatarIcon from "@/components/UserAvatarIcon";
 
 interface VideoComment {
   id: string;
@@ -316,21 +317,21 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
     <div className="h-full w-full bg-white text-[#20262E] flex flex-col overflow-y-auto custom-scrollbar font-jost">
 
       {/* Main Navbar */}
-      <header className="h-14 border-b border-[#E2E7EC] bg-white flex items-center justify-between px-4 shrink-0 sticky top-0 z-50">
-        <div className="flex items-center justify-center cursor-pointer group pl-12" onClick={() => router.push('/')}>
-          <RcrdLogo className="h-8 w-auto" />
+      <header className="h-16 border-b border-[#E2E7EC] bg-white flex items-center justify-between px-4 sm:px-6 shrink-0 sticky top-0 z-50">
+        <div className="flex items-center justify-center cursor-pointer group pl-2 sm:pl-6" onClick={() => router.push('/')}>
+          <RcrdLogo className="h-8 w-auto transition-transform group-hover:scale-105" />
         </div>
         
         <div className="flex items-center gap-3">
           {/* Action Buttons */}
-          <button className="hidden md:flex items-center gap-2 bg-[#0CAA41] hover:bg-[#0C5325] text-white px-3 py-1.5 rounded-full text-sm font-semibold transition-all shadow-sm hover:shadow">
+          <button className="hidden md:flex items-center gap-2 bg-[#0CAA41] hover:bg-[#0C5325] text-white px-3 py-1.5 rounded-full text-sm font-semibold transition-all shadow-sm hover:shadow cursor-pointer">
             <Share className="w-4 h-4" />
             Share
           </button>
           
           <button 
             onClick={handleCopyLink}
-            className="hidden md:flex items-center gap-2 bg-[#F3F4F6] hover:bg-gray-200 text-[#20262E] p-1.5 rounded-full transition-all hover:scale-105"
+            className="hidden md:flex items-center gap-2 bg-[#F3F4F6] hover:bg-gray-200 text-[#20262E] p-1.5 rounded-full transition-all hover:scale-105 cursor-pointer"
             title="Copy Link"
           >
             {copied ? <CheckCircle2 className="w-4 h-4 text-[#0CAA41]" /> : <LinkIcon className="w-4 h-4" />}
@@ -357,7 +358,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                 }
               } catch {}
             }}
-            className={`hidden md:flex items-center gap-2 p-1.5 px-3 rounded-full transition-all text-sm font-medium ${
+            className={`hidden md:flex items-center gap-2 p-1.5 px-3 rounded-full transition-all text-sm font-medium cursor-pointer ${
               isSaved ? "bg-[#E6F6EC] text-[#0CAA41] border border-[#0CAA41]/30" : "bg-[#F3F4F6] hover:bg-gray-200 text-[#20262E]"
             }`}
             title="Save to Watch Later"
@@ -365,20 +366,22 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
             <Bookmark className={`w-4 h-4 ${isSaved ? "fill-[#0CAA41] text-[#0CAA41]" : ""}`} /> {isSaved ? "Saved" : "Save"}
           </button>
 
-          <button className="p-1.5 hover:bg-gray-100 rounded-full text-[#57636E] transition-colors">
+          <button className="p-1.5 hover:bg-gray-100 rounded-full text-[#57636E] transition-colors cursor-pointer">
             <MoreHorizontal className="w-5 h-5" />
           </button>
 
           <div className="h-4 w-px bg-gray-300 mx-1 hidden md:block"></div>
           
-          {/* Avatar (Opens ProfileFlyout) */}
-          <div 
+          {/* Avatar (Opens ProfileFlyout with Image 5 icon) */}
+          <button 
+            type="button"
             onClick={() => setIsProfileOpen(true)}
-            className="w-8 h-8 bg-[#0CAA41] text-white rounded-full flex items-center justify-center text-xs font-bold ml-1 cursor-pointer hover:ring-2 ring-offset-2 ring-[#0CAA41] transition-all shadow-xs"
+            className="w-9 h-9 rounded-full flex items-center justify-center p-0.5 hover:scale-105 active:scale-95 transition-all cursor-pointer border border-[#E2E7EC] hover:border-[#0CAA41]/50 bg-white shadow-xs ml-1"
             title="Open profile menu"
+            aria-label="Open profile menu"
           >
-            {profile.avatarText}
-          </div>
+            <UserAvatarIcon size={30} className="w-7 h-7" />
+          </button>
         </div>
       </header>
 
@@ -504,7 +507,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
                   <div className="flex justify-between items-center text-[#57636E]">
                     <div className="flex items-center gap-2">
                       <button className="p-1 hover:text-white transition-colors">@</button>
-                      <button className="p-1 hover:text-white transition-colors">😊</button>
+                      <button className="p-1 hover:text-white transition-colors" title="Add emoji"><Smile className="w-4 h-4 text-[#57636E]" /></button>
                     </div>
                     <div className="flex items-center gap-3">
                       <button onClick={() => setIsComposingComment(false)} className="text-sm hover:text-white transition-colors">Cancel</button>

@@ -1,0 +1,50 @@
+{
+  "name": "RCRD - Video Recording & Collaboration",
+  "short_name": "RCRD",
+  "description": "Connect, Collaborate, Create - High-speed video recording, classroom meetings, and library platform.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#F5F6F8",
+  "theme_color": "#0CAA41",
+  "orientation": "any",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/ICONS/favicon-square.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/ICONS/COMPANY_NAME-cropped.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "video", "education"],
+  "shortcuts": [
+    {
+      "name": "Record Video",
+      "short_name": "Record",
+      "description": "Open recording studio",
+      "url": "/record",
+      "icons": [{ "src": "/ICONS/favicon-square.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Meetings",
+      "short_name": "Meetings",
+      "description": "Join or create meeting",
+      "url": "/meetings",
+      "icons": [{ "src": "/ICONS/favicon-square.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Video Library",
+      "short_name": "Library",
+      "description": "Browse your recorded videos",
+      "url": "/library",
+      "icons": [{ "src": "/ICONS/favicon-square.png", "sizes": "192x192" }]
+    }
+  ]
+}

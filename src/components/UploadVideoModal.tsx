@@ -314,10 +314,10 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
                       onChange={(e) => setSelectedCourseId(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-[#E2E7EC] focus:border-[#0CAA41] focus:ring-4 focus:ring-[#0CAA41]/10 outline-none text-sm text-[#20262E] font-semibold bg-white cursor-pointer appearance-none transition-all"
                     >
-                      <option value="root">📁 Default / Root Library</option>
+                      <option value="root">Default / Root Library</option>
                       {courses.map((c) => (
                         <option key={c.id} value={c.id}>
-                          📁 {c.name}
+                          {c.name}
                         </option>
                       ))}
                     </select>

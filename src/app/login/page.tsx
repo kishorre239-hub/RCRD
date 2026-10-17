@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Lock, Mail, Eye, EyeOff, CheckCircle2, AlertCircle, Sparkles } from "lucide-react";
+import { ArrowRight, Lock, Mail, Eye, EyeOff, AlertCircle, Sparkles } from "lucide-react";
 import RcrdLogo from "@/components/RcrdLogo";
 
 export default function LoginPage() {

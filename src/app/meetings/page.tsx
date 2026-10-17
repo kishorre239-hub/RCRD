@@ -20,6 +20,7 @@ import {
 import { getCourses } from "@/lib/api";
 import RcrdLogo from "@/components/RcrdLogo";
 import ProfileFlyout, { getStoredProfile, UserProfileData } from "@/components/ProfileFlyout";
+import AppHeader from "@/components/AppHeader";
 
 interface Course { id: string; name: string; }
 interface Meeting {
@@ -42,34 +43,6 @@ const DURATION_PRESETS = [
   { label: "1.5 hrs", value: 90 },
   { label: "2 hours", value: 120 },
   { label: "3 hours", value: 180 },
-];
-
-const AUTO_TOUR_STEPS = [
-  {
-    targetId: "tour-topic-folder",
-    title: "1. Topic & Google Drive Folder",
-    desc: "Set the meeting name and choose the Google Drive folder to store the recorded class and notes.",
-  },
-  {
-    targetId: "tour-presets",
-    title: "2. 1-Click Quick Presets",
-    desc: "Quickly set start time in 15 mins, 30 mins, 1 hour, or tomorrow with a single click.",
-  },
-  {
-    targetId: "tour-datetime",
-    title: "3. Start Date & Exact Time",
-    desc: "Pick your exact calendar date, hour, minute, and AM/PM time with plenty of spacing.",
-  },
-  {
-    targetId: "tour-duration",
-    title: "4. Meeting Duration (Session Length)",
-    desc: "Choose meeting length (15m, 1h, 2h) without any overlap or cramped dropdowns.",
-  },
-  {
-    targetId: "tour-summary",
-    title: "5. Live Schedule Overview",
-    desc: "Review meeting duration, start countdown, calculated end time, and destination folder in real-time.",
-  },
 ];
 
 // Sidebar Item declared outside render
@@ -119,6 +92,7 @@ export default function MeetingsPage() {
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [now, setNow] = useState<number>(0);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState<UserProfileData>(getStoredProfile());
 
   useEffect(() => {
@@ -457,7 +431,7 @@ export default function MeetingsPage() {
     if (isEarly) {
       const diffMs = startTime - Date.now();
       const diffMins = Math.ceil(diffMs / 60000);
-      showToast(`🔒 Meeting is scheduled for ${fmt(m.scheduledAt)} (Starts in ${diffMins}m). Joining waiting lobby...`);
+      showToast(`Meeting is scheduled for ${fmt(m.scheduledAt)} (Starts in ${diffMins}m). Joining waiting lobby...`);
     }
 
     router.push(`/meetings/room/${m.id}?role=participant&name=${encodeURIComponent(trimmedName)}`);
@@ -484,10 +458,32 @@ export default function MeetingsPage() {
   return (
     <div className="relative flex h-full w-full bg-[#F4F7FC] text-[#111827] font-sans overflow-hidden antialiased">
       
-      {/* Sidebar - Crisp Modern Zoom Light Mode */}
-      <aside className="w-[280px] flex-shrink-0 flex flex-col border-r border-[#E2E7EC]/90 bg-white z-20 h-full shadow-[2px_0_12px_rgba(0,0,0,0.03)] overflow-hidden">
-        <div className="h-16 flex items-center px-6 border-b border-[#E2E7EC] cursor-pointer group flex-shrink-0" onClick={() => router.push('/')}>
-          <RcrdLogo className="h-8 w-auto" />
+      {/* Mobile Drawer Backdrop */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-xs transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Crisp Modern Zoom Light Mode with Mobile Drawer Support */}
+      <aside className={`w-[280px] flex-shrink-0 flex-col border-r border-[#E2E7EC]/90 bg-white h-full shadow-[2px_0_12px_rgba(0,0,0,0.03)] overflow-hidden transition-all duration-300 ${
+        isMobileMenuOpen 
+          ? "fixed inset-y-0 left-0 flex z-50 shadow-2xl" 
+          : "hidden md:flex z-20"
+      }`}>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
+          <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
+            <RcrdLogo className="h-8 w-auto transition-transform group-hover:scale-105" />
+          </div>
+          <button 
+            type="button"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="md:hidden p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* User Workspace Profile */}
@@ -506,7 +502,10 @@ export default function MeetingsPage() {
             </div>
             <ChevronDown className="w-4 h-4 text-[#57636E] group-hover:text-[#57636E] transition-colors" />
           </div>
-          <button className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-xs font-bold text-[#20262E] hover:text-[#20262E] transition-all shadow-sm">
+          <button 
+            onClick={() => { router.push('/settings?tab=users'); setIsMobileMenuOpen(false); }}
+            className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-xs font-bold text-[#20262E] hover:text-[#20262E] transition-all shadow-sm cursor-pointer"
+          >
             <UsersIcon size={16} className="text-[#0CAA41]" />
             Invite Members
           </button>
@@ -526,7 +525,7 @@ export default function MeetingsPage() {
             <h3 className="px-3.5 text-[11px] font-extrabold uppercase tracking-wider text-[#57636E] mb-2">Workspace Admin</h3>
             <nav className="space-y-1.5">
               <SidebarItem icon={<UserIcon size={17} />} label="Manage Users" href="/settings?tab=users" />
-              <SidebarItem icon={<WorkspaceIcon size={17} />} label="Workspace Info" />
+              <SidebarItem icon={<WorkspaceIcon size={17} />} label="Workspace Info" href="/settings" />
               <SidebarItem icon={<Shield size={17} />} label="Billing & Plans" href="/settings?tab=billing" />
             </nav>
           </div>
@@ -535,8 +534,8 @@ export default function MeetingsPage() {
         {/* Schedule Meeting Button */}
         <div className="p-4 border-t border-[#E2E7EC] bg-[#F5F6F8]/50 flex-shrink-0">
           <button
-            onClick={openScheduleModal}
-            className="w-full bg-[#0CAA41] hover:bg-[#0C5325] text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all"
+            onClick={() => { openScheduleModal(); setIsMobileMenuOpen(false); }}
+            className="w-full bg-[#0CAA41] hover:bg-[#0C5325] text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
           >
             <Calendar size={15} className="text-white" />
             Schedule Meeting
@@ -547,29 +546,14 @@ export default function MeetingsPage() {
       {/* Main Meetings Area */}
       <main className="flex-1 flex flex-col h-full min-w-0 bg-[#F8FAFD] overflow-hidden">
         
-        {/* Header */}
-        <header className="h-16 flex items-center justify-between px-8 bg-white border-b border-[#E2E7EC]/80 shrink-0 z-10 shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex-shrink-0">
-          <div className="flex-1 max-w-xl relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search meetings by topic, ID, or mentor..."
-              className="w-full pl-10 pr-4 py-2 bg-[#F5F6F8] border border-[#E2E7EC] focus:border-[#0CAA41] focus:bg-white rounded-xl text-[13px] text-[#20262E] placeholder:text-[#57636E] focus:ring-2 focus:ring-[#0CAA41]/15 outline-none transition-all font-medium"
-            />
-          </div>
-
-          <div className="flex items-center ml-4 shrink-0">
-            <div 
-              onClick={() => setIsProfileOpen(true)}
-              className="w-9 h-9 rounded-full bg-[#0CAA41] text-white flex items-center justify-center text-sm font-bold cursor-pointer shadow-sm hover:scale-105 transition-transform ring-2 ring-[#E6F6EC]"
-              title="Open profile menu"
-            >
-              {profile.avatarText}
-            </div>
-          </div>
-        </header>
+        {/* Header - Unified Fixed h-16, Centered Search, Image 5 Avatar */}
+        <AppHeader 
+          placeholder="Search meetings by topic, ID, or mentor..."
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onOpenProfile={() => setIsProfileOpen(true)}
+          onToggleMobileSidebar={() => setIsMobileMenuOpen(prev => !prev)}
+        />
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
@@ -1367,11 +1351,11 @@ export default function MeetingsPage() {
       {showShare && (() => {
         const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
         const directMeetingLink = `${origin}/meeting/${showShare.id}?pwd=${encodeURIComponent(showShare.password)}`;
-        const msgText = `🎓 *Class Meeting Invitation*\n*Topic:* ${showShare.title}\n\n🔗 *Meeting Link:* ${directMeetingLink}\n📋 *Meeting ID:* ${showShare.id}\n🔑 *Passcode:* ${showShare.password}\n⏰ *Time:* ${fmt(showShare.scheduledAt)}\n⏱️ *Duration:* ${formatDuration(showShare.duration)}\n\n👉 Click the meeting link to join directly, or open the link and enter the Meeting ID & Passcode.`;
+        const msgText = `*Class Meeting Invitation*\n*Topic:* ${showShare.title}\n\n*Meeting Link:* ${directMeetingLink}\n*Meeting ID:* ${showShare.id}\n*Passcode:* ${showShare.password}\n*Time:* ${fmt(showShare.scheduledAt)}\n*Duration:* ${formatDuration(showShare.duration)}\n\nClick the meeting link to join directly, or open the link and enter the Meeting ID & Passcode.`;
         const waUrl = `https://wa.me/?text=${encodeURIComponent(msgText)}`;
         const emailSubject = encodeURIComponent(`Meeting Invite: ${showShare.title}`);
         const emailBody = encodeURIComponent(`Hello,\n\nYou are invited to join the class meeting session:\n\nTitle: ${showShare.title}\nMeeting Link: ${directMeetingLink}\nMeeting ID: ${showShare.id}\nPasscode: ${showShare.password}\nTime: ${fmt(showShare.scheduledAt)}\nDuration: ${formatDuration(showShare.duration)}\n\nClick the link to join directly or enter the Meeting ID & Passcode.\n\nSee you there!`);
-        const allText = `🎓 Class Meeting: ${showShare.title}\n\n🔗 Meeting Link: ${directMeetingLink}\n📋 Meeting ID: ${showShare.id}\n🔑 Passcode: ${showShare.password}\n⏰ Time: ${fmt(showShare.scheduledAt)}\n⏱️ Duration: ${formatDuration(showShare.duration)}\n\n👉 Join: ${directMeetingLink}`;
+        const allText = `Class Meeting: ${showShare.title}\n\nMeeting Link: ${directMeetingLink}\nMeeting ID: ${showShare.id}\nPasscode: ${showShare.password}\nTime: ${fmt(showShare.scheduledAt)}\nDuration: ${formatDuration(showShare.duration)}\n\nJoin: ${directMeetingLink}`;
         const courseName = courses.find(c => c.id === showShare.courseId)?.name;
 
         return (

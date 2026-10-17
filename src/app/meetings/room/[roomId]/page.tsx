@@ -539,7 +539,7 @@ export default function ClassRoomPage() {
           ctx.fillRect(40, 40, 1200, 640);
           ctx.fillStyle = "#0CAA41";
           ctx.font = "bold 32px sans-serif";
-          ctx.fillText("🖥️ Presentation Screen Share (Active Stream)", 80, 120);
+          ctx.fillText("Presentation Screen Share (Active Stream)", 80, 120);
           ctx.fillStyle = "#57636E";
           ctx.font = "20px sans-serif";
           ctx.fillText("Sharing classroom slides & notes live with attendees...", 80, 180);
@@ -1060,7 +1060,7 @@ export default function ClassRoomPage() {
               <h1 className="text-2xl font-black text-white tracking-tight mb-2">
                 {meeting?.title || "Class Meeting"}
               </h1>
-              {courseName && <p className="text-xs font-bold text-[#0CAA41]">📁 {courseName}</p>}
+              {courseName && <p className="text-xs font-bold text-[#0CAA41]">{courseName}</p>}
             </div>
 
             <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-5">
@@ -1090,7 +1090,7 @@ export default function ClassRoomPage() {
             </div>
 
             <button onClick={() => setBypassLobby(true)} className="w-full py-3 px-4 bg-gradient-to-r from-[#0CAA41] to-[#0C5325] hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
-              ⚡ Enter Classroom Immediately (Skip Waiting)
+              Enter Classroom Immediately (Skip Waiting)
             </button>
             <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-[#57636E]">
               <span>Joined as: <strong className="text-slate-300">{studentName}</strong></span>
@@ -1647,7 +1647,7 @@ export default function ClassRoomPage() {
                         const pwd = meeting?.password || "";
                         const directLink = pwd ? `${origin}/meeting/${roomId}?pwd=${encodeURIComponent(pwd)}` : `${origin}/meeting/${roomId}`;
                         const passInfo = pwd ? `\nPasscode: ${pwd}` : "";
-                        const info = `🎓 Class Meeting Invitation\nMeeting: ${meeting?.title || 'Class Room'}\n🔗 Direct Join Link: ${directLink}\n📋 Meeting ID: ${roomId}${passInfo}`;
+                        const info = `Class Meeting Invitation\nMeeting: ${meeting?.title || 'Class Room'}\nDirect Join Link: ${directLink}\nMeeting ID: ${roomId}${passInfo}`;
                         navigator.clipboard.writeText(info);
                         showToast("Meeting link & credentials copied! Share with your students.");
                       }}
@@ -2932,7 +2932,7 @@ export default function ClassRoomPage() {
                       >
                         <span className="font-medium">
                           {uploadCourse === "1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW" 
-                            ? "📁 MEETING (Google Drive)" 
+                            ? "MEETING (Google Drive)" 
                             : (uploadCourse ? (courses.find(c => c.id === uploadCourse)?.name || "Selected Folder") : "Library Root (no folder)")}
                         </span>
                         <ChevronDown size={16} className={`text-[#57636E] transition-transform ${isCourseDropdownOpen ? "rotate-180" : ""}`} />
@@ -2946,7 +2946,7 @@ export default function ClassRoomPage() {
                               onClick={() => { setUploadCourse("1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW"); setIsCourseDropdownOpen(false); }}
                               className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#0CAA41] hover:text-white transition-colors ${uploadCourse === "1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW" ? "bg-[#0CAA41] text-white" : "text-[#20262E]"}`}
                             >
-                              📁 MEETING (Google Drive)
+                              MEETING (Google Drive)
                             </button>
                             <button 
                               type="button"
@@ -2962,7 +2962,7 @@ export default function ClassRoomPage() {
                                 onClick={() => { setUploadCourse(c.id); setIsCourseDropdownOpen(false); }}
                                 className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#0CAA41] hover:text-white transition-colors ${uploadCourse === c.id ? "bg-[#0CAA41] text-white" : "text-[#20262E]"}`}
                               >
-                                📁 {c.name}
+                                {c.name}
                               </button>
                             ))}
                           </div>

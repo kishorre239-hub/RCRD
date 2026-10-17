@@ -416,7 +416,7 @@ export default function RecordPage() {
                             onClick={() => router.push('/settings?tab=billing')}
                             className="bg-[#0CAA41] hover:bg-[#0C5325] text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap shadow-sm"
                           >
-                            Upgrade Plan 💳
+                            Upgrade Plan
                           </button>
                         )}
                         <button 

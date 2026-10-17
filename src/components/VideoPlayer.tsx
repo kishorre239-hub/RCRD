@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Volume2, VolumeX, Maximize, Settings, AlertCircle } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Settings, AlertCircle, Zap } from 'lucide-react';
 
 interface VideoPlayerProps {
   src: string;
@@ -650,7 +650,7 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
           <div className="w-full h-px bg-white/10"></div>
           <div className="flex items-center justify-center gap-2 text-sm font-medium">
             <span className="text-white/50 line-through decoration-white/30">{Math.round(duration)} sec</span>
-            <span className="text-[#E6F6EC] text-lg">⚡</span>
+            <Zap size={14} className="text-[#0CAA41] fill-[#0CAA41]" />
             <span className="text-white font-bold">{Math.round(duration / playbackSpeed)} sec</span>
           </div>
         </div>

@@ -217,19 +217,31 @@ export function deleteBackupMeeting(id: string): boolean {
   return false;
 }
 
+function cleanParticipantName(name: string): string {
+  return (name || '')
+    .replace(/\s*\((Student|Host|You)\)/gi, '')
+    .trim()
+    .toLowerCase();
+}
+
 export function getMeetingParticipants(meetingId: string): StoredParticipant[] {
   const room = participantsMemory[meetingId];
   if (!room) return [];
-  const cutoff = Date.now() - 35000; // prune participants inactive > 35s
-  const active: StoredParticipant[] = [];
+  const cutoff = Date.now() - 15000; // prune participants inactive > 15s
+  const activeMap = new Map<string, StoredParticipant>();
+
   for (const [id, p] of Object.entries(room)) {
     if (p.lastPing >= cutoff) {
-      active.push(p);
+      // Normalize name to deduplicate multiple tabs / reconnection instances
+      const key = cleanParticipantName(p.name);
+      if (!activeMap.has(key) || (activeMap.get(key)!.lastPing < p.lastPing)) {
+        activeMap.set(key, p);
+      }
     } else {
       delete room[id];
     }
   }
-  return active;
+  return Array.from(activeMap.values());
 }
 
 export function updateMeetingParticipant(
@@ -240,9 +252,18 @@ export function updateMeetingParticipant(
     participantsMemory[meetingId] = {};
   }
   const room = participantsMemory[meetingId];
+
+  // DEDUPLICATION: remove any older session for the exact same student/host name
+  const cleanName = cleanParticipantName(participant.name);
+  for (const [existingId, p] of Object.entries(room)) {
+    if (existingId !== participant.id && cleanParticipantName(p.name) === cleanName) {
+      delete room[existingId];
+    }
+  }
+
   const existing = room[participant.id];
   const role = participant.role || existing?.role || (participant.id === 'host' ? 'Host' : 'Student');
-  const avatar = participant.avatar || existing?.avatar || participant.name.charAt(0).toUpperCase();
+  const avatar = participant.avatar || existing?.avatar || participant.name.substring(0, 2).toUpperCase();
 
   room[participant.id] = {
     ...existing,
@@ -258,8 +279,12 @@ export function updateMeetingParticipant(
 }
 
 export function removeMeetingParticipant(meetingId: string, participantId: string): StoredParticipant[] {
-  if (participantsMemory[meetingId] && participantsMemory[meetingId][participantId]) {
+  if (participantsMemory[meetingId]) {
     delete participantsMemory[meetingId][participantId];
+    // Also remove any entries matching the participant ID or name
+    for (const [id, p] of Object.entries(participantsMemory[meetingId])) {
+      if (id === participantId) delete participantsMemory[meetingId][id];
+    }
   }
   return getMeetingParticipants(meetingId);
 }

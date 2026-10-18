@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     const workspaces = await workspacesCol.find({}).toArray();
 
     return NextResponse.json(workspaces);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching workspaces:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(newWorkspace);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error creating workspace:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

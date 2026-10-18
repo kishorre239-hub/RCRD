@@ -2,13 +2,12 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import Image from "next/image";
 import RcrdLogo from "@/components/RcrdLogo";
 import {
-  Calendar, Clock, Lock, User, Video, Play,
+  Calendar, Clock, Lock, User, Video,
   CheckCircle2, AlertCircle, Eye, EyeOff, Copy,
-  Check, Folder, ArrowRight, Shield, Sparkles,
-  ChevronRight, RefreshCw, HelpCircle
+  Check, ArrowRight, Shield, Sparkles,
+  ChevronRight, RefreshCw
 } from "lucide-react";
 
 interface MeetingData {
@@ -34,35 +33,28 @@ function JoinMeetingContent() {
   const [loadingMeeting, setLoadingMeeting] = useState(true);
   const [meetingNotFound, setMeetingNotFound] = useState(false);
 
-  const [studentName, setStudentName] = useState("");
+  const [studentName, setStudentName] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("rcrd_student_name") || "";
+      } catch {}
+    }
+    return "";
+  });
   const [password, setPassword] = useState(initialPwd);
   const [showPwd, setShowPwd] = useState(false);
 
   const [joining, setJoining] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [now, setNow] = useState<number>(Date.now());
+  const [now, setNow] = useState<number>(0);
 
   // Clock tick for countdown
   useEffect(() => {
+    setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Pre-fill student name from localStorage if available
-  useEffect(() => {
-    try {
-      const savedName = localStorage.getItem("rcrd_student_name");
-      if (savedName) setStudentName(savedName);
-    } catch {}
-  }, []);
-
-  // Update password state if query parameter changes
-  useEffect(() => {
-    if (initialPwd && !password) {
-      setPassword(initialPwd);
-    }
-  }, [initialPwd, password]);
 
   // Fetch meeting details
   const fetchMeetingInfo = useCallback(async () => {
@@ -217,9 +209,6 @@ function JoinMeetingContent() {
       // Redirect into the classroom
       const targetUrl = `/meetings/room/${encodeURIComponent(meetingId)}?role=participant&name=${encodeURIComponent(trimmedName)}`;
       router.push(targetUrl);
-      if (typeof window !== "undefined") {
-        window.location.href = targetUrl;
-      }
     } catch (err: unknown) {
       setJoining(false);
       // Fallback check against cached meeting if API is unreachable
@@ -233,9 +222,6 @@ function JoinMeetingContent() {
           sessionStorage.setItem(`participant_name_${meetingId}`, trimmedName);
           const targetUrl = `/meetings/room/${encodeURIComponent(meetingId)}?role=participant&name=${encodeURIComponent(trimmedName)}`;
           router.push(targetUrl);
-          if (typeof window !== "undefined") {
-            window.location.href = targetUrl;
-          }
           return;
         } else {
           setErrorMsg("Invalid meeting passcode. Please check and try again.");

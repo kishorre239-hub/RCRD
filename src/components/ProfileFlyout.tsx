@@ -44,9 +44,9 @@ export default function ProfileFlyout({
   videoCount = 4
 }: ProfileFlyoutProps) {
   const router = useRouter();
-  const [profile, setProfile] = useState<UserProfileData>(DEFAULT_PROFILE);
+  const [profile, setProfile] = useState<UserProfileData>(getStoredProfile);
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState<UserProfileData>(DEFAULT_PROFILE);
+  const [editForm, setEditForm] = useState<UserProfileData>(getStoredProfile);
 
   // Secondary modals
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -61,10 +61,6 @@ export default function ProfileFlyout({
   };
 
   useEffect(() => {
-    const p = getStoredProfile();
-    setProfile(p);
-    setEditForm(p);
-
     const handleUpdate = () => {
       const up = getStoredProfile();
       setProfile(up);

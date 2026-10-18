@@ -26,7 +26,13 @@ export default function PwaInstallPrompt() {
     return window.matchMedia('(display-mode: standalone)').matches || 
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
   });
-  const [selectedPlatform, setSelectedPlatform] = useState<'android' | 'iphone'>('android');
+  const [selectedPlatform, setSelectedPlatform] = useState<'android' | 'iphone'>(() => {
+    if (typeof navigator !== 'undefined') {
+      const userAgent = navigator.userAgent.toLowerCase();
+      return /iphone|ipad|ipod/.test(userAgent) ? 'iphone' : 'android';
+    }
+    return 'android';
+  });
   const [hasPromptedOnce, setHasPromptedOnce] = useState(false);
 
   useEffect(() => {
@@ -39,12 +45,7 @@ export default function PwaInstallPrompt() {
       });
     }
 
-    // 2. Detect user platform
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isIOS = /iphone|ipad|ipod/.test(userAgent);
-    setSelectedPlatform(isIOS ? 'iphone' : 'android');
-
-    // 4. Capture BeforeInstallPromptEvent (Android & Chrome)
+    // 2. Capture BeforeInstallPromptEvent (Android & Chrome)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -52,7 +53,7 @@ export default function PwaInstallPrompt() {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // 5. Check if user dismissed prompt previously
+    // 3. Check if user dismissed prompt previously
     const dismissedAt = localStorage.getItem('rcrd_pwa_dismissed');
     const dismissedTime = dismissedAt ? parseInt(dismissedAt, 10) : 0;
     const now = Date.now();
@@ -73,7 +74,7 @@ export default function PwaInstallPrompt() {
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
-  }, []);
+  }, [isInstalled]);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {

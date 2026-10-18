@@ -1058,17 +1058,23 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
 
         // Auto-heal Google Drive file mimeType if stored as application/octet-stream so Google Drive native video player works
         if (f.id && f.mimeType === 'application/octet-stream' && (hasVideoExt || isLikelyRecording)) {
+          const targetFileId = f.id;
           (async () => {
             try {
-              const dlStream = (await drive.files.get({ fileId: f.id, alt: 'media' }, { responseType: 'stream' })).data;
+              const res = await drive.files.get(
+                { fileId: targetFileId, alt: 'media', supportsAllDrives: true },
+                { responseType: 'stream' }
+              );
+              // @ts-expect-error - googleapis stream type
+              const bodyStream = res.data;
               await drive.files.update({
-                fileId: f.id,
+                fileId: targetFileId,
                 media: {
                   mimeType: 'video/webm',
-                  body: dlStream,
+                  body: bodyStream,
                 },
                 supportsAllDrives: true,
-              });
+              } as drive_v3.Params$Resource$Files$Update);
             } catch (mimeFixErr: unknown) {
               console.warn('Auto-heal drive mimeType notice:', (mimeFixErr as Error)?.message);
             }

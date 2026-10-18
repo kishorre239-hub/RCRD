@@ -11,7 +11,7 @@ import { getVideo, updateVideo, incrementVideoView, addVideoComment, deleteVideo
 import VideoPlayer from '@/components/VideoPlayer';
 import VideoEditorModal from '@/components/VideoEditorModal';
 import RcrdLogo from "@/components/RcrdLogo";
-import ProfileFlyout, { getStoredProfile, UserProfileData } from "@/components/ProfileFlyout";
+import ProfileFlyout from "@/components/ProfileFlyout";
 import UserAvatarIcon from "@/components/UserAvatarIcon";
 
 interface VideoComment {

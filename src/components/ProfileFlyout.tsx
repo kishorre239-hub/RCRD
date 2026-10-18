@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   X, Check, ExternalLink, Sparkles, User, CreditCard, 
-  Keyboard, Download, Smartphone, LogOut, Edit3, Shield, Mail, Briefcase
+  Keyboard, Download, Smartphone, LogOut, Edit3
 } from "lucide-react";
 
 interface ProfileFlyoutProps {

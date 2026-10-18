@@ -19,7 +19,7 @@ import {
 
 import { getCourses } from "@/lib/api";
 import RcrdLogo from "@/components/RcrdLogo";
-import ProfileFlyout, { getStoredProfile, UserProfileData } from "@/components/ProfileFlyout";
+import ProfileFlyout from "@/components/ProfileFlyout";
 import AppHeader from "@/components/AppHeader";
 
 interface Course { id: string; name: string; }

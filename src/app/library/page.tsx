@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Search, Video, Folder, Plus, MoreVertical, MoreHorizontal,
+  Video, Folder, Plus, MoreVertical, MoreHorizontal,
   Share2, Shield,
   ChevronDown, MessageSquare, Eye, Link as LinkIcon,
   Pin, Globe, Lock, ArrowLeft,
@@ -16,7 +16,7 @@ import {
 import { getVideos, getCourses, createCourse, renameCourse, deleteCourse, deleteVideo, updateVideo, syncVideos, addVideoComment, uploadVideo, API_URL } from "@/lib/api";
 import RecordingSetupModal from "@/components/RecordingSetupModal";
 import RcrdLogo from "@/components/RcrdLogo";
-import ProfileFlyout, { getStoredProfile, UserProfileData } from "@/components/ProfileFlyout";
+import ProfileFlyout from "@/components/ProfileFlyout";
 import AppHeader from "@/components/AppHeader";
 
 interface CommentData {
@@ -62,13 +62,6 @@ export default function LibraryPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [profile, setProfile] = useState<UserProfileData>(getStoredProfile());
-
-  useEffect(() => {
-    const handleUpdate = () => setProfile(getStoredProfile());
-    window.addEventListener("rcrd_profile_updated", handleUpdate);
-    return () => window.removeEventListener("rcrd_profile_updated", handleUpdate);
-  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.search.includes('record=true')) {

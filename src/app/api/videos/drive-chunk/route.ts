@@ -72,6 +72,28 @@ export async function PUT(req: Request) {
         }
       }
 
+      // Guarantee Google Drive native web player support: ensure mimeType is video/webm
+      const rawDriveMime = String(driveData.mimeType || '');
+      if (driveFileId && (!rawDriveMime || !rawDriveMime.startsWith('video/'))) {
+        try {
+          const { getDriveClient } = await import('@/lib/server/drive');
+          const driveClient = await getDriveClient();
+          if (driveClient) {
+            const dlStream = (await driveClient.files.get({ fileId: driveFileId, alt: 'media' }, { responseType: 'stream' })).data;
+            await driveClient.files.update({
+              fileId: driveFileId,
+              media: {
+                mimeType: 'video/webm',
+                body: dlStream,
+              },
+              supportsAllDrives: true,
+            });
+          }
+        } catch (mimeFixErr) {
+          console.warn('Drive chunk MIME healing notice:', mimeFixErr);
+        }
+      }
+
       if (videoId) {
         try {
           const videosCol = await getCollection<Video>('videos');

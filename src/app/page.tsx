@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Search, Video, 
   Share2, Shield,
   ChevronDown, Upload, Calendar, X
 } from "lucide-react";
@@ -12,12 +11,11 @@ import {
   UsersIcon, UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 import Image from "next/image";
-import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import RecordingSetupModal from "@/components/RecordingSetupModal";
 import UploadVideoModal from "@/components/UploadVideoModal";
 import RcrdLogo from "@/components/RcrdLogo";
-import ProfileFlyout, { getStoredProfile } from "@/components/ProfileFlyout";
+import ProfileFlyout from "@/components/ProfileFlyout";
 import AppHeader from "@/components/AppHeader";
 
 export default function HomePage() {
@@ -28,15 +26,6 @@ export default function HomePage() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [profile, setProfile] = useState(getStoredProfile());
-
-  useEffect(() => {
-    const handleProfileUpdate = () => {
-      setProfile(getStoredProfile());
-    };
-    window.addEventListener("rcrd_profile_updated", handleProfileUpdate);
-    return () => window.removeEventListener("rcrd_profile_updated", handleProfileUpdate);
-  }, []);
 
   return (
     <div className="relative flex h-full w-full bg-[#F5F6F8] text-[#20262E] font-sans overflow-hidden selection:bg-[#154360]/20">

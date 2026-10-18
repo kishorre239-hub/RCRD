@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Search, Video, Folder, 
+  Video, Folder, 
   Share2, Shield,
   ChevronDown, MessageSquare, Eye, Link as LinkIcon,
   Pin, Archive, Globe, Lock, CheckCircle2,
@@ -16,7 +16,7 @@ import {
 import { getVideos, deleteVideo, updateVideo, syncVideos, addVideoComment, API_URL } from "@/lib/api";
 import RecordingSetupModal from "@/components/RecordingSetupModal";
 import RcrdLogo from "@/components/RcrdLogo";
-import ProfileFlyout, { getStoredProfile, UserProfileData } from "@/components/ProfileFlyout";
+import ProfileFlyout from "@/components/ProfileFlyout";
 import AppHeader from "@/components/AppHeader";
 
 interface Comment {
@@ -55,13 +55,6 @@ export default function WatchLaterPage() {
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [profile, setProfile] = useState<UserProfileData>(getStoredProfile());
-
-  useEffect(() => {
-    const handleUpdate = () => setProfile(getStoredProfile());
-    window.addEventListener("rcrd_profile_updated", handleUpdate);
-    return () => window.removeEventListener("rcrd_profile_updated", handleUpdate);
-  }, []);
   
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [courses] = useState<Course[]>([]);

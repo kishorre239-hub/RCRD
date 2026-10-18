@@ -72,6 +72,11 @@ export default function RecordingSetupModal({
   const [countdown, setCountdown] = useState(3);
   const [timer, setTimer] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const startTimeRef = useRef<number>(0);
+  const pauseTimeRef = useRef<number>(0);
+  const totalPausedDurationRef = useRef<number>(0);
+  const pipWindowRef = useRef<Window | null>(null);
+  const hasPipSupport = typeof window !== 'undefined' && 'documentPictureInPicture' in window;
 
   // Streams & Blob
   const [displayStream, setDisplayStream] = useState<MediaStream | null>(null);
@@ -247,6 +252,10 @@ export default function RecordingSetupModal({
         return;
       }
     }
+    if (pipWindowRef.current && !pipWindowRef.current.closed) {
+      try { pipWindowRef.current.close(); } catch {}
+      pipWindowRef.current = null;
+    }
     cleanupStreams();
     if (recordedVideoUrl) {
       URL.revokeObjectURL(recordedVideoUrl);
@@ -256,6 +265,8 @@ export default function RecordingSetupModal({
     setPhase('configuring');
     setIsPaused(false);
     setTimer(0);
+    startTimeRef.current = 0;
+    totalPausedDurationRef.current = 0;
     onClose();
   };
 
@@ -264,6 +275,10 @@ export default function RecordingSetupModal({
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
+    }
+    if (pipWindowRef.current && !pipWindowRef.current.closed) {
+      try { pipWindowRef.current.close(); } catch {}
+      pipWindowRef.current = null;
     }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       try {
@@ -276,6 +291,14 @@ export default function RecordingSetupModal({
 
   // Cancel recording and close
   const cancelRecording = () => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+    if (pipWindowRef.current && !pipWindowRef.current.closed) {
+      try { pipWindowRef.current.close(); } catch {}
+      pipWindowRef.current = null;
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.onstop = null;
       try {
@@ -286,6 +309,8 @@ export default function RecordingSetupModal({
     setPhase('configuring');
     setIsPaused(false);
     setTimer(0);
+    startTimeRef.current = 0;
+    totalPausedDurationRef.current = 0;
     onClose();
   };
 
@@ -499,8 +524,121 @@ export default function RecordingSetupModal({
     }
   };
 
-  // Skip countdown immediately
-  const skipCountdown = (recorderInstance?: MediaRecorder | null) => {
+  // High-precision elapsed time calculation resilient to background tab throttling
+  const updateTimer = useCallback(() => {
+    if (startTimeRef.current > 0 && !isPaused) {
+      const now = Date.now();
+      const elapsed = Math.max(0, Math.floor((now - startTimeRef.current - totalPausedDurationRef.current) / 1000));
+      setTimer(elapsed);
+    }
+  }, [isPaused]);
+
+  // Toggle pause / resume with exact pause-duration subtraction
+  const togglePause = useCallback(() => {
+    if (!mediaRecorderRef.current) return;
+    if (isPaused) {
+      mediaRecorderRef.current.resume();
+      if (pauseTimeRef.current > 0) {
+        totalPausedDurationRef.current += (Date.now() - pauseTimeRef.current);
+        pauseTimeRef.current = 0;
+      }
+      setIsPaused(false);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = setInterval(() => {
+        if (startTimeRef.current > 0) {
+          const now = Date.now();
+          const elapsed = Math.max(0, Math.floor((now - startTimeRef.current - totalPausedDurationRef.current) / 1000));
+          setTimer(elapsed);
+        }
+      }, 500);
+    } else {
+      mediaRecorderRef.current.pause();
+      pauseTimeRef.current = Date.now();
+      setIsPaused(true);
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    }
+  }, [isPaused]);
+
+  // Open Document Picture-in-Picture window (always on top across desktop applications)
+  const openPipController = useCallback(async () => {
+    try {
+      if (typeof window !== 'undefined' && 'documentPictureInPicture' in window) {
+        // @ts-expect-error - Document Picture-in-Picture API
+        const pip = await window.documentPictureInPicture.requestWindow({
+          width: 380,
+          height: 85,
+        });
+        pipWindowRef.current = pip;
+
+        // Copy styles
+        Array.from(document.styleSheets).forEach(sheet => {
+          try {
+            const rules = Array.from(sheet.cssRules).map(r => r.cssText).join('');
+            const style = document.createElement('style');
+            style.textContent = rules;
+            pip.document.head.appendChild(style);
+          } catch {
+            if (sheet.href) {
+              const link = document.createElement('link');
+              link.rel = 'stylesheet';
+              link.href = sheet.href;
+              pip.document.head.appendChild(link);
+            }
+          }
+        });
+
+        pip.document.body.style.margin = '0';
+        pip.document.body.style.background = '#1E1E24';
+        pip.document.body.style.overflow = 'hidden';
+        pip.document.body.style.display = 'flex';
+        pip.document.body.style.alignItems = 'center';
+        pip.document.body.style.justifyContent = 'center';
+        pip.document.body.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+
+        const curTimeStr = `${Math.floor(timer / 60).toString().padStart(2, '0')}:${(timer % 60).toString().padStart(2, '0')}`;
+        pip.document.body.innerHTML = `
+          <div style="display:flex;align-items:center;gap:12px;color:white;padding:10px 16px;background:#1E1E24;border-radius:16px;user-select:none;width:100%;justify-content:center;">
+            <div style="display:flex;align-items:center;gap:6px;padding-right:10px;border-right:1px solid rgba(255,255,255,0.2);">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px #ef4444;"></span>
+              <span style="font-weight:bold;font-size:11px;color:#f87171;">REC</span>
+              <span id="pip-timer-display" style="font-family:monospace;font-weight:bold;font-size:13px;min-width:44px;">${curTimeStr}</span>
+            </div>
+            <button id="pip-pause-btn" style="background:rgba(255,255,255,0.15);border:none;color:white;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:bold;cursor:pointer;">
+              ${isPaused ? "▶ Resume" : "⏸ Pause"}
+            </button>
+            <button id="pip-stop-btn" style="background:#ef4444;border:none;color:white;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(239,68,68,0.5);">
+              ⏹ Stop & Save
+            </button>
+          </div>
+        `;
+
+        const pBtn = pip.document.getElementById('pip-pause-btn');
+        if (pBtn) {
+          pBtn.onclick = () => togglePause();
+        }
+        const sBtn = pip.document.getElementById('pip-stop-btn');
+        if (sBtn) {
+          sBtn.onclick = () => {
+            stopRecording();
+            try { pip.close(); } catch {}
+            window.focus();
+          };
+        }
+
+        pip.addEventListener('pagehide', () => {
+          pipWindowRef.current = null;
+        });
+      }
+    } catch (err) {
+      console.warn('Document Picture-in-Picture optional note:', err);
+    }
+  }, [isPaused, timer, stopRecording, togglePause]);
+
+  // Skip countdown immediately and start recording
+  const skipCountdown = useCallback((recorderInstance?: MediaRecorder | null) => {
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
@@ -514,33 +652,89 @@ export default function RecordingSetupModal({
         rec.start();
       }
       setPhase('recording');
+      startTimeRef.current = Date.now();
+      totalPausedDurationRef.current = 0;
       setTimer(0);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = setInterval(() => {
-        setTimer(prev => prev + 1);
-      }, 1000);
-    } else {
+        if (startTimeRef.current > 0) {
+          const now = Date.now();
+          const elapsed = Math.max(0, Math.floor((now - startTimeRef.current - totalPausedDurationRef.current) / 1000));
+          setTimer(elapsed);
+        }
+      }, 500);
+
+      // Offer / auto-open Picture-in-Picture on desktop so controller is always visible across windows
+      if (typeof window !== 'undefined' && 'documentPictureInPicture' in window) {
+        openPipController().catch(() => {});
+      }
+    } else if (rec && rec.state === 'recording') {
       setPhase('recording');
     }
-  };
+  }, [openPipController]);
 
-  // Toggle pause
-  const togglePause = () => {
-    if (!mediaRecorderRef.current) return;
-    if (isPaused) {
-      mediaRecorderRef.current.resume();
-      setIsPaused(false);
-      timerIntervalRef.current = setInterval(() => {
-        setTimer(prev => prev + 1);
-      }, 1000);
-    } else {
-      mediaRecorderRef.current.pause();
-      setIsPaused(true);
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
-      }
+  // Sync timer & state into Document Picture-in-Picture window
+  useEffect(() => {
+    if (pipWindowRef.current && !pipWindowRef.current.closed) {
+      const m = Math.floor(timer / 60).toString().padStart(2, '0');
+      const s = (timer % 60).toString().padStart(2, '0');
+      const timerEl = pipWindowRef.current.document.getElementById('pip-timer-display');
+      if (timerEl) timerEl.textContent = `${m}:${s}`;
+      const pauseEl = pipWindowRef.current.document.getElementById('pip-pause-btn');
+      if (pauseEl) pauseEl.textContent = isPaused ? "▶ Resume" : "⏸ Pause";
     }
-  };
+  }, [timer, isPaused]);
+
+  // Window focus & tab visibility recovery
+  useEffect(() => {
+    if (phase !== 'recording') return;
+
+    const handleSync = () => {
+      updateTimer();
+    };
+
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('blur', handleSync);
+    document.addEventListener('visibilitychange', handleSync);
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Recording in progress. Are you sure you want to exit?';
+      return e.returnValue;
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('blur', handleSync);
+      document.removeEventListener('visibilitychange', handleSync);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [phase, isPaused, updateTimer]);
+
+  // Dynamic browser tab title with live recording time
+  useEffect(() => {
+    if (phase === 'recording') {
+      const origTitle = document.title;
+      const m = Math.floor(timer / 60).toString().padStart(2, '0');
+      const s = (timer % 60).toString().padStart(2, '0');
+      document.title = `● REC (${m}:${s}) - RCRD`;
+      return () => {
+        document.title = origTitle;
+      };
+    }
+  }, [phase, timer]);
+
+  // If tab becomes hidden during countdown, immediately skip countdown to start recording without waiting
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden' && (phase === 'countdown' || phase === 'requesting')) {
+        skipCountdown();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [phase, skipCountdown]);
 
   // Handle local file selection
   const handleFileSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -618,7 +812,8 @@ export default function RecordingSetupModal({
     return `${m}:${s}`;
   };
 
-  if (!isOpen) return null;
+  // NEVER unmount or hide if active recording, countdown, saving, or uploading is in progress!
+  if (!isOpen && phase === 'configuring') return null;
 
   return (
     <>
@@ -924,8 +1119,59 @@ export default function RecordingSetupModal({
       {/* ── PHASE 3: RECORDING IN PROGRESS FLOATING DOCK & CONTROLS ── */}
       {phase === 'recording' && (
         <>
-          {/* PRIMARY: Floating Bottom Control Dock Bar (Centered, Ultra-Visible) */}
-          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[99999] bg-[#1E1E24]/95 backdrop-blur-xl border border-white/15 shadow-[0_20px_60px_rgba(0,0,0,0.5)] px-5 py-3 rounded-2xl flex items-center gap-4 text-white select-none animate-in fade-in slide-in-from-bottom-4 duration-300">
+          {/* TOP EMERGENCY LIVE RECORDING BAR (Full-width, impossible to hide or miss on screen) */}
+          <div className="fixed top-0 left-0 right-0 z-[999999] bg-[#1E1E24]/95 text-white backdrop-blur-xl border-b border-red-500/50 shadow-2xl px-5 py-2.5 flex items-center justify-between select-none font-sans">
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+              </span>
+              <span className="text-xs font-black tracking-widest text-red-400 uppercase">RECORDING ACTIVE</span>
+              <span className="text-sm font-mono font-bold bg-white/10 px-2 py-0.5 rounded text-white min-w-[50px] text-center">
+                {formatRecTime(timer)}
+              </span>
+              <span className="hidden sm:inline text-xs text-white/70 font-medium">
+                • Screen & Voice capture running (Safe to switch to any window)
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {hasPipSupport && (
+                <button
+                  type="button"
+                  onClick={openPipController}
+                  className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                  title="Float controller over any other application on your desktop"
+                >
+                  <ExternalLink size={13} />
+                  <span>Float on Screen</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={togglePause}
+                className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                title={isPaused ? "Resume Recording" : "Pause Recording"}
+              >
+                {isPaused ? <Play size={13} fill="white" /> : <Pause size={13} fill="white" />}
+                <span>{isPaused ? "Resume" : "Pause"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={stopRecording}
+                className="px-4 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 active:bg-red-700 text-white flex items-center gap-1.5 text-xs font-extrabold transition-all cursor-pointer shadow-[0_2px_12px_rgba(239,68,68,0.5)]"
+                title="Finish & Save Recording"
+              >
+                <Square size={13} fill="white" />
+                <span>Stop & Save</span>
+              </button>
+            </div>
+          </div>
+
+          {/* PRIMARY: Floating Bottom Control Dock Bar (Centered, Ultra-Visible, z-[999999]) */}
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[999999] bg-[#1E1E24]/95 backdrop-blur-xl border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.6)] px-5 py-3 rounded-2xl flex items-center gap-4 text-white select-none">
             
             {/* Live recording indicator & Time */}
             <div className="flex items-center gap-2.5 pr-2 border-r border-white/15">
@@ -938,6 +1184,19 @@ export default function RecordingSetupModal({
                 {formatRecTime(timer)}
               </span>
             </div>
+
+            {/* Float on Desktop (Picture-in-Picture) Button */}
+            {hasPipSupport && (
+              <button
+                type="button"
+                onClick={openPipController}
+                className="px-2.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 flex items-center gap-1.5 text-xs font-semibold text-white/90 hover:text-white transition-all cursor-pointer active:scale-95"
+                title="Float controller over other desktop windows"
+              >
+                <ExternalLink size={14} />
+                <span className="hidden sm:inline text-[11px]">Float</span>
+              </button>
+            )}
 
             {/* Pause / Resume Button */}
             <button
@@ -986,7 +1245,7 @@ export default function RecordingSetupModal({
           </div>
 
           {/* SECONDARY: Left-edge vertical pill bar for Loom-style muscle memory */}
-          <div className="fixed left-5 top-1/2 -translate-y-1/2 z-[99999] bg-[#1E1E24]/95 backdrop-blur-xl text-white rounded-2xl p-2.5 flex flex-col items-center gap-3 shadow-2xl border border-white/15 select-none">
+          <div className="fixed left-5 top-1/2 -translate-y-1/2 z-[999999] bg-[#1E1E24]/95 backdrop-blur-xl text-white rounded-2xl p-2.5 flex flex-col items-center gap-3 shadow-2xl border border-white/15 select-none">
             {/* Red Stop Recording Button */}
             <button
               type="button"

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight, Video, ArrowRight, Sparkles, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, Play } from "lucide-react";
 
 interface HariInsightsProps {
   userName?: string;

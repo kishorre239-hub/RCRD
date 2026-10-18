@@ -5,8 +5,6 @@ import {
   Monitor, 
   Video, 
   Mic, 
-  HelpCircle, 
-  Home, 
   Globe, 
   Lock, 
   Unlock, 
@@ -26,7 +24,6 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { uploadVideo, getCourses } from '@/lib/api';
-import RcrdLogo from '@/components/RcrdLogo';
 
 interface FolderOption {
   id: string;
@@ -572,10 +569,18 @@ export default function RecordingSetupModal({
     }
   }, [isPaused]);
 
+  const togglePauseRef = useRef(togglePause);
+  togglePauseRef.current = togglePause;
+
   // Open Document Picture-in-Picture window (always on top across desktop applications)
   const openPipController = useCallback(async () => {
     try {
       if (typeof window !== 'undefined' && 'documentPictureInPicture' in window) {
+        if (pipWindowRef.current && !pipWindowRef.current.closed) {
+          pipWindowRef.current.focus();
+          return;
+        }
+
         // @ts-expect-error - Document Picture-in-Picture API
         const pip = await window.documentPictureInPicture.requestWindow({
           width: 380,
@@ -616,17 +621,16 @@ export default function RecordingSetupModal({
         pip.document.body.style.justifyContent = 'center';
         pip.document.body.style.fontFamily = 'system-ui, -apple-system, sans-serif';
 
-        const curTimeStr = `${Math.floor(timer / 60).toString().padStart(2, '0')}:${(timer % 60).toString().padStart(2, '0')}`;
         pip.document.body.innerHTML = `
           <div style="display:flex;align-items:center;gap:12px;color:white;padding:10px 16px;background:#1E1E24;border-radius:16px;user-select:none;width:100%;justify-content:center;">
             <img src="/icon.png" alt="RCRD" style="height:22px;width:auto;object-fit:contain;margin-right:2px;" />
             <div style="display:flex;align-items:center;gap:6px;padding-right:10px;border-right:1px solid rgba(255,255,255,0.2);">
               <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px #ef4444;"></span>
               <span style="font-weight:bold;font-size:11px;color:#f87171;">REC</span>
-              <span id="pip-timer-display" style="font-family:monospace;font-weight:bold;font-size:13px;min-width:44px;">${curTimeStr}</span>
+              <span id="pip-timer-display" style="font-family:monospace;font-weight:bold;font-size:13px;min-width:44px;">00:00</span>
             </div>
             <button id="pip-pause-btn" style="background:rgba(255,255,255,0.15);border:none;color:white;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:bold;cursor:pointer;">
-              ${isPaused ? "▶ Resume" : "⏸ Pause"}
+              ⏸ Pause
             </button>
             <button id="pip-stop-btn" style="background:#ef4444;border:none;color:white;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(239,68,68,0.5);">
               ⏹ Stop & Save
@@ -636,7 +640,7 @@ export default function RecordingSetupModal({
 
         const pBtn = pip.document.getElementById('pip-pause-btn');
         if (pBtn) {
-          pBtn.onclick = () => togglePause();
+          pBtn.onclick = () => togglePauseRef.current();
         }
         const sBtn = pip.document.getElementById('pip-stop-btn');
         if (sBtn) {
@@ -654,7 +658,7 @@ export default function RecordingSetupModal({
     } catch (err) {
       console.warn('Document Picture-in-Picture optional note:', err);
     }
-  }, [isPaused, timer, stopRecording, togglePause]);
+  }, [stopRecording]);
 
   // Skip countdown immediately and start recording
   const skipCountdown = useCallback((recorderInstance?: MediaRecorder | null) => {

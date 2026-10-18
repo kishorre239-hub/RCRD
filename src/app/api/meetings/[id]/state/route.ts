@@ -17,6 +17,15 @@ export interface HandRaiseEvent {
   timestamp: number;
 }
 
+export interface WebRTCSignal {
+  id: string;
+  from: string;
+  to: string;
+  type: 'offer' | 'answer' | 'candidate';
+  payload: any;
+  timestamp: number;
+}
+
 interface MeetingState {
   status?: 'scheduled' | 'live' | 'ended';
   hostCamera: {
@@ -70,6 +79,7 @@ interface MeetingState {
     sender: string;
     timestamp: number;
   }>;
+  signals: Array<WebRTCSignal>;
 }
 
 const DATA_DIR = path.resolve(process.cwd(), '.data');
@@ -128,9 +138,12 @@ function getOrCreateRoomState(rawId: string): MeetingState {
       ],
       notes: [],
       reactions: [],
+      signals: [],
     };
     persistRoomStates();
   }
+  if (!rooms[roomId].signals) rooms[roomId].signals = [];
+  if (!rooms[roomId].reactions) rooms[roomId].reactions = [];
   return rooms[roomId];
 }
 
@@ -156,8 +169,18 @@ export async function GET(
       }
     }
 
-    // Prune reactions older than 5 seconds
-    state.reactions = state.reactions.filter(r => now - r.timestamp < 5000);
+    // Prune reactions older than 8 seconds
+    state.reactions = (state.reactions || []).filter(r => now - r.timestamp < 8000);
+
+    // Prune signals older than 25 seconds
+    state.signals = (state.signals || []).filter(s => now - s.timestamp < 25000);
+
+    // Read requesting participantId to filter relevant WebRTC signals
+    const url = new URL(req.url);
+    const requestingPid = url.searchParams.get('participantId');
+    const signalsForMe = (state.signals || []).filter(s =>
+      !requestingPid || s.to === requestingPid || s.to === 'all' || (requestingPid === 'host' && s.to === 'host')
+    );
 
     return NextResponse.json({
       success: true,
@@ -170,6 +193,7 @@ export async function GET(
       chat: state.chat,
       notes: state.notes,
       reactions: state.reactions,
+      signals: signalsForMe,
       serverTime: now,
     });
   } catch (error) {
@@ -199,12 +223,13 @@ export async function POST(
 
     // 0. Host Camera frame update
     if (body.hostCamera !== undefined) {
+      const active = Boolean(body.hostCamera.active);
       state.hostCamera = {
-        active: Boolean(body.hostCamera.active),
-        streamFrame: body.hostCamera.streamFrame !== undefined ? body.hostCamera.streamFrame : state.hostCamera.streamFrame,
+        active,
+        streamFrame: active ? (body.hostCamera.streamFrame !== undefined ? body.hostCamera.streamFrame : state.hostCamera.streamFrame) : undefined,
         updatedAt: now,
       };
-      if (!body.hostCamera.active) {
+      if (!active) {
         state.hostCamera.streamFrame = undefined;
       }
     }
@@ -212,20 +237,37 @@ export async function POST(
     // 0b. Any participant / student camera frame update
     if (body.participantCamera && body.participantCamera.participantId) {
       const pc = body.participantCamera;
+      const active = Boolean(pc.active);
       if (!state.participantCameras) state.participantCameras = {};
       state.participantCameras[pc.participantId] = {
-        active: Boolean(pc.active),
+        active,
         name: pc.name || 'Participant',
         role: pc.role || 'Student',
-        streamFrame: pc.active ? pc.streamFrame : undefined,
+        streamFrame: active ? pc.streamFrame : undefined,
         updatedAt: now,
       };
       if (pc.role === 'Host' || pc.participantId === 'host') {
         state.hostCamera = {
-          active: Boolean(pc.active),
-          streamFrame: pc.active ? pc.streamFrame : undefined,
+          active,
+          streamFrame: active ? pc.streamFrame : undefined,
           updatedAt: now,
         };
+      }
+    }
+
+    // 0d. WebRTC signaling for 2-way real-time voice audio
+    if (body.signal && body.signal.from && body.signal.to) {
+      if (!state.signals) state.signals = [];
+      state.signals.push({
+        id: body.signal.id || `sig_${now}_${Math.random().toString(36).substring(2, 7)}`,
+        from: body.signal.from,
+        to: body.signal.to,
+        type: body.signal.type,
+        payload: body.signal.payload,
+        timestamp: now,
+      });
+      if (state.signals.length > 60) {
+        state.signals = state.signals.slice(-60);
       }
     }
 
@@ -339,6 +381,9 @@ export async function POST(
       chat: state.chat,
       notes: state.notes,
       reactions: state.reactions,
+      signals: (state.signals || []).filter(s =>
+        !body.participantId || s.to === body.participantId || s.to === 'all' || (body.participantId === 'host' && s.to === 'host')
+      ),
       serverTime: now,
     });
   } catch (error) {

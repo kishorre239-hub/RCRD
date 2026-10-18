@@ -10,7 +10,7 @@ import {
   Pen, Eraser, Edit3, Shield, Users, MessageSquare, Copy, Send,
   VolumeX, RotateCcw, RotateCw, Paperclip, Image as ImageIcon, Download,
   ChevronLeft, Plus, BookOpen,
-  Maximize2, MoreHorizontal, Volume2, RefreshCw, Disc, Smartphone, Sparkles, Video
+  Maximize2, Minimize2, GripHorizontal, Move, MoreHorizontal, Volume2, RefreshCw, Disc, Smartphone, Sparkles, Video
 } from "lucide-react";
 import { getCourses, uploadVideo, ensureValidAuthToken } from "@/lib/api";
 
@@ -77,10 +77,11 @@ export default function ClassRoomPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const roomId = params.roomId as string;
-  const role = searchParams.get("role") || "host";
-  const isMentor = role === "host" || role === "mentor";
+  const roleParam = searchParams.get("role");
+  const isMentor = roleParam === "host" || roleParam === "mentor";
+  const role = isMentor ? "host" : (roleParam || "student");
   const isReadonly = searchParams.get("readonly") === "true" || !isMentor;
-  const studentName = searchParams.get("name") || "Participant";
+  const studentName = searchParams.get("name") || (isMentor ? "Host" : "Participant");
 
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [bypassLobby, setBypassLobby] = useState(false);
@@ -195,9 +196,24 @@ export default function ClassRoomPage() {
   const noteFileInputRef = useRef<HTMLInputElement>(null);
   const importNotesInputRef = useRef<HTMLInputElement>(null);
 
+  // Fullscreen State
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // Floating Host Camera Card Drag & Minimize State (Image 2 - prevents blocking notes)
+  const [cameraCardPos, setCameraCardPos] = useState({ x: 0, y: 0 });
+  const [isCameraCardMinimized, setIsCameraCardMinimized] = useState(false);
+  const cameraDragRef = useRef<{ startX: number; startY: number; initX: number; initY: number } | null>(null);
+
+  // WebRTC 2-Way Voice Audio Mesh Refs & Configuration
+  const localAudioStreamRef = useRef<MediaStream | null>(null);
+  const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const remoteAudiosRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const processedSignalIdsRef = useRef<Set<string>>(new Set());
+  const displayedReactionsRef = useRef<Set<string>>(new Set());
+
   // Hand Raise & Reactions State
   const [isHandRaised, setIsHandRaised] = useState(false);
-  const [floatingReactions, setFloatingReactions] = useState<{ id: string; emoji: string; left: number }[]>([]);
+  const [floatingReactions, setFloatingReactions] = useState<{ id: string; emoji: string; left: number; sender?: string }[]>([]);
 
   // Unique participant ID for current user (persisted per student per room to prevent duplicate cards)
   const [myParticipantId] = useState<string>(() => {
@@ -316,14 +332,205 @@ export default function ClassRoomPage() {
     setTimeout(() => setToast(null), 4000);
   }, [setToast]);
 
-  const triggerReaction = useCallback((emoji: string) => {
-    const id = Date.now().toString() + Math.random();
+  // Fullscreen Toggle
+  const toggleFullScreen = useCallback(() => {
+    if (typeof document === "undefined") return;
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullScreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+        setIsFullScreen(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const onFsChange = () => setIsFullScreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
+  // WebRTC Audio STUN Configuration (Free public Google STUN servers)
+  const RTC_CONFIG: RTCConfiguration = {
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:19302" },
+    ],
+  };
+
+  // Broadcast WebRTC signals (offer, answer, candidate) for 2-way real-time audio
+  const sendSignal = useCallback((to: string, type: 'offer' | 'answer' | 'candidate', payload: any) => {
+    if (!roomId) return;
+    const sig = {
+      id: `sig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      from: myParticipantId,
+      to,
+      type,
+      payload,
+      timestamp: Date.now(),
+    };
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
+        bc.postMessage({ type: "WEBRTC_SIGNAL", data: sig });
+        bc.close();
+      }
+    } catch {}
+    fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ signal: sig }),
+    }).catch(() => {});
+  }, [roomId, myParticipantId]);
+
+  // Handle incoming WebRTC audio signals (offers, answers, ICE candidates)
+  const handleWebRTCSignal = useCallback(async (sig: { from: string; to: string; type: 'offer' | 'answer' | 'candidate'; payload: any }) => {
+    if (!sig || sig.from === myParticipantId) return;
+    const isForMe = sig.to === myParticipantId || (isMentor && sig.to === "host") || sig.to === "all";
+    if (!isForMe) return;
+
+    const targetId = sig.from;
+    let pc = peerConnectionsRef.current.get(targetId);
+
+    if (sig.type === "offer") {
+      if (!pc) {
+        pc = new RTCPeerConnection(RTC_CONFIG);
+        peerConnectionsRef.current.set(targetId, pc);
+
+        // Attach local microphone tracks if active
+        if (localAudioStreamRef.current) {
+          localAudioStreamRef.current.getAudioTracks().forEach((track) => {
+            pc!.addTrack(track, localAudioStreamRef.current!);
+          });
+        }
+
+        // Handle receiving remote audio
+        pc.ontrack = (event) => {
+          let audio = remoteAudiosRef.current.get(targetId);
+          if (!audio) {
+            audio = new Audio();
+            audio.autoplay = true;
+            audio.setAttribute('playsinline', 'true');
+            remoteAudiosRef.current.set(targetId, audio);
+          }
+          audio.srcObject = event.streams[0];
+          audio.muted = speakerMuted;
+          audio.play().catch(() => {});
+        };
+
+        pc.onicecandidate = (event) => {
+          if (event.candidate) {
+            sendSignal(targetId, "candidate", event.candidate);
+          }
+        };
+      }
+
+      try {
+        await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        sendSignal(targetId, "answer", answer);
+      } catch (err) {
+        console.warn("Error handling WebRTC offer:", err);
+      }
+    } else if (sig.type === "answer") {
+      if (pc && pc.signalingState !== "stable") {
+        try {
+          await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+        } catch (err) {
+          console.warn("Error handling WebRTC answer:", err);
+        }
+      }
+    } else if (sig.type === "candidate") {
+      if (pc && sig.payload) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(sig.payload));
+        } catch (err) {
+          console.warn("Error adding ICE candidate:", err);
+        }
+      }
+    }
+  }, [myParticipantId, isMentor, speakerMuted, sendSignal]);
+
+  // Student initiates audio connection to Host
+  const initiateAudioCallToHost = useCallback(async () => {
+    if (isMentor || !roomId) return;
+    let pc = peerConnectionsRef.current.get("host");
+    if (!pc) {
+      pc = new RTCPeerConnection(RTC_CONFIG);
+      peerConnectionsRef.current.set("host", pc);
+
+      if (localAudioStreamRef.current) {
+        localAudioStreamRef.current.getAudioTracks().forEach((track) => {
+          pc!.addTrack(track, localAudioStreamRef.current!);
+        });
+      }
+
+      pc.ontrack = (event) => {
+        let audio = remoteAudiosRef.current.get("host");
+        if (!audio) {
+          audio = new Audio();
+          audio.autoplay = true;
+          audio.setAttribute('playsinline', 'true');
+          remoteAudiosRef.current.set("host", audio);
+        }
+        audio.srcObject = event.streams[0];
+        audio.muted = speakerMuted;
+        audio.play().catch(() => {});
+      };
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          sendSignal("host", "candidate", event.candidate);
+        }
+      };
+    }
+
+    try {
+      const offer = await pc.createOffer({ offerToReceiveAudio: true });
+      await pc.setLocalDescription(offer);
+      sendSignal("host", "offer", offer);
+    } catch (err) {
+      console.warn("Error initiating audio call to host:", err);
+    }
+  }, [isMentor, roomId, speakerMuted, sendSignal]);
+
+  // Synchronize speaker muted state to all remote audio elements
+  useEffect(() => {
+    remoteAudiosRef.current.forEach((audio) => {
+      audio.muted = speakerMuted;
+    });
+  }, [speakerMuted]);
+
+  // Real-time emoji reaction broadcasted to ALL participants (Host + Students)
+  const triggerReaction = useCallback((emoji: string, senderName?: string, broadcast: boolean = true) => {
+    const id = Date.now().toString() + Math.random().toString(36).substring(2, 6);
     const left = Math.floor(Math.random() * 50) + 25; // 25% - 75%
-    setFloatingReactions(prev => [...prev, { id, emoji, left }]);
+    const sender = senderName || (isMentor ? "Host" : studentName);
+    setFloatingReactions(prev => [...prev, { id, emoji, left, sender }]);
     setTimeout(() => {
       setFloatingReactions(prev => prev.filter(r => r.id !== id));
-    }, 2400);
-  }, [setFloatingReactions]);
+    }, 2800);
+
+    if (broadcast && roomId) {
+      try {
+        if (typeof BroadcastChannel !== "undefined") {
+          const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
+          bc.postMessage({ type: "REACTION", data: { id, emoji, sender } });
+          bc.close();
+        }
+      } catch {}
+      fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reaction: { id, emoji, sender } }),
+      }).catch(() => {});
+    }
+  }, [roomId, isMentor, studentName]);
 
   const playHandRaiseChime = useCallback(() => {
     try {
@@ -557,7 +764,16 @@ export default function ClassRoomPage() {
         bc.onmessage = (event) => {
           const { type, data } = event.data || {};
           if (type === "HOST_CAMERA") {
-            setRemoteHostCamera(data);
+            setRemoteHostCamera({
+              active: Boolean(data?.active),
+              streamFrame: data?.active ? data.streamFrame : undefined,
+              updatedAt: data?.updatedAt || Date.now(),
+            });
+          } else if (type === "WEBRTC_SIGNAL") {
+            if (data?.id && !processedSignalIdsRef.current.has(data.id)) {
+              processedSignalIdsRef.current.add(data.id);
+              handleWebRTCSignal(data);
+            }
           } else if (type === "PARTICIPANT_CAMERA") {
             if (data?.participantId) {
               setRemoteParticipantCameras(prev => ({
@@ -615,7 +831,7 @@ export default function ClassRoomPage() {
               });
             }
           } else if (type === "REACTION") {
-            triggerReaction(data.emoji);
+            triggerReaction(data.emoji, data.sender, false);
           } else if (type === "MEETING_ENDED") {
             if (!isMentor) {
               window.location.href = "https://www.geonixa.com/";
@@ -626,9 +842,16 @@ export default function ClassRoomPage() {
       }
     } catch {}
 
+    // Student initiates audio connection to mentor on mount
+    if (!isMentor) {
+      setTimeout(() => {
+        initiateAudioCallToHost();
+      }, 800);
+    }
+
     const pollState = async () => {
       try {
-        const res = await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`);
+        const res = await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state?participantId=${encodeURIComponent(myParticipantId)}`);
         if (!res.ok) return;
         const data = await res.json();
         if (data?.success) {
@@ -638,9 +861,33 @@ export default function ClassRoomPage() {
             return;
           }
 
-          // Sync Host Camera if student
+          // Process WebRTC audio signals
+          if (Array.isArray(data.signals) && data.signals.length > 0) {
+            data.signals.forEach((sig: { id: string; from: string; to: string; type: 'offer' | 'answer' | 'candidate'; payload: any }) => {
+              if (!processedSignalIdsRef.current.has(sig.id)) {
+                processedSignalIdsRef.current.add(sig.id);
+                handleWebRTCSignal(sig);
+              }
+            });
+          }
+
+          // Process broadcasted emoji reactions
+          if (Array.isArray(data.reactions) && data.reactions.length > 0) {
+            data.reactions.forEach((r: { id: string; emoji: string; sender: string; timestamp: number }) => {
+              if (!displayedReactionsRef.current.has(r.id)) {
+                displayedReactionsRef.current.add(r.id);
+                triggerReaction(r.emoji, r.sender, false);
+              }
+            });
+          }
+
+          // Sync Host Camera strictly (if camera is inactive, streamFrame MUST be undefined)
           if (!isMentor && data.hostCamera) {
-            setRemoteHostCamera(data.hostCamera);
+            setRemoteHostCamera({
+              active: Boolean(data.hostCamera.active),
+              streamFrame: data.hostCamera.active ? data.hostCamera.streamFrame : undefined,
+              updatedAt: data.hostCamera.updatedAt,
+            });
           }
 
           // Sync Participant Cameras (student & mentor video streams)
@@ -729,7 +976,7 @@ export default function ClassRoomPage() {
       clearInterval(interval);
       if (bc) bc.close();
     };
-  }, [roomId, screenStream, isMentor, triggerReaction]);
+  }, [roomId, screenStream, isMentor, triggerReaction, handleWebRTCSignal, initiateAudioCallToHost, myParticipantId]);
 
   // Broadcast screen share frames when Host shares screen
   useEffect(() => {
@@ -820,9 +1067,10 @@ export default function ClassRoomPage() {
     }
 
     let active = true;
+    let inFlight = false;
     const canvas = document.createElement("canvas");
-    canvas.width = 400;
-    canvas.height = 300;
+    canvas.width = 240;
+    canvas.height = 180;
     const ctx = canvas.getContext("2d");
 
     let bc: BroadcastChannel | null = null;
@@ -833,11 +1081,11 @@ export default function ClassRoomPage() {
     } catch {}
 
     const broadcastCameraFrame = async () => {
-      if (!active || !cameraVideoRef.current || !cameraStream) return;
+      if (!active || !cameraVideoRef.current || !cameraStream || inFlight) return;
       try {
         if (cameraVideoRef.current.videoWidth > 0 && ctx) {
-          ctx.drawImage(cameraVideoRef.current, 0, 0, 400, 300);
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.5);
+          ctx.drawImage(cameraVideoRef.current, 0, 0, 240, 180);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.32);
           const payload = {
             participantId: myParticipantId,
             name: myName,
@@ -850,19 +1098,26 @@ export default function ClassRoomPage() {
             bc.postMessage({ type: "PARTICIPANT_CAMERA", data: payload });
             if (isMentor) bc.postMessage({ type: "HOST_CAMERA", data: payload });
           }
-          await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              participantCamera: payload,
-              ...(isMentor ? { hostCamera: payload } : {}),
-            }),
-          }).catch(() => {});
+          inFlight = true;
+          try {
+            await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                participantCamera: payload,
+                ...(isMentor ? { hostCamera: payload } : {}),
+              }),
+            });
+          } finally {
+            inFlight = false;
+          }
         }
-      } catch {}
+      } catch {
+        inFlight = false;
+      }
     };
 
-    const interval = setInterval(broadcastCameraFrame, 900);
+    const interval = setInterval(broadcastCameraFrame, 1200);
     broadcastCameraFrame();
 
     return () => {
@@ -1273,11 +1528,36 @@ export default function ClassRoomPage() {
       cameraStream?.getTracks().forEach(t => t.stop());
       setCameraStream(null);
       setCameraOn(false);
+      if (isMentor) {
+        setRemoteHostCamera({ active: false, streamFrame: undefined, updatedAt: Date.now() });
+      }
       setParticipants(prev => prev.map(p => {
         if (isMentor && p.role === "Host") return { ...p, isVideoOn: false };
         if (!isMentor && (p.id === myParticipantId || p.role === "Student")) return { ...p, isVideoOn: false };
         return p;
       }));
+      // Immediately broadcast camera off event so students never see a frozen image
+      try {
+        if (typeof BroadcastChannel !== "undefined") {
+          const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
+          bc.postMessage({
+            type: "PARTICIPANT_CAMERA",
+            data: { participantId: myParticipantId, name: isMentor ? "Host" : studentName, role: isMentor ? "Host" : "Student", active: false, updatedAt: Date.now() },
+          });
+          if (isMentor) {
+            bc.postMessage({ type: "HOST_CAMERA", data: { active: false, updatedAt: Date.now() } });
+          }
+          bc.close();
+        }
+      } catch {}
+      fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          participantCamera: { participantId: myParticipantId, name: isMentor ? "Host" : studentName, role: isMentor ? "Host" : "Student", active: false },
+          ...(isMentor ? { hostCamera: { active: false } } : {}),
+        }),
+      }).catch(() => {});
     } else {
       if (!isMentor && !securitySettings.allowVideo) {
         showToast("Video has been disabled by the host.", false);
@@ -1345,14 +1625,55 @@ export default function ClassRoomPage() {
     }
   };
 
-  const toggleMic = () => {
+  // Real-time 2-Way Voice Audio Microphone Toggle
+  const toggleMic = async () => {
     if (!isMentor && !securitySettings.allowUnmute && !micOn) {
       showToast("Host has disabled participant unmuting. Please raise your hand.", false);
       return;
     }
     const next = !micOn;
     setMicOn(next);
-    setParticipants(prev => prev.map(p => p.role === "Host" ? { ...p, isMuted: !next } : p));
+
+    if (next) {
+      try {
+        if (!localAudioStreamRef.current) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            },
+            video: false,
+          });
+          localAudioStreamRef.current = stream;
+          const track = stream.getAudioTracks()[0];
+          peerConnectionsRef.current.forEach((pc) => {
+            const sender = pc.getSenders().find(s => s.track?.kind === "audio");
+            if (sender) {
+              sender.replaceTrack(track);
+            } else {
+              pc.addTrack(track, stream);
+            }
+          });
+        } else {
+          localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = true);
+        }
+        showToast("Microphone unmuted - Voice live!");
+      } catch {
+        showToast("Microphone access unavailable or denied.", false);
+      }
+    } else {
+      if (localAudioStreamRef.current) {
+        localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+      }
+      showToast("Microphone muted");
+    }
+
+    setParticipants(prev => prev.map(p => {
+      if (isMentor && p.role === "Host") return { ...p, isMuted: !next };
+      if (!isMentor && (p.id === myParticipantId || p.role === "Student")) return { ...p, isMuted: !next };
+      return p;
+    }));
   };
 
   const toggleSpeaker = () => {
@@ -2021,6 +2342,15 @@ export default function ClassRoomPage() {
           >
             <RefreshCw size={14} className="text-white" />
           </button>
+
+          {/* ⛶ Fullscreen Toggle Button */}
+          <button
+            onClick={toggleFullScreen}
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700/60 flex items-center justify-center transition-all cursor-pointer shadow-md"
+            title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+          >
+            {isFullScreen ? <Minimize2 size={15} className="text-white" /> : <Maximize2 size={15} className="text-white" />}
+          </button>
         </div>
       </div>
 
@@ -2074,77 +2404,97 @@ export default function ClassRoomPage() {
             >
               {/* Whiteboard Top Navigation & Controls Bar */}
               <div className="absolute top-2.5 inset-x-2.5 sm:inset-x-6 z-30 flex items-center justify-between bg-white/95 backdrop-blur-md border border-[#E2E7EC] shadow-md rounded-2xl px-3 sm:px-4 py-2 gap-2">
-                {/* Left: Mode toggle (Sketch vs Notepad) */}
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWhiteboardMode('sketch');
-                      if (isMentor) broadcastWhiteboard(true, undefined, undefined, undefined, 'sketch');
-                    }}
-                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                      whiteboardMode === 'sketch' ? 'bg-white text-[#154360] shadow-sm' : 'text-[#57636E] hover:text-[#20262E]'
-                    }`}
-                  >
-                    <Pen size={13} />
-                    <span className="hidden sm:inline">Sketch Board</span>
-                    <span className="sm:hidden">Sketch</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setWhiteboardMode('notepad');
-                      if (isMentor) broadcastWhiteboard(true, undefined, undefined, undefined, 'notepad');
-                    }}
-                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                      whiteboardMode === 'notepad' ? 'bg-white text-[#154360] shadow-sm' : 'text-[#57636E] hover:text-[#20262E]'
-                    }`}
-                  >
-                    <FileText size={13} />
-                    <span className="hidden sm:inline">Notepad Sheet</span>
-                    <span className="sm:hidden">Notepad</span>
-                  </button>
-                </div>
-
-                {/* Center: Slide Controls (< Slide X / Y > | + Add Slide) */}
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <button
-                    type="button"
-                    onClick={() => switchSlide(currentSlideIndex - 1)}
-                    disabled={currentSlideIndex <= 0}
-                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#20262E] transition-colors"
-                    title="Previous Slide"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  <div className="px-2.5 py-1 bg-slate-100 rounded-lg text-xs font-bold text-[#20262E] whitespace-nowrap">
-                    Slide {currentSlideIndex + 1} / {slides.length}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => switchSlide(currentSlideIndex + 1)}
-                    disabled={currentSlideIndex >= slides.length - 1}
-                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#20262E] transition-colors"
-                    title="Next Slide"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-
-                  {isMentor && (
+                {/* Left: Mode toggle (Mentor Only) or View Badge (Students) */}
+                {isMentor ? (
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
                     <button
                       type="button"
-                      onClick={addNewSlide}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EBF5FB] hover:bg-[#d4e6f1] text-[#154360] text-xs font-bold border border-[#154360]/20 transition-all shadow-xs"
-                      title="Add New Slide"
+                      onClick={() => {
+                        setWhiteboardMode('sketch');
+                        broadcastWhiteboard(true, undefined, undefined, undefined, 'sketch');
+                      }}
+                      className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        whiteboardMode === 'sketch' ? 'bg-white text-[#154360] shadow-sm' : 'text-[#57636E] hover:text-[#20262E]'
+                      }`}
                     >
-                      <Plus size={14} />
-                      <span className="hidden md:inline">Add Slide</span>
+                      <Pen size={13} />
+                      <span className="hidden sm:inline">Sketch Board</span>
+                      <span className="sm:hidden">Sketch</span>
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setWhiteboardMode('notepad');
+                        broadcastWhiteboard(true, undefined, undefined, undefined, 'notepad');
+                      }}
+                      className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        whiteboardMode === 'notepad' ? 'bg-white text-[#154360] shadow-sm' : 'text-[#57636E] hover:text-[#20262E]'
+                      }`}
+                    >
+                      <FileText size={13} />
+                      <span className="hidden sm:inline">Notepad Sheet</span>
+                      <span className="sm:hidden">Notepad</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#EBF5FB] text-[#154360] font-bold text-xs border border-[#154360]/20 shrink-0">
+                    <BookOpen size={14} />
+                    <span>Mentor Board (View Only)</span>
+                  </div>
+                )}
+
+                {/* Center: Slide Controls (< Slide X / Y > | + Add Slide for mentor only, clean pill for student) */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  {isMentor ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => switchSlide(currentSlideIndex - 1)}
+                        disabled={currentSlideIndex <= 0}
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#20262E] transition-colors"
+                        title="Previous Slide"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <div className="px-2.5 py-1 bg-slate-100 rounded-lg text-xs font-bold text-[#20262E] whitespace-nowrap">
+                        Slide {currentSlideIndex + 1} / {slides.length}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => switchSlide(currentSlideIndex + 1)}
+                        disabled={currentSlideIndex >= slides.length - 1}
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#20262E] transition-colors"
+                        title="Next Slide"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={addNewSlide}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EBF5FB] hover:bg-[#d4e6f1] text-[#154360] text-xs font-bold border border-[#154360]/20 transition-all shadow-xs"
+                        title="Add New Slide"
+                      >
+                        <Plus size={14} />
+                        <span className="hidden md:inline">Add Slide</span>
+                      </button>
+                    </>
+                  ) : (
+                    <div className="px-3 py-1 bg-slate-100 rounded-lg text-xs font-bold text-[#20262E]">
+                      Slide {currentSlideIndex + 1} of {slides.length}
+                    </div>
                   )}
                 </div>
 
-                {/* Right: Download PDF & Exit */}
+                {/* Right: Fullscreen, Download PDF & Exit */}
                 <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={toggleFullScreen}
+                    className="p-1.5 rounded-xl hover:bg-slate-100 text-[#57636E] hover:text-[#20262E] transition-colors"
+                    title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                  >
+                    {isFullScreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                  </button>
                   <button
                     type="button"
                     onClick={downloadAllSlidesAsPdf}
@@ -2154,17 +2504,19 @@ export default function ClassRoomPage() {
                     <Download size={13} />
                     <span className="hidden sm:inline">Download PDF</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowWhiteboard(false);
-                      if (isMentor) broadcastWhiteboard(false);
-                    }}
-                    className="p-1.5 rounded-xl hover:bg-slate-100 text-[#57636E] hover:text-[#20262E] transition-colors"
-                    title="Close Whiteboard"
-                  >
-                    <X size={18} />
-                  </button>
+                  {isMentor && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowWhiteboard(false);
+                        broadcastWhiteboard(false);
+                      }}
+                      className="p-1.5 rounded-xl hover:bg-slate-100 text-[#57636E] hover:text-[#20262E] transition-colors"
+                      title="Close Whiteboard"
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -2406,44 +2758,122 @@ export default function ClassRoomPage() {
             </div>
           )}
 
-          {/* When Screen Share IS ACTIVE: High-Visibility Floating Admin Face Overlay (White Theme) */}
+          {/* When Screen Share IS ACTIVE: Draggable & Minimizable Floating Host Camera Card (Image 2) */}
           {isAnyScreenSharing && !showWhiteboard && (
-            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-30 flex flex-col items-end gap-2 pointer-events-auto">
-              {/* Host Video Mini Card */}
-              <div className="w-28 sm:w-56 h-20 sm:h-36 bg-white rounded-xl sm:rounded-2xl overflow-hidden border-2 border-[#154360] shadow-xl relative group">
-                {isMentor && cameraOn ? (
-                  <video
-                    ref={(el) => {
-                      cameraVideoRef.current = el;
-                      if (el && cameraStream && el.srcObject !== cameraStream) {
-                        el.srcObject = cameraStream;
-                        el.play().catch(() => {});
-                      }
+            <div
+              style={{
+                transform: `translate3d(${cameraCardPos.x}px, ${cameraCardPos.y}px, 0)`,
+                touchAction: "none",
+              }}
+              className="absolute top-2 right-2 sm:top-4 sm:right-4 z-30 flex flex-col items-end gap-1.5 pointer-events-auto select-none"
+            >
+              {isCameraCardMinimized ? (
+                /* Minimized pill to completely uncover lecture notes behind it */
+                <button
+                  type="button"
+                  onClick={() => setIsCameraCardMinimized(false)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700 shadow-2xl backdrop-blur-md text-xs font-bold cursor-pointer transition-all"
+                  title="Expand Host Camera"
+                >
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Host Camera</span>
+                  <Maximize2 size={12} className="text-slate-400 ml-0.5" />
+                </button>
+              ) : (
+                /* Full Video Card with Drag Grip & Minimize button */
+                <div className="w-28 sm:w-56 h-22 sm:h-38 bg-white rounded-xl sm:rounded-2xl overflow-hidden border-2 border-[#154360] shadow-2xl relative flex flex-col">
+                  {/* Drag Handle Top Bar */}
+                  <div
+                    onMouseDown={(e) => {
+                      cameraDragRef.current = { startX: e.clientX, startY: e.clientY, initX: cameraCardPos.x, initY: cameraCardPos.y };
+                      const handleMouseMove = (me: MouseEvent) => {
+                        if (!cameraDragRef.current) return;
+                        setCameraCardPos({
+                          x: cameraDragRef.current.initX + (me.clientX - cameraDragRef.current.startX),
+                          y: cameraDragRef.current.initY + (me.clientY - cameraDragRef.current.startY),
+                        });
+                      };
+                      const handleMouseUp = () => {
+                        cameraDragRef.current = null;
+                        window.removeEventListener("mousemove", handleMouseMove);
+                        window.removeEventListener("mouseup", handleMouseUp);
+                      };
+                      window.addEventListener("mousemove", handleMouseMove);
+                      window.addEventListener("mouseup", handleMouseUp);
                     }}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full h-full object-cover"
-                  />
-                ) : !isMentor && remoteHostCamera?.active && remoteHostCamera?.streamFrame ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={remoteHostCamera.streamFrame}
-                    alt="Host Live Camera"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-[#20262E]">
-                    <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-[#154360] text-white flex items-center justify-center font-bold text-xs sm:text-lg shadow-sm">
-                      HR
+                    onTouchStart={(e) => {
+                      if (!e.touches[0]) return;
+                      const t = e.touches[0];
+                      cameraDragRef.current = { startX: t.clientX, startY: t.clientY, initX: cameraCardPos.x, initY: cameraCardPos.y };
+                    }}
+                    onTouchMove={(e) => {
+                      if (!cameraDragRef.current || !e.touches[0]) return;
+                      const t = e.touches[0];
+                      setCameraCardPos({
+                        x: cameraDragRef.current.initX + (t.clientX - cameraDragRef.current.startX),
+                        y: cameraDragRef.current.initY + (t.clientY - cameraDragRef.current.startY),
+                      });
+                    }}
+                    onTouchEnd={() => {
+                      cameraDragRef.current = null;
+                    }}
+                    className="h-5 sm:h-6 bg-slate-900/90 backdrop-blur-xs flex items-center justify-between px-2 cursor-grab active:cursor-grabbing text-slate-300 text-[10px] sm:text-xs z-10 shrink-0 select-none"
+                    title="Drag anywhere to uncover notes underneath"
+                  >
+                    <div className="flex items-center gap-1 font-bold text-white text-[9px] sm:text-[10px]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span>Host</span>
                     </div>
-                    <span className="text-[9px] sm:text-[11px] font-semibold text-[#57636E] mt-1 truncate max-w-[90%]">Host</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] text-slate-400 hidden sm:inline">Drag to move</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsCameraCardMinimized(true);
+                        }}
+                        className="w-4 h-4 rounded hover:bg-slate-700 flex items-center justify-center text-white"
+                        title="Minimize to read notes"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
                   </div>
-                )}
-                <div className="absolute bottom-1 left-1 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white/90 backdrop-blur-xs border border-[#E2E7EC] text-[9px] sm:text-[10px] font-bold text-[#20262E] shadow-xs">
-                  <span>Host</span>
+
+                  {/* Video Content */}
+                  <div className="relative flex-1 w-full bg-slate-900 overflow-hidden">
+                    {isMentor && cameraOn ? (
+                      <video
+                        ref={(el) => {
+                          cameraVideoRef.current = el;
+                          if (el && cameraStream && el.srcObject !== cameraStream) {
+                            el.srcObject = cameraStream;
+                            el.play().catch(() => {});
+                          }
+                        }}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="w-full h-full object-cover"
+                      />
+                    ) : !isMentor && remoteHostCamera?.active && remoteHostCamera?.streamFrame ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={remoteHostCamera.streamFrame}
+                        alt="Host Live Camera"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-[#20262E]">
+                        <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#154360] text-white flex items-center justify-center font-bold text-xs sm:text-base shadow-sm">
+                          HR
+                        </div>
+                        <span className="text-[9px] sm:text-[10px] font-semibold text-[#57636E] mt-0.5 truncate max-w-[90%]">Camera Off</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Connected Student Mini Avatar Badges (Hidden on mobile to keep presentation completely unobstructed!) */}
               <div className="hidden sm:flex gap-1.5 max-w-[280px] overflow-x-auto">
@@ -2608,14 +3038,17 @@ export default function ClassRoomPage() {
             </div>
           )}
 
-          {/* Floating Reaction Emojis Animation */}
+          {/* Floating Reaction Emojis Animation with Sender Display */}
           {floatingReactions.map(r => (
             <div
               key={r.id}
               style={{ left: `${r.left}%` }}
-              className="fixed bottom-24 text-4xl pointer-events-none z-50 animate-bounce transition-all transform -translate-y-20 duration-1000"
+              className="fixed bottom-24 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 text-white border border-slate-700/80 shadow-2xl backdrop-blur-md pointer-events-none z-50 animate-bounce transition-all transform -translate-y-20 duration-1000"
             >
-              {r.emoji}
+              <span className="text-3xl">{r.emoji}</span>
+              {r.sender && (
+                <span className="text-[11px] font-bold text-slate-200">{r.sender}</span>
+              )}
             </div>
           ))}
         </div>
@@ -2877,6 +3310,22 @@ export default function ClassRoomPage() {
             {/* Features Grid: EXACTLY OUR FEATURES ONLY (Screenshot 3 Grid Pattern) */}
             <div className="grid grid-cols-3 gap-3 pt-3">
               
+              {/* Feature: Fullscreen Toggle */}
+              <button
+                onClick={() => {
+                  setShowMoreSheet(false);
+                  toggleFullScreen();
+                }}
+                className="flex flex-col items-center justify-center p-3 rounded-2xl bg-zinc-800/70 hover:bg-zinc-800 border border-zinc-700/40 text-center gap-2 transition-all cursor-pointer"
+              >
+                <div className="p-2 rounded-xl bg-purple-600/20 text-purple-400">
+                  {isFullScreen ? <Minimize2 size={22} /> : <Maximize2 size={22} />}
+                </div>
+                <span className="text-[11px] font-semibold text-zinc-200">
+                  {isFullScreen ? "Exit Fullscreen" : "Full screen"}
+                </span>
+              </button>
+
               {/* Feature 1: Start share / Stop share */}
               <button
                 onClick={() => {

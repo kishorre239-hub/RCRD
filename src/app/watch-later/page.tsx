@@ -48,9 +48,6 @@ interface Course {
 export default function WatchLaterPage() {
   const router = useRouter();
 
-  useEffect(() => {
-    router.replace('/calendar');
-  }, [router]);
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -338,7 +335,6 @@ export default function WatchLaterPage() {
             <nav className="space-y-1">
               <SidebarItem icon={<UserIcon size={18} />} label="Manage Users" href="/settings?tab=users" />
               <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" href="/settings" />
-              <SidebarItem icon={<Shield size={18} />} label="Billing & Plans" href="/settings?tab=billing" />
             </nav>
           </div>
         </div>

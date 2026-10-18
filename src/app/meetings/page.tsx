@@ -13,7 +13,7 @@ import {
   Link2, ExternalLink
 } from "lucide-react";
 import {
-  HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
+  HomeIcon, LibraryIcon, VideoCameraIcon, SettingsIcon,
   UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 
@@ -485,7 +485,6 @@ export default function MeetingsPage() {
             <SidebarItem icon={<HomeIcon size={17} />} label="For You" href="/" />
             <SidebarItem icon={<LibraryIcon size={17} />} label="Library" href="/library" />
             <SidebarItem icon={<VideoCameraIcon size={17} />} label="Meetings" active href="/meetings" />
-            <SidebarItem icon={<CalendarIcon size={17} />} label="Calendar" href="/calendar" />
             <SidebarItem icon={<SettingsIcon size={17} />} label="Settings" href="/settings" />
           </nav>
 
@@ -494,7 +493,6 @@ export default function MeetingsPage() {
             <nav className="space-y-1.5">
               <SidebarItem icon={<UserIcon size={17} />} label="Manage Users" href="/settings?tab=users" />
               <SidebarItem icon={<WorkspaceIcon size={17} />} label="Workspace Info" href="/settings" />
-              <SidebarItem icon={<Shield size={17} />} label="Billing & Plans" href="/settings?tab=billing" />
             </nav>
           </div>
         </div>

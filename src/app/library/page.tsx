@@ -10,7 +10,7 @@ import {
   RefreshCw, X, Upload, Check, Cloud
 } from "lucide-react";
 import {
-  HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
+  HomeIcon, LibraryIcon, VideoCameraIcon, SettingsIcon,
   UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 import { getVideos, getCourses, createCourse, renameCourse, deleteCourse, deleteVideo, updateVideo, syncVideos, addVideoComment, uploadVideo, API_URL } from "@/lib/api";
@@ -635,7 +635,6 @@ export default function LibraryPage() {
             <SidebarItem icon={<HomeIcon size={18} />} label="For You" href="/" />
             <SidebarItem icon={<LibraryIcon size={18} />} label="Library" active href="/library" />
             <SidebarItem icon={<VideoCameraIcon size={18} />} label="Meetings" href="/meetings" />
-            <SidebarItem icon={<CalendarIcon size={18} />} label="Calendar" href="/calendar" />
             <SidebarItem icon={<SettingsIcon size={18} />} label="Settings" href="/settings" />
           </nav>
 
@@ -644,7 +643,6 @@ export default function LibraryPage() {
             <nav className="space-y-1">
               <SidebarItem icon={<UserIcon size={18} />} label="Manage Users" href="/settings?tab=users" />
               <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" href="/settings" />
-              <SidebarItem icon={<Shield size={18} />} label="Billing & Plans" href="/settings?tab=billing" />
             </nav>
           </div>
         </div>

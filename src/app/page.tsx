@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  Share2, Shield,
+  Share2,
   Upload, Calendar, X
 } from "lucide-react";
 import {
-  HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
+  HomeIcon, LibraryIcon, VideoCameraIcon, SettingsIcon,
   UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 import Image from "next/image";
@@ -66,7 +66,6 @@ export default function HomePage() {
             <div id="tour-sidebar-home"><SidebarItem icon={<HomeIcon size={18} />} label="For You" active href="/" /></div>
             <div id="tour-sidebar-library"><SidebarItem icon={<LibraryIcon size={18} />} label="Library" href="/library" /></div>
             <div id="tour-sidebar-meetings"><SidebarItem icon={<VideoCameraIcon size={18} />} label="Meetings" href="/meetings" /></div>
-            <SidebarItem icon={<CalendarIcon size={18} />} label="Calendar" href="/calendar" />
             <div id="tour-sidebar-settings"><SidebarItem icon={<SettingsIcon size={18} />} label="Settings" href="/settings" /></div>
           </nav>
 
@@ -75,7 +74,6 @@ export default function HomePage() {
             <nav className="space-y-1">
               <SidebarItem icon={<UserIcon size={18} />} label="Manage Users" href="/settings?tab=users" />
               <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" href="/settings" />
-              <SidebarItem icon={<Shield size={18} />} label="Billing & Plans" href="/settings?tab=billing" />
             </nav>
           </div>
         </div>

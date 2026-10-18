@@ -8,13 +8,12 @@ import {
   Shield, Share2, Bell, Cloud, Check, X
 } from "lucide-react";
 import {
-  HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
+  HomeIcon, LibraryIcon, VideoCameraIcon, SettingsIcon,
   UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 import { 
   saveDriveFolder, getDriveFolder 
 } from '@/lib/api';
-import BillingTab from '@/components/BillingTab';
 import UsersTab from '@/components/UsersTab';
 import { openGlobalRecording } from "@/components/GlobalRecordingManager";
 import RcrdLogo from "@/components/RcrdLogo";
@@ -232,7 +231,11 @@ export default function SettingsPage() {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
       if (tabParam) {
-        setTimeout(() => setActiveTab(tabParam), 0);
+        if (tabParam === 'billing') {
+          setTimeout(() => setActiveTab('my-account'), 0);
+        } else {
+          setTimeout(() => setActiveTab(tabParam), 0);
+        }
       }
       if (params.get('google_connected') === 'true') {
         setTimeout(() => {
@@ -406,7 +409,6 @@ export default function SettingsPage() {
             <SidebarItem icon={<HomeIcon size={18} />} label="For You" href="/" />
             <SidebarItem icon={<LibraryIcon size={18} />} label="Library" href="/library" />
             <SidebarItem icon={<VideoCameraIcon size={18} />} label="Meetings" href="/meetings" />
-            <SidebarItem icon={<CalendarIcon size={18} />} label="Calendar" href="/calendar" />
             <SidebarItem icon={<SettingsIcon size={18} />} label="Settings" active href="/settings" />
           </nav>
 
@@ -426,18 +428,6 @@ export default function SettingsPage() {
                 }}
               />
               <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" href="/settings" />
-              <SidebarItem 
-                icon={<Shield size={18} />} 
-                label="Billing & Plans" 
-                active={activeTab === 'billing'}
-                onClick={() => {
-                  setActiveTab('billing');
-                  setIsMobileMenuOpen(false);
-                  if (typeof window !== 'undefined') {
-                    window.history.pushState(null, '', '/settings?tab=billing');
-                  }
-                }}
-              />
             </nav>
           </div>
         </div>
@@ -492,7 +482,6 @@ export default function SettingsPage() {
               <div className="flex items-center gap-6 border-b border-[#E2E7EC] mb-8 overflow-x-auto">
                 {[
                   { id: "my-account", label: "My account" },
-                  { id: "billing", label: "Billing & Plans" },
                   { id: "meeting-recordings", label: "Meeting recordings" },
                   { id: "push-notifications", label: "Push notifications" },
                   { id: "integrations", label: "Integrations" },
@@ -615,10 +604,6 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-            )}
-
-            {activeTab === "billing" && (
-              <BillingTab />
             )}
 
             {activeTab === "meeting-recordings" && (

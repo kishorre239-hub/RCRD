@@ -5,14 +5,13 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import RcrdLogo from "@/components/RcrdLogo";
 import {
   Monitor, Mic, MicOff, VideoOff, FileText, Trash2,
-  Loader2, X, Check, Upload, StopCircle, Pause, Play,
-  AlertCircle, ChevronRight, ChevronDown, Info, Camera, Lock, Clock,
+  Loader2, X, Check, Upload, Pause,
+  AlertCircle, ChevronRight, ChevronDown, Info, Lock, Clock,
   Pen, Eraser, Edit3, Shield, Users, MessageSquare, Copy, Send,
-  Smile, VolumeX, Hand, RotateCcw, RotateCw, Type, Paperclip, FileUp, Image as ImageIcon, Download, PhoneOff,
+  VolumeX, RotateCcw, RotateCw, Paperclip, Image as ImageIcon, Download,
   ChevronLeft, Plus, BookOpen,
   Maximize2, MoreHorizontal, Volume2, RefreshCw, Disc, Smartphone, Sparkles, Video
 } from "lucide-react";
-import { ChatIcon, UsersIcon } from "@/components/CustomIcons";
 import { getCourses, uploadVideo, ensureValidAuthToken } from "@/lib/api";
 
 interface Note {
@@ -89,10 +88,6 @@ export default function ClassRoomPage() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [newNote, setNewNote] = useState("");
   const [noteType, setNoteType] = useState<"host" | "participant" | "group">("host");
-  const [selectedParticipantId, setSelectedParticipantId] = useState<string>("p1");
-
-  // Right Drawer Tab State: "notes" | "participants" | "chat" | null
-  const [rightPanel, setRightPanel] = useState<"notes" | "participants" | "chat" | null>(null);
 
   // Zoom-style Bottom Sheet & Modal States (Matching screenshots 1, 2, 3, 4)
   const [showParticipantsSheet, setShowParticipantsSheet] = useState(false);
@@ -184,7 +179,7 @@ export default function ClassRoomPage() {
   // Whiteboard Typing Tool
   const [activeTool, setActiveTool] = useState<'pen' | 'eraser' | 'text'>('pen');
   const [textBox, setTextBox] = useState<{ x: number; y: number; text: string } | null>(null);
-  const [textFontSize, setTextFontSize] = useState(24);
+  const textFontSize = 24;
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   const slideFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -202,7 +197,6 @@ export default function ClassRoomPage() {
 
   // Hand Raise & Reactions State
   const [isHandRaised, setIsHandRaised] = useState(false);
-  const [showReactionsPopup, setShowReactionsPopup] = useState(false);
   const [floatingReactions, setFloatingReactions] = useState<{ id: string; emoji: string; left: number }[]>([]);
 
   // Unique participant ID for current user (persisted per student per room to prevent duplicate cards)
@@ -248,8 +242,8 @@ export default function ClassRoomPage() {
     updatedAt?: number;
   }>({ active: false });
 
-  // Real participants only - no fake dummy students
-  const [participants, setParticipants] = useState<Participant[]>([
+  // Real participants only - pure function initializer to prevent impure Date.now() on re-renders
+  const [participants, setParticipants] = useState<Participant[]>(() => [
     {
       id: isMentor ? "host" : `student_${Date.now()}`,
       name: isMentor ? "You (Host)" : studentName,
@@ -269,22 +263,6 @@ export default function ClassRoomPage() {
   ]);
   const [chatInput, setChatInput] = useState("");
   const chatBottomRef = useRef<HTMLDivElement>(null);
-
-  const handleSendChatMessage = () => {
-    if (!chatInput.trim()) return;
-    const newMsg: ChatMessage = {
-      id: Date.now().toString(),
-      sender: isMentor ? "Host (You)" : (studentName || "Student"),
-      role: isMentor ? "Host" : "Student",
-      text: chatInput.trim(),
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-    setChatMessages(prev => [...prev, newMsg]);
-    setChatInput("");
-    setTimeout(() => {
-      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-  };
 
   const mediaRecRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -335,8 +313,7 @@ export default function ClassRoomPage() {
     setTimeout(() => {
       setFloatingReactions(prev => prev.filter(r => r.id !== id));
     }, 2400);
-    setShowReactionsPopup(false);
-  }, [setFloatingReactions, setShowReactionsPopup]);
+  }, [setFloatingReactions]);
 
   const toggleHandRaise = () => {
     if (!isMentor && !securitySettings.allowRaiseHand) {
@@ -350,7 +327,6 @@ export default function ClassRoomPage() {
       if (!isMentor && p.id === "p1") return { ...p, isHandRaised: next };
       return p;
     }));
-    setShowReactionsPopup(false);
     if (next) {
       triggerReaction("✋");
       showToast("✋ You raised your hand! The host has been notified.");
@@ -1081,7 +1057,7 @@ export default function ClassRoomPage() {
       showToast("Only the host has access to host notes.", false);
       return;
     }
-    const targetParticipant = participants.find(p => p.id === selectedParticipantId) || participants.find(p => p.role === "Student");
+    const targetParticipant = participants.find(p => p.role === "Student");
     const myId = myParticipantId;
     const note: Note = {
       id: Date.now().toString(),
@@ -1089,7 +1065,7 @@ export default function ClassRoomPage() {
       author: isMentor ? "Host" : studentName,
       timestamp: new Date().toISOString(),
       type: noteType,
-      participantId: noteType === "participant" ? (isMentor ? selectedParticipantId : myId) : undefined,
+      participantId: noteType === "participant" ? myId : undefined,
       participantName: noteType === "participant" ? (isMentor ? targetParticipant?.name : studentName) : undefined,
       attachment: noteAttachment || undefined,
     };
@@ -3001,12 +2977,12 @@ export default function ClassRoomPage() {
                 type="text"
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") handleSendChatMessage(); }}
+                onKeyDown={e => { if (e.key === "Enter") sendChatMessage(); }}
                 placeholder="Type message to everyone..."
                 className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3.5 py-2 text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors"
               />
               <button
-                onClick={handleSendChatMessage}
+                onClick={() => sendChatMessage()}
                 disabled={!chatInput.trim()}
                 className="p-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl transition-all cursor-pointer shrink-0 shadow-sm"
               >
@@ -3121,10 +3097,11 @@ export default function ClassRoomPage() {
                 <button
                   type="button"
                   onClick={() => noteFileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-semibold transition-colors cursor-pointer shrink-0"
+                  className="flex items-center gap-1 px-2.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-semibold transition-colors cursor-pointer shrink-0"
+                  title="Attach File"
                 >
                   <Paperclip size={13} />
-                  <span>Attach File</span>
+                  <span>Attach</span>
                 </button>
                 <input
                   ref={noteFileInputRef}
@@ -3132,6 +3109,24 @@ export default function ClassRoomPage() {
                   onChange={handleNoteFileSelect}
                   className="hidden"
                 />
+
+                <button
+                  type="button"
+                  onClick={() => importNotesInputRef.current?.click()}
+                  className="flex items-center gap-1 px-2.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-xl text-xs font-semibold transition-colors cursor-pointer shrink-0"
+                  title="Import Notes"
+                >
+                  <Upload size={13} />
+                  <span>Import</span>
+                </button>
+                <input
+                  ref={importNotesInputRef}
+                  type="file"
+                  accept=".txt,.json"
+                  onChange={handleImportNotesFile}
+                  className="hidden"
+                />
+
                 <button
                   onClick={addNote}
                   className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"

@@ -244,6 +244,17 @@ export default function SettingsPage() {
           setTimeout(() => setDriveSaveMessage(""), 5000);
         }, 0);
       }
+
+      const handlePopState = () => {
+        const p = new URLSearchParams(window.location.search);
+        const tab = p.get('tab') || 'my-account';
+        setActiveTab(tab);
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('popstate', handlePopState);
+      };
     }
 
     return () => clearTimeout(timer);
@@ -390,14 +401,17 @@ export default function SettingsPage() {
           ? "fixed inset-y-0 left-0 flex z-50 shadow-2xl" 
           : "hidden md:flex z-20"
       }`}>
-        <div className="h-22 sm:h-24 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
-          <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
-            <RcrdLogo className="h-18 sm:h-20 md:h-22 w-auto scale-145 sm:scale-160 md:scale-175 origin-left transition-transform group-hover:scale-185" />
+        <div className="relative h-24 sm:h-26 flex items-center justify-center px-4 border-b border-[#E2E7EC] flex-shrink-0 w-full overflow-hidden">
+          <div 
+            className="flex items-center justify-center cursor-pointer group mx-auto" 
+            onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}
+          >
+            <RcrdLogo className="h-20 sm:h-22 md:h-24 w-auto scale-175 sm:scale-190 md:scale-205 origin-center transition-transform group-hover:scale-215" />
           </div>
           <button 
             type="button"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="md:hidden p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
+            className="absolute right-4 top-1/2 -translate-y-1/2 md:hidden p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
@@ -409,7 +423,18 @@ export default function SettingsPage() {
             <SidebarItem icon={<HomeIcon size={18} />} label="For You" href="/" />
             <SidebarItem icon={<LibraryIcon size={18} />} label="Library" href="/library" />
             <SidebarItem icon={<VideoCameraIcon size={18} />} label="Meetings" href="/meetings" />
-            <SidebarItem icon={<SettingsIcon size={18} />} label="Settings" active href="/settings" />
+            <SidebarItem 
+              icon={<SettingsIcon size={18} />} 
+              label="Settings" 
+              active={activeTab !== 'users' && activeTab !== 'workspace'} 
+              onClick={() => {
+                setActiveTab('my-account');
+                setIsMobileMenuOpen(false);
+                if (typeof window !== 'undefined') {
+                  window.history.pushState(null, '', '/settings?tab=my-account');
+                }
+              }} 
+            />
           </nav>
 
           <div className="mt-10">
@@ -427,7 +452,18 @@ export default function SettingsPage() {
                   }
                 }}
               />
-              <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" href="/settings" />
+              <SidebarItem 
+                icon={<WorkspaceIcon size={18} />} 
+                label="Workspace Info" 
+                active={activeTab === 'workspace'} 
+                onClick={() => {
+                  setActiveTab('workspace');
+                  setIsMobileMenuOpen(false);
+                  if (typeof window !== 'undefined') {
+                    window.history.pushState(null, '', '/settings?tab=workspace');
+                  }
+                }}
+              />
             </nav>
           </div>
         </div>
@@ -457,15 +493,15 @@ export default function SettingsPage() {
             {/* Title */}
             <div className="mb-6">
               <p className="text-[13px] text-[#57636E] mb-1">
-                {activeTab === 'users' ? 'harikishorereddy9908' : 'Hari Kishore Reddy'}
+                {activeTab === 'users' ? 'harikishorereddy9908' : (activeTab === 'workspace' ? 'harikishorereddy9908' : 'Hari Kishore Reddy')}
               </p>
               <h1 className="text-2xl sm:text-[32px] font-bold text-[#20262E] leading-tight">
-                {activeTab === 'users' ? 'Users & groups' : 'Personal Settings'}
+                {activeTab === 'users' ? 'Users & groups' : (activeTab === 'workspace' ? 'Workspace Info' : 'Personal Settings')}
               </h1>
             </div>
 
-            {/* Banner (only for personal settings, not when viewing users & groups) */}
-            {activeTab !== 'users' && (
+            {/* Banner (only for personal settings, not when viewing users or workspace) */}
+            {activeTab !== 'users' && activeTab !== 'workspace' && (
               <div className="bg-[#F5F6F8] border border-[#E2E7EC] rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-8">
                 <div className="flex items-center gap-3">
                   <Info size={18} className="text-[#57636E] shrink-0" />
@@ -478,7 +514,7 @@ export default function SettingsPage() {
             )}
 
             {/* Tabs (only when personal settings) */}
-            {activeTab !== 'users' && (
+            {activeTab !== 'users' && activeTab !== 'workspace' && (
               <div className="flex items-center gap-6 border-b border-[#E2E7EC] mb-8 overflow-x-auto">
                 {[
                   { id: "my-account", label: "My account" },
@@ -505,6 +541,59 @@ export default function SettingsPage() {
 
             {/* Tab Content: Users Management */}
             {activeTab === "users" && <UsersTab />}
+
+            {/* Tab Content: Workspace Info */}
+            {activeTab === "workspace" && (
+              <div className="space-y-6 pb-20">
+                <div className="border border-[#E2E7EC] rounded-2xl p-6 sm:p-8 bg-white shadow-xs">
+                  <div className="flex items-center gap-4 pb-6 border-b border-[#E2E7EC]">
+                    <div className="w-14 h-14 rounded-2xl bg-[#EBF5FB] border border-[#154360]/20 flex items-center justify-center text-[#154360]">
+                      <WorkspaceIcon size={28} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-[#20262E]">harikishorereddy9908 Workspace</h2>
+                      <p className="text-xs text-[#57636E] mt-0.5">Primary Managed Workspace · Administrator Controlled</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
+                    <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E7EC]">
+                      <p className="text-xs font-semibold text-[#57636E] uppercase tracking-wider mb-1">Workspace Owner</p>
+                      <p className="text-sm font-bold text-[#20262E]">Hari Kishore Reddy</p>
+                      <p className="text-xs text-[#57636E]">harikishorereddy9908@gmail.com</p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E7EC]">
+                      <p className="text-xs font-semibold text-[#57636E] uppercase tracking-wider mb-1">Access Model</p>
+                      <p className="text-sm font-bold text-[#154360]">Managed Access Only</p>
+                      <p className="text-xs text-[#57636E]">Public signup disabled; employees provisioned by Admin</p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E7EC]">
+                      <p className="text-xs font-semibold text-[#57636E] uppercase tracking-wider mb-1">Connected Storage</p>
+                      <p className="text-sm font-bold text-emerald-700">Google Drive Enterprise (5 TB)</p>
+                      <p className="text-xs text-[#57636E]">Automated backup & sync for all employee recordings</p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E7EC]">
+                      <p className="text-xs font-semibold text-[#57636E] uppercase tracking-wider mb-1">Employee Roster</p>
+                      <p className="text-sm font-bold text-[#20262E]">Users & Groups Provisioning</p>
+                      <button 
+                        onClick={() => {
+                          setActiveTab('users');
+                          if (typeof window !== 'undefined') {
+                            window.history.pushState(null, '', '/settings?tab=users');
+                          }
+                        }}
+                        className="text-xs font-semibold text-[#154360] hover:underline mt-0.5 flex items-center gap-1 cursor-pointer"
+                      >
+                        Manage Users & Permissions →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Tab Content */}
             {activeTab === "my-account" && (

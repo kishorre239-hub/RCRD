@@ -73,9 +73,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#F5F6F8] font-sans text-[#20262E] flex flex-col justify-between selection:bg-[#EBF5FB] selection:text-[#0E2F44]">
       
       {/* Top Navbar */}
-      <header className="h-22 sm:h-24 px-6 sm:px-12 flex items-center justify-between border-b border-[#E2E7EC] bg-white sticky top-0 z-30 shadow-xs">
-        <Link href="/" className="flex items-center gap-2 group">
-          <RcrdLogo className="h-20 sm:h-22 md:h-24 w-auto scale-145 sm:scale-160 md:scale-175 origin-left transition-transform group-hover:scale-185" />
+      <header className="h-24 sm:h-26 px-6 sm:px-12 flex items-center justify-between border-b border-[#E2E7EC] bg-white sticky top-0 z-30 shadow-xs">
+        <Link href="/" className="flex items-center justify-center group">
+          <RcrdLogo className="h-22 sm:h-24 md:h-26 w-auto scale-175 sm:scale-190 md:scale-205 origin-center transition-transform group-hover:scale-215" />
         </Link>
         <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EBF5FB] border border-[#154360]/20 text-[#154360] text-xs font-semibold">
           <ShieldCheck size={14} className="text-[#154360]" />

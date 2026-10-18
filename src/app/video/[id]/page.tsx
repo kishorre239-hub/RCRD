@@ -310,9 +310,9 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
     <div className="h-full w-full bg-white text-[#20262E] flex flex-col overflow-y-auto custom-scrollbar font-jost">
 
       {/* Main Navbar */}
-      <header className="h-22 sm:h-24 border-b border-[#E2E7EC] bg-white flex items-center justify-between px-4 sm:px-6 shrink-0 sticky top-0 z-50">
-        <div className="flex items-center justify-center cursor-pointer group pl-2 sm:pl-6" onClick={() => router.push('/')}>
-          <RcrdLogo className="h-18 sm:h-20 md:h-22 w-auto scale-145 sm:scale-160 md:scale-175 origin-left transition-transform group-hover:scale-185" />
+      <header className="h-24 sm:h-26 border-b border-[#E2E7EC] bg-white flex items-center justify-between px-4 sm:px-6 shrink-0 sticky top-0 z-50">
+        <div className="flex items-center justify-center cursor-pointer group" onClick={() => router.push('/')}>
+          <RcrdLogo className="h-20 sm:h-22 md:h-24 w-auto scale-175 sm:scale-190 md:scale-205 origin-center transition-transform group-hover:scale-215" />
         </div>
         
         <div className="flex items-center gap-3">

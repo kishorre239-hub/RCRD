@@ -616,14 +616,17 @@ export default function LibraryPage() {
           ? "fixed inset-y-0 left-0 flex z-50 shadow-2xl" 
           : "hidden md:flex z-20"
       }`}>
-        <div className="h-22 sm:h-24 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
-          <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
-            <RcrdLogo className="h-18 sm:h-20 md:h-22 w-auto scale-145 sm:scale-160 md:scale-175 origin-left transition-transform group-hover:scale-185" />
+        <div className="relative h-24 sm:h-26 flex items-center justify-center px-4 border-b border-[#E2E7EC] flex-shrink-0 w-full overflow-hidden">
+          <div 
+            className="flex items-center justify-center cursor-pointer group mx-auto" 
+            onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}
+          >
+            <RcrdLogo className="h-20 sm:h-22 md:h-24 w-auto scale-175 sm:scale-190 md:scale-205 origin-center transition-transform group-hover:scale-215" />
           </div>
           <button 
             type="button"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="md:hidden p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
+            className="absolute right-4 top-1/2 -translate-y-1/2 md:hidden p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />

@@ -3,6 +3,7 @@ import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { User } from '@/lib/server/types';
 import { ObjectId } from 'mongodb';
+import { hashPassword } from '@/lib/server/password';
 
 export async function DELETE(
   req: Request,
@@ -58,7 +59,7 @@ export async function PATCH(
   try {
     const { userId } = await params;
     const body = await req.json().catch(() => ({}));
-    const { role, status, name } = body;
+    const { role, status, name, password, hasAccess } = body;
 
     const usersCol = await getCollection<User>('users');
     let targetUser: User | null = null;
@@ -83,8 +84,14 @@ export async function PATCH(
     if (status) {
       updateFields.status = status;
     }
+    if (hasAccess !== undefined) {
+      updateFields.status = hasAccess ? 'Active' : 'Access Revoked';
+    }
     if (name) {
       updateFields.name = name.trim();
+    }
+    if (password) {
+      updateFields.passwordHash = await hashPassword(password);
     }
 
     const filter = targetUser._id ? { _id: targetUser._id } : { email: targetUser.email };
@@ -99,6 +106,7 @@ export async function PATCH(
         email: updated?.email,
         role: updated?.role,
         status: updated?.status || 'Active',
+        hasAccess: (updated?.status || 'Active').toLowerCase() === 'active',
       },
     });
   } catch (error: any) {

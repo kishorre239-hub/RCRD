@@ -9,6 +9,7 @@ export interface User {
   role: 'USER' | 'ADMIN' | string;
   workspaceId?: string;
   status?: 'Active' | 'Suspended' | 'Pending' | string;
+  hasAccess?: boolean;
   plan?: 'free' | 'pro' | 'team' | 'yearly' | string;
   subscriptionStatus?: 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'EXPIRED';
   subscriptionId?: string;

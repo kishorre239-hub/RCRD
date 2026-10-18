@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Lock, Mail, Eye, EyeOff, AlertCircle, Sparkles } from "lucide-react";
+import { ArrowRight, Lock, Mail, Eye, EyeOff, AlertCircle, Sparkles, ShieldCheck } from "lucide-react";
 import RcrdLogo from "@/components/RcrdLogo";
 
 export default function LoginPage() {
@@ -73,18 +73,13 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#F5F6F8] font-sans text-[#20262E] flex flex-col justify-between selection:bg-[#EBF5FB] selection:text-[#0E2F44]">
       
       {/* Top Navbar */}
-      <header className="h-20 px-6 sm:px-12 flex items-center justify-between border-b border-[#E2E7EC] bg-white sticky top-0 z-30 shadow-xs">
+      <header className="h-22 sm:h-24 px-6 sm:px-12 flex items-center justify-between border-b border-[#E2E7EC] bg-white sticky top-0 z-30 shadow-xs">
         <Link href="/" className="flex items-center gap-2 group">
-          <RcrdLogo className="h-16 sm:h-18 md:h-20 w-auto scale-130 sm:scale-145 origin-left transition-transform group-hover:scale-155" />
+          <RcrdLogo className="h-20 sm:h-22 md:h-24 w-auto scale-145 sm:scale-160 md:scale-175 origin-left transition-transform group-hover:scale-185" />
         </Link>
-        <div className="flex items-center gap-3 text-xs">
-          <span className="text-[#57636E]">Don&apos;t have an account?</span>
-          <Link
-            href="/signup"
-            className="font-bold text-[#154360] hover:text-[#0E2F44] px-3 py-1.5 rounded-lg border border-[#154360]/30 hover:bg-[#EBF5FB] transition-all"
-          >
-            Sign up free
-          </Link>
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EBF5FB] border border-[#154360]/20 text-[#154360] text-xs font-semibold">
+          <ShieldCheck size={14} className="text-[#154360]" />
+          <span>Managed Workspace Login</span>
         </div>
       </header>
 
@@ -97,10 +92,10 @@ export default function LoginPage() {
               <Sparkles size={22} />
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#20262E] tracking-tight">
-              Welcome back
+              Sign In to RCRD
             </h1>
             <p className="text-xs text-[#57636E] mt-1.5 font-normal">
-              Sign in to manage your meetings, screen recordings, and team spaces
+              Access is provisioned by workspace administrators. Enter your employee credentials to continue.
             </p>
           </div>
 

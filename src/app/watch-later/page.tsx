@@ -307,9 +307,9 @@ export default function WatchLaterPage() {
           ? "fixed inset-y-0 left-0 flex z-50 shadow-2xl" 
           : "hidden md:flex z-20"
       }`}>
-        <div className="h-20 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
+        <div className="h-22 sm:h-24 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
-            <RcrdLogo className="h-16 sm:h-18 md:h-20 w-auto scale-130 sm:scale-145 md:scale-155 origin-left transition-transform group-hover:scale-165" />
+            <RcrdLogo className="h-18 sm:h-20 md:h-22 w-auto scale-145 sm:scale-160 md:scale-175 origin-left transition-transform group-hover:scale-185" />
           </div>
           <button 
             type="button"

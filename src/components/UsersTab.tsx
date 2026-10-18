@@ -4,7 +4,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { 
   ChevronDown, Plus, ChevronRight, X,
   Trash2, Check, UserPlus,
-  RefreshCw, AlertCircle
+  RefreshCw, AlertCircle, UserCheck, UserX,
+  Key, ShieldCheck, Eye, EyeOff
 } from "lucide-react";
 
 export interface WorkspaceUser {
@@ -13,7 +14,8 @@ export interface WorkspaceUser {
   email: string;
   role: "Admin" | "Creator" | string;
   dateAdded: string;
-  status: "Active" | "Invited" | "Suspended" | string;
+  status: "Active" | "Access Revoked" | "Suspended" | string;
+  hasAccess?: boolean;
 }
 
 const DEFAULT_USERS: WorkspaceUser[] = [
@@ -24,6 +26,7 @@ const DEFAULT_USERS: WorkspaceUser[] = [
     role: "Admin",
     dateAdded: "24 April 2026",
     status: "Active",
+    hasAccess: true,
   },
 ];
 
@@ -34,7 +37,7 @@ export default function UsersTab() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"All Roles" | "Admins" | "Creators">("All Roles");
-  const [memberFilter, setMemberFilter] = useState<"All members" | "Active" | "Invited">("All members");
+  const [memberFilter, setMemberFilter] = useState<"All members" | "Access Granted" | "Access Revoked">("All members");
   
   // Dropdown states
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
@@ -48,8 +51,17 @@ export default function UsersTab() {
   // Add User Form States
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [giveImmediateAccess, setGiveImmediateAccess] = useState(true);
   const [newRole, setNewRole] = useState<"Creator" | "Admin">("Creator");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Edit / Reset Password in User Modal
+  const [editPassword, setEditPassword] = useState("");
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
   const [toastMessage, setToastMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   const showToast = (text: string, ok = true) => {
@@ -78,6 +90,8 @@ export default function UsersTab() {
             
             const rawRole = String(u.role || "Creator");
             const roleFormatted = rawRole.toUpperCase() === "ADMIN" ? "Admin" : "Creator";
+            const rawStatus = String(u.status || "Active");
+            const hasAccess = u.hasAccess !== undefined ? !!u.hasAccess : rawStatus.toLowerCase() === "active";
 
             return {
               id: String(u.id || u._id || `usr-${idx}`),
@@ -85,7 +99,8 @@ export default function UsersTab() {
               email: String(u.email || ""),
               role: roleFormatted,
               dateAdded: dateStr,
-              status: String(u.status || "Active"),
+              status: rawStatus,
+              hasAccess,
             };
           });
           setUsers(formatted);
@@ -144,10 +159,13 @@ export default function UsersTab() {
       return;
     }
     const cleanName = newName.trim() || newEmail.split("@")[0];
+    const initialStatus = giveImmediateAccess ? "Active" : "Access Revoked";
+    const passwordToSet = newPassword.trim() || "rcrd2026";
 
     setIsSubmitting(true);
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
       // 1. Post to workspace users API
       const res = await fetch("/api/workspaces/users", {
         method: "POST",
@@ -159,20 +177,10 @@ export default function UsersTab() {
           name: cleanName,
           email: newEmail.trim().toLowerCase(),
           role: newRole,
+          password: passwordToSet,
+          status: initialStatus,
         }),
       });
-
-      // 2. Optionally trigger invitation email
-      try {
-        await fetch("/api/invite", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: JSON.stringify({ emails: [newEmail.trim().toLowerCase()] }),
-        });
-      } catch {}
 
       const today = new Date().toLocaleDateString("en-GB", { 
         day: "numeric", 
@@ -189,7 +197,8 @@ export default function UsersTab() {
           email: data.email || newEmail.trim().toLowerCase(),
           role: newRole,
           dateAdded: today,
-          status: "Active",
+          status: initialStatus,
+          hasAccess: giveImmediateAccess,
         };
       } else {
         newUser = {
@@ -198,7 +207,8 @@ export default function UsersTab() {
           email: newEmail.trim().toLowerCase(),
           role: newRole,
           dateAdded: today,
-          status: "Active",
+          status: initialStatus,
+          hasAccess: giveImmediateAccess,
         };
       }
 
@@ -206,14 +216,81 @@ export default function UsersTab() {
       saveUsers(updated);
       setNewName("");
       setNewEmail("");
-      setNewRole("Creator");
+      setNewPassword("");
+      setGiveImmediateAccess(true);
       setShowAddModal(false);
-      showToast(`User ${newUser.name} added to workspace!`);
+      showToast(giveImmediateAccess 
+        ? `User ${newUser.name} created! Login access is Active.` 
+        : `User ${newUser.name} created! Access is Revoked.`);
     } catch (err) {
       console.error("Error adding user:", err);
-      showToast("Failed to add user. Saved locally.", false);
+      showToast("Failed to add user to server. Saved locally.", false);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Toggle Login Access (Give Access / Revoke Access)
+  const handleToggleAccess = async (userId: string, grant: boolean) => {
+    const target = users.find(u => u.id === userId);
+    if (!target) return;
+    if (target.email === "harikishorereddy9908@gmail.com" && !grant) {
+      showToast("Cannot revoke access for the primary workspace owner.", false);
+      return;
+    }
+
+    const nextStatus = grant ? "Active" : "Access Revoked";
+    const updated = users.map(u => u.id === userId ? { ...u, status: nextStatus, hasAccess: grant } : u);
+    saveUsers(updated);
+
+    if (selectedUser && selectedUser.id === userId) {
+      setSelectedUser({ ...selectedUser, status: nextStatus, hasAccess: grant });
+    }
+
+    showToast(grant ? `Login access granted for ${target.name}.` : `Login access revoked for ${target.name}.`);
+
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      await fetch(`/api/workspaces/users/${userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ status: nextStatus, hasAccess: grant }),
+      });
+    } catch (err) {
+      console.warn("Could not sync access status to server:", err);
+    }
+  };
+
+  // Update Password for User
+  const handleUpdatePassword = async (userId: string) => {
+    if (!editPassword.trim()) {
+      showToast("Please enter a new password.", false);
+      return;
+    }
+    setIsUpdatingPassword(true);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const res = await fetch(`/api/workspaces/users/${userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ password: editPassword.trim() }),
+      });
+      if (res.ok) {
+        showToast("Employee password updated successfully!");
+        setEditPassword("");
+      } else {
+        showToast("Failed to update password on server.", false);
+      }
+    } catch {
+      showToast("Error updating password.", false);
+    } finally {
+      setIsUpdatingPassword(false);
     }
   };
 
@@ -280,11 +357,12 @@ export default function UsersTab() {
         (roleFilter === "Admins" && user.role.toLowerCase() === "admin") ||
         (roleFilter === "Creators" && user.role.toLowerCase() !== "admin");
 
-      // Member status filter
+      // Member access status filter
+      const isUserActive = (user.status || "Active").toLowerCase() === "active";
       const matchesMember = 
         memberFilter === "All members" ||
-        (memberFilter === "Active" && user.status.toLowerCase() === "active") ||
-        (memberFilter === "Invited" && user.status.toLowerCase() !== "active");
+        (memberFilter === "Access Granted" && isUserActive) ||
+        (memberFilter === "Access Revoked" && !isUserActive);
 
       return matchesSearch && matchesRole && matchesMember;
     });
@@ -309,14 +387,14 @@ export default function UsersTab() {
         <div className="mb-6">
           <div className="flex items-center gap-2">
             <h2 className="text-[20px] font-bold text-[#20262E] tracking-tight">
-              Users
+              Users &amp; groups
             </h2>
             <span className="text-[14px] text-[#57636E] font-medium">
               ({users.length})
             </span>
           </div>
           <p className="text-[13px] text-[#57636E] mt-1 leading-relaxed">
-            Global permissions define what people can do on RCRD. You can grant permissions to groups and individuals.
+            Global permissions define what people can do on RCRD. Administrators can grant or revoke employee login access at any time.
           </p>
         </div>
 
@@ -380,7 +458,7 @@ export default function UsersTab() {
               )}
             </div>
 
-            {/* Member Status Filter Dropdown */}
+            {/* Member Access Status Filter Dropdown */}
             <div className="relative">
               <button
                 type="button"
@@ -395,8 +473,8 @@ export default function UsersTab() {
               </button>
 
               {isMemberDropdownOpen && (
-                <div className="absolute left-0 mt-1.5 w-40 bg-white border border-[#E2E7EC] rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
-                  {(["All members", "Active", "Invited"] as const).map(option => (
+                <div className="absolute left-0 mt-1.5 w-48 bg-white border border-[#E2E7EC] rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                  {(["All members", "Access Granted", "Access Revoked"] as const).map(option => (
                     <button
                       key={option}
                       onClick={() => {
@@ -422,15 +500,15 @@ export default function UsersTab() {
           {/* Add User Action Button */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => fetchUsers()}
+              onClick={() => fetchUsers(true)}
               title="Refresh users"
-              className="p-2 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-lg transition-colors"
+              className="p-2 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-lg transition-colors cursor-pointer"
             >
               <RefreshCw size={15} className={loading ? "animate-spin text-[#154360]" : ""} />
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="bg-[#154360] hover:bg-[#0E2F44] text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-all shadow-sm flex items-center gap-1.5"
+              className="bg-[#154360] hover:bg-[#0E2F44] text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
             >
               <Plus size={16} />
               <span>Add user</span>
@@ -447,8 +525,8 @@ export default function UsersTab() {
                 <th className="py-3 px-4">Role</th>
                 <th className="py-3 px-4">Date added</th>
                 <th className="py-3 px-4">Email address</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 w-10 text-right"></th>
+                <th className="py-3 px-4">Login Status</th>
+                <th className="py-3 px-4 text-right">Access Controls</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-[13px]">
@@ -472,8 +550,10 @@ export default function UsersTab() {
                 filteredUsers.map(user => {
                   const isAdmin = user.role.toLowerCase() === "admin";
                   const avatarColor = isAdmin 
-                    ? "bg-[#2980B9] text-white" // Emerald Green matching Loom's admin badge
+                    ? "bg-[#2980B9] text-white" 
                     : "bg-[#154360] text-white";
+                  const isActive = (user.status || "Active").toLowerCase() === "active";
+                  const isPrimaryOwner = user.email === "harikishorereddy9908@gmail.com";
 
                   return (
                     <tr 
@@ -515,15 +595,55 @@ export default function UsersTab() {
 
                       {/* Status */}
                       <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#0E2F44] bg-[#EBF5FB] px-2 py-0.5 rounded-full border border-[#2980B9]/30/60">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#2980B9]" />
-                          {user.status}
-                        </span>
+                        {isActive ? (
+                          <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 shadow-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 shadow-xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                            Access Revoked
+                          </span>
+                        )}
                       </td>
 
-                      {/* Arrow / Action */}
-                      <td className="py-3.5 px-4 text-right text-[#57636E] group-hover:text-[#20262E] transition-colors">
-                        <ChevronRight size={16} />
+                      {/* Access Action Buttons */}
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-2.5">
+                          {!isPrimaryOwner ? (
+                            isActive ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleAccess(user.id, false);
+                                }}
+                                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                                title="Revoke login access for this employee"
+                              >
+                                <UserX size={13} />
+                                <span>Revoke Access</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleAccess(user.id, true);
+                                }}
+                                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                                title="Give login access to this employee"
+                              >
+                                <UserCheck size={13} />
+                                <span>Give Access</span>
+                              </button>
+                            )
+                          ) : (
+                            <span className="text-[11px] font-bold text-[#57636E] uppercase bg-slate-100 px-2 py-0.5 rounded">Owner</span>
+                          )}
+                          <ChevronRight size={16} className="text-[#57636E] group-hover:text-[#20262E] transition-colors" />
+                        </div>
                       </td>
                     </tr>
                   );
@@ -535,7 +655,7 @@ export default function UsersTab() {
 
       </div>
 
-      {/* ADD USER MODAL */}
+      {/* ADD USER MODAL (ADMIN CREATES EMPLOYEE ACCESS) */}
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-[480px] overflow-hidden border border-[#E2E7EC] animate-in zoom-in-95 duration-150">
@@ -547,13 +667,13 @@ export default function UsersTab() {
                   <UserPlus size={18} />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-[#20262E]">Add User to Workspace</h3>
-                  <p className="text-xs text-[#57636E]">Invite a teammate with custom permissions.</p>
+                  <h3 className="text-base font-bold text-[#20262E]">Add Employee &amp; Grant Access</h3>
+                  <p className="text-xs text-[#57636E]">Create user credentials so employees can sign in.</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 rounded-lg transition-colors"
+                className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -569,28 +689,53 @@ export default function UsersTab() {
                   type="text"
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
-                  placeholder="e.g. Alex Morgan"
+                  placeholder="e.g. Sarah Jenkins"
                   className="w-full px-3.5 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] placeholder:text-[#57636E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium"
                 />
               </div>
 
               <div>
                 <label className="block text-[12px] font-semibold text-[#20262E] uppercase tracking-wider mb-1.5">
-                  Email Address *
+                  Work Email Address *
                 </label>
                 <input
                   type="email"
                   required
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
-                  placeholder="colleague@company.com"
+                  placeholder="sarah.jenkins@company.com"
                   className="w-full px-3.5 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] placeholder:text-[#57636E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium"
                 />
               </div>
 
               <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-[12px] font-semibold text-[#20262E] uppercase tracking-wider">
+                    Login Password
+                  </label>
+                  <span className="text-[11px] text-[#57636E]">Default: rcrd2026</span>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    placeholder="Set employee password (or leave empty for rcrd2026)"
+                    className="w-full px-3.5 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] placeholder:text-[#57636E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#20262E] cursor-pointer"
+                  >
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-[12px] font-semibold text-[#20262E] uppercase tracking-wider mb-1.5">
-                  Role & Permissions
+                  Role &amp; Permissions
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <div
@@ -605,7 +750,7 @@ export default function UsersTab() {
                       <span className="font-bold text-sm text-[#20262E]">Creator</span>
                       {newRole === "Creator" && <Check size={14} className="text-[#154360]" />}
                     </div>
-                    <p className="text-[11px] text-[#57636E] leading-snug">Can record, edit, and share videos in the workspace</p>
+                    <p className="text-[11px] text-[#57636E] leading-snug">Can record, edit, and attend meetings</p>
                   </div>
 
                   <div
@@ -620,9 +765,25 @@ export default function UsersTab() {
                       <span className="font-bold text-sm text-[#20262E]">Admin</span>
                       {newRole === "Admin" && <Check size={14} className="text-[#154360]" />}
                     </div>
-                    <p className="text-[11px] text-[#57636E] leading-snug">Full workspace access, user management, and billing</p>
+                    <p className="text-[11px] text-[#57636E] leading-snug">Full workspace access and employee management</p>
                   </div>
                 </div>
+              </div>
+
+              {/* Immediate Access Checkbox */}
+              <div className="pt-2">
+                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-[#E2E7EC] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={giveImmediateAccess}
+                    onChange={e => setGiveImmediateAccess(e.target.checked)}
+                    className="w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-[#E2E7EC] cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-[#20262E] block">Grant Immediate Login Access</span>
+                    <span className="text-[11px] text-[#57636E] block">Employee will be able to log in with these credentials right away.</span>
+                  </div>
+                </label>
               </div>
 
               {/* Modal Footer */}
@@ -630,17 +791,17 @@ export default function UsersTab() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E] text-xs font-semibold rounded-xl transition-colors"
+                  className="px-4 py-2 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E] text-xs font-semibold rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting || !newEmail.trim()}
-                  className="px-5 py-2 bg-[#154360] hover:bg-[#0E2F44] disabled:bg-slate-200 disabled:text-[#57636E] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                  className="px-5 py-2 bg-[#154360] hover:bg-[#0E2F44] disabled:bg-slate-200 disabled:text-[#57636E] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
                   {isSubmitting ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
-                  <span>{isSubmitting ? "Adding..." : "Add user"}</span>
+                  <span>{isSubmitting ? "Adding..." : "Add user & Give Access"}</span>
                 </button>
               </div>
             </form>
@@ -649,10 +810,10 @@ export default function UsersTab() {
         </div>
       )}
 
-      {/* USER DETAILS & MANAGEMENT DRAWER/MODAL */}
+      {/* USER DETAILS & ACCESS MANAGEMENT MODAL */}
       {showUserModal && selectedUser && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[440px] overflow-hidden border border-[#E2E7EC] animate-in zoom-in-95 duration-150 font-sans">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[480px] overflow-hidden border border-[#E2E7EC] animate-in zoom-in-95 duration-150 font-sans">
             
             {/* Header */}
             <div className="p-6 border-b border-[#E2E7EC] flex items-start justify-between">
@@ -669,7 +830,7 @@ export default function UsersTab() {
               </div>
               <button
                 onClick={() => setShowUserModal(false)}
-                className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 rounded-lg transition-colors"
+                className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -678,20 +839,88 @@ export default function UsersTab() {
             {/* Content */}
             <div className="p-6 space-y-5">
               
-              <div className="bg-[#F5F6F8] border border-[#E2E7EC]/80 rounded-xl p-4 space-y-2.5 text-xs">
+              {/* Access Control Box */}
+              <div className="p-4 rounded-xl border border-[#E2E7EC] bg-[#F8FAFC] space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[#57636E] font-medium">Status</span>
-                  <span className="font-semibold text-[#0E2F44] bg-[#EBF5FB] px-2 py-0.5 rounded-full border border-[#2980B9]/30/60">
-                    {selectedUser.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck size={18} className={(selectedUser.status || "Active").toLowerCase() === "active" ? "text-emerald-600" : "text-rose-600"} />
+                    <span className="text-xs font-bold text-[#20262E]">Login Access Status</span>
+                  </div>
+                  {(selectedUser.status || "Active").toLowerCase() === "active" ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Access Granted
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                      Access Revoked
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#57636E] font-medium">Date added</span>
-                  <span className="font-semibold text-[#20262E]">{selectedUser.dateAdded}</span>
+
+                <p className="text-xs text-[#57636E] leading-relaxed">
+                  {(selectedUser.status || "Active").toLowerCase() === "active"
+                    ? "This employee is permitted to log in with their work email and assigned password."
+                    : "This employee is blocked from logging in. Give access to allow them to sign in again."}
+                </p>
+
+                {selectedUser.email !== "harikishorereddy9908@gmail.com" && (
+                  <div className="pt-1">
+                    {(selectedUser.status || "Active").toLowerCase() === "active" ? (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAccess(selectedUser.id, false)}
+                        className="w-full py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <UserX size={14} />
+                        <span>Revoke Login Access</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAccess(selectedUser.id, true)}
+                        className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <UserCheck size={14} />
+                        <span>Give Login Access</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Reset Password */}
+              <div className="p-4 rounded-xl border border-[#E2E7EC] bg-white space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <Key size={16} className="text-[#154360]" />
+                  <span className="text-xs font-bold text-[#20262E]">Set Employee Password</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[#57636E] font-medium">User ID</span>
-                  <span className="font-mono text-[#20262E]">{selectedUser.id}</span>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type={showEditPassword ? "text" : "password"}
+                      value={editPassword}
+                      onChange={e => setEditPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      className="w-full px-3 py-2 bg-[#F5F6F8] border border-[#E2E7EC] rounded-lg text-xs text-[#20262E] pr-8 outline-none focus:border-[#154360]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEditPassword(!showEditPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#20262E] cursor-pointer"
+                    >
+                      {showEditPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isUpdatingPassword || !editPassword.trim()}
+                    onClick={() => handleUpdatePassword(selectedUser.id)}
+                    className="px-3.5 py-2 bg-[#154360] hover:bg-[#0E2F44] disabled:bg-slate-200 disabled:text-[#57636E] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                  >
+                    {isUpdatingPassword ? "Saving..." : "Update"}
+                  </button>
                 </div>
               </div>
 
@@ -704,7 +933,7 @@ export default function UsersTab() {
                   <button
                     type="button"
                     onClick={() => handleChangeRole(selectedUser.id, "Admin")}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                       selectedUser.role === "Admin"
                         ? "bg-[#154360] text-white border-[#154360] shadow-xs"
                         : "bg-white text-[#20262E] border-[#E2E7EC] hover:bg-[#F5F6F8]"
@@ -715,7 +944,7 @@ export default function UsersTab() {
                   <button
                     type="button"
                     onClick={() => handleChangeRole(selectedUser.id, "Creator")}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all ${
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
                       selectedUser.role === "Creator"
                         ? "bg-[#154360] text-white border-[#154360] shadow-xs"
                         : "bg-white text-[#20262E] border-[#E2E7EC] hover:bg-[#F5F6F8]"
@@ -731,7 +960,7 @@ export default function UsersTab() {
                 <div className="pt-2 border-t border-[#E2E7EC]">
                   <button
                     onClick={() => handleRemoveUser(selectedUser.id)}
-                    className="w-full py-2.5 bg-[#154360]/10 hover:bg-[#154360]/20 text-[#154360] font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 border border-[#154360]/30/60"
+                    className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 border border-rose-200 cursor-pointer"
                   >
                     <Trash2 size={14} /> Remove User from Workspace
                   </button>
@@ -744,7 +973,7 @@ export default function UsersTab() {
             <div className="px-6 py-4 bg-[#F5F6F8] border-t border-[#E2E7EC] flex justify-end">
               <button
                 onClick={() => setShowUserModal(false)}
-                className="px-4 py-2 bg-white border border-[#E2E7EC] hover:bg-slate-100 text-[#20262E] text-xs font-semibold rounded-xl transition-colors shadow-xs"
+                className="px-4 py-2 bg-white border border-[#E2E7EC] hover:bg-slate-100 text-[#20262E] text-xs font-semibold rounded-xl transition-colors shadow-xs cursor-pointer"
               >
                 Done
               </button>

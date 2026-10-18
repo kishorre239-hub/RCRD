@@ -10,14 +10,14 @@ interface RcrdLogoProps {
 }
 
 export default function RcrdLogo({
-  className = "h-16 sm:h-18 md:h-20 w-auto scale-125 sm:scale-135 md:scale-145 origin-left",
+  className = "h-20 sm:h-22 md:h-24 w-auto scale-145 sm:scale-160 md:scale-175 origin-left",
 }: RcrdLogoProps) {
   return (
     <Image
       src="/icon.png"
       alt="RCRD Logo"
-      width={360}
-      height={200}
+      width={440}
+      height={240}
       priority
       className={`object-contain transition-all duration-200 ${className}`}
     />

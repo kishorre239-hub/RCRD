@@ -223,6 +223,16 @@ export default function ClassRoomPage() {
     updatedAt?: number;
   }>({ active: false });
 
+  // Remote Participant Cameras (Student and Mentor live streams)
+  const [remoteParticipantCameras, setRemoteParticipantCameras] = useState<Record<string, {
+    active: boolean;
+    name: string;
+    role?: 'Host' | 'Student';
+    streamFrame?: string;
+    updatedAt: number;
+  }>>({});
+  const notifiedHandRaisesRef = useRef<Set<string>>(new Set());
+
   // Remote Screen Share & Whiteboard live sync states
   const [remoteScreenShare, setRemoteScreenShare] = useState<{
     active: boolean;
@@ -315,6 +325,25 @@ export default function ClassRoomPage() {
     }, 2400);
   }, [setFloatingReactions]);
 
+  const playHandRaiseChime = useCallback(() => {
+    try {
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    } catch {}
+  }, []);
+
   const toggleHandRaise = () => {
     if (!isMentor && !securitySettings.allowRaiseHand) {
       showToast("Hand raising is currently disabled by the host.", false);
@@ -324,9 +353,30 @@ export default function ClassRoomPage() {
     setIsHandRaised(next);
     setParticipants(prev => prev.map(p => {
       if (isMentor && p.role === "Host") return { ...p, isHandRaised: next };
-      if (!isMentor && p.id === "p1") return { ...p, isHandRaised: next };
+      if (!isMentor && (p.id === myParticipantId || p.id === "p1")) return { ...p, isHandRaised: next };
       return p;
     }));
+
+    // Broadcast hand raise event immediately to host and room
+    const hrPayload = {
+      participantId: myParticipantId,
+      name: isMentor ? "Host" : studentName,
+      isHandRaised: next,
+    };
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
+        bc.postMessage({ type: "HAND_RAISE", data: hrPayload });
+        bc.close();
+      }
+    } catch {}
+
+    fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ handRaise: hrPayload }),
+    }).catch(() => {});
+
     if (next) {
       triggerReaction("✋");
       showToast("✋ You raised your hand! The host has been notified.");
@@ -508,6 +558,32 @@ export default function ClassRoomPage() {
           const { type, data } = event.data || {};
           if (type === "HOST_CAMERA") {
             setRemoteHostCamera(data);
+          } else if (type === "PARTICIPANT_CAMERA") {
+            if (data?.participantId) {
+              setRemoteParticipantCameras(prev => ({
+                ...prev,
+                [data.participantId]: data,
+              }));
+              setParticipants(prev => prev.map(p => {
+                if (p.id === data.participantId || p.name === data.name) {
+                  return { ...p, isVideoOn: Boolean(data.active) };
+                }
+                return p;
+              }));
+            }
+          } else if (type === "HAND_RAISE") {
+            if (data?.participantId) {
+              setParticipants(prev => prev.map(p => {
+                if (p.id === data.participantId || p.name === data.name) {
+                  return { ...p, isHandRaised: Boolean(data.isHandRaised) };
+                }
+                return p;
+              }));
+              if (isMentor && data.isHandRaised) {
+                showToast(`✋ ${data.name || "Student"} raised their hand!`);
+                playHandRaiseChime();
+              }
+            }
           } else if (type === "SCREEN_SHARE") {
             setRemoteScreenShare(data);
           } else if (type === "WHITEBOARD") {
@@ -566,6 +642,23 @@ export default function ClassRoomPage() {
           if (!isMentor && data.hostCamera) {
             setRemoteHostCamera(data.hostCamera);
           }
+
+          // Sync Participant Cameras (student & mentor video streams)
+          if (data.participantCameras && typeof data.participantCameras === "object") {
+            setRemoteParticipantCameras(data.participantCameras);
+          }
+
+          // Sync Hand Raises & Notify Host
+          if (Array.isArray(data.handRaises) && isMentor) {
+            data.handRaises.forEach((hr: { participantId: string; name: string; isHandRaised: boolean; timestamp: number }) => {
+              if (hr.isHandRaised && !notifiedHandRaisesRef.current.has(`${hr.participantId}_${hr.timestamp}`)) {
+                notifiedHandRaisesRef.current.add(`${hr.participantId}_${hr.timestamp}`);
+                showToast(`✋ ${hr.name || "Student"} raised their hand!`);
+                playHandRaiseChime();
+              }
+            });
+          }
+
           // Sync Screen Share if not host sharing
           if (!screenStream && data.screenShare) {
             setRemoteScreenShare(data.screenShare);
@@ -584,11 +677,21 @@ export default function ClassRoomPage() {
           // Sync Chat
           if (Array.isArray(data.chat) && data.chat.length > 0) {
             setChatMessages(prev => {
-              const map = new Map<string, ChatMessage>();
-              prev.forEach(m => map.set(m.id, m));
-              data.chat.forEach((m: ChatMessage) => map.set(m.id, m));
-              const merged = Array.from(map.values());
-              return merged.length !== prev.length ? merged : prev;
+              const existingIds = new Set(prev.map(m => m.id));
+              const newIncoming = data.chat.filter((m: ChatMessage) => !existingIds.has(m.id));
+              if (newIncoming.length > 0) {
+                newIncoming.forEach((m: ChatMessage) => {
+                  const myName = isMentor ? "You (Host)" : studentName;
+                  if (m.sender !== myName && !m.sender.includes("You")) {
+                    showToast(`💬 ${m.sender}: ${m.text.slice(0, 40)}${m.text.length > 40 ? "..." : ""}`);
+                  }
+                });
+                const map = new Map<string, ChatMessage>();
+                prev.forEach(m => map.set(m.id, m));
+                data.chat.forEach((m: ChatMessage) => map.set(m.id, m));
+                return Array.from(map.values());
+              }
+              return prev;
             });
           }
           // Sync Notes
@@ -684,21 +787,33 @@ export default function ClassRoomPage() {
     };
   }, [screenStream, isMentor, roomId]);
 
-  // Broadcast host camera frames when Host turns on camera
+  // Broadcast camera frames for Host AND Student participants
   useEffect(() => {
-    if (!cameraStream || !cameraOn || !isMentor || !roomId) {
-      if (isMentor && roomId) {
+    const myRole = isMentor ? 'Host' : 'Student';
+    const myName = isMentor ? 'Host' : studentName;
+
+    if (!cameraStream || !cameraOn || !roomId) {
+      if (roomId) {
         try {
           if (typeof BroadcastChannel !== "undefined") {
             const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
-            bc.postMessage({ type: "HOST_CAMERA", data: { active: false, updatedAt: Date.now() } });
+            bc.postMessage({
+              type: "PARTICIPANT_CAMERA",
+              data: { participantId: myParticipantId, name: myName, role: myRole, active: false, updatedAt: Date.now() },
+            });
+            if (isMentor) {
+              bc.postMessage({ type: "HOST_CAMERA", data: { active: false, updatedAt: Date.now() } });
+            }
             bc.close();
           }
         } catch {}
         fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ hostCamera: { active: false } }),
+          body: JSON.stringify({
+            participantCamera: { participantId: myParticipantId, name: myName, role: myRole, active: false },
+            ...(isMentor ? { hostCamera: { active: false } } : {}),
+          }),
         }).catch(() => {});
       }
       return;
@@ -706,8 +821,8 @@ export default function ClassRoomPage() {
 
     let active = true;
     const canvas = document.createElement("canvas");
-    canvas.width = 480;
-    canvas.height = 360;
+    canvas.width = 400;
+    canvas.height = 300;
     const ctx = canvas.getContext("2d");
 
     let bc: BroadcastChannel | null = null;
@@ -721,18 +836,27 @@ export default function ClassRoomPage() {
       if (!active || !cameraVideoRef.current || !cameraStream) return;
       try {
         if (cameraVideoRef.current.videoWidth > 0 && ctx) {
-          ctx.drawImage(cameraVideoRef.current, 0, 0, 480, 360);
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
+          ctx.drawImage(cameraVideoRef.current, 0, 0, 400, 300);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.5);
           const payload = {
+            participantId: myParticipantId,
+            name: myName,
+            role: myRole,
             active: true,
             streamFrame: dataUrl,
             updatedAt: Date.now(),
           };
-          if (bc) bc.postMessage({ type: "HOST_CAMERA", data: payload });
+          if (bc) {
+            bc.postMessage({ type: "PARTICIPANT_CAMERA", data: payload });
+            if (isMentor) bc.postMessage({ type: "HOST_CAMERA", data: payload });
+          }
           await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ hostCamera: payload }),
+            body: JSON.stringify({
+              participantCamera: payload,
+              ...(isMentor ? { hostCamera: payload } : {}),
+            }),
           }).catch(() => {});
         }
       } catch {}
@@ -745,16 +869,23 @@ export default function ClassRoomPage() {
       active = false;
       clearInterval(interval);
       if (bc) {
-        bc.postMessage({ type: "HOST_CAMERA", data: { active: false, updatedAt: Date.now() } });
+        bc.postMessage({
+          type: "PARTICIPANT_CAMERA",
+          data: { participantId: myParticipantId, name: myName, role: myRole, active: false, updatedAt: Date.now() },
+        });
+        if (isMentor) bc.postMessage({ type: "HOST_CAMERA", data: { active: false, updatedAt: Date.now() } });
         bc.close();
       }
       fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hostCamera: { active: false } }),
+        body: JSON.stringify({
+          participantCamera: { participantId: myParticipantId, name: myName, role: myRole, active: false },
+          ...(isMentor ? { hostCamera: { active: false } } : {}),
+        }),
       }).catch(() => {});
     };
-  }, [cameraStream, cameraOn, isMentor, roomId]);
+  }, [cameraStream, cameraOn, isMentor, studentName, myParticipantId, roomId]);
 
   // Broadcast whiteboard state (multi-slide & notepad)
   const broadcastWhiteboard = useCallback((
@@ -1083,8 +1214,8 @@ export default function ClassRoomPage() {
   const stopScreenShare = useCallback(() => {
     screenStream?.getTracks().forEach(t => t.stop());
     setScreenStream(null);
-    if (recState === "recording" || recState === "paused") stopRecording();
-  }, [screenStream, recState, stopRecording, setScreenStream]);
+    showToast("Screen share stopped. Meeting is still active.");
+  }, [screenStream, showToast, setScreenStream]);
 
   // ── Screen Share ─────────────────────────────────────────────────
   const startScreenShare = async () => {
@@ -1142,7 +1273,11 @@ export default function ClassRoomPage() {
       cameraStream?.getTracks().forEach(t => t.stop());
       setCameraStream(null);
       setCameraOn(false);
-      setParticipants(prev => prev.map(p => p.role === "Host" ? { ...p, isVideoOn: false } : p));
+      setParticipants(prev => prev.map(p => {
+        if (isMentor && p.role === "Host") return { ...p, isVideoOn: false };
+        if (!isMentor && (p.id === myParticipantId || p.role === "Student")) return { ...p, isVideoOn: false };
+        return p;
+      }));
     } else {
       if (!isMentor && !securitySettings.allowVideo) {
         showToast("Video has been disabled by the host.", false);
@@ -1155,7 +1290,11 @@ export default function ClassRoomPage() {
         });
         setCameraStream(cs);
         setCameraOn(true);
-        setParticipants(prev => prev.map(p => p.role === "Host" ? { ...p, isVideoOn: true } : p));
+        setParticipants(prev => prev.map(p => {
+          if (isMentor && p.role === "Host") return { ...p, isVideoOn: true };
+          if (!isMentor && (p.id === myParticipantId || p.role === "Student")) return { ...p, isVideoOn: true };
+          return p;
+        }));
       } catch {
         try {
           const canvas = document.createElement("canvas");
@@ -1193,7 +1332,11 @@ export default function ClassRoomPage() {
           const fallbackStream = canvas.captureStream(30);
           setCameraStream(fallbackStream);
           setCameraOn(true);
-          setParticipants(prev => prev.map(p => p.role === "Host" ? { ...p, isVideoOn: true } : p));
+          setParticipants(prev => prev.map(p => {
+          if (isMentor && p.role === "Host") return { ...p, isVideoOn: true };
+          if (!isMentor && (p.id === myParticipantId || p.role === "Student")) return { ...p, isVideoOn: true };
+          return p;
+        }));
           showToast("Live camera stream active!");
         } catch {
           showToast("Camera access denied or unavailable.", false);
@@ -1375,24 +1518,9 @@ export default function ClassRoomPage() {
       }
 
       setUploadState("done");
-      // Mark meeting as ended in localStorage
-      const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(all.map((m: Meeting) => m.id === roomId ? { ...m, status: "ended" } : m)));
-      
-      // Update meeting status in backend
-      fetch('/api/meetings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: roomId, status: 'ended' }),
-      }).catch(() => {});
-
       const destName = selectedCourse?.name || "Personal Library (Root)";
-      showToast(`Recording saved to Google Drive ${destName}!`);
-      if (!isMentor) {
-        setTimeout(() => { window.location.href = "https://www.geonixa.com/"; }, 2000);
-      } else {
-        setTimeout(() => router.push("/meetings"), 2000);
-      }
+      showToast(`Recording saved to Google Drive (${destName})! Meeting remains active.`);
+      setTimeout(() => setShowUpload(false), 1500);
     } catch (e: unknown) {
       const err = e as Error;
       setUploadState("error");
@@ -1403,8 +1531,11 @@ export default function ClassRoomPage() {
 
   const endClass = () => {
     if (recState === "recording" || recState === "paused") {
-      stopRecording();
-      return;
+      try {
+        if (mediaRecRef.current && mediaRecRef.current.state !== "inactive") {
+          mediaRecRef.current.stop();
+        }
+      } catch {}
     }
     screenStream?.getTracks().forEach(t => t.stop());
     cameraStream?.getTracks().forEach(t => t.stop());
@@ -2337,7 +2468,8 @@ export default function ClassRoomPage() {
           {/* Center Stage: Authentic Zoom Pattern (Screenshot 1, 2, 4) */}
           {!isAnyScreenSharing && !showWhiteboard && (
             <div className="relative w-full h-full flex items-center justify-center">
-              {cameraOn ? (
+              {/* Primary Video Display */}
+              {isMentor && cameraOn ? (
                 <video
                   ref={(el) => {
                     cameraVideoRef.current = el;
@@ -2352,10 +2484,26 @@ export default function ClassRoomPage() {
                   className="w-full h-full object-cover"
                 />
               ) : (!isMentor && remoteHostCamera?.active && remoteHostCamera?.streamFrame) ? (
+                /* Student watching Host live camera */
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={remoteHostCamera.streamFrame}
                   alt="Host Video Feed"
+                  className="w-full h-full object-cover"
+                />
+              ) : (!isMentor && cameraOn) ? (
+                /* Student camera on without host video */
+                <video
+                  ref={(el) => {
+                    cameraVideoRef.current = el;
+                    if (el && cameraStream && el.srcObject !== cameraStream) {
+                      el.srcObject = cameraStream;
+                      el.play().catch(() => {});
+                    }
+                  }}
+                  autoPlay
+                  playsInline
+                  muted
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -2363,6 +2511,27 @@ export default function ClassRoomPage() {
                 <div className="flex flex-col items-center justify-center">
                   <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-3xl bg-[#7A5C50] text-white flex items-center justify-center text-6xl sm:text-7xl font-medium shadow-2xl select-none">
                     {displayInitial}
+                  </div>
+                </div>
+              )}
+
+              {/* Student Self-View Floating PiP Thumbnail when watching Host video */}
+              {!isMentor && cameraOn && remoteHostCamera?.active && remoteHostCamera?.streamFrame && (
+                <div className="absolute bottom-16 right-4 z-30 w-28 h-20 sm:w-36 sm:h-28 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-black">
+                  <video
+                    ref={(el) => {
+                      if (el && cameraStream && el.srcObject !== cameraStream) {
+                        el.srcObject = cameraStream;
+                        el.play().catch(() => {});
+                      }
+                    }}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute bottom-1 left-1.5 px-1 py-0.5 rounded bg-black/60 text-[9px] text-white">
+                    You
                   </div>
                 </div>
               )}
@@ -2392,19 +2561,38 @@ export default function ClassRoomPage() {
                 </div>
               )}
 
-              {/* Joined Attendees Filmstrip (Top-Right) */}
+              {/* Joined Attendees Filmstrip with Live Student Video (Top-Right) */}
               {uniqueOtherParticipants.length > 0 && (
                 <div className="absolute top-16 right-4 z-20 flex flex-col gap-2 max-h-[70vh] overflow-y-auto pointer-events-auto">
-                  {uniqueOtherParticipants.map((p) => (
-                    <div key={p.id} className="w-20 h-16 sm:w-28 sm:h-20 bg-zinc-900/90 rounded-xl border border-zinc-700/60 overflow-hidden relative shadow-lg flex items-center justify-center">
-                      <div className="w-8 h-8 rounded-lg bg-[#7A5C50] text-white flex items-center justify-center text-xs font-bold">
-                        {p.name.charAt(0).toUpperCase()}
+                  {uniqueOtherParticipants.map((p) => {
+                    const studentCam = remoteParticipantCameras[p.id] || Object.values(remoteParticipantCameras).find(c => c.name === p.name);
+                    const isCamActive = (studentCam?.active && studentCam?.streamFrame) || p.isVideoOn;
+
+                    return (
+                      <div key={p.id} className="w-24 h-18 sm:w-36 sm:h-24 bg-zinc-900 rounded-xl border border-zinc-700/80 overflow-hidden relative shadow-xl flex items-center justify-center">
+                        {isCamActive && studentCam?.streamFrame ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={studentCam.streamFrame}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-xl bg-[#7A5C50] text-white flex items-center justify-center text-sm font-bold shadow select-none">
+                            {p.avatar || p.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        {/* Status Bar */}
+                        <div className="absolute bottom-1 inset-x-1 flex items-center justify-between text-[9px] text-white bg-black/75 backdrop-blur-xs px-1.5 py-0.5 rounded-md truncate">
+                          <span className="truncate max-w-[70px] font-medium">{p.name}</span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {p.isHandRaised && <span className="text-[10px]">✋</span>}
+                            {p.isMuted ? <MicOff size={10} className="text-rose-400" /> : <Mic size={10} className="text-emerald-400" />}
+                          </div>
+                        </div>
                       </div>
-                      <div className="absolute bottom-0.5 inset-x-1 text-[9px] text-white bg-black/70 px-1 rounded truncate text-center">
-                        {p.name}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -2596,8 +2784,8 @@ export default function ClassRoomPage() {
                       ) : (
                         <Mic size={17} className="text-zinc-300" />
                       )}
-                      {p.isVideoOn ? (
-                        <Video size={17} className="text-zinc-300" />
+                      {p.isVideoOn || (remoteParticipantCameras[p.id]?.active) ? (
+                        <Video size={17} className="text-emerald-400" />
                       ) : (
                         <VideoOff size={17} className="text-rose-500" />
                       )}
@@ -3308,7 +3496,7 @@ export default function ClassRoomPage() {
                 <h2 className="text-[18px] font-bold text-[#20262E]">Save Recording</h2>
                 <p className="text-[13px] text-[#57636E] mt-0.5">{fmtT(recTimer)} · {(recBlob.size / 1024 / 1024).toFixed(1)} MB</p>
               </div>
-              <button onClick={() => { setShowUpload(false); if (!isMentor) { window.location.href = "https://www.geonixa.com/"; } else { router.push("/meetings"); } }} className="p-1.5 text-[#57636E] hover:text-[#57636E] hover:bg-slate-100 rounded-lg transition-colors">
+              <button onClick={() => setShowUpload(false)} className="p-1.5 text-[#57636E] hover:text-[#57636E] hover:bg-slate-100 rounded-lg transition-colors">
                 <X size={18} />
               </button>
             </div>
@@ -3378,7 +3566,7 @@ export default function ClassRoomPage() {
                   </div>
 
                   <div className="flex gap-3 pt-1">
-                    <button onClick={() => { setShowUpload(false); if (!isMentor) { window.location.href = "https://www.geonixa.com/"; } else { router.push("/meetings"); } }} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-sm font-semibold rounded-xl transition-colors">Discard</button>
+                    <button onClick={() => setShowUpload(false)} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-sm font-semibold rounded-xl transition-colors">Discard</button>
                     <button onClick={handleUpload} className="flex-1 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"><Upload size={15} />Upload to Library</button>
                   </div>
                 </div>

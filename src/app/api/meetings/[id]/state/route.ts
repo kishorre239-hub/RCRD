@@ -1,16 +1,35 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+
+export interface ParticipantCamera {
+  active: boolean;
+  name: string;
+  role?: 'Host' | 'Student';
+  streamFrame?: string;
+  updatedAt: number;
+}
+
+export interface HandRaiseEvent {
+  participantId: string;
+  name: string;
+  isHandRaised: boolean;
+  timestamp: number;
+}
 
 interface MeetingState {
   status?: 'scheduled' | 'live' | 'ended';
   hostCamera: {
     active: boolean;
-    streamFrame?: string; // compressed base64 frame preview of host camera
+    streamFrame?: string;
     updatedAt: number;
   };
+  participantCameras: Record<string, ParticipantCamera>;
+  handRaises: Array<HandRaiseEvent>;
   screenShare: {
     active: boolean;
     presenterName?: string;
-    streamFrame?: string; // compressed base64 frame preview
+    streamFrame?: string;
     updatedAt: number;
   };
   whiteboard: {
@@ -53,13 +72,41 @@ interface MeetingState {
   }>;
 }
 
-const roomStates: Record<string, MeetingState> = {};
+const DATA_DIR = path.resolve(process.cwd(), '.data');
+const STATES_FILE = path.join(DATA_DIR, 'meeting-room-states.json');
 
-function getOrCreateRoomState(roomId: string): MeetingState {
-  if (!roomStates[roomId]) {
-    roomStates[roomId] = {
+const globalStore = globalThis as unknown as { __roomStates?: Record<string, MeetingState> };
+if (!globalStore.__roomStates) {
+  globalStore.__roomStates = {};
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (fs.existsSync(STATES_FILE)) {
+      const data = fs.readFileSync(STATES_FILE, 'utf-8');
+      globalStore.__roomStates = JSON.parse(data);
+    }
+  } catch (err) {
+    console.warn('Failed loading room states:', err);
+  }
+}
+
+function persistRoomStates() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(STATES_FILE, JSON.stringify(globalStore.__roomStates, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('Failed persisting room states:', err);
+  }
+}
+
+function getOrCreateRoomState(rawId: string): MeetingState {
+  const roomId = decodeURIComponent(rawId).trim();
+  const rooms = globalStore.__roomStates!;
+  if (!rooms[roomId]) {
+    rooms[roomId] = {
       status: 'live',
       hostCamera: { active: false, updatedAt: Date.now() },
+      participantCameras: {},
+      handRaises: [],
       screenShare: { active: false, updatedAt: Date.now() },
       whiteboard: {
         active: false,
@@ -82,8 +129,9 @@ function getOrCreateRoomState(roomId: string): MeetingState {
       notes: [],
       reactions: [],
     };
+    persistRoomStates();
   }
-  return roomStates[roomId];
+  return rooms[roomId];
 }
 
 export async function GET(
@@ -97,15 +145,26 @@ export async function GET(
     }
 
     const state = getOrCreateRoomState(id);
+    const now = Date.now();
+
+    // Prune stale participant cameras older than 15 seconds
+    if (state.participantCameras) {
+      for (const [pid, pc] of Object.entries(state.participantCameras)) {
+        if (now - pc.updatedAt > 15000) {
+          delete state.participantCameras[pid];
+        }
+      }
+    }
 
     // Prune reactions older than 5 seconds
-    const now = Date.now();
     state.reactions = state.reactions.filter(r => now - r.timestamp < 5000);
 
     return NextResponse.json({
       success: true,
       status: state.status,
       hostCamera: state.hostCamera,
+      participantCameras: state.participantCameras || {},
+      handRaises: state.handRaises || [],
       screenShare: state.screenShare,
       whiteboard: state.whiteboard,
       chat: state.chat,
@@ -147,6 +206,48 @@ export async function POST(
       };
       if (!body.hostCamera.active) {
         state.hostCamera.streamFrame = undefined;
+      }
+    }
+
+    // 0b. Any participant / student camera frame update
+    if (body.participantCamera && body.participantCamera.participantId) {
+      const pc = body.participantCamera;
+      if (!state.participantCameras) state.participantCameras = {};
+      state.participantCameras[pc.participantId] = {
+        active: Boolean(pc.active),
+        name: pc.name || 'Participant',
+        role: pc.role || 'Student',
+        streamFrame: pc.active ? pc.streamFrame : undefined,
+        updatedAt: now,
+      };
+      if (pc.role === 'Host' || pc.participantId === 'host') {
+        state.hostCamera = {
+          active: Boolean(pc.active),
+          streamFrame: pc.active ? pc.streamFrame : undefined,
+          updatedAt: now,
+        };
+      }
+    }
+
+    // 0c. Hand raise toggle
+    if (body.handRaise && body.handRaise.participantId) {
+      const hr = body.handRaise;
+      if (!state.handRaises) state.handRaises = [];
+      const idx = state.handRaises.findIndex(h => h.participantId === hr.participantId);
+      if (idx >= 0) {
+        state.handRaises[idx] = {
+          participantId: hr.participantId,
+          name: hr.name,
+          isHandRaised: Boolean(hr.isHandRaised),
+          timestamp: now,
+        };
+      } else {
+        state.handRaises.push({
+          participantId: hr.participantId,
+          name: hr.name,
+          isHandRaised: Boolean(hr.isHandRaised),
+          timestamp: now,
+        });
       }
     }
 
@@ -224,10 +325,15 @@ export async function POST(
       });
     }
 
+    // Persist all state updates to disk
+    persistRoomStates();
+
     return NextResponse.json({
       success: true,
       status: state.status,
       hostCamera: state.hostCamera,
+      participantCameras: state.participantCameras || {},
+      handRaises: state.handRaises || [],
       screenShare: state.screenShare,
       whiteboard: state.whiteboard,
       chat: state.chat,

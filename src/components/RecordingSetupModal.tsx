@@ -397,12 +397,12 @@ export default function RecordingSetupModal({
         dispStream.getVideoTracks().forEach(t => combinedStream.addTrack(t));
         setDisplayStream(dispStream);
 
-        // When user clicks "Stop sharing" from Chrome's bottom banner
-        if (dispStream.getVideoTracks()[0]) {
-          dispStream.getVideoTracks()[0].onended = () => {
+        // When user clicks "Stop sharing" from Chrome's bottom banner on any tab or window
+        dispStream.getVideoTracks().forEach(t => {
+          t.onended = () => {
             stopRecording();
           };
-        }
+        });
 
         // Connect system audio to Web Audio destination if available
         if (dispStream.getAudioTracks().length > 0) {
@@ -507,6 +507,11 @@ export default function RecordingSetupModal({
       setPhase('countdown');
       setCountdown(3);
 
+      // Pre-open Document Picture-in-Picture window on desktop so controller is ALWAYS floating across all tabs/apps
+      if (typeof window !== 'undefined' && 'documentPictureInPicture' in window) {
+        openPipController().catch(() => {});
+      }
+
       let currentCount = 3;
       countdownIntervalRef.current = setInterval(() => {
         currentCount -= 1;
@@ -522,6 +527,10 @@ export default function RecordingSetupModal({
       showToast('Screen share was cancelled or permission denied.');
       setPhase('configuring');
       cleanupStreams();
+      if (pipWindowRef.current && !pipWindowRef.current.closed) {
+        try { pipWindowRef.current.close(); } catch {}
+        pipWindowRef.current = null;
+      }
     }
   };
 
@@ -722,13 +731,32 @@ export default function RecordingSetupModal({
     };
   }, [phase, isPaused, updateTimer]);
 
+  // Global Keyboard Shortcut (Escape or Alt+S or Ctrl+Shift+S) to finish and save recording anytime
+  useEffect(() => {
+    if (phase !== 'recording') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.key === 'Escape' ||
+        (e.altKey && (e.key === 's' || e.key === 'S')) ||
+        (e.ctrlKey && e.shiftKey && (e.key === 's' || e.key === 'S'))
+      ) {
+        e.preventDefault();
+        stopRecording();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase, stopRecording]);
+
   // Dynamic browser tab title with live recording time
   useEffect(() => {
     if (phase === 'recording') {
       const origTitle = document.title;
       const m = Math.floor(timer / 60).toString().padStart(2, '0');
       const s = (timer % 60).toString().padStart(2, '0');
-      document.title = `● REC (${m}:${s}) - RCRD`;
+      document.title = `● REC (${m}:${s}) - CLICK TO STOP - RCRD`;
       return () => {
         document.title = origTitle;
       };
@@ -847,35 +875,26 @@ export default function RecordingSetupModal({
             className="w-[340px] max-w-full bg-white rounded-[26px] shadow-[0_25px_60px_rgba(0,0,0,0.25)] z-[9995] border border-[#E2E7EC]/90 p-5 overflow-visible animate-in fade-in zoom-in-95 duration-200 select-none font-sans relative"
             onClick={e => e.stopPropagation()}
           >
-            {/* Header: RCRD Brand Icon + Title + Help & Home Actions */}
+            {/* Header: Brand Icon + Title (RCRD - One Solution) + Close Action */}
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <RcrdLogo className="h-7 w-auto" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-[#2F70F2] flex items-center justify-center text-white shadow-xs shrink-0">
+                  <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 stroke-white stroke-[2.5]" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" />
+                  </svg>
+                </div>
+                <span className="text-[16px] font-bold text-[#20262E] tracking-tight">RCRD - One Solution</span>
               </div>
 
               <div className="flex items-center gap-1">
                 <button 
                   type="button"
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 transition-colors cursor-pointer"
-                  title="Help & Shortcuts"
-                >
-                  <HelpCircle size={18} />
-                </button>
-                <button 
-                  type="button"
                   onClick={handleClose}
                   className="w-8 h-8 rounded-full flex items-center justify-center text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 transition-colors cursor-pointer"
-                  title="Close widget"
-                >
-                  <Home size={18} />
-                </button>
-                <button 
-                  type="button"
-                  onClick={handleClose}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 transition-colors cursor-pointer ml-1"
                   title="Dismiss"
                 >
-                  <X size={17} />
+                  <X size={18} />
                 </button>
               </div>
             </div>
@@ -1174,8 +1193,8 @@ export default function RecordingSetupModal({
             </div>
           </div>
 
-          {/* PRIMARY: Floating Bottom Control Dock Bar (Centered, Ultra-Visible, z-[999999]) */}
-          <div className="fixed bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-[999999] bg-[#1E1E24]/95 backdrop-blur-xl border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.6)] px-3 sm:px-5 py-2 sm:py-3 rounded-2xl flex items-center gap-2 sm:gap-4 text-white select-none max-w-[calc(100vw-16px)] overflow-x-auto custom-scrollbar">
+          {/* PRIMARY: Floating Bottom Control Dock Bar (Centered, Ultra-Visible, z-[9999999]) */}
+          <div className="fixed bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-[9999999] pointer-events-auto bg-[#1E1E24]/95 backdrop-blur-xl border border-white/20 shadow-[0_25px_70px_rgba(0,0,0,0.7)] px-3 sm:px-5 py-2 sm:py-3 rounded-2xl flex items-center gap-2 sm:gap-4 text-white select-none max-w-[calc(100vw-16px)] overflow-x-auto custom-scrollbar">
             
             {/* Live recording indicator & Time */}
             <div className="flex items-center gap-2.5 pr-2 border-r border-white/15">

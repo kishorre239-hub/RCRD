@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
-  UsersIcon, UserIcon, WorkspaceIcon
+  UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 
 import { getCourses } from "@/lib/api";
@@ -467,7 +467,7 @@ export default function MeetingsPage() {
       }`}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
-            <RcrdLogo className="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105" />
+            <RcrdLogo className="h-12 sm:h-13 md:h-14 w-auto scale-110 sm:scale-120 origin-left transition-transform group-hover:scale-125" />
           </div>
           <button 
             type="button"
@@ -476,31 +476,6 @@ export default function MeetingsPage() {
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* User Workspace Profile */}
-        <div className="p-4 border-b border-[#E2E7EC] flex-shrink-0">
-          <div className="flex items-center justify-between p-3 bg-[#F5F6F8]/80 hover:bg-slate-100 rounded-2xl cursor-pointer transition-all border border-[#E2E7EC]/60 group">
-            <div>
-              <div className="text-sm font-bold text-[#20262E] group-hover:text-[#154360] transition-colors truncate max-w-[170px]">
-                RCRD Workspace
-              </div>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-[10px] uppercase tracking-wider bg-[#EBF5FB] text-[#154360] px-2 py-0.5 rounded-full font-bold border border-[#154360]/30">
-                  Meetings Hub
-                </span>
-                <span className="text-xs text-[#57636E] font-medium">1 host</span>
-              </div>
-            </div>
-            <ChevronDown className="w-4 h-4 text-[#57636E] group-hover:text-[#57636E] transition-colors" />
-          </div>
-          <button 
-            onClick={() => { router.push('/settings?tab=users'); setIsMobileMenuOpen(false); }}
-            className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-xs font-bold text-[#20262E] hover:text-[#20262E] transition-all shadow-sm cursor-pointer"
-          >
-            <UsersIcon size={16} className="text-[#154360]" />
-            Invite Members
           </button>
         </div>
 

@@ -35,6 +35,8 @@ export const metadata: Metadata = {
   },
 };
 
+import GlobalRecordingManager from "@/components/GlobalRecordingManager";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
@@ -48,7 +50,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `if(typeof window!=='undefined'&&'serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(regs){for(var reg of regs){reg.unregister();}});if('caches' in window){caches.keys().then(function(names){for(var name of names)caches.delete(name);});}}`,
           }}
         />
-        {children}
+        <GlobalRecordingManager>
+          {children}
+        </GlobalRecordingManager>
       </body>
     </html>
   );

@@ -327,7 +327,7 @@ export default function CalendarPage() {
             className="flex items-center justify-start cursor-pointer group"
             onClick={() => { router.push("/"); setIsMobileMenuOpen(false); }}
           >
-            <RcrdLogo className="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105" />
+            <RcrdLogo className="h-12 sm:h-13 md:h-14 w-auto scale-110 sm:scale-120 origin-left transition-transform group-hover:scale-125" />
           </div>
           <button 
             type="button"
@@ -336,30 +336,6 @@ export default function CalendarPage() {
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Workspace Card */}
-        <div className="p-5 border-b border-[#E2E7EC] flex-shrink-0">
-          <div className="flex items-center justify-between p-3 bg-[#F5F6F8] hover:bg-slate-100 rounded-xl cursor-pointer transition-all border border-[#E2E7EC] hover:border-[#E2E7EC] group">
-            <div>
-              <div className="text-sm font-semibold text-[#20262E] group-hover:text-[#154360] transition-colors">
-                RCRD Workspace
-              </div>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] uppercase tracking-wider bg-[#EBF5FB] px-2 py-0.5 rounded text-[#154360] font-bold border border-[#154360]/20">
-                  Pro Plan
-                </span>
-                <span className="text-xs text-[#57636E]">Team Space</span>
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => { router.push("/settings?tab=users"); setIsMobileMenuOpen(false); }}
-            className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-xs font-bold text-[#20262E] hover:text-[#20262E] transition-all shadow-xs cursor-pointer"
-          >
-            <UserIcon size={16} className="text-[#154360]" />
-            Invite Teammates
           </button>
         </div>
 

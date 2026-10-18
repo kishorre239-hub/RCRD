@@ -4,25 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Share2, Shield,
-  ChevronDown, Upload, Calendar, X
+  Upload, Calendar, X
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
-  UsersIcon, UserIcon, WorkspaceIcon
+  UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 import Image from "next/image";
 import "driver.js/dist/driver.css";
-import RecordingSetupModal from "@/components/RecordingSetupModal";
 import UploadVideoModal from "@/components/UploadVideoModal";
 import RcrdLogo from "@/components/RcrdLogo";
 import ProfileFlyout from "@/components/ProfileFlyout";
 import AppHeader from "@/components/AppHeader";
+import { openGlobalRecording } from "@/components/GlobalRecordingManager";
 
 export default function HomePage() {
   const router = useRouter();
   
   // App States
-  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -50,7 +49,7 @@ export default function HomePage() {
       }`}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
-            <RcrdLogo className="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105" />
+            <RcrdLogo className="h-12 sm:h-13 md:h-14 w-auto scale-110 sm:scale-120 origin-left transition-transform group-hover:scale-125" />
           </div>
           <button 
             type="button"
@@ -59,26 +58,6 @@ export default function HomePage() {
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-5 border-b border-[#E2E7EC] flex-shrink-0">
-          <div className="flex items-center justify-between p-3 bg-[#F5F6F8] hover:bg-[#EBF5FB]/40 rounded-xl cursor-pointer transition-all border border-[#E2E7EC] group">
-            <div>
-              <div className="text-sm font-semibold text-[#20262E] group-hover:text-[#154360] transition-colors">RCRD Workspace</div>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] uppercase tracking-wider bg-[#EBF5FB] px-2 py-0.5 rounded text-[#154360] font-bold border border-[#154360]/20">Pro Plan</span>
-                <span className="text-xs text-[#57636E]">Team Space</span>
-              </div>
-            </div>
-            <ChevronDown className="w-4 h-4 text-[#57636E] group-hover:text-[#20262E] transition-colors" />
-          </div>
-          <button 
-            onClick={() => { router.push('/settings?tab=users'); setIsMobileMenuOpen(false); }}
-            className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#EBF5FB]/50 border border-[#E2E7EC] hover:border-[#154360]/30 rounded-xl text-sm font-semibold text-[#20262E] transition-all shadow-xs cursor-pointer"
-          >
-            <UsersIcon size={16} className="text-[#154360]" />
-            Invite Teammates
           </button>
         </div>
 
@@ -104,7 +83,7 @@ export default function HomePage() {
         <div className="p-5 border-t border-[#E2E7EC] bg-white flex-shrink-0">
           <button 
             id="tour-record-btn"
-            onClick={() => { setIsRecordModalOpen(true); setIsMobileMenuOpen(false); }}
+            onClick={() => { openGlobalRecording(); setIsMobileMenuOpen(false); }}
             className="w-full bg-[#154360] hover:bg-[#0E2F44] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(21, 67, 96,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(12,83,37,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <VideoCameraIcon size={20} />
@@ -127,7 +106,7 @@ export default function HomePage() {
         <div className="flex-1 overflow-y-auto flex flex-col items-center pt-8 sm:pt-10 px-4 sm:px-8 relative custom-scrollbar min-h-0 bg-[#F5F6F8]">
           
           {/* Animated Clean Orb / Camera Graphic in Glassdoor Green */}
-          <div className="relative mb-6 w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center group cursor-pointer" onClick={() => setIsRecordModalOpen(true)}>
+          <div className="relative mb-6 w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center group cursor-pointer" onClick={() => openGlobalRecording()}>
             <div className="absolute inset-0 flex items-center justify-center blur-md opacity-30 group-hover:opacity-60 group-hover:scale-110 transition-all duration-700">
               <Image 
                 src="/ICONS/center-orb.svg" 
@@ -163,7 +142,7 @@ export default function HomePage() {
             
             {/* 1. Start Recording Button */}
             <button 
-              onClick={() => setIsRecordModalOpen(true)}
+              onClick={() => openGlobalRecording()}
               className="w-full sm:w-auto bg-[#154360] hover:bg-[#0E2F44] text-white px-6 py-3.5 sm:py-3 rounded-2xl font-bold flex items-center justify-center gap-2.5 transition-all shadow-[0_8px_20px_rgba(21,67,96,0.35)] hover:shadow-[0_12px_28px_rgba(12,83,37,0.45)] transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
             >
               <div className="bg-white/20 p-1 rounded-lg">
@@ -201,13 +180,6 @@ export default function HomePage() {
         <ProfileFlyout
           isOpen={isProfileOpen}
           onClose={() => setIsProfileOpen(false)}
-        />
-
-        {/* RECORDING SETUP MODAL */}
-        <RecordingSetupModal
-          isOpen={isRecordModalOpen}
-          onClose={() => setIsRecordModalOpen(false)}
-          onRecordingComplete={() => router.push('/library')}
         />
 
         {/* UPLOAD VIDEO TO PROJECT FOLDER MODAL */}

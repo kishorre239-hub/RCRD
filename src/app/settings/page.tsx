@@ -9,14 +9,14 @@ import {
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
-  UsersIcon, UserIcon, WorkspaceIcon
+  UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 import { 
   saveDriveFolder, getDriveFolder 
 } from '@/lib/api';
 import BillingTab from '@/components/BillingTab';
 import UsersTab from '@/components/UsersTab';
-import RecordingSetupModal from '@/components/RecordingSetupModal';
+import { openGlobalRecording } from "@/components/GlobalRecordingManager";
 import RcrdLogo from "@/components/RcrdLogo";
 import ProfileFlyout from "@/components/ProfileFlyout";
 import AppHeader from "@/components/AppHeader";
@@ -97,7 +97,6 @@ function PushRow({
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
@@ -390,7 +389,7 @@ export default function SettingsPage() {
       }`}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
-            <RcrdLogo className="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105" />
+            <RcrdLogo className="h-12 sm:h-13 md:h-14 w-auto scale-110 sm:scale-120 origin-left transition-transform group-hover:scale-125" />
           </div>
           <button 
             type="button"
@@ -399,26 +398,6 @@ export default function SettingsPage() {
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-5 border-b border-[#E2E7EC] flex-shrink-0">
-          <div className="flex items-center justify-between p-3 bg-[#F5F6F8] hover:bg-slate-100 rounded-xl cursor-pointer transition-all border border-[#E2E7EC] hover:border-[#E2E7EC] group">
-            <div>
-              <div className="text-sm font-semibold text-[#20262E] group-hover:text-[#0E2F44] transition-colors">RCRD Workspace</div>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] uppercase tracking-wider bg-[#EBF5FB] px-2 py-0.5 rounded text-[#0E2F44] font-bold border border-[#154360]/30">Settings</span>
-                <span className="text-xs text-[#57636E]">Admin Config</span>
-              </div>
-            </div>
-            <ChevronDown className="w-4 h-4 text-[#57636E] group-hover:text-[#57636E] transition-colors" />
-          </div>
-          <button 
-            onClick={() => { router.push('/settings?tab=users'); setIsMobileMenuOpen(false); }}
-            className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm font-semibold text-[#20262E] transition-all shadow-sm hover:shadow-md cursor-pointer"
-          >
-            <UsersIcon size={16} className="text-[#154360]" />
-            Invite Teammates
           </button>
         </div>
 
@@ -465,7 +444,7 @@ export default function SettingsPage() {
 
         <div className="p-5 border-t border-[#E2E7EC] bg-[#F5F6F8]/50 flex-shrink-0">
           <button 
-            onClick={() => { setIsRecordModalOpen(true); setIsMobileMenuOpen(false); }}
+            onClick={() => { openGlobalRecording(); setIsMobileMenuOpen(false); }}
             className="w-full bg-[#154360] hover:bg-[#0E2F44] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(21, 67, 96,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(21, 67, 96,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <VideoCameraIcon size={20} />
@@ -1084,12 +1063,6 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
-
-      <RecordingSetupModal
-        isOpen={isRecordModalOpen}
-        onClose={() => setIsRecordModalOpen(false)}
-        onRecordingComplete={() => router.push('/library')}
-      />
 
       {/* Profile Flyout (Image 5) */}
       <ProfileFlyout

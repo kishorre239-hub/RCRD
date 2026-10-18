@@ -245,7 +245,7 @@ function JoinMeetingContent() {
       {/* Top Navbar */}
       <header className="h-16 px-6 sm:px-10 flex items-center justify-between border-b border-[#E2E7EC]/80 bg-white/80 backdrop-blur-md sticky top-0 z-20">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => router.push("/meetings")}>
-          <RcrdLogo className="h-8 w-auto" />
+          <RcrdLogo className="h-11 sm:h-12 w-auto scale-105 origin-left" />
           <div className="h-4 w-px bg-slate-200 hidden sm:block" />
           <span className="text-xs font-bold text-[#57636E] uppercase tracking-wider hidden sm:inline">
             Classroom Portal

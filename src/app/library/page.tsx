@@ -11,13 +11,13 @@ import {
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, CalendarIcon, SettingsIcon,
-  UsersIcon, UserIcon, WorkspaceIcon
+  UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 import { getVideos, getCourses, createCourse, renameCourse, deleteCourse, deleteVideo, updateVideo, syncVideos, addVideoComment, uploadVideo, API_URL } from "@/lib/api";
-import RecordingSetupModal from "@/components/RecordingSetupModal";
 import RcrdLogo from "@/components/RcrdLogo";
 import ProfileFlyout from "@/components/ProfileFlyout";
 import AppHeader from "@/components/AppHeader";
+import { openGlobalRecording } from "@/components/GlobalRecordingManager";
 
 interface CommentData {
   id: string;
@@ -56,8 +56,7 @@ export default function LibraryPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- Recording Setup Modal State ---
-  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+  // --- Profile & Mobile Menu State ---
   const [now, setNow] = useState<number>(0);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -65,7 +64,7 @@ export default function LibraryPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.search.includes('record=true')) {
-      const t = setTimeout(() => setIsRecordModalOpen(true), 0);
+      const t = setTimeout(() => openGlobalRecording(), 0);
       return () => clearTimeout(t);
     }
   }, []);
@@ -619,7 +618,7 @@ export default function LibraryPage() {
       }`}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
-            <RcrdLogo className="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105" />
+            <RcrdLogo className="h-12 sm:h-13 md:h-14 w-auto scale-110 sm:scale-120 origin-left transition-transform group-hover:scale-125" />
           </div>
           <button 
             type="button"
@@ -628,26 +627,6 @@ export default function LibraryPage() {
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-5 border-b border-[#E2E7EC] flex-shrink-0">
-          <div className="flex items-center justify-between p-3 bg-[#F5F6F8] hover:bg-slate-100 rounded-xl cursor-pointer transition-all border border-[#E2E7EC] hover:border-[#E2E7EC] group">
-            <div>
-              <div className="text-sm font-semibold text-[#20262E] group-hover:text-[#0E2F44] transition-colors">RCRD Workspace</div>
-              <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[10px] uppercase tracking-wider bg-[#EBF5FB] px-2 py-0.5 rounded text-[#0E2F44] font-bold border border-[#154360]/30">Video Library</span>
-                <span className="text-xs text-[#57636E]">Pro Plan</span>
-              </div>
-            </div>
-            <ChevronDown className="w-4 h-4 text-[#57636E] group-hover:text-[#57636E] transition-colors" />
-          </div>
-          <button 
-            onClick={() => { router.push('/settings?tab=users'); setIsMobileMenuOpen(false); }}
-            className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 bg-white hover:bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm font-semibold text-[#20262E] transition-all shadow-sm hover:shadow-md cursor-pointer"
-          >
-            <UsersIcon size={16} className="text-[#154360]" />
-            Invite Teammates
           </button>
         </div>
 
@@ -672,7 +651,7 @@ export default function LibraryPage() {
 
         <div className="p-5 border-t border-[#E2E7EC] bg-[#F5F6F8]/50 flex-shrink-0">
           <button 
-            onClick={() => { setIsRecordModalOpen(true); setIsMobileMenuOpen(false); }}
+            onClick={() => { openGlobalRecording(); setIsMobileMenuOpen(false); }}
             className="w-full bg-[#154360] hover:bg-[#0E2F44] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(21, 67, 96,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(21, 67, 96,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
           >
             <VideoCameraIcon size={20} />
@@ -748,7 +727,7 @@ export default function LibraryPage() {
                 </button>
                 <div className="relative flex items-center bg-[#154360] hover:bg-[#0E2F44] rounded-lg transition-colors text-white shadow-xs">
                   <button 
-                    onClick={() => setIsRecordModalOpen(true)}
+                    onClick={() => openGlobalRecording()}
                     className="px-4 py-2 text-[13px] font-semibold border-r border-[#154360] hover:bg-[#154360] transition-colors rounded-l-lg"
                   >
                     New video
@@ -771,7 +750,7 @@ export default function LibraryPage() {
                       onClick={e => e.stopPropagation()}
                     >
                       <button 
-                        onClick={() => { setShowNewVideoMenu(false); setIsRecordModalOpen(true); }}
+                        onClick={() => { setShowNewVideoMenu(false); openGlobalRecording(); }}
                         className="w-full text-left px-4 py-2 text-[13px] font-medium hover:bg-[#F5F6F8] flex items-center gap-2.5 text-[#20262E]"
                       >
                         <Video size={16} className="text-[#154360]" />
@@ -1459,7 +1438,7 @@ export default function LibraryPage() {
                 </p>
                 <div className="flex items-center gap-3">
                   <button 
-                    onClick={() => setIsRecordModalOpen(true)}
+                    onClick={() => openGlobalRecording()}
                     className="bg-[#154360] hover:bg-[#0E2F44] text-white py-3 px-6 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2 shadow-[0_10px_25px_-5px_rgba(21, 67, 96,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(21, 67, 96,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
                   >
                     <Video size={18} className="stroke-[2.2]" />
@@ -1666,15 +1645,6 @@ export default function LibraryPage() {
             </button>
           </div>
         )}
-
-        {/* RECORDING SETUP MODAL */}
-        <RecordingSetupModal
-          isOpen={isRecordModalOpen}
-          onClose={() => setIsRecordModalOpen(false)}
-          onRecordingComplete={fetchData}
-          showToast={showToast}
-          defaultFolderId={activeTab.startsWith('folder-') ? activeTab.replace('folder-', '') : undefined}
-        />
 
         {/* SHARE MODAL */}
         {shareModalVideoId && (() => {

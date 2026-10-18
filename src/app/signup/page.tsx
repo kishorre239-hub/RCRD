@@ -78,7 +78,7 @@ export default function SignupPage() {
       {/* Top Navbar */}
       <header className="h-16 px-6 sm:px-12 flex items-center justify-between border-b border-[#E2E7EC] bg-white sticky top-0 z-30 shadow-xs">
         <Link href="/" className="flex items-center gap-2 group">
-          <RcrdLogo className="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105" />
+          <RcrdLogo className="h-12 sm:h-13 md:h-14 w-auto scale-105 origin-left transition-transform group-hover:scale-115" />
         </Link>
         <div className="flex items-center gap-3 text-xs">
           <span className="text-[#57636E]">Already have an account?</span>

@@ -412,12 +412,23 @@ export default function ClassRoomPage() {
       .then(data => {
         if (data?.meeting) {
           setMeeting(data.meeting);
+          if (!isMentor && data.meeting.status === 'ended') {
+            window.location.href = "https://www.geonixa.com/";
+            return;
+          }
           if (data.meeting.courseId) setUploadCourse(data.meeting.courseId);
         }
       })
       .catch(() => {});
     getCourses().then(setCourses).catch(() => {});
-  }, [roomId]);
+  }, [roomId, isMentor]);
+
+  // Ensure students are NEVER left on admin dashboard (/meetings); if class is ended, send directly to Geonixa
+  useEffect(() => {
+    if (!isMentor && meeting?.status === 'ended') {
+      window.location.href = "https://www.geonixa.com/";
+    }
+  }, [isMentor, meeting?.status]);
 
   // Real-time server-synchronized participant heartbeat
   useEffect(() => {
@@ -527,6 +538,11 @@ export default function ClassRoomPage() {
             }
           } else if (type === "REACTION") {
             triggerReaction(data.emoji);
+          } else if (type === "MEETING_ENDED") {
+            if (!isMentor) {
+              window.location.href = "https://www.geonixa.com/";
+              return;
+            }
           }
         };
       }
@@ -538,6 +554,12 @@ export default function ClassRoomPage() {
         if (!res.ok) return;
         const data = await res.json();
         if (data?.success) {
+          // If meeting was ended by host, redirect students immediately to Geonixa website
+          if (!isMentor && data.status === "ended") {
+            window.location.href = "https://www.geonixa.com/";
+            return;
+          }
+
           // Sync Host Camera if student
           if (!isMentor && data.hostCamera) {
             setRemoteHostCamera(data.hostCamera);
@@ -577,6 +599,20 @@ export default function ClassRoomPage() {
               return merged.length !== prev.length ? merged : prev;
             });
           }
+        }
+
+        // Direct meeting status check for students across devices
+        if (!isMentor) {
+          try {
+            const mRes = await fetch(`/api/meetings?id=${encodeURIComponent(roomId)}`);
+            if (mRes.ok) {
+              const mData = await mRes.json();
+              if (mData?.meeting?.status === 'ended') {
+                window.location.href = "https://www.geonixa.com/";
+                return;
+              }
+            }
+          } catch {}
         }
       } catch {}
     };
@@ -1325,7 +1361,11 @@ export default function ClassRoomPage() {
 
       const destName = selectedCourse?.name || "Personal Library (Root)";
       showToast(`Recording saved to Google Drive ${destName}!`);
-      setTimeout(() => router.push("/meetings"), 2000);
+      if (!isMentor) {
+        setTimeout(() => { window.location.href = "https://www.geonixa.com/"; }, 2000);
+      } else {
+        setTimeout(() => router.push("/meetings"), 2000);
+      }
     } catch (e: unknown) {
       const err = e as Error;
       setUploadState("error");
@@ -1341,13 +1381,43 @@ export default function ClassRoomPage() {
     }
     screenStream?.getTracks().forEach(t => t.stop());
     cameraStream?.getTracks().forEach(t => t.stop());
+
+    // STUDENTS: Leave cleanly and redirect immediately to Geonixa (never admin dashboard)
+    if (!isMentor) {
+      try {
+        fetch(`/api/meetings/${encodeURIComponent(roomId)}/participants?participantId=${encodeURIComponent(myParticipantId)}`, {
+          method: 'DELETE',
+        }).catch(() => {});
+      } catch {}
+      window.location.href = "https://www.geonixa.com/";
+      return;
+    }
+
+    // MENTOR / HOST: End meeting for everyone, broadcast, and stay on current project (/meetings)
     const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all.map((m: Meeting) => m.id === roomId ? { ...m, status: "ended" } : m)));
+    
+    // Broadcast meeting ended to student devices immediately
+    try {
+      const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
+      bc.postMessage({ type: "MEETING_ENDED", data: { roomId } });
+      setTimeout(() => bc.close(), 500);
+    } catch {}
+
+    // Mark status as ended on server API
     fetch('/api/meetings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: roomId, status: 'ended' }),
     }).catch(() => {});
+
+    // Mark room state as ended for real-time polling clients
+    fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'ended' }),
+    }).catch(() => {});
+
     router.push("/meetings");
   };
 
@@ -1615,7 +1685,13 @@ export default function ClassRoomPage() {
               Waiting Lobby
             </span>
           </div>
-          <button onClick={() => router.push('/meetings')} className="px-4 py-2 bg-white hover:bg-slate-50 border border-[#E2E7EC] rounded-xl text-xs font-bold text-[#20262E] shadow-xs transition-colors">
+          <button onClick={() => {
+            if (!isMentor) {
+              window.location.href = "https://www.geonixa.com/";
+            } else {
+              router.push('/meetings');
+            }
+          }} className="px-4 py-2 bg-white hover:bg-slate-50 border border-[#E2E7EC] rounded-xl text-xs font-bold text-[#20262E] shadow-xs transition-colors">
             ← Leave Lobby
           </button>
         </div>
@@ -3801,7 +3877,7 @@ export default function ClassRoomPage() {
                 <h2 className="text-[18px] font-bold text-[#20262E]">Save Recording</h2>
                 <p className="text-[13px] text-[#57636E] mt-0.5">{fmtT(recTimer)} · {(recBlob.size / 1024 / 1024).toFixed(1)} MB</p>
               </div>
-              <button onClick={() => { setShowUpload(false); router.push("/meetings"); }} className="p-1.5 text-[#57636E] hover:text-[#57636E] hover:bg-slate-100 rounded-lg transition-colors">
+              <button onClick={() => { setShowUpload(false); if (!isMentor) { window.location.href = "https://www.geonixa.com/"; } else { router.push("/meetings"); } }} className="p-1.5 text-[#57636E] hover:text-[#57636E] hover:bg-slate-100 rounded-lg transition-colors">
                 <X size={18} />
               </button>
             </div>
@@ -3871,7 +3947,7 @@ export default function ClassRoomPage() {
                   </div>
 
                   <div className="flex gap-3 pt-1">
-                    <button onClick={() => { setShowUpload(false); router.push("/meetings"); }} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-sm font-semibold rounded-xl transition-colors">Discard</button>
+                    <button onClick={() => { setShowUpload(false); if (!isMentor) { window.location.href = "https://www.geonixa.com/"; } else { router.push("/meetings"); } }} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-sm font-semibold rounded-xl transition-colors">Discard</button>
                     <button onClick={handleUpload} className="flex-1 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"><Upload size={15} />Upload to Library</button>
                   </div>
                 </div>

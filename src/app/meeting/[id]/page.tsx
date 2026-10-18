@@ -241,6 +241,11 @@ function JoinMeetingContent() {
 
       const data = await res.json();
 
+      if (data?.status === 'ended' || data?.meeting?.status === 'ended') {
+        window.location.href = "https://www.geonixa.com/";
+        return;
+      }
+
       if (!res.ok) {
         setJoining(false);
         setErrorMsg(data.error || "Failed to join meeting. Please verify passcode.");
@@ -296,7 +301,7 @@ function JoinMeetingContent() {
 
       {/* Top Navbar */}
       <header className="h-20 px-6 sm:px-10 flex items-center justify-between border-b border-[#E2E7EC]/80 bg-white/80 backdrop-blur-md sticky top-0 z-20">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => router.push("/meetings")}>
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => { window.location.href = "https://www.geonixa.com/"; }}>
           <RcrdLogo className="h-16 sm:h-18 md:h-20 w-auto scale-130 sm:scale-145 origin-left" />
           <div className="h-4 w-px bg-slate-200 hidden sm:block" />
           <span className="text-xs font-bold text-[#57636E] uppercase tracking-wider hidden sm:inline">
@@ -305,12 +310,12 @@ function JoinMeetingContent() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push("/meetings")}
+          <a
+            href="https://www.geonixa.com/"
             className="text-xs font-semibold text-[#57636E] hover:text-[#154360] px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
           >
-            All Meetings
-          </button>
+            Geonixa Website
+          </a>
           <button
             onClick={copyDirectLink}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E2E7EC] bg-white hover:bg-[#F5F6F8] text-xs font-semibold text-[#20262E] shadow-2xs transition-all"
@@ -357,12 +362,12 @@ function JoinMeetingContent() {
                 >
                   <RefreshCw size={13} /> Retry
                 </button>
-                <button
-                  onClick={() => router.push("/meetings")}
+                <a
+                  href="https://www.geonixa.com/"
                   className="flex-1 py-2.5 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
                 >
-                  Go to Meetings Hub <ChevronRight size={13} />
-                </button>
+                  Visit Geonixa <ChevronRight size={13} />
+                </a>
               </div>
             </div>
           )}
@@ -433,110 +438,131 @@ function JoinMeetingContent() {
                 )}
               </div>
 
-              {/* Form Section */}
-              <form onSubmit={handleJoinSubmit} className="p-6 sm:p-7 space-y-4.5">
-                
-                {errorMsg && (
-                  <div className="p-3.5 bg-[#154360]/10 border border-[#154360]/30 rounded-2xl flex items-start gap-2.5 text-xs text-[#0E2F44] animate-in fade-in duration-200">
-                    <AlertCircle size={16} className="text-[#154360] shrink-0 mt-0.5" />
-                    <span className="font-semibold leading-relaxed">{errorMsg}</span>
+              {/* Form Section OR Ended State */}
+              {isEnded ? (
+                <div className="p-6 sm:p-8 text-center space-y-5">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto text-emerald-600">
+                    <CheckCircle2 size={28} />
                   </div>
-                )}
-
-                {/* Student Name */}
-                <div>
-                  <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
-                    Your Full Name *
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E]" />
-                    <input
-                      type="text"
-                      required
-                      value={studentName}
-                      onChange={e => setStudentName(e.target.value)}
-                      placeholder="e.g. Alex Morgan"
-                      autoFocus={!studentName}
-                      className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8]/70 border border-[#E2E7EC] focus:border-[#154360] focus:bg-white rounded-xl text-xs text-[#20262E] placeholder:text-[#57636E] focus:ring-2 focus:ring-[#154360]/15 outline-none transition-all font-medium shadow-2xs"
-                    />
+                  <div>
+                    <h3 className="text-base font-bold text-[#20262E]">Session Completed</h3>
+                    <p className="text-xs text-[#57636E] mt-1.5 leading-relaxed max-w-sm mx-auto">
+                      This class session has concluded. Please visit the official Geonixa website for upcoming schedules, resources, and courses.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-[#57636E] mt-1">This name will be shown to the instructor and attendees in the live room.</p>
+                  <a
+                    href="https://www.geonixa.com/"
+                    className="w-full py-3 px-4 bg-gradient-to-r from-[#154360] to-[#0E2F44] hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Visit Geonixa Website</span>
+                    <ArrowRight size={14} />
+                  </a>
                 </div>
+              ) : (
+                <form onSubmit={handleJoinSubmit} className="p-6 sm:p-7 space-y-4.5">
+                  
+                  {errorMsg && (
+                    <div className="p-3.5 bg-[#154360]/10 border border-[#154360]/30 rounded-2xl flex items-start gap-2.5 text-xs text-[#0E2F44] animate-in fade-in duration-200">
+                      <AlertCircle size={16} className="text-[#154360] shrink-0 mt-0.5" />
+                      <span className="font-semibold leading-relaxed">{errorMsg}</span>
+                    </div>
+                  )}
 
-                {/* Meeting ID (Read Only badge) */}
-                <div>
-                  <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
-                    Meeting ID
-                  </label>
-                  <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-100 border border-[#E2E7EC] rounded-xl text-xs font-mono font-bold text-[#20262E]">
-                    <span className="tracking-wider">{meeting.id}</span>
-                    <span className="text-[10px] uppercase font-bold text-[#2980B9] bg-[#EBF5FB]/40 px-2 py-0.5 rounded border border-[#2980B9]/30 flex items-center gap-1">
-                      <CheckCircle2 size={10} /> Verified
-                    </span>
-                  </div>
-                </div>
-
-                {/* Meeting Passcode */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider">
-                      Passcode *
+                  {/* Student Name */}
+                  <div>
+                    <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
+                      Your Full Name *
                     </label>
-                    {initialPwd && (
-                      <span className="text-[10px] text-[#2980B9] font-bold bg-[#EBF5FB]/40 border border-[#2980B9]/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <Check size={10} /> Auto-filled from link
-                      </span>
-                    )}
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E]" />
+                      <input
+                        type="text"
+                        required
+                        value={studentName}
+                        onChange={e => setStudentName(e.target.value)}
+                        placeholder="e.g. Alex Morgan"
+                        autoFocus={!studentName}
+                        className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8]/70 border border-[#E2E7EC] focus:border-[#154360] focus:bg-white rounded-xl text-xs text-[#20262E] placeholder:text-[#57636E] focus:ring-2 focus:ring-[#154360]/15 outline-none transition-all font-medium shadow-2xs"
+                      />
+                    </div>
+                    <p className="text-[11px] text-[#57636E] mt-1">This name will be shown to the instructor and attendees in the live room.</p>
                   </div>
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E]" />
-                    <input
-                      type={showPwd ? "text" : "password"}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      placeholder="Enter 8-digit passcode"
-                      className="w-full pl-10 pr-10 py-2.5 bg-[#F5F6F8]/70 border border-[#E2E7EC] focus:border-[#154360] focus:bg-white rounded-xl text-xs font-mono font-bold text-[#20262E] placeholder:text-[#57636E] tracking-wider focus:ring-2 focus:ring-[#154360]/15 outline-none transition-all shadow-2xs"
-                    />
+
+                  {/* Meeting ID (Read Only badge) */}
+                  <div>
+                    <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
+                      Meeting ID
+                    </label>
+                    <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-100 border border-[#E2E7EC] rounded-xl text-xs font-mono font-bold text-[#20262E]">
+                      <span className="tracking-wider">{meeting.id}</span>
+                      <span className="text-[10px] uppercase font-bold text-[#2980B9] bg-[#EBF5FB]/40 px-2 py-0.5 rounded border border-[#2980B9]/30 flex items-center gap-1">
+                        <CheckCircle2 size={10} /> Verified
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Meeting Passcode */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider">
+                        Passcode *
+                      </label>
+                      {initialPwd && (
+                        <span className="text-[10px] text-[#2980B9] font-bold bg-[#EBF5FB]/40 border border-[#2980B9]/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Check size={10} /> Auto-filled from link
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E]" />
+                      <input
+                        type={showPwd ? "text" : "password"}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="Enter 8-digit passcode"
+                        className="w-full pl-10 pr-10 py-2.5 bg-[#F5F6F8]/70 border border-[#E2E7EC] focus:border-[#154360] focus:bg-white rounded-xl text-xs font-mono font-bold text-[#20262E] placeholder:text-[#57636E] tracking-wider focus:ring-2 focus:ring-[#154360]/15 outline-none transition-all shadow-2xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPwd(!showPwd)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#57636E] transition-colors p-1"
+                      >
+                        {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-[#57636E] mt-1">Provided in your class invitation or shared by your instructor.</p>
+                  </div>
+
+                  {/* Security Guarantee */}
+                  <div className="flex items-center gap-2 p-3 bg-[#EBF5FB]/60 border border-[#154360]/20 rounded-xl text-[11px] text-[#57636E]">
+                    <Shield size={14} className="text-[#154360] shrink-0" />
+                    <span>Secure connection · High definition audio & screen broadcast</span>
+                  </div>
+
+                  {/* Submit Action */}
+                  <div className="pt-2">
                     <button
-                      type="button"
-                      onClick={() => setShowPwd(!showPwd)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#57636E] transition-colors p-1"
+                      type="submit"
+                      disabled={joining || !studentName.trim()}
+                      className="w-full py-3 px-4 bg-gradient-to-r from-[#154360] to-[#0E2F44] hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-200 disabled:text-[#57636E] text-white font-bold text-xs rounded-xl shadow-md shadow-[rgba(21, 67, 96,0.2)] hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                     >
-                      {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                      {joining ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" />
+                          <span>Verifying & Entering Room...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Video size={15} />
+                          <span>Join Live Classroom</span>
+                          <ArrowRight size={14} />
+                        </>
+                      )}
                     </button>
                   </div>
-                  <p className="text-[11px] text-[#57636E] mt-1">Provided in your class invitation or shared by your instructor.</p>
-                </div>
 
-                {/* Security Guarantee */}
-                <div className="flex items-center gap-2 p-3 bg-[#EBF5FB]/60 border border-[#154360]/20 rounded-xl text-[11px] text-[#57636E]">
-                  <Shield size={14} className="text-[#154360] shrink-0" />
-                  <span>Secure connection · High definition audio & screen broadcast</span>
-                </div>
-
-                {/* Submit Action */}
-                <div className="pt-2">
-                  <button
-                    type="submit"
-                    disabled={joining || !studentName.trim()}
-                    className="w-full py-3 px-4 bg-gradient-to-r from-[#154360] to-[#0E2F44] hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-200 disabled:text-[#57636E] text-white font-bold text-xs rounded-xl shadow-md shadow-[rgba(21, 67, 96,0.2)] hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    {joining ? (
-                      <>
-                        <RefreshCw size={14} className="animate-spin" />
-                        <span>Verifying & Entering Room...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Video size={15} />
-                        <span>Join Live Classroom</span>
-                        <ArrowRight size={14} />
-                      </>
-                    )}
-                  </button>
-                </div>
-
-              </form>
+                </form>
+              )}
 
             </div>
           )}

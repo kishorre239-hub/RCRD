@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 interface MeetingState {
+  status?: 'scheduled' | 'live' | 'ended';
   hostCamera: {
     active: boolean;
     streamFrame?: string; // compressed base64 frame preview of host camera
@@ -57,6 +58,7 @@ const roomStates: Record<string, MeetingState> = {};
 function getOrCreateRoomState(roomId: string): MeetingState {
   if (!roomStates[roomId]) {
     roomStates[roomId] = {
+      status: 'live',
       hostCamera: { active: false, updatedAt: Date.now() },
       screenShare: { active: false, updatedAt: Date.now() },
       whiteboard: {
@@ -102,6 +104,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
+      status: state.status,
       hostCamera: state.hostCamera,
       screenShare: state.screenShare,
       whiteboard: state.whiteboard,
@@ -129,6 +132,11 @@ export async function POST(
     const body = await req.json().catch(() => ({}));
     const state = getOrCreateRoomState(id);
     const now = Date.now();
+
+    // Meeting lifecycle status update (e.g. 'live' | 'ended')
+    if (body.status !== undefined) {
+      state.status = body.status;
+    }
 
     // 0. Host Camera frame update
     if (body.hostCamera !== undefined) {
@@ -218,6 +226,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
+      status: state.status,
       hostCamera: state.hostCamera,
       screenShare: state.screenShare,
       whiteboard: state.whiteboard,

@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 
 interface MeetingState {
+  hostCamera: {
+    active: boolean;
+    streamFrame?: string; // compressed base64 frame preview of host camera
+    updatedAt: number;
+  };
   screenShare: {
     active: boolean;
     presenterName?: string;
@@ -10,6 +15,11 @@ interface MeetingState {
   whiteboard: {
     active: boolean;
     canvasData?: string;
+    currentSlide?: number;
+    totalSlides?: number;
+    slides?: Array<{ id: number; canvasData: string; notesText?: string }>;
+    notepadText?: string;
+    mode?: 'sketch' | 'notepad';
     updatedAt: number;
   };
   chat: Array<{
@@ -47,8 +57,17 @@ const roomStates: Record<string, MeetingState> = {};
 function getOrCreateRoomState(roomId: string): MeetingState {
   if (!roomStates[roomId]) {
     roomStates[roomId] = {
+      hostCamera: { active: false, updatedAt: Date.now() },
       screenShare: { active: false, updatedAt: Date.now() },
-      whiteboard: { active: false, updatedAt: Date.now() },
+      whiteboard: {
+        active: false,
+        currentSlide: 1,
+        totalSlides: 1,
+        slides: [{ id: 1, canvasData: '', notesText: '' }],
+        notepadText: '',
+        mode: 'sketch',
+        updatedAt: Date.now(),
+      },
       chat: [
         {
           id: 'welcome_1',
@@ -83,6 +102,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
+      hostCamera: state.hostCamera,
       screenShare: state.screenShare,
       whiteboard: state.whiteboard,
       chat: state.chat,
@@ -110,6 +130,18 @@ export async function POST(
     const state = getOrCreateRoomState(id);
     const now = Date.now();
 
+    // 0. Host Camera frame update
+    if (body.hostCamera !== undefined) {
+      state.hostCamera = {
+        active: Boolean(body.hostCamera.active),
+        streamFrame: body.hostCamera.streamFrame !== undefined ? body.hostCamera.streamFrame : state.hostCamera.streamFrame,
+        updatedAt: now,
+      };
+      if (!body.hostCamera.active) {
+        state.hostCamera.streamFrame = undefined;
+      }
+    }
+
     // 1. Screen share update
     if (body.screenShare !== undefined) {
       state.screenShare = {
@@ -123,11 +155,16 @@ export async function POST(
       }
     }
 
-    // 2. Whiteboard update
+    // 2. Whiteboard update (supporting slides & notepad text)
     if (body.whiteboard !== undefined) {
       state.whiteboard = {
         active: Boolean(body.whiteboard.active),
         canvasData: body.whiteboard.canvasData !== undefined ? body.whiteboard.canvasData : state.whiteboard.canvasData,
+        currentSlide: body.whiteboard.currentSlide !== undefined ? body.whiteboard.currentSlide : state.whiteboard.currentSlide,
+        totalSlides: body.whiteboard.totalSlides !== undefined ? body.whiteboard.totalSlides : state.whiteboard.totalSlides,
+        slides: body.whiteboard.slides !== undefined ? body.whiteboard.slides : state.whiteboard.slides,
+        notepadText: body.whiteboard.notepadText !== undefined ? body.whiteboard.notepadText : state.whiteboard.notepadText,
+        mode: body.whiteboard.mode !== undefined ? body.whiteboard.mode : state.whiteboard.mode,
         updatedAt: now,
       };
       if (!body.whiteboard.active) {
@@ -181,6 +218,7 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
+      hostCamera: state.hostCamera,
       screenShare: state.screenShare,
       whiteboard: state.whiteboard,
       chat: state.chat,

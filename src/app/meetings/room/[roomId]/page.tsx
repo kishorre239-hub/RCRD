@@ -8,7 +8,8 @@ import {
   Loader2, X, Check, Upload, StopCircle, Pause, Play,
   AlertCircle, ChevronRight, ChevronDown, Info, Camera, Lock, Clock,
   Pen, Eraser, Edit3, Shield, Users, MessageSquare, Copy, Send,
-  Smile, VolumeX, Hand, RotateCcw, RotateCw, Type, Paperclip, FileUp, Image as ImageIcon, Download, PhoneOff
+  Smile, VolumeX, Hand, RotateCcw, RotateCw, Type, Paperclip, FileUp, Image as ImageIcon, Download, PhoneOff,
+  ChevronLeft, Plus, BookOpen
 } from "lucide-react";
 import { ChatIcon, UsersIcon } from "@/components/CustomIcons";
 import { getCourses, uploadVideo, ensureValidAuthToken } from "@/lib/api";
@@ -77,8 +78,8 @@ export default function ClassRoomPage() {
   const searchParams = useSearchParams();
   const roomId = params.roomId as string;
   const role = searchParams.get("role") || "host";
-  const isReadonly = searchParams.get("readonly") === "true";
   const isMentor = role === "host" || role === "mentor";
+  const isReadonly = searchParams.get("readonly") === "true" || !isMentor;
   const studentName = searchParams.get("name") || "Participant";
 
   const [meeting, setMeeting] = useState<Meeting | null>(null);
@@ -118,7 +119,8 @@ export default function ClassRoomPage() {
   // Streams & Devices
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const [micOn, setMicOn] = useState(true);
+  // Students join MUTED by default to prevent unwanted noise and disturbance during class!
+  const [micOn, setMicOn] = useState(() => isMentor);
   const [cameraOn, setCameraOn] = useState(false);
 
   // Stream Refs for Safe Unmount-only Cleanup (prevents screen share stopping on camera toggle!)
@@ -139,7 +141,7 @@ export default function ClassRoomPage() {
   const [recBlob, setRecBlob] = useState<Blob | null>(null);
   const [now, setNow] = useState<number>(0);
 
-  // Whiteboard State (Pure White Background)
+  // Whiteboard State (Pure White Background, Slides & Notepad)
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -149,6 +151,19 @@ export default function ClassRoomPage() {
   const [eraserSize, setEraserSize] = useState(24);
   const [showSizePicker, setShowSizePicker] = useState(false);
   const lastPos = useRef<{x: number; y: number} | null>(null);
+
+  // Whiteboard Multi-Slide System
+  interface WhiteboardSlide {
+    id: number;
+    canvasData: string;
+    notesText: string;
+  }
+  const [slides, setSlides] = useState<WhiteboardSlide[]>([
+    { id: 1, canvasData: '', notesText: '' }
+  ]);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [whiteboardMode, setWhiteboardMode] = useState<'sketch' | 'notepad'>('sketch');
+  const [notepadText, setNotepadText] = useState('');
 
   // Whiteboard Undo / Redo / Reverse History
   const historyRef = useRef<ImageData[]>([]);
@@ -197,6 +212,13 @@ export default function ClassRoomPage() {
     return `student_${Date.now()}`;
   });
 
+  // Remote Host Camera live sync state
+  const [remoteHostCamera, setRemoteHostCamera] = useState<{
+    active: boolean;
+    streamFrame?: string;
+    updatedAt?: number;
+  }>({ active: false });
+
   // Remote Screen Share & Whiteboard live sync states
   const [remoteScreenShare, setRemoteScreenShare] = useState<{
     active: boolean;
@@ -208,6 +230,11 @@ export default function ClassRoomPage() {
   const [remoteWhiteboard, setRemoteWhiteboard] = useState<{
     active: boolean;
     canvasData?: string;
+    currentSlide?: number;
+    totalSlides?: number;
+    slides?: Array<{ id: number; canvasData: string; notesText?: string }>;
+    notepadText?: string;
+    mode?: 'sketch' | 'notepad';
     updatedAt?: number;
   }>({ active: false });
 
@@ -218,10 +245,10 @@ export default function ClassRoomPage() {
       name: isMentor ? "You (Host)" : studentName,
       role: isMentor ? "Host" : "Student",
       avatar: (isMentor ? "H" : (studentName ? studentName.substring(0, 2) : "S")).toUpperCase(),
-      isMuted: false,
+      isMuted: !isMentor, // Students start muted by default to eliminate class disturbance!
       isVideoOn: false,
       isHandRaised: false,
-      canScreenShare: true,
+      canScreenShare: isMentor,
       canChat: true,
     },
   ]);
@@ -456,7 +483,7 @@ export default function ClassRoomPage() {
     };
   }, [roomId, myParticipantId, isMentor, studentName, micOn, cameraOn, isHandRaised]);
 
-  // Real-time synchronization loop: Screen share, Whiteboard, Chat, Notes, Reactions
+  // Real-time synchronization loop: Host camera, Screen share, Whiteboard slides, Chat, Notes, Reactions
   useEffect(() => {
     if (!roomId) return;
     const channelName = `rcrd_meeting_room_${roomId}`;
@@ -466,14 +493,18 @@ export default function ClassRoomPage() {
         bc = new BroadcastChannel(channelName);
         bc.onmessage = (event) => {
           const { type, data } = event.data || {};
-          if (type === "SCREEN_SHARE") {
+          if (type === "HOST_CAMERA") {
+            setRemoteHostCamera(data);
+          } else if (type === "SCREEN_SHARE") {
             setRemoteScreenShare(data);
           } else if (type === "WHITEBOARD") {
             setRemoteWhiteboard(data);
-            if (!isMentor && data.active) {
-              setShowWhiteboard(true);
-            } else if (!isMentor && !data.active) {
-              setShowWhiteboard(false);
+            if (!isMentor) {
+              if (data.active !== undefined) setShowWhiteboard(data.active);
+              if (data.slides) setSlides(data.slides);
+              if (data.currentSlide !== undefined) setCurrentSlideIndex(data.currentSlide - 1);
+              if (data.notepadText !== undefined) setNotepadText(data.notepadText);
+              if (data.mode) setWhiteboardMode(data.mode);
             }
           } else if (type === "CHAT_MSG") {
             setChatMessages(prev => {
@@ -507,6 +538,10 @@ export default function ClassRoomPage() {
         if (!res.ok) return;
         const data = await res.json();
         if (data?.success) {
+          // Sync Host Camera if student
+          if (!isMentor && data.hostCamera) {
+            setRemoteHostCamera(data.hostCamera);
+          }
           // Sync Screen Share if not host sharing
           if (!screenStream && data.screenShare) {
             setRemoteScreenShare(data.screenShare);
@@ -514,10 +549,12 @@ export default function ClassRoomPage() {
           // Sync Whiteboard if student
           if (data.whiteboard) {
             setRemoteWhiteboard(data.whiteboard);
-            if (!isMentor && data.whiteboard.active) {
-              setShowWhiteboard(true);
-            } else if (!isMentor && !data.whiteboard.active) {
-              setShowWhiteboard(false);
+            if (!isMentor) {
+              if (data.whiteboard.active !== undefined) setShowWhiteboard(data.whiteboard.active);
+              if (data.whiteboard.slides) setSlides(data.whiteboard.slides);
+              if (data.whiteboard.currentSlide !== undefined) setCurrentSlideIndex(data.whiteboard.currentSlide - 1);
+              if (data.whiteboard.notepadText !== undefined) setNotepadText(data.whiteboard.notepadText);
+              if (data.whiteboard.mode) setWhiteboardMode(data.whiteboard.mode);
             }
           }
           // Sync Chat
@@ -609,15 +646,111 @@ export default function ClassRoomPage() {
     };
   }, [screenStream, isMentor, roomId]);
 
-  // Broadcast whiteboard state
-  const broadcastWhiteboard = useCallback((active: boolean) => {
+  // Broadcast host camera frames when Host turns on camera
+  useEffect(() => {
+    if (!cameraStream || !cameraOn || !isMentor || !roomId) {
+      if (isMentor && roomId) {
+        try {
+          if (typeof BroadcastChannel !== "undefined") {
+            const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
+            bc.postMessage({ type: "HOST_CAMERA", data: { active: false, updatedAt: Date.now() } });
+            bc.close();
+          }
+        } catch {}
+        fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hostCamera: { active: false } }),
+        }).catch(() => {});
+      }
+      return;
+    }
+
+    let active = true;
+    const canvas = document.createElement("canvas");
+    canvas.width = 480;
+    canvas.height = 360;
+    const ctx = canvas.getContext("2d");
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
+      }
+    } catch {}
+
+    const broadcastCameraFrame = async () => {
+      if (!active || !cameraVideoRef.current || !cameraStream) return;
+      try {
+        if (cameraVideoRef.current.videoWidth > 0 && ctx) {
+          ctx.drawImage(cameraVideoRef.current, 0, 0, 480, 360);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
+          const payload = {
+            active: true,
+            streamFrame: dataUrl,
+            updatedAt: Date.now(),
+          };
+          if (bc) bc.postMessage({ type: "HOST_CAMERA", data: payload });
+          await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ hostCamera: payload }),
+          }).catch(() => {});
+        }
+      } catch {}
+    };
+
+    const interval = setInterval(broadcastCameraFrame, 900);
+    broadcastCameraFrame();
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+      if (bc) {
+        bc.postMessage({ type: "HOST_CAMERA", data: { active: false, updatedAt: Date.now() } });
+        bc.close();
+      }
+      fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hostCamera: { active: false } }),
+      }).catch(() => {});
+    };
+  }, [cameraStream, cameraOn, isMentor, roomId]);
+
+  // Broadcast whiteboard state (multi-slide & notepad)
+  const broadcastWhiteboard = useCallback((
+    active: boolean,
+    overrideSlides?: WhiteboardSlide[],
+    overrideIndex?: number,
+    overrideNotepad?: string,
+    overrideMode?: 'sketch' | 'notepad'
+  ) => {
     if (!roomId) return;
     try {
       let canvasData: string | undefined = undefined;
       if (active && canvasRef.current) {
         canvasData = canvasRef.current.toDataURL("image/png");
       }
-      const payload = { active, canvasData, updatedAt: Date.now() };
+      const activeSlides = overrideSlides || slides;
+      const activeIdx = overrideIndex !== undefined ? overrideIndex : currentSlideIndex;
+      const activeNotepad = overrideNotepad !== undefined ? overrideNotepad : notepadText;
+      const activeMode = overrideMode !== undefined ? overrideMode : whiteboardMode;
+
+      const updatedSlides = activeSlides.map((s, i) =>
+        i === activeIdx ? { ...s, canvasData: canvasData || s.canvasData, notesText: activeNotepad } : s
+      );
+
+      const payload = {
+        active,
+        canvasData,
+        currentSlide: activeIdx + 1,
+        totalSlides: updatedSlides.length,
+        slides: updatedSlides,
+        notepadText: activeNotepad,
+        mode: activeMode,
+        updatedAt: Date.now(),
+      };
       try {
         if (typeof BroadcastChannel !== "undefined") {
           const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
@@ -631,7 +764,159 @@ export default function ClassRoomPage() {
         body: JSON.stringify({ whiteboard: payload }),
       }).catch(() => {});
     } catch {}
-  }, [roomId]);
+  }, [roomId, slides, currentSlideIndex, notepadText, whiteboardMode]);
+
+  // Whiteboard Slide Switching & Addition
+  const switchSlide = (targetIndex: number) => {
+    if (targetIndex < 0 || targetIndex >= slides.length) return;
+    let currentCanvasData = '';
+    if (canvasRef.current) {
+      currentCanvasData = canvasRef.current.toDataURL('image/png');
+    }
+    const updatedSlides = slides.map((s, idx) => 
+      idx === currentSlideIndex 
+        ? { ...s, canvasData: currentCanvasData || s.canvasData, notesText: notepadText }
+        : s
+    );
+    setSlides(updatedSlides);
+    setCurrentSlideIndex(targetIndex);
+    const targetNotepad = updatedSlides[targetIndex]?.notesText || '';
+    setNotepadText(targetNotepad);
+
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        const targetData = updatedSlides[targetIndex]?.canvasData;
+        if (targetData) {
+          const img = new Image();
+          img.onload = () => {
+            if (canvasRef.current) {
+              const c = canvasRef.current.getContext('2d');
+              c?.drawImage(img, 0, 0, canvasRef.current.width, canvasRef.current.height);
+            }
+          };
+          img.src = targetData;
+        }
+      }
+    }
+    if (isMentor) {
+      broadcastWhiteboard(true, updatedSlides, targetIndex, targetNotepad, whiteboardMode);
+    }
+  };
+
+  const addNewSlide = () => {
+    if (!isMentor) return;
+    let currentCanvasData = '';
+    if (canvasRef.current) {
+      currentCanvasData = canvasRef.current.toDataURL('image/png');
+    }
+    const updatedSlides = slides.map((s, idx) => 
+      idx === currentSlideIndex 
+        ? { ...s, canvasData: currentCanvasData || s.canvasData, notesText: notepadText }
+        : s
+    );
+    const newSlide: WhiteboardSlide = {
+      id: Date.now(),
+      canvasData: '',
+      notesText: '',
+    };
+    const newSlidesList = [...updatedSlides, newSlide];
+    const newIdx = newSlidesList.length - 1;
+    setSlides(newSlidesList);
+    setCurrentSlideIndex(newIdx);
+    setNotepadText('');
+
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        try {
+          historyRef.current = [ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height)];
+          redoRef.current = [];
+          setCanUndo(false);
+          setCanRedo(false);
+        } catch {}
+      }
+    }
+    showToast(`Added Slide ${newSlidesList.length}`);
+    broadcastWhiteboard(true, newSlidesList, newIdx, '', whiteboardMode);
+  };
+
+  const downloadAllSlidesAsPdf = async () => {
+    try {
+      showToast("Generating PDF from all whiteboard slides...");
+      const { jsPDF } = await import("jspdf");
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "px",
+        format: [960, 540],
+      });
+
+      let currentCanvasData = '';
+      if (canvasRef.current) {
+        currentCanvasData = canvasRef.current.toDataURL('image/png');
+      }
+      const currentSlides = slides.map((s, idx) => 
+        idx === currentSlideIndex 
+          ? { ...s, canvasData: currentCanvasData || s.canvasData, notesText: notepadText }
+          : s
+      );
+
+      for (let i = 0; i < currentSlides.length; i++) {
+        if (i > 0) {
+          pdf.addPage([960, 540], "landscape");
+        }
+        const s = currentSlides[i];
+
+        // White background
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, 0, 960, 540, "F");
+
+        // Header bar
+        pdf.setFillColor(248, 250, 252);
+        pdf.rect(0, 0, 960, 36, "F");
+        pdf.setDrawColor(226, 232, 240);
+        pdf.line(0, 36, 960, 36);
+
+        pdf.setFontSize(13);
+        pdf.setTextColor(21, 67, 96);
+        pdf.text(`RCRD Live Class · Slide ${i + 1} of ${currentSlides.length}`, 24, 23);
+
+        const dStr = new Date().toLocaleDateString();
+        pdf.setFontSize(10);
+        pdf.setTextColor(87, 99, 110);
+        pdf.text(dStr, 936, 23, { align: "right" });
+
+        // Add sketch drawing if present
+        if (s.canvasData && s.canvasData.startsWith('data:image')) {
+          try {
+            pdf.addImage(s.canvasData, 'PNG', 20, 48, 920, 470, undefined, 'FAST');
+          } catch (e) {
+            console.warn("PDF addImage error:", e);
+          }
+        }
+
+        // If slide has notepad text, render it neatly
+        if (s.notesText && s.notesText.trim()) {
+          pdf.setFontSize(12);
+          pdf.setTextColor(32, 38, 46);
+          const splitText = pdf.splitTextToSize(s.notesText, 900);
+          const startY = s.canvasData ? 390 : 65;
+          pdf.text(splitText, 30, startY);
+        }
+      }
+
+      const filename = `Whiteboard-Slides-${roomId}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      pdf.save(filename);
+      showToast(`Downloaded ${currentSlides.length} slides as PDF!`);
+    } catch (err: unknown) {
+      const error = err as Error;
+      showToast("PDF generation failed: " + (error?.message || "Error"), false);
+    }
+  };
 
   // Render remote whiteboard onto student canvas
   useEffect(() => {
@@ -1099,7 +1384,7 @@ export default function ClassRoomPage() {
   }, [setCanUndo, setCanRedo]);
 
   const handleReverse = () => {
-    if (!canvasRef.current || historyRef.current.length === 0) return;
+    if (!canvasRef.current || historyRef.current.length === 0 || !isMentor) return;
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return;
     try {
@@ -1117,7 +1402,7 @@ export default function ClassRoomPage() {
   };
 
   const handleRedo = () => {
-    if (!canvasRef.current || redoRef.current.length === 0) return;
+    if (!canvasRef.current || redoRef.current.length === 0 || !isMentor) return;
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return;
     try {
@@ -1135,7 +1420,7 @@ export default function ClassRoomPage() {
   };
 
   const applyText = (textOverride?: string) => {
-    if (!textBox || !canvasRef.current) {
+    if (!isMentor || !textBox || !canvasRef.current) {
       setTextBox(null);
       return;
     }
@@ -1168,7 +1453,7 @@ export default function ClassRoomPage() {
 
   const handleSlideImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !canvasRef.current) return;
+    if (!file || !canvasRef.current || !isMentor) return;
     saveCanvasState();
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -1197,7 +1482,7 @@ export default function ClassRoomPage() {
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     e.stopPropagation();
-    if (!canvasRef.current || isReadonly) return;
+    if (!canvasRef.current || !isMentor) return;
     if (activeTool === 'text') {
       if (textBox && textBox.text.trim()) {
         applyText();
@@ -1208,7 +1493,7 @@ export default function ClassRoomPage() {
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current || isReadonly) return;
+    if (!canvasRef.current || !isMentor) return;
     if (activeTool === 'text') {
       e.stopPropagation();
       return;
@@ -1232,7 +1517,7 @@ export default function ClassRoomPage() {
   };
 
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !canvasRef.current || isReadonly) return;
+    if (!isDrawing || !canvasRef.current || !isMentor) return;
     const ctx = canvasRef.current.getContext("2d");
     if (!ctx) return;
     const {x, y} = getXY(e);
@@ -1248,24 +1533,21 @@ export default function ClassRoomPage() {
   };
 
   const stopDrawing = () => {
+    if (!isMentor) return;
     setIsDrawing(false);
     lastPos.current = null;
-    if (isMentor) {
-      broadcastWhiteboard(true);
-    }
+    broadcastWhiteboard(true);
   };
 
   const clearWhiteboard = () => {
-    if (!canvasRef.current || isReadonly) return;
+    if (!canvasRef.current || !isMentor) return;
     saveCanvasState();
     const ctx = canvasRef.current.getContext("2d");
     if (ctx) {
       ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
       showToast("Whiteboard cleared. Click Reverse to restore!");
-      if (isMentor) {
-        broadcastWhiteboard(true);
-      }
+      broadcastWhiteboard(true);
     }
   };
 
@@ -1516,10 +1798,10 @@ export default function ClassRoomPage() {
             </div>
           )}
 
-          {/* Whiteboard (Pure White Canvas) */}
+          {/* Whiteboard (Multi-Slide & Ruled Notepad Sheet) */}
           {showWhiteboard && (
             <div
-              className="absolute inset-0 z-20 bg-white cursor-crosshair"
+              className="absolute inset-0 z-20 bg-white"
               onClick={() => {
                 setShowSizePicker(false);
                 if (textBox && textBox.text.trim()) {
@@ -1527,6 +1809,162 @@ export default function ClassRoomPage() {
                 }
               }}
             >
+              {/* Whiteboard Top Navigation & Controls Bar */}
+              <div className="absolute top-2.5 inset-x-2.5 sm:inset-x-6 z-30 flex items-center justify-between bg-white/95 backdrop-blur-md border border-[#E2E7EC] shadow-md rounded-2xl px-3 sm:px-4 py-2 gap-2">
+                {/* Left: Mode toggle (Sketch vs Notepad) */}
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWhiteboardMode('sketch');
+                      if (isMentor) broadcastWhiteboard(true, undefined, undefined, undefined, 'sketch');
+                    }}
+                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      whiteboardMode === 'sketch' ? 'bg-white text-[#154360] shadow-sm' : 'text-[#57636E] hover:text-[#20262E]'
+                    }`}
+                  >
+                    <Pen size={13} />
+                    <span className="hidden sm:inline">Sketch Board</span>
+                    <span className="sm:hidden">Sketch</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWhiteboardMode('notepad');
+                      if (isMentor) broadcastWhiteboard(true, undefined, undefined, undefined, 'notepad');
+                    }}
+                    className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                      whiteboardMode === 'notepad' ? 'bg-white text-[#154360] shadow-sm' : 'text-[#57636E] hover:text-[#20262E]'
+                    }`}
+                  >
+                    <FileText size={13} />
+                    <span className="hidden sm:inline">Notepad Sheet</span>
+                    <span className="sm:hidden">Notepad</span>
+                  </button>
+                </div>
+
+                {/* Center: Slide Controls (< Slide X / Y > | + Add Slide) */}
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <button
+                    type="button"
+                    onClick={() => switchSlide(currentSlideIndex - 1)}
+                    disabled={currentSlideIndex <= 0}
+                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#20262E] transition-colors"
+                    title="Previous Slide"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <div className="px-2.5 py-1 bg-slate-100 rounded-lg text-xs font-bold text-[#20262E] whitespace-nowrap">
+                    Slide {currentSlideIndex + 1} / {slides.length}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => switchSlide(currentSlideIndex + 1)}
+                    disabled={currentSlideIndex >= slides.length - 1}
+                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#20262E] transition-colors"
+                    title="Next Slide"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+
+                  {isMentor && (
+                    <button
+                      type="button"
+                      onClick={addNewSlide}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EBF5FB] hover:bg-[#d4e6f1] text-[#154360] text-xs font-bold border border-[#154360]/20 transition-all shadow-xs"
+                      title="Add New Slide"
+                    >
+                      <Plus size={14} />
+                      <span className="hidden md:inline">Add Slide</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Right: Download PDF & Exit */}
+                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={downloadAllSlidesAsPdf}
+                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold transition-all shadow-sm"
+                    title="Download all slides as multi-page PDF"
+                  >
+                    <Download size={13} />
+                    <span className="hidden sm:inline">Download PDF</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowWhiteboard(false);
+                      if (isMentor) broadcastWhiteboard(false);
+                    }}
+                    className="p-1.5 rounded-xl hover:bg-slate-100 text-[#57636E] hover:text-[#20262E] transition-colors"
+                    title="Close Whiteboard"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+              </div>
+
+              {/* For Students: View-Only Badge */}
+              {!isMentor && (
+                <div className="absolute top-16 left-4 z-20 flex items-center gap-2 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-[#E2E7EC] shadow-sm text-xs font-bold text-[#154360]">
+                  <BookOpen size={14} className="text-[#154360]" />
+                  <span>Mentor Whiteboard (View Only)</span>
+                </div>
+              )}
+
+              {/* Mode 1: Notepad Sheet (Ruled Notebook typing) */}
+              {whiteboardMode === 'notepad' && (
+                <div className="absolute inset-0 pt-16 p-3 sm:p-8 flex justify-center bg-[#F8FAFC] overflow-y-auto z-20">
+                  <div
+                    className="w-full max-w-4xl bg-white rounded-2xl shadow-xl border border-[#E2E8F0] p-5 sm:p-10 flex flex-col relative min-h-[500px]"
+                    style={{
+                      backgroundImage: 'linear-gradient(#f8fafc 1px, transparent 1px), linear-gradient(90deg, #f8fafc 1px, transparent 1px)',
+                      backgroundSize: '28px 28px'
+                    }}
+                  >
+                    <div className="flex items-center justify-between pb-3 border-b-2 border-[#154360]/20 mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                        <span className="text-xs font-bold text-[#20262E] ml-2">
+                          Slide {currentSlideIndex + 1} Lecture Notepad
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-[#57636E] font-medium">
+                        {isMentor ? "Mentor Notepad · Auto-synced to students" : "Mentor Notes (View Only)"}
+                      </div>
+                    </div>
+
+                    <textarea
+                      value={notepadText}
+                      onChange={(e) => {
+                        if (!isMentor) return;
+                        const val = e.target.value;
+                        setNotepadText(val);
+                        broadcastWhiteboard(true, undefined, undefined, val, 'notepad');
+                      }}
+                      readOnly={!isMentor}
+                      placeholder={
+                        isMentor
+                          ? "Type your lecture notes here like a notepad...\n\n• Key concept 1\n• Code snippets, formulas, or explanations\n• Important points for students\n\n(All notes & slides can be downloaded as a PDF)"
+                          : "Mentor's lecture notes for Slide " + (currentSlideIndex + 1) + " will appear here..."
+                      }
+                      className={`flex-1 w-full bg-transparent resize-none outline-none text-[#20262E] font-sans text-sm sm:text-base leading-relaxed placeholder:text-slate-400 ${
+                        !isMentor ? 'cursor-default' : ''
+                      }`}
+                      style={{
+                        lineHeight: '34px',
+                        backgroundImage: 'repeating-linear-gradient(transparent, transparent 33px, #E2E8F0 33px, #E2E8F0 34px)',
+                        backgroundAttachment: 'local',
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Mode 2: Sketch Canvas */}
               <canvas
                 ref={canvasRef}
                 onClick={handleCanvasClick}
@@ -1537,121 +1975,13 @@ export default function ClassRoomPage() {
                 onTouchStart={startDrawing}
                 onTouchMove={draw}
                 onTouchEnd={stopDrawing}
-                className="w-full h-full touch-none bg-white"
+                className={`w-full h-full touch-none bg-white ${
+                  !isMentor ? 'pointer-events-none cursor-default' : 'cursor-crosshair'
+                } ${whiteboardMode === 'notepad' ? 'hidden' : 'block'}`}
               />
 
-              {/* Direct On-Canvas Inline Typing at Click Location */}
-              {textBox && (
-                <div
-                  style={{
-                    left: `${Math.max(8, textBox.x)}px`,
-                    top: `${Math.max(8, textBox.y)}px`,
-                    maxWidth: 'calc(100% - 24px)',
-                  }}
-                  className="absolute z-[110] flex flex-col items-start select-text"
-                  onClick={e => e.stopPropagation()}
-                  onMouseDown={e => e.stopPropagation()}
-                >
-                  {/* Floating Micro Toolbar (Color Swatches, Size & Done) */}
-                  <div className="flex items-center gap-1.5 bg-slate-900/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-2xl border border-slate-700 mb-2 animate-in fade-in zoom-in-95 duration-150">
-                    {/* Color selection swatches */}
-                    <div className="flex items-center gap-1">
-                      {WHITEBOARD_COLORS.slice(0, 6).map(c => (
-                        <button
-                          key={c}
-                          type="button"
-                          onClick={() => setPenColor(c)}
-                          style={{ backgroundColor: c }}
-                          className={`w-4 h-4 rounded-full border transition-transform hover:scale-125 cursor-pointer ${
-                            penColor.toUpperCase() === c.toUpperCase() ? "border-white scale-125 ring-2 ring-[#154360]/20" : "border-slate-500"
-                          }`}
-                          title={`Color ${c}`}
-                        />
-                      ))}
-                      <input
-                        type="color"
-                        value={penColor}
-                        onChange={e => setPenColor(e.target.value)}
-                        className="w-4 h-4 rounded-full cursor-pointer border-0 p-0 bg-transparent"
-                        title="Custom Color"
-                      />
-                    </div>
-
-                    <div className="w-px h-3.5 bg-slate-700 mx-0.5" />
-
-                    {/* Font size selector */}
-                    <select
-                      value={textFontSize}
-                      onChange={e => setTextFontSize(Number(e.target.value))}
-                      className="text-[11px] font-bold bg-slate-800 text-white rounded-md px-1.5 py-0.5 border border-slate-700 outline-none cursor-pointer"
-                    >
-                      <option value={16}>16px</option>
-                      <option value={20}>20px</option>
-                      <option value={24}>24px</option>
-                      <option value={32}>32px</option>
-                      <option value={42}>42px</option>
-                      <option value={56}>56px</option>
-                    </select>
-
-                    <div className="w-px h-3.5 bg-slate-700 mx-0.5" />
-
-                    {/* Quick Done button */}
-                    <button
-                      type="button"
-                      onClick={() => applyText()}
-                      className="px-2.5 py-1 rounded-md bg-[#154360] hover:bg-[#EBF5FB]0 text-white text-[11px] font-bold flex items-center gap-1 shadow-sm transition-colors cursor-pointer"
-                      title="Done (or press Enter)"
-                    >
-                      <Check size={11} /> Done
-                    </button>
-
-                    {/* Cancel / Close button */}
-                    <button
-                      type="button"
-                      onClick={() => setTextBox(null)}
-                      className="p-1 rounded-md text-[#57636E] hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                      title="Cancel (Esc)"
-                    >
-                      <X size={11} />
-                    </button>
-                  </div>
-
-                  {/* Direct On-Board Textarea */}
-                  <textarea
-                    ref={textInputRef}
-                    autoFocus
-                    value={textBox.text}
-                    onChange={e => {
-                      setTextBox({ ...textBox, text: e.target.value });
-                      e.target.style.height = "auto";
-                      e.target.style.height = `${e.target.scrollHeight}px`;
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        applyText();
-                      } else if (e.key === "Escape") {
-                        setTextBox(null);
-                      }
-                    }}
-                    placeholder="Type text here..."
-                    rows={1}
-                    className="bg-white/95 border-2 border-dashed border-[#154360] rounded-xl px-3 py-1.5 outline-none font-bold placeholder:text-[#57636E] resize-none shadow-xl focus:border-[#154360] focus:bg-white min-w-[180px] max-w-[650px] transition-all text-[#20262E]"
-                    style={{
-                      fontSize: `${textFontSize}px`,
-                      lineHeight: 1.25,
-                      color: penColor.toUpperCase() === '#FFFFFF' ? '#20262E' : penColor,
-                      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    }}
-                  />
-                  <span className="text-[10px] text-[#57636E] bg-white/95 px-1.5 py-0.5 rounded shadow-xs font-semibold mt-1 ml-1 select-none border border-[#E2E7EC]">
-                    Enter: stamp text • Shift+Enter: new line • Esc: cancel
-                  </span>
-                </div>
-              )}
-
-              {/* Whiteboard Toolbar */}
-              {!isReadonly && (
+              {/* Whiteboard Toolbar - ONLY visible to Mentor in Sketch Mode */}
+              {isMentor && whiteboardMode === 'sketch' && (
                 <div
                   className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center gap-2.5 border border-slate-700 shadow-2xl z-[100] max-w-[96vw] overflow-x-auto"
                   onClick={e => e.stopPropagation()}
@@ -1757,33 +2087,17 @@ export default function ClassRoomPage() {
 
                   <div className="w-px h-6 bg-slate-700 shrink-0" />
 
-                  {/* TYPING Tool Button */}
+                  {/* Switch to Notepad Mode */}
                   <button
                     onClick={() => {
-                      setIsEraser(false);
-                      if (activeTool === "text") {
-                        if (textBox && textBox.text.trim()) applyText();
-                        setTextBox(null);
-                        setActiveTool("pen");
-                        showToast("Pen tool active");
-                      } else {
-                        setActiveTool("text");
-                        const c = canvasRef.current;
-                        const w = c ? c.clientWidth : (typeof window !== "undefined" ? window.innerWidth : 800);
-                        const h = c ? c.clientHeight : (typeof window !== "undefined" ? window.innerHeight : 600);
-                        const defaultX = Math.max(40, Math.round(w / 4));
-                        const defaultY = Math.max(60, Math.round(h / 3));
-                        setTextBox({ x: defaultX, y: defaultY, text: "" });
-                        showToast("Typing active! Start typing or click anywhere on board to place text.");
-                      }
+                      setWhiteboardMode('notepad');
+                      broadcastWhiteboard(true, undefined, undefined, undefined, 'notepad');
                     }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      activeTool === "text" ? "bg-[#154360] text-white shadow-lg ring-2 ring-purple-400/50" : "bg-slate-800 text-slate-300 hover:text-white"
-                    }`}
-                    title="Type text on whiteboard (Click anywhere on board to place)"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all shrink-0"
+                    title="Switch to Notepad Sheet"
                   >
-                    <Type size={13} />
-                    <span>Type</span>
+                    <FileText size={13} className="text-emerald-400" />
+                    <span>Notepad</span>
                   </button>
 
                   {/* UPLOAD Slide or Image to Whiteboard */}
@@ -1816,7 +2130,10 @@ export default function ClassRoomPage() {
 
                   {/* Exit Board */}
                   <button
-                    onClick={() => setShowWhiteboard(false)}
+                    onClick={() => {
+                      setShowWhiteboard(false);
+                      broadcastWhiteboard(false);
+                    }}
                     className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-[#154360] text-slate-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 shrink-0"
                   >
                     <X size={13} /> Exit
@@ -1828,9 +2145,9 @@ export default function ClassRoomPage() {
 
           {/* When Screen Share IS ACTIVE: High-Visibility Floating Admin Face Overlay (White Theme) */}
           {isAnyScreenSharing && !showWhiteboard && (
-            <div className="absolute top-4 right-4 z-30 flex flex-col items-end gap-2.5 pointer-events-auto">
+            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-30 flex flex-col items-end gap-2 pointer-events-auto">
               {/* Host Video Mini Card */}
-              <div className="w-48 sm:w-60 h-32 sm:h-36 bg-white rounded-2xl overflow-hidden border-2 border-[#154360] shadow-xl relative group">
+              <div className="w-28 sm:w-56 h-20 sm:h-36 bg-white rounded-xl sm:rounded-2xl overflow-hidden border-2 border-[#154360] shadow-xl relative group">
                 {isMentor && cameraOn ? (
                   <video
                     ref={(el) => {
@@ -1845,21 +2162,28 @@ export default function ClassRoomPage() {
                     muted
                     className="w-full h-full object-cover"
                   />
+                ) : !isMentor && remoteHostCamera?.active && remoteHostCamera?.streamFrame ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={remoteHostCamera.streamFrame}
+                    alt="Host Live Camera"
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-[#20262E]">
-                    <div className="w-12 h-12 rounded-full bg-[#154360] text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                    <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-[#154360] text-white flex items-center justify-center font-bold text-xs sm:text-lg shadow-sm">
                       HR
                     </div>
-                    <span className="text-[11px] font-semibold text-[#57636E] mt-1.5">Host Presenting</span>
+                    <span className="text-[9px] sm:text-[11px] font-semibold text-[#57636E] mt-1 truncate max-w-[90%]">Host</span>
                   </div>
                 )}
-                <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white/90 backdrop-blur-xs border border-[#E2E7EC] text-[10px] font-bold text-[#20262E] shadow-xs">
+                <div className="absolute bottom-1 left-1 flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-white/90 backdrop-blur-xs border border-[#E2E7EC] text-[9px] sm:text-[10px] font-bold text-[#20262E] shadow-xs">
                   <span>Host</span>
                 </div>
               </div>
 
-              {/* Connected Student Mini Avatar Badges */}
-              <div className="flex gap-1.5 max-w-[280px] overflow-x-auto">
+              {/* Connected Student Mini Avatar Badges (Hidden on mobile to keep presentation completely unobstructed!) */}
+              <div className="hidden sm:flex gap-1.5 max-w-[280px] overflow-x-auto">
                 {uniqueOtherParticipants.slice(0, 4).map((p, idx) => {
                   const colors = ["bg-[#154360]", "bg-[#2980B9]", "bg-[#0E2F44]", "bg-[#1B4F72]", "bg-[#2874A6]"];
                   const color = colors[idx % colors.length];
@@ -1928,13 +2252,27 @@ export default function ClassRoomPage() {
                   uniqueOtherParticipants.map((p, idx) => {
                     const colors = ["bg-[#154360]", "bg-[#2980B9]", "bg-[#0E2F44]", "bg-[#1B4F72]", "bg-[#2874A6]"];
                     const color = p.role === "Host" ? "bg-[#154360]" : colors[idx % colors.length];
+                    const isHost = p.role === "Host" || p.name.includes("Host");
+                    const hasLiveHostFeed = isHost && remoteHostCamera?.active && remoteHostCamera?.streamFrame;
+
                     return (
                       <div key={p.id || idx} className="w-full h-44 sm:h-64 md:h-72 bg-white rounded-2xl border border-[#E2E7EC] shadow-sm overflow-hidden relative flex flex-col items-center justify-center">
-                        <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full ${color} text-white flex items-center justify-center text-xl sm:text-2xl font-black shadow-md ring-4 ring-slate-100`}>
-                          {p.avatar || p.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <span className="text-sm sm:text-base font-bold text-[#20262E] mt-2.5 sm:mt-3 truncate max-w-[85%]">{p.name}</span>
-                        <span className="text-[11px] text-[#57636E]">{p.role}</span>
+                        {hasLiveHostFeed ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={remoteHostCamera.streamFrame}
+                            alt="Host Video Feed"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <>
+                            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full ${color} text-white flex items-center justify-center text-xl sm:text-2xl font-black shadow-md ring-4 ring-slate-100`}>
+                              {p.avatar || p.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <span className="text-sm sm:text-base font-bold text-[#20262E] mt-2.5 sm:mt-3 truncate max-w-[85%]">{p.name}</span>
+                            <span className="text-[11px] text-[#57636E]">{p.role}</span>
+                          </>
+                        )}
                         <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100/90 border border-[#E2E7EC] text-xs font-semibold text-[#20262E] shadow-xs">
                           {p.isMuted ? <MicOff size={13} className="text-red-500" /> : <Mic size={13} className="text-emerald-600" />}
                           <span className="truncate max-w-[120px]">{p.name}</span>
@@ -3218,120 +3556,208 @@ export default function ClassRoomPage() {
 
       </div>
 
-      {/* ─── Bottom Toolbar (MOBILE VIEW: COMPLETELY RESPONSIVE FOR STUDENTS) ─── */}
-      {/* Exclusively includes: hand rise, video, mute, people, reactions, share screen, chat, note, + leave */}
-      <div className="flex md:hidden bg-white border-t border-[#E2E7EC] py-2 px-1 items-center justify-around w-full shrink-0 z-30 shadow-md text-[#20262E] relative">
+      {/* ─── Bottom Toolbar (MOBILE VIEW: COMPLETELY RESPONSIVE FOR STUDENTS & MENTORS) ─── */}
+      <div className="flex md:hidden bg-white border-t border-[#E2E7EC] py-2 px-2 items-center justify-around w-full shrink-0 z-30 shadow-md text-[#20262E] relative">
         
-        {/* 1. HAND RAISE */}
-        <button
-          onClick={toggleHandRaise}
-          className={`flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 transition-all text-center min-w-0 ${
-            isHandRaised ? "bg-amber-100 text-amber-900 border border-amber-300 font-bold" : "text-[#57636E] hover:text-[#20262E] hover:bg-slate-100"
-          }`}
-          title={isHandRaised ? "Lower Hand" : "Raise Hand"}
-        >
-          <Hand size={18} className={isHandRaised ? "text-amber-700" : "text-[#57636E]"} />
-          <span className="text-[9px] font-semibold leading-tight truncate">{isHandRaised ? "Raised" : "Hand"}</span>
-        </button>
+        {/* STUDENT VIEW: 7 Calm, Easy-to-Use Buttons without Annoying Borders */}
+        {!isMentor ? (
+          <>
+            {/* 1. MUTE / UNMUTE (Students start muted by default to eliminate class disturbance) */}
+            <button
+              onClick={toggleMic}
+              className={`flex-1 py-1 px-1 rounded-xl flex flex-col items-center justify-center gap-1 text-center min-w-0 transition-colors ${
+                micOn ? "bg-emerald-50 text-emerald-700" : "text-[#57636E] hover:bg-slate-100"
+              }`}
+              title={micOn ? "Mute Microphone" : "Unmute Microphone"}
+            >
+              {micOn ? <Mic size={19} className="text-emerald-600" /> : <MicOff size={19} className="text-slate-400" />}
+              <span className={`text-[9px] font-semibold leading-tight truncate ${micOn ? "text-emerald-700" : "text-[#57636E]"}`}>
+                {micOn ? "Mute" : "Unmute"}
+              </span>
+            </button>
 
-        {/* 2. VIDEO */}
-        <button
-          onClick={toggleCamera}
-          className="flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 hover:bg-slate-100 transition-colors"
-          title={cameraOn ? "Stop Video" : "Start Video"}
-        >
-          {cameraOn ? <Camera size={18} className="text-[#154360]" /> : <VideoOff size={18} className="text-rose-600" />}
-          <span className={`text-[9px] font-semibold leading-tight truncate ${cameraOn ? "text-[#154360]" : "text-rose-600"}`}>
-            {cameraOn ? "Video On" : "Video"}
-          </span>
-        </button>
+            {/* 2. VIDEO */}
+            <button
+              onClick={toggleCamera}
+              className={`flex-1 py-1 px-1 rounded-xl flex flex-col items-center justify-center gap-1 text-center min-w-0 transition-colors ${
+                cameraOn ? "bg-[#EBF5FB] text-[#154360]" : "text-[#57636E] hover:bg-slate-100"
+              }`}
+              title={cameraOn ? "Turn Camera Off" : "Turn Camera On"}
+            >
+              {cameraOn ? <Camera size={19} className="text-[#154360]" /> : <VideoOff size={19} className="text-slate-400" />}
+              <span className={`text-[9px] font-semibold leading-tight truncate ${cameraOn ? "text-[#154360]" : "text-[#57636E]"}`}>
+                {cameraOn ? "Video On" : "Video"}
+              </span>
+            </button>
 
-        {/* 3. MUTE */}
-        <button
-          onClick={toggleMic}
-          className="flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 hover:bg-slate-100 transition-colors"
-          title={micOn ? "Mute Microphone" : "Unmute Microphone"}
-        >
-          {micOn ? <Mic size={18} className="text-emerald-600" /> : <MicOff size={18} className="text-rose-600" />}
-          <span className={`text-[9px] font-semibold leading-tight truncate ${micOn ? "text-emerald-700" : "text-rose-600"}`}>
-            {micOn ? "Mute" : "Unmute"}
-          </span>
-        </button>
+            {/* 3. HAND RAISE */}
+            <button
+              onClick={toggleHandRaise}
+              className={`flex-1 py-1 px-1 rounded-xl flex flex-col items-center justify-center gap-1 transition-all text-center min-w-0 ${
+                isHandRaised ? "bg-amber-100 text-amber-900 font-bold" : "text-[#57636E] hover:bg-slate-100"
+              }`}
+              title={isHandRaised ? "Lower Hand" : "Raise Hand"}
+            >
+              <Hand size={19} className={isHandRaised ? "text-amber-600" : "text-[#57636E]"} />
+              <span className="text-[9px] font-semibold leading-tight truncate">{isHandRaised ? "Raised" : "Hand"}</span>
+            </button>
 
-        {/* 4. PEOPLE */}
-        <button
-          onClick={() => setRightPanel(p => p === "participants" ? null : "participants")}
-          className={`flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 transition-colors ${
-            rightPanel === "participants" ? "bg-[#EBF5FB] text-[#154360]" : "text-[#57636E] hover:text-[#20262E] hover:bg-slate-100"
-          }`}
-          title="People"
-        >
-          <div className="relative">
-            <UsersIcon size={18} />
-            <span className="absolute -top-1 -right-2 bg-[#154360] text-white text-[8px] font-bold px-1 rounded-full leading-none py-0.5">
-              {participants.length}
-            </span>
-          </div>
-          <span className="text-[9px] font-semibold leading-tight truncate">People</span>
-        </button>
+            {/* 4. CHAT */}
+            <button
+              onClick={() => setRightPanel(p => p === "chat" ? null : "chat")}
+              className={`flex-1 py-1 px-1 rounded-xl flex flex-col items-center justify-center gap-1 text-center min-w-0 transition-colors ${
+                rightPanel === "chat" ? "bg-[#EBF5FB] text-[#154360]" : "text-[#57636E] hover:bg-slate-100"
+              }`}
+              title="Chat"
+            >
+              <MessageSquare size={19} />
+              <span className="text-[9px] font-semibold leading-tight truncate">Chat</span>
+            </button>
 
-        {/* 5. REACTIONS */}
-        <button
-          onClick={() => setShowReactionsPopup(!showReactionsPopup)}
-          className={`flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 transition-colors ${
-            showReactionsPopup ? "bg-[#EBF5FB] text-[#154360]" : "text-[#57636E] hover:text-[#20262E] hover:bg-slate-100"
-          }`}
-          title="Reactions"
-        >
-          <Smile size={18} />
-          <span className="text-[9px] font-semibold leading-tight truncate">React</span>
-        </button>
+            {/* 5. PEOPLE */}
+            <button
+              onClick={() => setRightPanel(p => p === "participants" ? null : "participants")}
+              className={`flex-1 py-1 px-1 rounded-xl flex flex-col items-center justify-center gap-1 text-center min-w-0 transition-colors ${
+                rightPanel === "participants" ? "bg-[#EBF5FB] text-[#154360]" : "text-[#57636E] hover:bg-slate-100"
+              }`}
+              title="People"
+            >
+              <div className="relative">
+                <UsersIcon size={19} />
+                <span className="absolute -top-1 -right-2 bg-[#154360] text-white text-[8px] font-bold px-1 rounded-full leading-none py-0.5">
+                  {participants.length}
+                </span>
+              </div>
+              <span className="text-[9px] font-semibold leading-tight truncate">People</span>
+            </button>
 
-        {/* 6. SHARE SCREEN */}
-        <button
-          onClick={isSharing ? stopScreenShare : startScreenShare}
-          className={`flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 transition-colors ${
-            isSharing ? "bg-rose-50 text-rose-600 border border-rose-200" : "text-[#57636E] hover:text-[#20262E] hover:bg-slate-100"
-          }`}
-          title={isSharing ? "Stop Sharing Screen" : "Share Screen"}
-        >
-          <Monitor size={18} className={isSharing ? "text-rose-600" : "text-[#154360]"} />
-          <span className="text-[9px] font-semibold leading-tight truncate">{isSharing ? "Stop" : "Share"}</span>
-        </button>
+            {/* 6. NOTES */}
+            <button
+              onClick={() => setRightPanel(p => p === "notes" ? null : "notes")}
+              className={`flex-1 py-1 px-1 rounded-xl flex flex-col items-center justify-center gap-1 text-center min-w-0 transition-colors ${
+                rightPanel === "notes" ? "bg-[#EBF5FB] text-[#154360]" : "text-[#57636E] hover:bg-slate-100"
+              }`}
+              title="Notes"
+            >
+              <FileText size={19} />
+              <span className="text-[9px] font-semibold leading-tight truncate">Notes</span>
+            </button>
 
-        {/* 7. CHAT */}
-        <button
-          onClick={() => setRightPanel(p => p === "chat" ? null : "chat")}
-          className={`flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 transition-colors ${
-            rightPanel === "chat" ? "bg-[#EBF5FB] text-[#154360]" : "text-[#57636E] hover:text-[#20262E] hover:bg-slate-100"
-          }`}
-          title="Chat"
-        >
-          <MessageSquare size={18} />
-          <span className="text-[9px] font-semibold leading-tight truncate">Chat</span>
-        </button>
+            {/* 7. LEAVE */}
+            <button
+              onClick={endClass}
+              className="flex-1 py-1 px-1 rounded-xl flex flex-col items-center justify-center gap-1 text-center min-w-0 text-rose-600 hover:bg-rose-50 transition-colors"
+              title="Leave Meeting"
+            >
+              <PhoneOff size={19} className="text-rose-600" />
+              <span className="text-[9px] font-bold leading-tight truncate text-rose-600">Leave</span>
+            </button>
+          </>
+        ) : (
+          /* MENTOR VIEW: Full Teacher Controls on Mobile */
+          <>
+            {/* 1. MUTE */}
+            <button
+              onClick={toggleMic}
+              className={`flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 transition-colors ${
+                micOn ? "text-emerald-700" : "text-[#57636E]"
+              }`}
+              title={micOn ? "Mute" : "Unmute"}
+            >
+              {micOn ? <Mic size={18} className="text-emerald-600" /> : <MicOff size={18} className="text-slate-400" />}
+              <span className="text-[9px] font-semibold leading-tight truncate">{micOn ? "Mute" : "Unmute"}</span>
+            </button>
 
-        {/* 8. NOTE */}
-        <button
-          onClick={() => setRightPanel(p => p === "notes" ? null : "notes")}
-          className={`flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 transition-colors ${
-            rightPanel === "notes" ? "bg-[#EBF5FB] text-[#154360]" : "text-[#57636E] hover:text-[#20262E] hover:bg-slate-100"
-          }`}
-          title="Notes"
-        >
-          <FileText size={18} />
-          <span className="text-[9px] font-semibold leading-tight truncate">Notes</span>
-        </button>
+            {/* 2. VIDEO */}
+            <button
+              onClick={toggleCamera}
+              className="flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 transition-colors"
+              title={cameraOn ? "Stop Video" : "Start Video"}
+            >
+              {cameraOn ? <Camera size={18} className="text-[#154360]" /> : <VideoOff size={18} className="text-slate-400" />}
+              <span className="text-[9px] font-semibold leading-tight truncate">{cameraOn ? "Video" : "No Video"}</span>
+            </button>
 
-        {/* LEAVE BUTTON */}
-        <button
-          onClick={endClass}
-          className="flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 transition-colors"
-          title={isMentor ? "End Call" : "Leave Meeting"}
-        >
-          <PhoneOff size={16} />
-          <span className="text-[9px] font-bold leading-tight truncate">{isMentor ? "End" : "Leave"}</span>
-        </button>
+            {/* 3. WHITEBOARD */}
+            <button
+              onClick={() => {
+                const next = !showWhiteboard;
+                setShowWhiteboard(next);
+                broadcastWhiteboard(next);
+              }}
+              className={`flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 transition-colors ${
+                showWhiteboard ? "bg-[#EBF5FB] text-[#154360]" : "text-[#57636E]"
+              }`}
+              title="Open Whiteboard"
+            >
+              <Pen size={18} className="text-[#154360]" />
+              <span className="text-[9px] font-semibold leading-tight truncate">Board</span>
+            </button>
+
+            {/* 4. SHARE SCREEN */}
+            <button
+              onClick={isSharing ? stopScreenShare : startScreenShare}
+              className={`flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 transition-colors ${
+                isSharing ? "text-rose-600" : "text-[#154360]"
+              }`}
+              title={isSharing ? "Stop Sharing Screen" : "Share Screen"}
+            >
+              <Monitor size={18} className={isSharing ? "text-rose-600" : "text-[#154360]"} />
+              <span className="text-[9px] font-semibold leading-tight truncate">{isSharing ? "Stop" : "Share"}</span>
+            </button>
+
+            {/* 5. PEOPLE */}
+            <button
+              onClick={() => setRightPanel(p => p === "participants" ? null : "participants")}
+              className={`flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 transition-colors ${
+                rightPanel === "participants" ? "bg-[#EBF5FB] text-[#154360]" : "text-[#57636E]"
+              }`}
+              title="People"
+            >
+              <div className="relative">
+                <UsersIcon size={18} />
+                <span className="absolute -top-1 -right-2 bg-[#154360] text-white text-[8px] font-bold px-1 rounded-full leading-none py-0.5">
+                  {participants.length}
+                </span>
+              </div>
+              <span className="text-[9px] font-semibold leading-tight truncate">People</span>
+            </button>
+
+            {/* 6. CHAT */}
+            <button
+              onClick={() => setRightPanel(p => p === "chat" ? null : "chat")}
+              className={`flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 transition-colors ${
+                rightPanel === "chat" ? "bg-[#EBF5FB] text-[#154360]" : "text-[#57636E]"
+              }`}
+              title="Chat"
+            >
+              <MessageSquare size={18} />
+              <span className="text-[9px] font-semibold leading-tight truncate">Chat</span>
+            </button>
+
+            {/* 7. NOTE */}
+            <button
+              onClick={() => setRightPanel(p => p === "notes" ? null : "notes")}
+              className={`flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 transition-colors ${
+                rightPanel === "notes" ? "bg-[#EBF5FB] text-[#154360]" : "text-[#57636E]"
+              }`}
+              title="Notes"
+            >
+              <FileText size={18} />
+              <span className="text-[9px] font-semibold leading-tight truncate">Notes</span>
+            </button>
+
+            {/* 8. END CALL */}
+            <button
+              onClick={endClass}
+              className="flex-1 py-1 px-0.5 rounded-lg flex flex-col items-center justify-center gap-0.5 text-center min-w-0 text-rose-600 hover:bg-rose-50 transition-colors"
+              title="End Meeting"
+            >
+              <PhoneOff size={17} className="text-rose-600" />
+              <span className="text-[9px] font-bold leading-tight truncate text-rose-600">End</span>
+            </button>
+          </>
+        )}
 
       </div>
 

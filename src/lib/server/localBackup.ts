@@ -281,9 +281,11 @@ export function updateMeetingParticipant(
 export function removeMeetingParticipant(meetingId: string, participantId: string): StoredParticipant[] {
   if (participantsMemory[meetingId]) {
     delete participantsMemory[meetingId][participantId];
-    // Also remove any entries matching the participant ID or name
+    // Also remove any entries matching the participant ID
     for (const [id, p] of Object.entries(participantsMemory[meetingId])) {
-      if (id === participantId) delete participantsMemory[meetingId][id];
+      if (id === participantId || p.id === participantId) {
+        delete participantsMemory[meetingId][id];
+      }
     }
   }
   return getMeetingParticipants(meetingId);

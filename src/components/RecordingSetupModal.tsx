@@ -660,6 +660,11 @@ export default function RecordingSetupModal({
     }
   }, [stopRecording, togglePause]);
 
+  const openPipRef = useRef(openPipController);
+  useEffect(() => {
+    openPipRef.current = openPipController;
+  }, [openPipController]);
+
   // Skip countdown immediately and start recording
   const skipCountdown = useCallback((recorderInstance?: MediaRecorder | null) => {
     if (countdownIntervalRef.current) {
@@ -689,12 +694,12 @@ export default function RecordingSetupModal({
 
       // Offer / auto-open Picture-in-Picture on desktop so controller is always visible across windows
       if (typeof window !== 'undefined' && 'documentPictureInPicture' in window) {
-        openPipController().catch(() => {});
+        openPipRef.current().catch(() => {});
       }
     } else if (rec && rec.state === 'recording') {
       setPhase('recording');
     }
-  }, [openPipController]);
+  }, []);
 
   // Sync timer & state into Document Picture-in-Picture window
   useEffect(() => {

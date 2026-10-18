@@ -124,13 +124,13 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#E2E7EC]">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 border-b border-[#E2E7EC]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-[#EBF5FB] text-[#154360] flex items-center justify-center shadow-inner">
               <Upload size={20} className="stroke-[2.5]" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-[#20262E]">Upload Video to Project</h3>
+              <h3 className="text-base sm:text-lg font-bold text-[#20262E]">Upload Video to Project</h3>
               <p className="text-xs text-[#57636E]">Save and organize video in your project folder</p>
             </div>
           </div>
@@ -143,7 +143,7 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto custom-scrollbar">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 max-h-[75vh] overflow-y-auto custom-scrollbar">
           {uploadState === "success" ? (
             <div className="py-8 text-center space-y-4">
               <div className="w-16 h-16 bg-[#EBF5FB] text-[#154360] rounded-full mx-auto flex items-center justify-center shadow-lg shadow-[#154360]/20">

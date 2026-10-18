@@ -327,7 +327,7 @@ export default function CalendarPage() {
             className="flex items-center justify-start cursor-pointer group"
             onClick={() => { router.push("/"); setIsMobileMenuOpen(false); }}
           >
-            <RcrdLogo className="h-8 w-auto transition-transform group-hover:scale-105" />
+            <RcrdLogo className="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105" />
           </div>
           <button 
             type="button"
@@ -409,7 +409,7 @@ export default function CalendarPage() {
         />
 
         {/* CALENDAR BODY */}
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 custom-scrollbar space-y-6">
           {/* Hero Banner: Class Meeting Calendar & Google Calendar Integration */}
           <div className="bg-gradient-to-r from-white via-[#EBF5FB] to-white border-2 border-[#154360]/20 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div className="space-y-2 max-w-2xl">

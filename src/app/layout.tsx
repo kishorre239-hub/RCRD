@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Outfit } from "next/font/google";
 import "./globals.css";
-import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,18 +26,12 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "RCRD - one solution",
+  title: "RCRD",
   description: "Connect, Collaborate, Create - A simple video recording and messaging platform.",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "RCRD",
-  },
   icons: {
     icon: "/icon.png",
     shortcut: "/icon.png",
-    apple: "/icon.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 
@@ -50,8 +43,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${geistSans.variable} ${geistMono.variable} ${outfit.variable} h-full w-full antialiased font-sans bg-[#F5F6F8] text-[#20262E] overflow-hidden`}
     >
       <body suppressHydrationWarning className="h-full w-full overflow-hidden flex flex-col m-0 p-0 font-sans bg-[#F5F6F8] text-[#20262E]">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if(typeof window!=='undefined'&&'serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(regs){for(var reg of regs){reg.unregister();}});if('caches' in window){caches.keys().then(function(names){for(var name of names)caches.delete(name);});}}`,
+          }}
+        />
         {children}
-        <PwaInstallPrompt />
       </body>
     </html>
   );

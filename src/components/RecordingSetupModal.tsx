@@ -26,6 +26,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { uploadVideo, getCourses } from '@/lib/api';
+import RcrdLogo from '@/components/RcrdLogo';
 
 interface FolderOption {
   id: string;
@@ -590,6 +591,14 @@ export default function RecordingSetupModal({
           }
         });
 
+        pip.document.title = "RCRD";
+        try {
+          const pipFavicon = pip.document.createElement('link');
+          pipFavicon.rel = 'icon';
+          pipFavicon.href = '/icon.png';
+          pip.document.head.appendChild(pipFavicon);
+        } catch {}
+
         pip.document.body.style.margin = '0';
         pip.document.body.style.background = '#1E1E24';
         pip.document.body.style.overflow = 'hidden';
@@ -601,6 +610,7 @@ export default function RecordingSetupModal({
         const curTimeStr = `${Math.floor(timer / 60).toString().padStart(2, '0')}:${(timer % 60).toString().padStart(2, '0')}`;
         pip.document.body.innerHTML = `
           <div style="display:flex;align-items:center;gap:12px;color:white;padding:10px 16px;background:#1E1E24;border-radius:16px;user-select:none;width:100%;justify-content:center;">
+            <img src="/icon.png" alt="RCRD" style="height:22px;width:auto;object-fit:contain;margin-right:2px;" />
             <div style="display:flex;align-items:center;gap:6px;padding-right:10px;border-right:1px solid rgba(255,255,255,0.2);">
               <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px #ef4444;"></span>
               <span style="font-weight:bold;font-size:11px;color:#f87171;">REC</span>
@@ -840,13 +850,7 @@ export default function RecordingSetupModal({
             {/* Header: RCRD Brand Icon + Title + Help & Home Actions */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#2F70F2] flex items-center justify-center text-white shadow-xs">
-                  <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 stroke-white stroke-[2.5]" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" />
-                  </svg>
-                </div>
-                <span className="text-[17px] font-bold text-[#20262E] tracking-tight">RCRD</span>
+                <RcrdLogo className="h-7 w-auto" />
               </div>
 
               <div className="flex items-center gap-1">
@@ -1120,38 +1124,38 @@ export default function RecordingSetupModal({
       {phase === 'recording' && (
         <>
           {/* TOP EMERGENCY LIVE RECORDING BAR (Full-width, impossible to hide or miss on screen) */}
-          <div className="fixed top-0 left-0 right-0 z-[999999] bg-[#1E1E24]/95 text-white backdrop-blur-xl border-b border-red-500/50 shadow-2xl px-5 py-2.5 flex items-center justify-between select-none font-sans">
-            <div className="flex items-center gap-3">
+          <div className="fixed top-0 left-0 right-0 z-[999999] bg-[#1E1E24]/95 text-white backdrop-blur-xl border-b border-red-500/50 shadow-2xl px-3 sm:px-5 py-2 sm:py-2.5 flex items-center justify-between select-none font-sans flex-wrap gap-2">
+            <div className="flex items-center gap-2 sm:gap-3">
               <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
               </span>
-              <span className="text-xs font-black tracking-widest text-red-400 uppercase">RECORDING ACTIVE</span>
-              <span className="text-sm font-mono font-bold bg-white/10 px-2 py-0.5 rounded text-white min-w-[50px] text-center">
+              <span className="text-xs font-black tracking-widest text-red-400 uppercase">REC</span>
+              <span className="text-sm font-mono font-bold bg-white/10 px-2 py-0.5 rounded text-white min-w-[48px] text-center">
                 {formatRecTime(timer)}
               </span>
-              <span className="hidden sm:inline text-xs text-white/70 font-medium">
+              <span className="hidden md:inline text-xs text-white/70 font-medium">
                 • Screen & Voice capture running (Safe to switch to any window)
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {hasPipSupport && (
                 <button
                   type="button"
                   onClick={openPipController}
-                  className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 text-xs font-bold transition-all cursor-pointer shadow-xs"
                   title="Float controller over any other application on your desktop"
                 >
                   <ExternalLink size={13} />
-                  <span>Float on Screen</span>
+                  <span className="hidden sm:inline">Float</span>
                 </button>
               )}
 
               <button
                 type="button"
                 onClick={togglePause}
-                className="px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-xs"
+                className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white flex items-center gap-1 text-xs font-bold transition-all cursor-pointer shadow-xs"
                 title={isPaused ? "Resume Recording" : "Pause Recording"}
               >
                 {isPaused ? <Play size={13} fill="white" /> : <Pause size={13} fill="white" />}
@@ -1161,17 +1165,17 @@ export default function RecordingSetupModal({
               <button
                 type="button"
                 onClick={stopRecording}
-                className="px-4 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 active:bg-red-700 text-white flex items-center gap-1.5 text-xs font-extrabold transition-all cursor-pointer shadow-[0_2px_12px_rgba(239,68,68,0.5)]"
+                className="px-3 sm:px-4 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 active:bg-red-700 text-white flex items-center gap-1.5 text-xs font-extrabold transition-all cursor-pointer shadow-[0_2px_12px_rgba(239,68,68,0.5)]"
                 title="Finish & Save Recording"
               >
                 <Square size={13} fill="white" />
-                <span>Stop & Save</span>
+                <span>Stop</span>
               </button>
             </div>
           </div>
 
           {/* PRIMARY: Floating Bottom Control Dock Bar (Centered, Ultra-Visible, z-[999999]) */}
-          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[999999] bg-[#1E1E24]/95 backdrop-blur-xl border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.6)] px-5 py-3 rounded-2xl flex items-center gap-4 text-white select-none">
+          <div className="fixed bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 z-[999999] bg-[#1E1E24]/95 backdrop-blur-xl border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.6)] px-3 sm:px-5 py-2 sm:py-3 rounded-2xl flex items-center gap-2 sm:gap-4 text-white select-none max-w-[calc(100vw-16px)] overflow-x-auto custom-scrollbar">
             
             {/* Live recording indicator & Time */}
             <div className="flex items-center gap-2.5 pr-2 border-r border-white/15">
@@ -1410,7 +1414,7 @@ export default function RecordingSetupModal({
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-3 pt-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-3">
                 {recordedVideoUrl && (
                   <a
                     href={recordedVideoUrl}
@@ -1422,21 +1426,23 @@ export default function RecordingSetupModal({
                     <span>Download</span>
                   </a>
                 )}
-                <button
-                  type="button"
-                  onClick={handleClose}
-                  className="flex-1 py-3 px-3 bg-slate-100 hover:bg-slate-200 text-[#20262E] rounded-xl font-bold text-xs transition-colors cursor-pointer"
-                >
-                  Close
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveToDrive}
-                  className="flex-[2] py-3 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl font-bold text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
-                >
-                  <Folder size={15} />
-                  <span>Save to Course Folder</span>
-                </button>
+                <div className="flex items-center gap-2.5 flex-1">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="flex-1 py-3 px-3 bg-slate-100 hover:bg-slate-200 text-[#20262E] rounded-xl font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveToDrive}
+                    className="flex-[2] py-3 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl font-bold text-xs transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+                  >
+                    <Folder size={15} />
+                    <span>Save to Course Folder</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

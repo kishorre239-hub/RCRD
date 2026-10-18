@@ -313,7 +313,7 @@ export default function WatchLaterPage() {
       }`}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
-            <RcrdLogo className="h-8 w-auto transition-transform group-hover:scale-105" />
+            <RcrdLogo className="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105" />
           </div>
           <button 
             type="button"

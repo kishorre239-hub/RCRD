@@ -1065,8 +1065,7 @@ export async function listDriveVideosAndFolders(forceRefresh = false): Promise<{
                 { fileId: targetFileId, alt: 'media', supportsAllDrives: true },
                 { responseType: 'stream' }
               );
-              // @ts-expect-error - googleapis stream type
-              const bodyStream = res.data;
+              const bodyStream = (res as { data?: unknown }).data;
               await drive.files.update({
                 fileId: targetFileId,
                 media: {

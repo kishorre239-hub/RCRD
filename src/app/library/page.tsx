@@ -619,7 +619,7 @@ export default function LibraryPage() {
       }`}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
-            <RcrdLogo className="h-8 w-auto transition-transform group-hover:scale-105" />
+            <RcrdLogo className="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105" />
           </div>
           <button 
             type="button"
@@ -711,10 +711,10 @@ export default function LibraryPage() {
             className="hidden" 
           />
 
-          <div className="max-w-[1200px] mx-auto pt-8 px-8 pb-24">
+          <div className="max-w-[1200px] mx-auto pt-6 sm:pt-8 px-4 sm:px-8 pb-24">
             
             {/* Header Section */}
-            <div className="flex items-end justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
               <div className="flex items-center gap-4">
                 {activeTab !== 'videos' && (
                   <button 
@@ -726,7 +726,7 @@ export default function LibraryPage() {
                   </button>
                 )}
                 <div>
-                  <div className="flex items-center gap-2.5 mb-1">
+                  <div className="flex items-center gap-2.5 mb-1 flex-wrap">
                     <span className="text-[13px] text-[#57636E] font-medium">Library</span>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EBF5FB]/40 text-[#0E2F44] border border-[#2980B9]/30 shadow-xs">
                       <Cloud size={13} className="text-[#2980B9]" />
@@ -734,12 +734,12 @@ export default function LibraryPage() {
                       Google Drive Connected
                     </span>
                   </div>
-                  <h1 className="text-[28px] font-bold text-[#20262E] leading-tight flex items-center gap-2">
+                  <h1 className="text-2xl sm:text-[28px] font-bold text-[#20262E] leading-tight flex items-center gap-2">
                     {activeTab === 'videos' ? 'Videos' : courses.find(c => `folder-${c.id}` === activeTab)?.name || 'Library'}
                   </h1>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button 
                   onClick={handleCreateFolder}
                   className="px-4 py-2 bg-white border border-[#E2E7EC] hover:bg-[#F5F6F8] rounded-lg text-[13px] font-semibold text-[#20262E] transition-colors shadow-xs"
@@ -825,7 +825,7 @@ export default function LibraryPage() {
                       <div 
                         key={folder.id} 
                         onClick={() => setActiveTab(`folder-${folder.id}`)}
-                        className={`group relative flex items-center justify-between w-[240px] p-3 bg-white border hover:border-[#E2E7EC] hover:shadow-sm rounded-xl cursor-pointer transition-all ${
+                        className={`group relative flex items-center justify-between w-full sm:w-[240px] p-3 bg-white border hover:border-[#E2E7EC] hover:shadow-sm rounded-xl cursor-pointer transition-all ${
                           activeTab === `folder-${folder.id}` ? 'border-[#154360] ring-2 ring-[#154360]/20' : 'border-[#E2E7EC]'
                         }`}
                       >
@@ -847,7 +847,7 @@ export default function LibraryPage() {
                             e.stopPropagation();
                             setActiveFolderMenu(activeFolderMenu === folder.id ? null : folder.id);
                           }}
-                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded text-[#57636E] transition-all absolute right-2"
+                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 hover:bg-slate-100 rounded text-[#57636E] transition-all absolute right-2"
                         >
                           <MoreVertical size={16} />
                         </button>
@@ -868,7 +868,7 @@ export default function LibraryPage() {
             )}
 
             {/* Dynamic Image-2 Filters */}
-            <div className="flex items-center justify-end gap-3 mb-6 relative z-10">
+            <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:gap-3 mb-6 relative z-10">
               
               {/* 1. Video Type Filter (Image 2) */}
               <div className="relative">

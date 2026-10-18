@@ -390,7 +390,7 @@ export default function SettingsPage() {
       }`}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
-            <RcrdLogo className="h-8 w-auto transition-transform group-hover:scale-105" />
+            <RcrdLogo className="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105" />
           </div>
           <button 
             type="button"
@@ -483,26 +483,26 @@ export default function SettingsPage() {
           onToggleMobileSidebar={() => setIsMobileMenuOpen(prev => !prev)}
         />
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-8 py-6 min-h-0">
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-8 py-5 sm:py-6 min-h-0">
           <div className="max-w-[1000px]">
             {/* Title */}
             <div className="mb-6">
               <p className="text-[13px] text-[#57636E] mb-1">
                 {activeTab === 'users' ? 'harikishorereddy9908' : 'Hari Kishore Reddy'}
               </p>
-              <h1 className="text-[32px] font-bold text-[#20262E] leading-tight">
+              <h1 className="text-2xl sm:text-[32px] font-bold text-[#20262E] leading-tight">
                 {activeTab === 'users' ? 'Users & groups' : 'Personal Settings'}
               </h1>
             </div>
 
             {/* Banner (only for personal settings, not when viewing users & groups) */}
             {activeTab !== 'users' && (
-              <div className="bg-[#F5F6F8] border border-[#E2E7EC] rounded-lg p-4 flex items-center justify-between mb-8">
+              <div className="bg-[#F5F6F8] border border-[#E2E7EC] rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-8">
                 <div className="flex items-center gap-3">
-                  <Info size={18} className="text-[#57636E]" />
+                  <Info size={18} className="text-[#57636E] shrink-0" />
                   <p className="text-[14px] text-[#20262E]">Your profile is linked to RCRD. To edit your info, visit your profile on RCRD.</p>
                 </div>
-                <button className="bg-slate-200 hover:bg-slate-300 text-[#20262E] text-[13px] font-bold px-4 py-1.5 rounded transition-colors">
+                <button className="bg-slate-200 hover:bg-slate-300 text-[#20262E] text-[13px] font-bold px-4 py-1.5 rounded transition-colors shrink-0">
                   Learn more
                 </button>
               </div>

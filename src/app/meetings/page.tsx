@@ -467,7 +467,7 @@ export default function MeetingsPage() {
       }`}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
-            <RcrdLogo className="h-8 w-auto transition-transform group-hover:scale-105" />
+            <RcrdLogo className="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105" />
           </div>
           <button 
             type="button"
@@ -550,7 +550,7 @@ export default function MeetingsPage() {
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
-          <div className="max-w-[1200px] mx-auto pt-8 px-8 pb-24 space-y-7">
+          <div className="max-w-[1200px] mx-auto pt-6 sm:pt-8 px-4 sm:px-8 pb-24 space-y-5 sm:space-y-7">
             
             {/* Quick Action Cards - Clean, Unified 3-Card SaaS Pattern */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

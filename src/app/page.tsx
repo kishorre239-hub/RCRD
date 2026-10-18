@@ -50,7 +50,7 @@ export default function HomePage() {
       }`}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#E2E7EC] flex-shrink-0">
           <div className="flex items-center justify-start cursor-pointer group" onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}>
-            <RcrdLogo className="h-8 w-auto transition-transform group-hover:scale-105" />
+            <RcrdLogo className="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105" />
           </div>
           <button 
             type="button"
@@ -124,10 +124,10 @@ export default function HomePage() {
         />
 
         {/* Dashboard Content */}
-        <div className="flex-1 overflow-y-auto flex flex-col items-center pt-10 px-8 relative custom-scrollbar min-h-0 bg-[#F5F6F8]">
+        <div className="flex-1 overflow-y-auto flex flex-col items-center pt-8 sm:pt-10 px-4 sm:px-8 relative custom-scrollbar min-h-0 bg-[#F5F6F8]">
           
           {/* Animated Clean Orb / Camera Graphic in Glassdoor Green */}
-          <div className="relative mb-6 w-40 h-40 flex items-center justify-center group cursor-pointer" onClick={() => setIsRecordModalOpen(true)}>
+          <div className="relative mb-6 w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center group cursor-pointer" onClick={() => setIsRecordModalOpen(true)}>
             <div className="absolute inset-0 flex items-center justify-center blur-md opacity-30 group-hover:opacity-60 group-hover:scale-110 transition-all duration-700">
               <Image 
                 src="/ICONS/center-orb.svg" 
@@ -143,7 +143,7 @@ export default function HomePage() {
               alt="Record Orb" 
               width={140}
               height={140}
-              className="relative z-10 w-32 h-32 object-contain animate-float group-hover:scale-110 transition-transform duration-500" 
+              className="relative z-10 w-28 h-28 sm:w-32 sm:h-32 object-contain animate-float group-hover:scale-110 transition-transform duration-500" 
             />
             
             {/* Floating particles in Mint and Glassdoor Green */}
@@ -151,20 +151,20 @@ export default function HomePage() {
             <div className="absolute bottom-4 left-0 w-2.5 h-2.5 bg-[#0E2F44] rounded-full opacity-80 animate-bounce delay-300"></div>
           </div>
 
-          <h1 className="text-3xl font-extrabold text-[#20262E] mb-3 tracking-tight text-center">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#20262E] mb-3 tracking-tight text-center">
             Capture Your Screen in Seconds
           </h1>
-          <p className="text-[#57636E] mb-8 max-w-lg text-center text-base leading-relaxed">
+          <p className="text-[#57636E] mb-8 max-w-lg text-center text-sm sm:text-base leading-relaxed px-2">
             Record, share, and collaborate with async video messages that bring your team closer together.
           </p>
 
           {/* Action Buttons: Start Recording + Upload Video + Schedule Meeting */}
-          <div className="flex flex-wrap items-center justify-center gap-4 mb-12">
+          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-4 w-full max-w-md sm:max-w-none px-4 mb-12">
             
             {/* 1. Start Recording Button */}
             <button 
               onClick={() => setIsRecordModalOpen(true)}
-              className="bg-[#154360] hover:bg-[#0E2F44] text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2.5 transition-all shadow-[0_8px_20px_rgba(21, 67, 96,0.35)] hover:shadow-[0_12px_28px_rgba(12,83,37,0.45)] transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
+              className="w-full sm:w-auto bg-[#154360] hover:bg-[#0E2F44] text-white px-6 py-3.5 sm:py-3 rounded-2xl font-bold flex items-center justify-center gap-2.5 transition-all shadow-[0_8px_20px_rgba(21,67,96,0.35)] hover:shadow-[0_12px_28px_rgba(12,83,37,0.45)] transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
             >
               <div className="bg-white/20 p-1 rounded-lg">
                 <VideoCameraIcon size={16} className="text-white" />
@@ -175,7 +175,7 @@ export default function HomePage() {
             {/* 2. Upload Video Button */}
             <button 
               onClick={() => setIsUploadModalOpen(true)}
-              className="bg-white hover:bg-[#EBF5FB]/40 text-[#20262E] border-2 border-[#E2E7EC] hover:border-[#154360] px-6 py-3 rounded-2xl font-bold flex items-center gap-2.5 transition-all shadow-xs hover:shadow-sm transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
+              className="w-full sm:w-auto bg-white hover:bg-[#EBF5FB]/40 text-[#20262E] border-2 border-[#E2E7EC] hover:border-[#154360] px-6 py-3.5 sm:py-3 rounded-2xl font-bold flex items-center justify-center gap-2.5 transition-all shadow-xs hover:shadow-sm transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
             >
               <div className="bg-[#EBF5FB] p-1 rounded-lg text-[#154360]">
                 <Upload size={16} className="stroke-[2.5]" />
@@ -186,7 +186,7 @@ export default function HomePage() {
             {/* 3. Schedule Meeting Button */}
             <button 
               onClick={() => router.push('/meetings?schedule=true')}
-              className="bg-white hover:bg-[#EBF5FB]/40 text-[#20262E] border-2 border-[#E2E7EC] hover:border-[#154360] px-6 py-3 rounded-2xl font-bold flex items-center gap-2.5 transition-all shadow-xs hover:shadow-sm transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
+              className="w-full sm:w-auto bg-white hover:bg-[#EBF5FB]/40 text-[#20262E] border-2 border-[#E2E7EC] hover:border-[#154360] px-6 py-3.5 sm:py-3 rounded-2xl font-bold flex items-center justify-center gap-2.5 transition-all shadow-xs hover:shadow-sm transform hover:-translate-y-0.5 active:scale-95 cursor-pointer text-sm"
             >
               <div className="bg-[#EBF5FB] p-1 rounded-lg text-[#154360]">
                 <Calendar size={16} className="stroke-[2.5]" />

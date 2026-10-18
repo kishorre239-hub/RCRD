@@ -10,14 +10,14 @@ interface RcrdLogoProps {
 }
 
 export default function RcrdLogo({
-  className = "h-8 w-auto",
+  className = "h-11 sm:h-12 md:h-14 w-auto",
 }: RcrdLogoProps) {
   return (
     <Image
       src="/icon.png"
       alt="RCRD Logo"
-      width={160}
-      height={48}
+      width={260}
+      height={130}
       priority
       className={`object-contain ${className}`}
     />

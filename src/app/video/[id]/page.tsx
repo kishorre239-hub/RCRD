@@ -312,7 +312,7 @@ export default function VideoDetailsPage({ params }: { params: Promise<{ id: str
       {/* Main Navbar */}
       <header className="h-16 border-b border-[#E2E7EC] bg-white flex items-center justify-between px-4 sm:px-6 shrink-0 sticky top-0 z-50">
         <div className="flex items-center justify-center cursor-pointer group pl-2 sm:pl-6" onClick={() => router.push('/')}>
-          <RcrdLogo className="h-8 w-auto transition-transform group-hover:scale-105" />
+          <RcrdLogo className="h-10 sm:h-11 md:h-12 w-auto transition-transform group-hover:scale-105" />
         </div>
         
         <div className="flex items-center gap-3">

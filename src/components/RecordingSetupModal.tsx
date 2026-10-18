@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { 
   Monitor, 
   Video, 
@@ -542,9 +543,11 @@ export default function RecordingSetupModal({
 
   // Toggle pause / resume with exact pause-duration subtraction
   const togglePause = useCallback(() => {
-    if (!mediaRecorderRef.current) return;
-    if (isPaused) {
-      mediaRecorderRef.current.resume();
+    const rec = mediaRecorderRef.current;
+    if (!rec) return;
+
+    if (rec.state === 'paused') {
+      rec.resume();
       if (pauseTimeRef.current > 0) {
         totalPausedDurationRef.current += (Date.now() - pauseTimeRef.current);
         pauseTimeRef.current = 0;
@@ -558,8 +561,8 @@ export default function RecordingSetupModal({
           setTimer(elapsed);
         }
       }, 500);
-    } else {
-      mediaRecorderRef.current.pause();
+    } else if (rec.state === 'recording') {
+      rec.pause();
       pauseTimeRef.current = Date.now();
       setIsPaused(true);
       if (timerIntervalRef.current) {
@@ -567,10 +570,7 @@ export default function RecordingSetupModal({
         timerIntervalRef.current = null;
       }
     }
-  }, [isPaused]);
-
-  const togglePauseRef = useRef(togglePause);
-  togglePauseRef.current = togglePause;
+  }, []);
 
   // Open Document Picture-in-Picture window (always on top across desktop applications)
   const openPipController = useCallback(async () => {
@@ -623,7 +623,7 @@ export default function RecordingSetupModal({
 
         pip.document.body.innerHTML = `
           <div style="display:flex;align-items:center;gap:12px;color:white;padding:10px 16px;background:#1E1E24;border-radius:16px;user-select:none;width:100%;justify-content:center;">
-            <img src="/icon.png" alt="RCRD" style="height:22px;width:auto;object-fit:contain;margin-right:2px;" />
+            <img src="/icon.png" alt="RCRD" style="height:26px;width:auto;object-fit:contain;margin-right:2px;" />
             <div style="display:flex;align-items:center;gap:6px;padding-right:10px;border-right:1px solid rgba(255,255,255,0.2);">
               <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px #ef4444;"></span>
               <span style="font-weight:bold;font-size:11px;color:#f87171;">REC</span>
@@ -640,7 +640,7 @@ export default function RecordingSetupModal({
 
         const pBtn = pip.document.getElementById('pip-pause-btn');
         if (pBtn) {
-          pBtn.onclick = () => togglePauseRef.current();
+          pBtn.onclick = () => togglePause();
         }
         const sBtn = pip.document.getElementById('pip-stop-btn');
         if (sBtn) {
@@ -658,10 +658,10 @@ export default function RecordingSetupModal({
     } catch (err) {
       console.warn('Document Picture-in-Picture optional note:', err);
     }
-  }, [stopRecording]);
+  }, [stopRecording, togglePause]);
 
   // Skip countdown immediately and start recording
-  const skipCountdown = useCallback((recorderInstance?: MediaRecorder | null) => {
+  const skipCountdown = (recorderInstance?: MediaRecorder | null) => {
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
@@ -694,7 +694,7 @@ export default function RecordingSetupModal({
     } else if (rec && rec.state === 'recording') {
       setPhase('recording');
     }
-  }, [openPipController]);
+  };
 
   // Sync timer & state into Document Picture-in-Picture window
   useEffect(() => {
@@ -880,15 +880,19 @@ export default function RecordingSetupModal({
             onClick={e => e.stopPropagation()}
           >
             {/* Header: Brand Icon + Title (RCRD - One Solution) + Close Action */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-[#2F70F2] flex items-center justify-center text-white shadow-xs shrink-0">
-                  <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4 stroke-white stroke-[2.5]" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="3" />
-                    <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" />
-                  </svg>
-                </div>
-                <span className="text-[16px] font-bold text-[#20262E] tracking-tight">RCRD - One Solution</span>
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#E2E7EC]/70">
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/icon.png"
+                  alt="RCRD Logo"
+                  width={140}
+                  height={80}
+                  priority
+                  className="h-10 w-auto object-contain scale-125 origin-left"
+                />
+                <span className="text-[17px] font-extrabold text-[#20262E] tracking-tight">
+                  RCRD - One Solution
+                </span>
               </div>
 
               <div className="flex items-center gap-1">

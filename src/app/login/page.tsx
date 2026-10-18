@@ -73,9 +73,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#F5F6F8] font-sans text-[#20262E] flex flex-col justify-between selection:bg-[#EBF5FB] selection:text-[#0E2F44]">
       
       {/* Top Navbar */}
-      <header className="h-16 px-6 sm:px-12 flex items-center justify-between border-b border-[#E2E7EC] bg-white sticky top-0 z-30 shadow-xs">
+      <header className="h-20 px-6 sm:px-12 flex items-center justify-between border-b border-[#E2E7EC] bg-white sticky top-0 z-30 shadow-xs">
         <Link href="/" className="flex items-center gap-2 group">
-          <RcrdLogo className="h-12 sm:h-13 md:h-14 w-auto scale-105 origin-left transition-transform group-hover:scale-115" />
+          <RcrdLogo className="h-16 sm:h-18 md:h-20 w-auto scale-130 sm:scale-145 origin-left transition-transform group-hover:scale-155" />
         </Link>
         <div className="flex items-center gap-3 text-xs">
           <span className="text-[#57636E]">Don&apos;t have an account?</span>

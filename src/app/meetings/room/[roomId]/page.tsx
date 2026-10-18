@@ -1038,7 +1038,7 @@ export default function ClassRoomPage() {
         <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#154360]/10 rounded-full blur-[140px] pointer-events-none" />
         <div className="flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
-            <RcrdLogo className="h-7 w-auto" />
+            <RcrdLogo className="h-10 sm:h-12 w-auto scale-115 origin-left" />
             <span className="text-xs bg-slate-800/90 border border-slate-700 px-2.5 py-1 rounded-full text-slate-300 font-bold">
               Waiting Lobby
             </span>
@@ -1108,7 +1108,7 @@ export default function ClassRoomPage() {
       {/* ─── Top Status Bar ───────────────────────────────────────── */}
       <div className="h-11 flex items-center justify-between px-4 bg-[#2C2C2E] border-b border-white/10 shrink-0">
         <div className="flex items-center gap-3">
-          <RcrdLogo className="h-5 w-auto opacity-90" />
+          <RcrdLogo className="h-7 sm:h-8 w-auto scale-110 origin-left opacity-95" />
           <div className="w-px h-4 bg-white/20" />
           <span className="text-white/80 text-xs font-bold truncate max-w-[220px]">{meeting?.title || "Class Room"}</span>
           

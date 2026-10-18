@@ -22,7 +22,7 @@ export interface WebRTCSignal {
   from: string;
   to: string;
   type: 'offer' | 'answer' | 'candidate';
-  payload: any;
+  payload: unknown;
   timestamp: number;
 }
 

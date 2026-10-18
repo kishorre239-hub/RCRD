@@ -46,7 +46,7 @@ export async function DELETE(
     await usersCol.deleteOne(filter);
 
     return NextResponse.json({ success: true, removedId: userId });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error removing workspace user:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -80,7 +80,7 @@ export async function PATCH(
     const updateFields: Partial<User> = { updatedAt: Date.now() };
     if (role) {
       const raw = String(role).toLowerCase();
-      updateFields.role = raw === 'admin' ? 'Admin' : (raw === 'mentor' ? 'Mentor' : 'Creator');
+      updateFields.role = raw === 'admin' ? 'Admin' : 'Mentor';
     }
     if (status) {
       updateFields.status = status;
@@ -114,7 +114,7 @@ export async function PATCH(
         allowedNavItems: updated?.allowedNavItems || ['for-you', 'library', 'meetings'],
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating workspace user:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

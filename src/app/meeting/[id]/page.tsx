@@ -384,43 +384,47 @@ function JoinMeetingContent() {
                 <div className="flex items-center justify-between gap-2 mb-3.5">
                   <div className="flex items-center gap-2">
                     {isLive && (
-                      <span className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#154360] bg-[#154360]/20 border border-[#154360]/30 px-3 py-0.8 rounded-full shadow-xs">
-                        <span className="w-2 h-2 rounded-full bg-[#154360] animate-ping" />
+                      <span className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-emerald-400 bg-emerald-950/70 border border-emerald-500/40 px-3 py-1 rounded-full shadow-xs">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                         LIVE SESSION
                       </span>
                     )}
                     {isScheduled && (
-                      <span className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-blue-300 bg-[#EBF5FB]0/20 border border-[#154360]/30 px-3 py-0.8 rounded-full shadow-xs">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#154360] animate-pulse" />
+                      <span className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-sky-300 bg-sky-950/70 border border-sky-500/40 px-3 py-1 rounded-full shadow-xs">
+                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
                         SCHEDULED CLASS
                       </span>
                     )}
                     {isEnded && (
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#57636E] bg-slate-700/50 border border-slate-600 px-3 py-0.8 rounded-full">
-                        SESSION COMPLETED
+                      <span className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-emerald-300 bg-emerald-950/80 border border-emerald-500/50 px-3 py-1 rounded-full shadow-xs">
+                        <CheckCircle2 size={13} className="text-emerald-400" />
+                        <span>SESSION COMPLETED</span>
                       </span>
                     )}
                   </div>
 
-                  <span className="text-[11px] font-mono font-bold bg-white/10 px-2.5 py-0.5 rounded-lg border border-white/15 text-slate-300">
+                  <span className="text-[11px] font-mono font-bold bg-white/10 px-2.5 py-1 rounded-lg border border-white/20 text-slate-200 shadow-xs">
                     ID: {meeting.id}
                   </span>
                 </div>
 
                 {/* Title */}
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug mb-2">
+                <h1
+                  style={{ color: "#ffffff" }}
+                  className="text-2xl sm:text-3xl font-extrabold !text-white tracking-tight leading-snug my-2 drop-shadow-md capitalize"
+                >
                   {meeting.title}
                 </h1>
 
                 {/* Date, Time & Duration Meta */}
-                <div className="flex flex-wrap items-center gap-y-1.5 gap-x-4 text-xs text-slate-300 pt-1 font-medium">
-                  <div className="flex items-center gap-1.5">
-                    <Calendar size={13} className="text-[#154360]" />
-                    <span>{fmtDate(meeting.scheduledAt)}</span>
+                <div className="flex flex-wrap items-center gap-y-2 gap-x-3 text-xs pt-1 font-semibold">
+                  <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 backdrop-blur-xs">
+                    <Calendar size={14} className="text-sky-300" />
+                    <span style={{ color: "#f8fafc" }} className="!text-slate-100">{fmtDate(meeting.scheduledAt)}</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <Clock size={13} className="text-[#154360]" />
-                    <span>{formatDuration(meeting.duration)}</span>
+                  <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 backdrop-blur-xs">
+                    <Clock size={14} className="text-sky-300" />
+                    <span style={{ color: "#f8fafc" }} className="!text-slate-100">{formatDuration(meeting.duration)}</span>
                   </div>
                 </div>
 

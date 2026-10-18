@@ -67,16 +67,13 @@ export async function GET(req: Request) {
 
     // Sanitize passwords and assign role and allowedNavItems
     const sanitized = users.map((u) => {
-      const rawRole = String(u.role || 'Creator').toUpperCase();
-      let roleFormatted = 'Creator';
+      const rawRole = String(u.role || 'Mentor').toUpperCase();
+      let roleFormatted = 'Mentor';
       if (rawRole === 'ADMIN') roleFormatted = 'Admin';
-      else if (rawRole === 'MENTOR') roleFormatted = 'Mentor';
 
       const defaultNavForRole = roleFormatted === 'Admin'
         ? ['for-you', 'library', 'meetings', 'settings', 'manage-users', 'workspace-info']
-        : roleFormatted === 'Mentor'
-        ? ['for-you', 'library', 'meetings']
-        : ['for-you', 'library', 'meetings', 'settings'];
+        : ['for-you', 'library', 'meetings'];
 
       const allowedNavItems = Array.isArray(u.allowedNavItems) && u.allowedNavItems.length > 0
         ? u.allowedNavItems
@@ -105,7 +102,7 @@ export async function POST(req: Request) {
   try {
     const authResult = await authenticateRequest(req);
     const body = await req.json().catch(() => ({}));
-    const { name, email, role = 'Creator', password, status = 'Active', allowedNavItems } = body;
+    const { name, email, role = 'Mentor', password, status = 'Active', allowedNavItems } = body;
 
     if (!name || !email) {
       return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
@@ -113,16 +110,14 @@ export async function POST(req: Request) {
 
     const cleanEmail = email.toLowerCase().trim();
     const cleanName = name.trim();
-    const rawRole = role.toLowerCase();
-    const cleanRole = rawRole === 'admin' ? 'Admin' : (rawRole === 'mentor' ? 'Mentor' : 'Creator');
+    const rawRole = String(role || 'Mentor').toLowerCase();
+    const cleanRole = rawRole === 'admin' ? 'Admin' : 'Mentor';
     const cleanStatus = status === 'Access Revoked' ? 'Access Revoked' : 'Active';
     const workspaceId = authResult.user?.workspaceId || 'default';
 
     const defaultNav = cleanRole === 'Admin'
       ? ['for-you', 'library', 'meetings', 'settings', 'manage-users', 'workspace-info']
-      : cleanRole === 'Mentor'
-      ? ['for-you', 'library', 'meetings']
-      : ['for-you', 'library', 'meetings', 'settings'];
+      : ['for-you', 'library', 'meetings'];
 
     const cleanNavItems = Array.isArray(allowedNavItems) && allowedNavItems.length > 0
       ? allowedNavItems
@@ -185,6 +180,58 @@ export async function POST(req: Request) {
     });
   } catch (error: unknown) {
     console.error('Error adding workspace user:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const authResult = await authenticateRequest(req);
+    const body = await req.json().catch(() => ({}));
+    const userIds: string[] = Array.isArray(body.userIds) ? body.userIds : [];
+
+    if (userIds.length === 0) {
+      return NextResponse.json({ error: 'No user IDs provided for deletion' }, { status: 400 });
+    }
+
+    const usersCol = await getCollection<User>('users');
+
+    const objectIds: ObjectId[] = [];
+    const stringIds: string[] = [];
+    const emails: string[] = [];
+
+    userIds.forEach(id => {
+      if (id.includes('@')) {
+        emails.push(id.toLowerCase().trim());
+      } else {
+        stringIds.push(id);
+        try {
+          objectIds.push(new ObjectId(id));
+        } catch {}
+      }
+    });
+
+    const filter = {
+      $and: [
+        { email: { $ne: PRIMARY_ADMIN.email } },
+        {
+          $or: [
+            ...(objectIds.length > 0 ? [{ _id: { $in: objectIds } }] : []),
+            ...(stringIds.length > 0 ? [{ id: { $in: stringIds } }] : []),
+            ...(emails.length > 0 ? [{ email: { $in: emails } }] : []),
+          ],
+        },
+      ],
+    };
+
+    const res = await usersCol.deleteMany(filter);
+    return NextResponse.json({
+      success: true,
+      deletedCount: res.deletedCount,
+      removedIds: userIds,
+    });
+  } catch (error: unknown) {
+    console.error('Error deleting workspace users in bulk:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

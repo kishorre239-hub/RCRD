@@ -39,11 +39,26 @@ export default function LoginPage() {
           localStorage.setItem("token", data.token);
           sessionStorage.setItem("token", data.token);
         }
+
+        let navItems = data.allowedNavItems;
+        try {
+          const rawList = localStorage.getItem("RCRD_workspace_users_list");
+          if (rawList) {
+            const list = JSON.parse(rawList);
+            const match = list.find((u: { email?: string; allowedNavItems?: string[] }) => 
+              (u.email || "").toLowerCase() === email.toLowerCase()
+            );
+            if (match && Array.isArray(match.allowedNavItems)) {
+              navItems = match.allowedNavItems;
+            }
+          }
+        } catch {}
+
         const profileObj = {
           name: data.name || "Hari Kishore Reddy",
           email: data.email || email,
           role: data.role || "Admin",
-          allowedNavItems: data.allowedNavItems,
+          allowedNavItems: navItems,
           plan: "Pro Plan",
           avatarText: (data.name || "HR")
             .split(" ")

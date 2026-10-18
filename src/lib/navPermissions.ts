@@ -23,10 +23,42 @@ export function getDefaultNavItemsForRole(role: string): string[] {
   if (r === "admin") {
     return ALL_NAV_ITEMS.map(i => i.id);
   }
-  if (r === "mentor") {
-    return ["for-you", "library", "meetings"];
+  return ["for-you", "library", "meetings"];
+}
+
+const PRIMARY_OWNER_EMAIL = "harikishorereddy9908@gmail.com";
+
+function resolveAllowedNavForUser(email?: string, profileNav?: string[], role?: string): string[] {
+  const cleanEmail = (email || "").toLowerCase().trim();
+  if (cleanEmail === PRIMARY_OWNER_EMAIL) {
+    return ALL_NAV_ITEMS.map(i => i.id);
   }
-  return ["for-you", "library", "meetings", "settings"];
+
+  // 1. Look up user in workspace users store (updated directly when admin onboards/edits user)
+  if (typeof window !== "undefined" && cleanEmail) {
+    try {
+      const saved = localStorage.getItem("RCRD_workspace_users_list");
+      if (saved) {
+        const users = JSON.parse(saved);
+        if (Array.isArray(users)) {
+          const matched = users.find((u: { email?: string; allowedNavItems?: string[] }) => 
+            (u.email || "").toLowerCase().trim() === cleanEmail
+          );
+          if (matched && Array.isArray(matched.allowedNavItems)) {
+            return matched.allowedNavItems;
+          }
+        }
+      }
+    } catch {}
+  }
+
+  // 2. Use user profile allowedNavItems
+  if (Array.isArray(profileNav)) {
+    return profileNav;
+  }
+
+  // 3. Fallback to role default
+  return getDefaultNavItemsForRole(role || "Mentor");
 }
 
 export function useNavPermissions() {
@@ -36,20 +68,15 @@ export function useNavPermissions() {
         const raw = localStorage.getItem("rcrd_user_profile");
         if (raw) {
           const profile = JSON.parse(raw);
-          if (profile.role?.toLowerCase() === "admin") {
-            return ALL_NAV_ITEMS.map(i => i.id);
-          }
-          if (Array.isArray(profile.allowedNavItems) && profile.allowedNavItems.length > 0) {
-            return profile.allowedNavItems;
-          }
-          return getDefaultNavItemsForRole(profile.role || "Creator");
+          return resolveAllowedNavForUser(profile.email, profile.allowedNavItems, profile.role);
         }
       } catch {}
     }
-    return ALL_NAV_ITEMS.map(i => i.id); // default full
+    return ALL_NAV_ITEMS.map(i => i.id);
   });
 
   const [role, setRole] = useState<string>("Admin");
+  const [userEmail, setUserEmail] = useState<string>("");
 
   useEffect(() => {
     const syncProfile = () => {
@@ -57,16 +84,11 @@ export function useNavPermissions() {
         const raw = localStorage.getItem("rcrd_user_profile");
         if (raw) {
           const profile = JSON.parse(raw);
+          const email = (profile.email || "").toLowerCase().trim();
+          setUserEmail(email);
           setRole(profile.role || "Admin");
-          if (profile.role?.toLowerCase() === "admin") {
-            setAllowedNavItems(ALL_NAV_ITEMS.map(i => i.id));
-            return;
-          }
-          if (Array.isArray(profile.allowedNavItems) && profile.allowedNavItems.length > 0) {
-            setAllowedNavItems(profile.allowedNavItems);
-            return;
-          }
-          setAllowedNavItems(getDefaultNavItemsForRole(profile.role || "Creator"));
+          setAllowedNavItems(resolveAllowedNavForUser(email, profile.allowedNavItems, profile.role));
+          return;
         }
       } catch {}
     };
@@ -80,11 +102,12 @@ export function useNavPermissions() {
     };
   }, []);
 
+  const isPrimaryOwner = userEmail === PRIMARY_OWNER_EMAIL;
   const isAdmin = role.toLowerCase() === "admin";
   const isMentor = role.toLowerCase() === "mentor";
 
   const canAccess = (navId: string) => {
-    if (isAdmin) return true;
+    if (isPrimaryOwner) return true;
     return allowedNavItems.includes(navId);
   };
 

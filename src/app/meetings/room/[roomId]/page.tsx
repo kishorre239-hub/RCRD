@@ -976,7 +976,7 @@ export default function ClassRoomPage() {
       clearInterval(interval);
       if (bc) bc.close();
     };
-  }, [roomId, screenStream, isMentor, triggerReaction, handleWebRTCSignal, initiateAudioCallToHost, myParticipantId]);
+  }, [roomId, screenStream, isMentor, triggerReaction, handleWebRTCSignal, initiateAudioCallToHost, myParticipantId, playHandRaiseChime, showToast, studentName]);
 
   // Broadcast screen share frames when Host shares screen
   useEffect(() => {
@@ -1853,9 +1853,7 @@ export default function ClassRoomPage() {
   const endClass = () => {
     if (recState === "recording" || recState === "paused") {
       try {
-        if (mediaRecRef.current && mediaRecRef.current.state !== "inactive") {
-          mediaRecRef.current.stop();
-        }
+        stopRecording();
       } catch {}
     }
     screenStream?.getTracks().forEach(t => t.stop());

@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { 
-  ChevronDown, Plus, ChevronRight, X,
+  ChevronDown, X,
   Trash2, Check, UserPlus,
   RefreshCw, AlertCircle, UserCheck, UserX,
-  Key, ShieldCheck, Eye, EyeOff, Edit2,
-  Home, Film, Video, Settings as SettingsIcon, Users, Building2
+  Eye, EyeOff, Edit2,
+  Home, Film, Video, Settings as SettingsIcon, Users, Building2,
+  CheckSquare, Square
 } from "lucide-react";
 import { ALL_NAV_ITEMS, getDefaultNavItemsForRole } from "@/lib/navPermissions";
 
@@ -14,7 +15,7 @@ export interface WorkspaceUser {
   id: string;
   name: string;
   email: string;
-  role: "Admin" | "Mentor" | "Creator" | string;
+  role: "Admin" | "Mentor" | string;
   dateAdded: string;
   status: "Active" | "Access Revoked" | "Suspended" | string;
   hasAccess?: boolean;
@@ -35,10 +36,11 @@ const DEFAULT_USERS: WorkspaceUser[] = [
 ];
 
 const LOCAL_STORAGE_KEY = "RCRD_workspace_users_list";
+const PRIMARY_OWNER_EMAIL = "harikishorereddy9908@gmail.com";
 
 const isDummyUserEmail = (email: string) => {
   const e = (email || "").toLowerCase().trim();
-  if (e === "harikishorereddy9908@gmail.com") return false;
+  if (e === PRIMARY_OWNER_EMAIL) return false;
   return (
     e.includes("geonixa.com") ||
     e.includes("@example.com") ||
@@ -60,9 +62,14 @@ export default function UsersTab() {
   const [users, setUsers] = useState<WorkspaceUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"All Roles" | "Admins" | "Mentors" | "Creators">("All Roles");
+  const [roleFilter, setRoleFilter] = useState<"All Roles" | "Admins" | "Mentors">("All Roles");
   const [memberFilter, setMemberFilter] = useState<"All members" | "Access Granted" | "Access Revoked">("All members");
   
+  // Selection for bulk delete
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
   // Dropdown states
   const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
@@ -72,19 +79,19 @@ export default function UsersTab() {
   const [editingUser, setEditingUser] = useState<WorkspaceUser | null>(null);
   const [deleteTargetUser, setDeleteTargetUser] = useState<WorkspaceUser | null>(null);
   
-  // Add User Form States
+  // Add User Form States (Only Mentor & Admin)
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [giveImmediateAccess, setGiveImmediateAccess] = useState(true);
-  const [newRole, setNewRole] = useState<"Creator" | "Mentor" | "Admin">("Mentor");
+  const [newRole, setNewRole] = useState<"Mentor" | "Admin">("Mentor");
   const [newAllowedNav, setNewAllowedNav] = useState<string[]>(["for-you", "library", "meetings"]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Edit User Form States
   const [editName, setEditName] = useState("");
-  const [editRole, setEditRole] = useState<"Creator" | "Mentor" | "Admin">("Creator");
+  const [editRole, setEditRole] = useState<"Mentor" | "Admin">("Mentor");
   const [editAllowedNav, setEditAllowedNav] = useState<string[]>([]);
   const [editStatus, setEditStatus] = useState<string>("Active");
   const [editPassword, setEditPassword] = useState("");
@@ -92,6 +99,7 @@ export default function UsersTab() {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const [toastMessage, setToastMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   const showToast = (text: string, ok = true) => {
     setToastMessage({ text, ok });
@@ -99,13 +107,13 @@ export default function UsersTab() {
   };
 
   // Helper when role changes in Add modal
-  const handleNewRoleChange = (role: "Creator" | "Mentor" | "Admin") => {
+  const handleNewRoleChange = (role: "Mentor" | "Admin") => {
     setNewRole(role);
     setNewAllowedNav(getDefaultNavItemsForRole(role));
   };
 
   // Helper when role changes in Edit modal
-  const handleEditRoleChange = (role: "Creator" | "Mentor" | "Admin") => {
+  const handleEditRoleChange = (role: "Mentor" | "Admin") => {
     setEditRole(role);
     setEditAllowedNav(getDefaultNavItemsForRole(role));
   };
@@ -130,11 +138,9 @@ export default function UsersTab() {
               ? rawDate.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
               : "24 April 2026";
             
-            const rawRole = String(u.role || "Creator");
+            const rawRole = String(u.role || "Mentor");
             const roleUpper = rawRole.toUpperCase();
-            let roleFormatted = "Creator";
-            if (roleUpper === "ADMIN") roleFormatted = "Admin";
-            else if (roleUpper === "MENTOR") roleFormatted = "Mentor";
+            const roleFormatted: "Admin" | "Mentor" = roleUpper === "ADMIN" ? "Admin" : "Mentor";
 
             const rawStatus = String(u.status || "Active");
             const hasAccess = u.hasAccess !== undefined ? !!u.hasAccess : rawStatus.toLowerCase() === "active";
@@ -170,7 +176,13 @@ export default function UsersTab() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const cleanLocal = parsed.filter((u: WorkspaceUser) => !isDummyUserEmail(u.email));
+          const cleanLocal = parsed
+            .filter((u: WorkspaceUser) => !isDummyUserEmail(u.email))
+            .map((u: WorkspaceUser) => ({
+              ...u,
+              role: (u.role || "").toUpperCase() === "ADMIN" ? "Admin" : "Mentor",
+              allowedNavItems: u.allowedNavItems || getDefaultNavItemsForRole(u.role),
+            }));
           if (cleanLocal.length > 0) {
             setUsers(cleanLocal);
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cleanLocal));
@@ -276,7 +288,7 @@ export default function UsersTab() {
       setNewPassword("");
       setGiveImmediateAccess(true);
       setShowAddModal(false);
-      showToast(`Employee ${newUser.name} created as ${newUser.role} with ${newAllowedNav.length} side navbars enabled!`);
+      showToast(`Employee ${newUser.name} provisioned as ${newUser.role} with ${newAllowedNav.length} sidebars enabled!`);
     } catch (err) {
       console.error("Error adding user:", err);
       showToast("Failed to add user to server. Saved locally.", false);
@@ -289,7 +301,7 @@ export default function UsersTab() {
   const openEditModal = (user: WorkspaceUser) => {
     setEditingUser(user);
     setEditName(user.name);
-    const roleClean = user.role === "Admin" ? "Admin" : (user.role === "Mentor" ? "Mentor" : "Creator");
+    const roleClean: "Mentor" | "Admin" = user.role === "Admin" ? "Admin" : "Mentor";
     setEditRole(roleClean);
     setEditAllowedNav(user.allowedNavItems && user.allowedNavItems.length > 0 
       ? [...user.allowedNavItems] 
@@ -355,7 +367,7 @@ export default function UsersTab() {
   const handleToggleAccess = async (userId: string, grant: boolean) => {
     const target = users.find(u => u.id === userId);
     if (!target) return;
-    if (target.email === "harikishorereddy9908@gmail.com" && !grant) {
+    if (target.email === PRIMARY_OWNER_EMAIL && !grant) {
       showToast("Cannot revoke access for the primary workspace owner.", false);
       return;
     }
@@ -385,11 +397,11 @@ export default function UsersTab() {
     }
   };
 
-  // DELETE USER HANDLER
+  // SINGLE DELETE USER HANDLER
   const handleConfirmDelete = async () => {
     if (!deleteTargetUser) return;
     const target = deleteTargetUser;
-    if (target.email === "harikishorereddy9908@gmail.com") {
+    if (target.email === PRIMARY_OWNER_EMAIL) {
       showToast("Cannot remove the primary workspace owner.", false);
       setDeleteTargetUser(null);
       return;
@@ -407,11 +419,53 @@ export default function UsersTab() {
 
     const updated = users.filter(u => u.id !== target.id);
     saveUsers(updated);
+    setSelectedUserIds(prev => prev.filter(id => id !== target.id));
     setDeleteTargetUser(null);
     if (editingUser?.id === target.id) {
       setEditingUser(null);
     }
     showToast(`Deleted employee ${target.name} from workspace.`);
+  };
+
+  // MULTIPLE USERS BULK DELETE HANDLER
+  const handleBulkDelete = async () => {
+    if (selectedUserIds.length === 0) return;
+    setIsBulkDeleting(true);
+
+    const idsToDelete = [...selectedUserIds];
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      // 1. Attempt bulk API delete
+      const res = await fetch("/api/workspaces/users", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ userIds: idsToDelete }),
+      });
+
+      // 2. Fallback to individual deletes if bulk route wasn't matched
+      if (!res.ok) {
+        await Promise.all(
+          idsToDelete.map(id =>
+            fetch(`/api/workspaces/users/${id}`, {
+              method: "DELETE",
+              headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            }).catch(() => {})
+          )
+        );
+      }
+    } catch (err) {
+      console.warn("Bulk delete server sync error:", err);
+    }
+
+    const updated = users.filter(u => !idsToDelete.includes(u.id));
+    saveUsers(updated);
+    setSelectedUserIds([]);
+    setShowBulkDeleteModal(false);
+    setIsBulkDeleting(false);
+    showToast(`Successfully deleted ${idsToDelete.length} employee${idsToDelete.length === 1 ? '' : 's'} from workspace.`);
   };
 
   // Filtered Users computation
@@ -425,7 +479,6 @@ export default function UsersTab() {
       let matchesRole = true;
       if (roleFilter === "Admins") matchesRole = userRole === "admin";
       else if (roleFilter === "Mentors") matchesRole = userRole === "mentor";
-      else if (roleFilter === "Creators") matchesRole = userRole === "creator";
 
       let matchesMember = true;
       const isActive = (user.status || "Active").toLowerCase() === "active";
@@ -435,6 +488,34 @@ export default function UsersTab() {
       return matchesSearch && matchesRole && matchesMember;
     });
   }, [users, searchQuery, roleFilter, memberFilter]);
+
+  // Selectable users (excludes primary owner)
+  const selectableUsers = useMemo(() => {
+    return filteredUsers.filter(u => u.email !== PRIMARY_OWNER_EMAIL);
+  }, [filteredUsers]);
+
+  const isAllSelected = selectableUsers.length > 0 && selectableUsers.every(u => selectedUserIds.includes(u.id));
+  const isSomeSelected = selectableUsers.some(u => selectedUserIds.includes(u.id)) && !isAllSelected;
+
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      headerCheckboxRef.current.indeterminate = isSomeSelected;
+    }
+  }, [isSomeSelected]);
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(selectableUsers.map(u => u.id));
+    }
+  };
+
+  const handleToggleSelectUser = (userId: string) => {
+    setSelectedUserIds(prev => 
+      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    );
+  };
 
   const getInitials = (name: string) => {
     if (!name) return "U";
@@ -477,7 +558,7 @@ export default function UsersTab() {
                 </span>
               </h2>
               <p className="text-[13px] text-[#57636E] mt-1">
-                Manage roles (Admin, Mentor, Creator), side navbar access, and login permissions dynamically.
+                Manage roles (Admin, Mentor), side navbar access, and login permissions dynamically.
               </p>
             </div>
             <button
@@ -497,6 +578,37 @@ export default function UsersTab() {
             </button>
           </div>
         </div>
+
+        {/* Floating Bulk Action Bar (when multiple users selected) */}
+        {selectedUserIds.length > 0 && (
+          <div className="mb-4 p-3 px-4 bg-[#154360] text-white rounded-2xl shadow-md flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="flex items-center gap-2.5">
+              <span className="w-6 h-6 rounded-lg bg-white/20 text-white flex items-center justify-center text-xs font-bold">
+                {selectedUserIds.length}
+              </span>
+              <span className="text-xs font-bold tracking-wide">
+                {selectedUserIds.length} {selectedUserIds.length === 1 ? "Employee" : "Employees"} Selected
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedUserIds([])}
+                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-slate-100 transition-colors cursor-pointer"
+              >
+                Deselect All
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 size={13} />
+                <span>Delete Selected ({selectedUserIds.length})</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Toolbar: Search & Filters */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
@@ -520,7 +632,7 @@ export default function UsersTab() {
               )}
             </div>
 
-            {/* Role Filter */}
+            {/* Role Filter (Only All Roles, Admins, Mentors) */}
             <div className="relative">
               <button
                 type="button"
@@ -536,7 +648,7 @@ export default function UsersTab() {
 
               {isRoleDropdownOpen && (
                 <div className="absolute top-full left-0 mt-1.5 w-40 bg-white border border-[#E2E7EC] rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95">
-                  {(["All Roles", "Admins", "Mentors", "Creators"] as const).map(role => (
+                  {(["All Roles", "Admins", "Mentors"] as const).map(role => (
                     <button
                       key={role}
                       onClick={() => {
@@ -607,6 +719,18 @@ export default function UsersTab() {
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
                 <tr className="border-b border-[#E2E7EC] bg-[#F8FAFC] text-[11px] font-bold text-[#57636E] uppercase tracking-wider">
+                  {/* Select All Checkbox */}
+                  <th className="py-3.5 px-3.5 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      ref={headerCheckboxRef}
+                      checked={isAllSelected}
+                      onChange={handleToggleSelectAll}
+                      disabled={selectableUsers.length === 0}
+                      title="Select all employees for bulk delete"
+                      className="w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 cursor-pointer disabled:opacity-40"
+                    />
+                  </th>
                   <th className="py-3.5 px-4">Employee</th>
                   <th className="py-3.5 px-4">Role</th>
                   <th className="py-3.5 px-4">Side Navbar Access</th>
@@ -618,7 +742,7 @@ export default function UsersTab() {
               <tbody className="divide-y divide-[#E2E7EC]/60 text-[13px]">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-14 text-center text-[#57636E]">
+                    <td colSpan={7} className="py-14 text-center text-[#57636E]">
                       <div className="flex items-center justify-center gap-2 text-xs font-medium">
                         <RefreshCw size={16} className="animate-spin text-[#154360]" />
                         <span>Loading workspace users...</span>
@@ -627,30 +751,46 @@ export default function UsersTab() {
                   </tr>
                 ) : filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-14 text-center text-[#57636E]">
+                    <td colSpan={7} className="py-14 text-center text-[#57636E]">
                       <p className="font-bold text-[#20262E] text-sm">No employees match your filter</p>
                       <p className="text-xs text-[#57636E] mt-1">Click &quot;+ Add user&quot; to provision a new team member.</p>
                     </td>
                   </tr>
                 ) : (
                   filteredUsers.map(user => {
-                    const roleUpper = (user.role || "Creator").toUpperCase();
+                    const roleUpper = (user.role || "Mentor").toUpperCase();
                     const isAdmin = roleUpper === "ADMIN";
-                    const isMentor = roleUpper === "MENTOR";
+                    const isMentor = !isAdmin;
                     const isActive = (user.status || "Active").toLowerCase() === "active";
-                    const isPrimaryOwner = user.email === "harikishorereddy9908@gmail.com";
+                    const isPrimaryOwner = user.email === PRIMARY_OWNER_EMAIL;
                     const allowed = user.allowedNavItems || getDefaultNavItemsForRole(user.role);
+                    const isSelected = selectedUserIds.includes(user.id);
 
                     return (
                       <tr 
                         key={user.id}
-                        className="hover:bg-[#F5F6F8]/70 transition-colors group"
+                        className={`hover:bg-[#F5F6F8]/70 transition-colors group ${isSelected ? "bg-[#EBF5FB]/50" : ""}`}
                       >
+                        {/* Checkbox */}
+                        <td className="py-3.5 px-3.5 w-10 text-center">
+                          {!isPrimaryOwner ? (
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleSelectUser(user.id)}
+                              className="w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 cursor-pointer"
+                              title={`Select ${user.name}`}
+                            />
+                          ) : (
+                            <span className="text-[11px] text-slate-300 select-none" title="Primary owner protected">•</span>
+                          )}
+                        </td>
+
                         {/* Name with circular avatar */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-3">
                             <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${
-                              isAdmin ? "bg-[#154360] text-white" : isMentor ? "bg-[#6C3483] text-white" : "bg-[#2E4053] text-white"
+                              isAdmin ? "bg-[#154360] text-white" : "bg-[#6C3483] text-white"
                             }`}>
                               {getInitials(user.name)}
                             </div>
@@ -666,11 +806,9 @@ export default function UsersTab() {
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${
                             isAdmin 
                               ? "bg-blue-50 text-blue-800 border-blue-200" 
-                              : isMentor 
-                              ? "bg-purple-50 text-purple-800 border-purple-200" 
-                              : "bg-slate-100 text-slate-800 border-slate-200"
+                              : "bg-purple-50 text-purple-800 border-purple-200"
                           }`}>
-                            {user.role}
+                            {isAdmin ? "Admin" : "Mentor"}
                           </span>
                         </td>
 
@@ -679,7 +817,7 @@ export default function UsersTab() {
                           <div className="flex flex-wrap items-center gap-1.5 max-w-[260px]">
                             {isAdmin ? (
                               <span className="text-[11px] font-semibold text-[#154360] bg-[#EBF5FB] px-2 py-0.5 rounded-md border border-[#154360]/15">
-                                All Sidebars (6)
+                                All Sidebars ({ALL_NAV_ITEMS.length})
                               </span>
                             ) : allowed.length === 0 ? (
                               <span className="text-[11px] text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
@@ -824,7 +962,7 @@ export default function UsersTab() {
                   type="text"
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
-                  placeholder="e.g. Sarah Jenkins"
+                  placeholder="e.g. Geonixa Instructor"
                   className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium"
                 />
               </div>
@@ -839,7 +977,7 @@ export default function UsersTab() {
                   required
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
-                  placeholder="sarah.jenkins@company.com"
+                  placeholder="geonixa@rcrd.com"
                   className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium"
                 />
               </div>
@@ -870,65 +1008,49 @@ export default function UsersTab() {
                 </div>
               </div>
 
-              {/* ROLE SELECTION (Admin, Mentor, Creator) */}
+              {/* ROLE SELECTION (Mentor and Admin only - Creator removed) */}
               <div>
                 <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-2">
                   Role &amp; Responsibility
                 </label>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {/* Creator */}
-                  <div
-                    onClick={() => handleNewRoleChange("Creator")}
-                    className={`p-3 rounded-2xl border cursor-pointer transition-all ${
-                      newRole === "Creator"
-                        ? "border-[#154360] bg-[#EBF5FB] ring-2 ring-[#154360]/20"
-                        : "border-[#E2E7EC] hover:border-slate-300 bg-white"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-[#20262E]">Creator</span>
-                      {newRole === "Creator" && <Check size={14} className="text-[#154360]" />}
-                    </div>
-                    <p className="text-[10px] text-[#57636E] leading-tight">Videos &amp; Meetings</p>
-                  </div>
-
+                <div className="grid grid-cols-2 gap-3">
                   {/* Mentor */}
                   <div
                     onClick={() => handleNewRoleChange("Mentor")}
-                    className={`p-3 rounded-2xl border cursor-pointer transition-all ${
+                    className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
                       newRole === "Mentor"
-                        ? "border-[#6C3483] bg-[#F4ECF7] ring-2 ring-[#6C3483]/20"
+                        ? "border-[#6C3483] bg-[#F4ECF7] ring-2 ring-[#6C3483]/20 shadow-xs"
                         : "border-[#E2E7EC] hover:border-slate-300 bg-white"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-xs text-[#5B2C6F]">Mentor</span>
-                      {newRole === "Mentor" && <Check size={14} className="text-[#6C3483]" />}
+                      {newRole === "Mentor" && <Check size={16} className="text-[#6C3483]" />}
                     </div>
-                    <p className="text-[10px] text-[#57636E] leading-tight">Custom Sidebars</p>
+                    <p className="text-[11px] text-[#57636E] leading-tight">Custom Sidebars</p>
                   </div>
 
                   {/* Admin */}
                   <div
                     onClick={() => handleNewRoleChange("Admin")}
-                    className={`p-3 rounded-2xl border cursor-pointer transition-all ${
+                    className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
                       newRole === "Admin"
-                        ? "border-[#154360] bg-[#EBF5FB] ring-2 ring-[#154360]/20"
+                        ? "border-[#154360] bg-[#EBF5FB] ring-2 ring-[#154360]/20 shadow-xs"
                         : "border-[#E2E7EC] hover:border-slate-300 bg-white"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-[#20262E]">Admin</span>
-                      {newRole === "Admin" && <Check size={14} className="text-[#154360]" />}
+                      <span className="font-bold text-xs text-[#154360]">Admin</span>
+                      {newRole === "Admin" && <Check size={16} className="text-[#154360]" />}
                     </div>
-                    <p className="text-[10px] text-[#57636E] leading-tight">Full Workspace</p>
+                    <p className="text-[11px] text-[#57636E] leading-tight">Full Workspace</p>
                   </div>
                 </div>
               </div>
 
-              {/* SIDE NAVBAR SELECTION FOR THIS EMPLOYEE */}
+              {/* SIDE NAVBAR ACCESS SELECTION FOR ONBOARDING (Selected by admin for each user) */}
               <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E7EC]">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2.5">
                   <div>
                     <h4 className="text-xs font-bold text-[#20262E] uppercase tracking-wider">
                       Side Navbar Access ({newAllowedNav.length} of {ALL_NAV_ITEMS.length} Selected)
@@ -971,8 +1093,8 @@ export default function UsersTab() {
                         onClick={() => toggleNavItem(newAllowedNav, setNewAllowedNav, item.id)}
                         className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                           isChecked 
-                            ? "bg-white border-[#154360]/40 shadow-xs" 
-                            : "bg-transparent border-[#E2E7EC] opacity-60 hover:opacity-100"
+                            ? "bg-white border-[#154360]/40 shadow-xs ring-1 ring-[#154360]/10" 
+                            : "bg-transparent border-[#E2E7EC] opacity-65 hover:opacity-100"
                         }`}
                       >
                         <input
@@ -1082,30 +1204,30 @@ export default function UsersTab() {
                 />
               </div>
 
-              {/* Role Selection */}
+              {/* Role Selection (Mentor & Admin only) */}
               <div>
                 <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-2">
                   Role Assignment
                 </label>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {(["Creator", "Mentor", "Admin"] as const).map(r => (
+                <div className="grid grid-cols-2 gap-3">
+                  {(["Mentor", "Admin"] as const).map(r => (
                     <div
                       key={r}
                       onClick={() => handleEditRoleChange(r)}
-                      className={`p-3 rounded-2xl border cursor-pointer transition-all ${
+                      className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
                         editRole === r
                           ? r === "Mentor" 
-                            ? "border-[#6C3483] bg-[#F4ECF7] ring-2 ring-[#6C3483]/20" 
-                            : "border-[#154360] bg-[#EBF5FB] ring-2 ring-[#154360]/20"
+                            ? "border-[#6C3483] bg-[#F4ECF7] ring-2 ring-[#6C3483]/20 shadow-xs" 
+                            : "border-[#154360] bg-[#EBF5FB] ring-2 ring-[#154360]/20 shadow-xs"
                           : "border-[#E2E7EC] hover:border-slate-300 bg-white"
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className={`font-bold text-xs ${r === "Mentor" ? "text-[#5B2C6F]" : "text-[#20262E]"}`}>{r}</span>
-                        {editRole === r && <Check size={14} className={r === "Mentor" ? "text-[#6C3483]" : "text-[#154360]"} />}
+                        <span className={`font-bold text-xs ${r === "Mentor" ? "text-[#5B2C6F]" : "text-[#154360]"}`}>{r}</span>
+                        {editRole === r && <Check size={16} className={r === "Mentor" ? "text-[#6C3483]" : "text-[#154360]"} />}
                       </div>
-                      <p className="text-[10px] text-[#57636E]">
-                        {r === "Creator" ? "Standard" : r === "Mentor" ? "Custom Navbars" : "Full Access"}
+                      <p className="text-[11px] text-[#57636E]">
+                        {r === "Mentor" ? "Custom Sidebars" : "Full Access"}
                       </p>
                     </div>
                   ))}
@@ -1114,7 +1236,7 @@ export default function UsersTab() {
 
               {/* SIDE NAVBAR SELECTION FOR THIS EMPLOYEE */}
               <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E7EC]">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2.5">
                   <div>
                     <h4 className="text-xs font-bold text-[#20262E] uppercase tracking-wider">
                       Side Navbar Access ({editAllowedNav.length} of {ALL_NAV_ITEMS.length} Enabled)
@@ -1157,8 +1279,8 @@ export default function UsersTab() {
                         onClick={() => toggleNavItem(editAllowedNav, setEditAllowedNav, item.id)}
                         className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                           isChecked 
-                            ? "bg-white border-[#154360]/40 shadow-xs" 
-                            : "bg-transparent border-[#E2E7EC] opacity-60 hover:opacity-100"
+                            ? "bg-white border-[#154360]/40 shadow-xs ring-1 ring-[#154360]/10" 
+                            : "bg-transparent border-[#E2E7EC] opacity-65 hover:opacity-100"
                         }`}
                       >
                         <input
@@ -1243,7 +1365,7 @@ export default function UsersTab() {
 
               {/* Actions: Save & Delete */}
               <div className="flex items-center justify-between pt-4 border-t border-[#E2E7EC]">
-                {editingUser.email !== "harikishorereddy9908@gmail.com" ? (
+                {editingUser.email !== PRIMARY_OWNER_EMAIL ? (
                   <button
                     type="button"
                     onClick={() => {
@@ -1289,7 +1411,7 @@ export default function UsersTab() {
       )}
 
       {/* ========================================================================= */}
-      {/* DELETE CONFIRMATION MODAL */}
+      {/* SINGLE DELETE CONFIRMATION MODAL */}
       {/* ========================================================================= */}
       {deleteTargetUser && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
@@ -1316,6 +1438,63 @@ export default function UsersTab() {
               >
                 <Trash2 size={14} />
                 <span>Yes, Delete Employee</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MULTIPLE USERS BULK DELETE CONFIRMATION MODAL */}
+      {/* ========================================================================= */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[460px] p-6 border border-[#E2E7EC] text-center animate-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mx-auto mb-4 border border-rose-200 shadow-sm">
+              <Trash2 size={26} />
+            </div>
+            <h3 className="text-lg font-bold text-[#20262E] mb-1">
+              Delete {selectedUserIds.length} {selectedUserIds.length === 1 ? "Employee" : "Employees"}?
+            </h3>
+            <p className="text-xs text-[#57636E] mb-3">
+              Are you sure you want to delete {selectedUserIds.length} selected employees from this workspace? They will immediately lose access and this action cannot be undone.
+            </p>
+
+            {/* List of users being deleted */}
+            <div className="max-h-36 overflow-y-auto bg-slate-50 border border-slate-200 rounded-xl p-2.5 mb-4 text-left divide-y divide-slate-100 custom-scrollbar">
+              {users.filter(u => selectedUserIds.includes(u.id)).map(u => (
+                <div key={u.id} className="py-1.5 flex items-center justify-between text-xs">
+                  <span className="font-bold text-[#20262E] truncate">{u.name}</span>
+                  <span className="text-[11px] text-[#57636E] font-mono ml-2">{u.email}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteModal(false)}
+                className="px-4 py-2.5 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isBulkDeleting}
+                onClick={handleBulkDelete}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isBulkDeleting ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    <span>Yes, Delete {selectedUserIds.length} Employees</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

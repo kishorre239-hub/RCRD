@@ -43,6 +43,7 @@ export default function LoginPage() {
           name: data.name || "Hari Kishore Reddy",
           email: data.email || email,
           role: data.role || "Admin",
+          allowedNavItems: data.allowedNavItems,
           plan: "Pro Plan",
           avatarText: (data.name || "HR")
             .split(" ")

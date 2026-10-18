@@ -18,6 +18,7 @@ import RcrdLogo from "@/components/RcrdLogo";
 import ProfileFlyout from "@/components/ProfileFlyout";
 import AppHeader from "@/components/AppHeader";
 import { openGlobalRecording } from "@/components/GlobalRecordingManager";
+import { useNavPermissions } from "@/lib/navPermissions";
 
 interface Comment {
   id: string;
@@ -47,7 +48,7 @@ interface Course {
 
 export default function WatchLaterPage() {
   const router = useRouter();
-
+  const { canAccess } = useNavPermissions();
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -326,20 +327,22 @@ export default function WatchLaterPage() {
 
         <div className="flex-1 overflow-y-auto py-5 px-4 custom-scrollbar min-h-0">
           <nav className="space-y-1">
-            <SidebarItem icon={<HomeIcon size={18} />} label="For You" href="/" />
-            <SidebarItem icon={<LibraryIcon size={18} />} label="Library" href="/library" />
-            <SidebarItem icon={<VideoCameraIcon size={18} />} label="Meetings" href="/meetings" />
-            <SidebarItem icon={<SavedIcon size={18} />} label="Watch Later" active href="/watch-later" />
-            <SidebarItem icon={<SettingsIcon size={18} />} label="Settings" href="/settings" />
+            {canAccess('for-you') && <SidebarItem icon={<HomeIcon size={18} />} label="For You" href="/" />}
+            {canAccess('library') && <SidebarItem icon={<LibraryIcon size={18} />} label="Library" href="/library" />}
+            {canAccess('meetings') && <SidebarItem icon={<VideoCameraIcon size={18} />} label="Meetings" href="/meetings" />}
+            {canAccess('library') && <SidebarItem icon={<SavedIcon size={18} />} label="Watch Later" active href="/watch-later" />}
+            {canAccess('settings') && <SidebarItem icon={<SettingsIcon size={18} />} label="Settings" href="/settings" />}
           </nav>
 
-          <div className="mt-10">
-            <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#57636E] mb-3">Workspace Admin</h3>
-            <nav className="space-y-1">
-              <SidebarItem icon={<UserIcon size={18} />} label="Manage Users" href="/settings?tab=users" />
-              <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" href="/settings" />
-            </nav>
-          </div>
+          {(canAccess('manage-users') || canAccess('workspace-info')) && (
+            <div className="mt-10">
+              <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#57636E] mb-3">Workspace Admin</h3>
+              <nav className="space-y-1">
+                {canAccess('manage-users') && <SidebarItem icon={<UserIcon size={18} />} label="Manage Users" href="/settings?tab=users" />}
+                {canAccess('workspace-info') && <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" href="/settings?tab=workspace" />}
+              </nav>
+            </div>
+          )}
         </div>
 
         <div className="p-5 border-t border-[#E2E7EC] bg-[#F5F6F8]/50 flex-shrink-0">

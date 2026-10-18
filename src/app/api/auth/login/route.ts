@@ -80,12 +80,23 @@ export async function POST(req: Request) {
       name: user.name,
     });
 
+    const defaultNavForRole = cleanRole === 'ADMIN'
+      ? ['for-you', 'library', 'meetings', 'settings', 'manage-users', 'workspace-info']
+      : cleanRole === 'MENTOR'
+      ? ['for-you', 'library', 'meetings']
+      : ['for-you', 'library', 'meetings', 'settings'];
+
+    const allowedNavItems = Array.isArray(user.allowedNavItems) && user.allowedNavItems.length > 0
+      ? user.allowedNavItems
+      : defaultNavForRole;
+
     return NextResponse.json({
       token,
       id: userId,
       name: user.name,
       email: cleanEmail,
       role: cleanRole,
+      allowedNavItems,
     });
   } catch (error: unknown) {
     console.error('Login error in loom-app:', (error as Error)?.message || error);

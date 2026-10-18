@@ -21,6 +21,7 @@ import { getCourses } from "@/lib/api";
 import RcrdLogo from "@/components/RcrdLogo";
 import ProfileFlyout from "@/components/ProfileFlyout";
 import AppHeader from "@/components/AppHeader";
+import { useNavPermissions } from "@/lib/navPermissions";
 
 interface Course { id: string; name: string; }
 interface Meeting {
@@ -104,6 +105,7 @@ function SidebarItem({ icon, label, active = false, external = false, href }: { 
 
 export default function MeetingsPage() {
   const router = useRouter();
+  const { canAccess } = useNavPermissions();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [activeTab, setActiveTab] = useState<"upcoming" | "live" | "past">("upcoming");
@@ -526,19 +528,21 @@ export default function MeetingsPage() {
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto py-5 px-3.5 space-y-6 custom-scrollbar min-h-0">
           <nav className="space-y-1.5">
-            <SidebarItem icon={<HomeIcon size={17} />} label="For You" href="/" />
-            <SidebarItem icon={<LibraryIcon size={17} />} label="Library" href="/library" />
-            <SidebarItem icon={<VideoCameraIcon size={17} />} label="Meetings" active href="/meetings" />
-            <SidebarItem icon={<SettingsIcon size={17} />} label="Settings" href="/settings" />
+            {canAccess('for-you') && <SidebarItem icon={<HomeIcon size={17} />} label="For You" href="/" />}
+            {canAccess('library') && <SidebarItem icon={<LibraryIcon size={17} />} label="Library" href="/library" />}
+            {canAccess('meetings') && <SidebarItem icon={<VideoCameraIcon size={17} />} label="Meetings" active href="/meetings" />}
+            {canAccess('settings') && <SidebarItem icon={<SettingsIcon size={17} />} label="Settings" href="/settings" />}
           </nav>
 
-          <div>
-            <h3 className="px-3.5 text-[11px] font-extrabold uppercase tracking-wider text-[#57636E] mb-2">Workspace Admin</h3>
-            <nav className="space-y-1.5">
-              <SidebarItem icon={<UserIcon size={17} />} label="Manage Users" href="/settings?tab=users" />
-              <SidebarItem icon={<WorkspaceIcon size={17} />} label="Workspace Info" href="/settings" />
-            </nav>
-          </div>
+          {(canAccess('manage-users') || canAccess('workspace-info')) && (
+            <div>
+              <h3 className="px-3.5 text-[11px] font-extrabold uppercase tracking-wider text-[#57636E] mb-2">Workspace Admin</h3>
+              <nav className="space-y-1.5">
+                {canAccess('manage-users') && <SidebarItem icon={<UserIcon size={17} />} label="Manage Users" href="/settings?tab=users" />}
+                {canAccess('workspace-info') && <SidebarItem icon={<WorkspaceIcon size={17} />} label="Workspace Info" href="/settings?tab=workspace" />}
+              </nav>
+            </div>
+          )}
         </div>
 
         {/* Schedule Meeting Button */}

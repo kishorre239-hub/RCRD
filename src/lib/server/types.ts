@@ -6,10 +6,11 @@ export interface User {
   name: string;
   email: string;
   passwordHash?: string;
-  role: 'USER' | 'ADMIN' | string;
+  role: 'USER' | 'ADMIN' | 'MENTOR' | 'CREATOR' | string;
   workspaceId?: string;
-  status?: 'Active' | 'Suspended' | 'Pending' | string;
+  status?: 'Active' | 'Access Revoked' | 'Suspended' | 'Pending' | string;
   hasAccess?: boolean;
+  allowedNavItems?: string[];
   plan?: 'free' | 'pro' | 'team' | 'yearly' | string;
   subscriptionStatus?: 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'EXPIRED';
   subscriptionId?: string;

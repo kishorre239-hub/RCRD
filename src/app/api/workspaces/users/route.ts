@@ -65,14 +65,30 @@ export async function GET(req: Request) {
       users.unshift(PRIMARY_ADMIN);
     }
 
-    // Sanitize passwords
+    // Sanitize passwords and assign role and allowedNavItems
     const sanitized = users.map((u) => {
+      const rawRole = String(u.role || 'Creator').toUpperCase();
+      let roleFormatted = 'Creator';
+      if (rawRole === 'ADMIN') roleFormatted = 'Admin';
+      else if (rawRole === 'MENTOR') roleFormatted = 'Mentor';
+
+      const defaultNavForRole = roleFormatted === 'Admin'
+        ? ['for-you', 'library', 'meetings', 'settings', 'manage-users', 'workspace-info']
+        : roleFormatted === 'Mentor'
+        ? ['for-you', 'library', 'meetings']
+        : ['for-you', 'library', 'meetings', 'settings'];
+
+      const allowedNavItems = Array.isArray(u.allowedNavItems) && u.allowedNavItems.length > 0
+        ? u.allowedNavItems
+        : defaultNavForRole;
+
       const copy: Record<string, unknown> = {
         ...u,
         id: u.id || u._id?.toString(),
-        role: String(u.role || 'Creator').toUpperCase() === 'ADMIN' ? 'Admin' : 'Creator',
+        role: roleFormatted,
         status: u.status || 'Active',
         hasAccess: (u.status || 'Active').toLowerCase() === 'active',
+        allowedNavItems,
       };
       delete copy.passwordHash;
       return copy;
@@ -89,7 +105,7 @@ export async function POST(req: Request) {
   try {
     const authResult = await authenticateRequest(req);
     const body = await req.json().catch(() => ({}));
-    const { name, email, role = 'Creator', password, status = 'Active' } = body;
+    const { name, email, role = 'Creator', password, status = 'Active', allowedNavItems } = body;
 
     if (!name || !email) {
       return NextResponse.json({ error: 'Name and email are required' }, { status: 400 });
@@ -97,9 +113,20 @@ export async function POST(req: Request) {
 
     const cleanEmail = email.toLowerCase().trim();
     const cleanName = name.trim();
-    const cleanRole = role.toLowerCase() === 'admin' ? 'Admin' : 'Creator';
+    const rawRole = role.toLowerCase();
+    const cleanRole = rawRole === 'admin' ? 'Admin' : (rawRole === 'mentor' ? 'Mentor' : 'Creator');
     const cleanStatus = status === 'Access Revoked' ? 'Access Revoked' : 'Active';
     const workspaceId = authResult.user?.workspaceId || 'default';
+
+    const defaultNav = cleanRole === 'Admin'
+      ? ['for-you', 'library', 'meetings', 'settings', 'manage-users', 'workspace-info']
+      : cleanRole === 'Mentor'
+      ? ['for-you', 'library', 'meetings']
+      : ['for-you', 'library', 'meetings', 'settings'];
+
+    const cleanNavItems = Array.isArray(allowedNavItems) && allowedNavItems.length > 0
+      ? allowedNavItems
+      : defaultNav;
 
     const usersCol = await getCollection<User>('users');
     const existing = await usersCol.findOne({ email: cleanEmail });
@@ -113,6 +140,7 @@ export async function POST(req: Request) {
         workspaceId,
         status: cleanStatus,
         hasAccess: cleanStatus === 'Active',
+        allowedNavItems: cleanNavItems,
         updatedAt: Date.now(),
       };
       if (passwordHash) {
@@ -130,6 +158,7 @@ export async function POST(req: Request) {
         role: cleanRole,
         status: cleanStatus,
         hasAccess: cleanStatus === 'Active',
+        allowedNavItems: cleanNavItems,
         createdAt: existing.createdAt || Date.now(),
       });
     }
@@ -141,6 +170,7 @@ export async function POST(req: Request) {
       role: cleanRole,
       workspaceId,
       status: cleanStatus,
+      allowedNavItems: cleanNavItems,
       passwordHash: passwordHash || (await hashPassword('rcrd2026')),
       createdAt: Date.now(),
       updatedAt: Date.now(),

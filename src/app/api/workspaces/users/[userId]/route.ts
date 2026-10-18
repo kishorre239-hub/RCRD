@@ -59,7 +59,7 @@ export async function PATCH(
   try {
     const { userId } = await params;
     const body = await req.json().catch(() => ({}));
-    const { role, status, name, password, hasAccess } = body;
+    const { role, status, name, password, hasAccess, allowedNavItems } = body;
 
     const usersCol = await getCollection<User>('users');
     let targetUser: User | null = null;
@@ -79,13 +79,17 @@ export async function PATCH(
 
     const updateFields: Partial<User> = { updatedAt: Date.now() };
     if (role) {
-      updateFields.role = (role.toLowerCase() === 'admin' ? 'Admin' : 'Creator') as any;
+      const raw = String(role).toLowerCase();
+      updateFields.role = raw === 'admin' ? 'Admin' : (raw === 'mentor' ? 'Mentor' : 'Creator');
     }
     if (status) {
       updateFields.status = status;
     }
     if (hasAccess !== undefined) {
       updateFields.status = hasAccess ? 'Active' : 'Access Revoked';
+    }
+    if (Array.isArray(allowedNavItems)) {
+      updateFields.allowedNavItems = allowedNavItems;
     }
     if (name) {
       updateFields.name = name.trim();
@@ -107,6 +111,7 @@ export async function PATCH(
         role: updated?.role,
         status: updated?.status || 'Active',
         hasAccess: (updated?.status || 'Active').toLowerCase() === 'active',
+        allowedNavItems: updated?.allowedNavItems || ['for-you', 'library', 'meetings'],
       },
     });
   } catch (error: any) {

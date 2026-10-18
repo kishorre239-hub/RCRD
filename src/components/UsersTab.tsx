@@ -5,17 +5,20 @@ import {
   ChevronDown, Plus, ChevronRight, X,
   Trash2, Check, UserPlus,
   RefreshCw, AlertCircle, UserCheck, UserX,
-  Key, ShieldCheck, Eye, EyeOff
+  Key, ShieldCheck, Eye, EyeOff, Edit2,
+  Home, Film, Video, Settings as SettingsIcon, Users, Building2
 } from "lucide-react";
+import { ALL_NAV_ITEMS, getDefaultNavItemsForRole } from "@/lib/navPermissions";
 
 export interface WorkspaceUser {
   id: string;
   name: string;
   email: string;
-  role: "Admin" | "Creator" | string;
+  role: "Admin" | "Mentor" | "Creator" | string;
   dateAdded: string;
   status: "Active" | "Access Revoked" | "Suspended" | string;
   hasAccess?: boolean;
+  allowedNavItems?: string[];
 }
 
 const DEFAULT_USERS: WorkspaceUser[] = [
@@ -27,6 +30,7 @@ const DEFAULT_USERS: WorkspaceUser[] = [
     dateAdded: "24 April 2026",
     status: "Active",
     hasAccess: true,
+    allowedNavItems: ALL_NAV_ITEMS.map(i => i.id),
   },
 ];
 
@@ -43,11 +47,20 @@ const isDummyUserEmail = (email: string) => {
   );
 };
 
+const NAV_ICONS: Record<string, React.ReactNode> = {
+  "for-you": <Home size={14} />,
+  "library": <Film size={14} />,
+  "meetings": <Video size={14} />,
+  "settings": <SettingsIcon size={14} />,
+  "manage-users": <Users size={14} />,
+  "workspace-info": <Building2 size={14} />,
+};
+
 export default function UsersTab() {
   const [users, setUsers] = useState<WorkspaceUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"All Roles" | "Admins" | "Creators">("All Roles");
+  const [roleFilter, setRoleFilter] = useState<"All Roles" | "Admins" | "Mentors" | "Creators">("All Roles");
   const [memberFilter, setMemberFilter] = useState<"All members" | "Access Granted" | "Access Revoked">("All members");
   
   // Dropdown states
@@ -56,8 +69,8 @@ export default function UsersTab() {
   
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<WorkspaceUser | null>(null);
-  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<WorkspaceUser | null>(null);
+  const [deleteTargetUser, setDeleteTargetUser] = useState<WorkspaceUser | null>(null);
   
   // Add User Form States
   const [newName, setNewName] = useState("");
@@ -65,19 +78,36 @@ export default function UsersTab() {
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [giveImmediateAccess, setGiveImmediateAccess] = useState(true);
-  const [newRole, setNewRole] = useState<"Creator" | "Admin">("Creator");
+  const [newRole, setNewRole] = useState<"Creator" | "Mentor" | "Admin">("Mentor");
+  const [newAllowedNav, setNewAllowedNav] = useState<string[]>(["for-you", "library", "meetings"]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Edit / Reset Password in User Modal
+  // Edit User Form States
+  const [editName, setEditName] = useState("");
+  const [editRole, setEditRole] = useState<"Creator" | "Mentor" | "Admin">("Creator");
+  const [editAllowedNav, setEditAllowedNav] = useState<string[]>([]);
+  const [editStatus, setEditStatus] = useState<string>("Active");
   const [editPassword, setEditPassword] = useState("");
   const [showEditPassword, setShowEditPassword] = useState(false);
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   const [toastMessage, setToastMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   const showToast = (text: string, ok = true) => {
     setToastMessage({ text, ok });
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Helper when role changes in Add modal
+  const handleNewRoleChange = (role: "Creator" | "Mentor" | "Admin") => {
+    setNewRole(role);
+    setNewAllowedNav(getDefaultNavItemsForRole(role));
+  };
+
+  // Helper when role changes in Edit modal
+  const handleEditRoleChange = (role: "Creator" | "Mentor" | "Admin") => {
+    setEditRole(role);
+    setEditAllowedNav(getDefaultNavItemsForRole(role));
   };
 
   // Fetch users from API and sync with local storage
@@ -101,9 +131,16 @@ export default function UsersTab() {
               : "24 April 2026";
             
             const rawRole = String(u.role || "Creator");
-            const roleFormatted = rawRole.toUpperCase() === "ADMIN" ? "Admin" : "Creator";
+            const roleUpper = rawRole.toUpperCase();
+            let roleFormatted = "Creator";
+            if (roleUpper === "ADMIN") roleFormatted = "Admin";
+            else if (roleUpper === "MENTOR") roleFormatted = "Mentor";
+
             const rawStatus = String(u.status || "Active");
             const hasAccess = u.hasAccess !== undefined ? !!u.hasAccess : rawStatus.toLowerCase() === "active";
+            const allowedNav = Array.isArray(u.allowedNavItems) && u.allowedNavItems.length > 0
+              ? (u.allowedNavItems as string[])
+              : getDefaultNavItemsForRole(roleFormatted);
 
             return {
               id: String(u.id || u._id || `usr-${idx}`),
@@ -113,6 +150,7 @@ export default function UsersTab() {
               dateAdded: dateStr,
               status: rawStatus,
               hasAccess,
+              allowedNavItems: allowedNav,
             };
           });
           const resultList = formatted.length > 0 ? formatted : DEFAULT_USERS;
@@ -126,7 +164,7 @@ export default function UsersTab() {
       console.warn("Could not fetch remote users, checking local store:", err);
     }
 
-    // Fallback to local storage (filtering out any legacy dummy accounts) or defaults
+    // Fallback to local storage (filtering out dummy accounts) or defaults
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
@@ -168,11 +206,11 @@ export default function UsersTab() {
     } catch {}
   };
 
-  // Add User Handler
+  // ADD USER HANDLER
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEmail.trim() || !newEmail.includes("@")) {
-      showToast("Please enter a valid email address.", false);
+      showToast("Please enter a valid work email address.", false);
       return;
     }
     const cleanName = newName.trim() || newEmail.split("@")[0];
@@ -183,7 +221,6 @@ export default function UsersTab() {
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 
-      // 1. Post to workspace users API
       const res = await fetch("/api/workspaces/users", {
         method: "POST",
         headers: {
@@ -196,6 +233,7 @@ export default function UsersTab() {
           role: newRole,
           password: passwordToSet,
           status: initialStatus,
+          allowedNavItems: newAllowedNav,
         }),
       });
 
@@ -216,6 +254,7 @@ export default function UsersTab() {
           dateAdded: today,
           status: initialStatus,
           hasAccess: giveImmediateAccess,
+          allowedNavItems: newAllowedNav,
         };
       } else {
         newUser = {
@@ -226,6 +265,7 @@ export default function UsersTab() {
           dateAdded: today,
           status: initialStatus,
           hasAccess: giveImmediateAccess,
+          allowedNavItems: newAllowedNav,
         };
       }
 
@@ -236,9 +276,7 @@ export default function UsersTab() {
       setNewPassword("");
       setGiveImmediateAccess(true);
       setShowAddModal(false);
-      showToast(giveImmediateAccess 
-        ? `User ${newUser.name} created! Login access is Active.` 
-        : `User ${newUser.name} created! Access is Revoked.`);
+      showToast(`Employee ${newUser.name} created as ${newUser.role} with ${newAllowedNav.length} side navbars enabled!`);
     } catch (err) {
       console.error("Error adding user:", err);
       showToast("Failed to add user to server. Saved locally.", false);
@@ -247,7 +285,73 @@ export default function UsersTab() {
     }
   };
 
-  // Toggle Login Access (Give Access / Revoke Access)
+  // OPEN EDIT MODAL
+  const openEditModal = (user: WorkspaceUser) => {
+    setEditingUser(user);
+    setEditName(user.name);
+    const roleClean = user.role === "Admin" ? "Admin" : (user.role === "Mentor" ? "Mentor" : "Creator");
+    setEditRole(roleClean);
+    setEditAllowedNav(user.allowedNavItems && user.allowedNavItems.length > 0 
+      ? [...user.allowedNavItems] 
+      : getDefaultNavItemsForRole(roleClean));
+    setEditStatus(user.status || "Active");
+    setEditPassword("");
+    setShowEditPassword(false);
+  };
+
+  // SAVE EDIT USER
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    setIsSavingEdit(true);
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      const payload: Record<string, unknown> = {
+        name: editName.trim() || editingUser.name,
+        role: editRole,
+        allowedNavItems: editAllowedNav,
+        status: editStatus,
+        hasAccess: editStatus.toLowerCase() === "active",
+      };
+      if (editPassword.trim()) {
+        payload.password = editPassword.trim();
+      }
+
+      const res = await fetch(`/api/workspaces/users/${editingUser.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const updatedList = users.map(u => {
+        if (u.id === editingUser.id) {
+          return {
+            ...u,
+            name: editName.trim() || u.name,
+            role: editRole,
+            allowedNavItems: editAllowedNav,
+            status: editStatus,
+            hasAccess: editStatus.toLowerCase() === "active",
+          };
+        }
+        return u;
+      });
+
+      saveUsers(updatedList);
+      setEditingUser(null);
+      showToast(res.ok ? `Updated ${editName || editingUser.name} successfully!` : "Saved changes locally.");
+    } catch {
+      showToast("Error updating user settings.", false);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // TOGGLE LOGIN ACCESS (GIVE ACCESS / REVOKE ACCESS)
   const handleToggleAccess = async (userId: string, grant: boolean) => {
     const target = users.find(u => u.id === userId);
     if (!target) return;
@@ -260,8 +364,8 @@ export default function UsersTab() {
     const updated = users.map(u => u.id === userId ? { ...u, status: nextStatus, hasAccess: grant } : u);
     saveUsers(updated);
 
-    if (selectedUser && selectedUser.id === userId) {
-      setSelectedUser({ ...selectedUser, status: nextStatus, hasAccess: grant });
+    if (editingUser && editingUser.id === userId) {
+      setEditingUser({ ...editingUser, status: nextStatus, hasAccess: grant });
     }
 
     showToast(grant ? `Login access granted for ${target.name}.` : `Login access revoked for ${target.name}.`);
@@ -281,48 +385,19 @@ export default function UsersTab() {
     }
   };
 
-  // Update Password for User
-  const handleUpdatePassword = async (userId: string) => {
-    if (!editPassword.trim()) {
-      showToast("Please enter a new password.", false);
-      return;
-    }
-    setIsUpdatingPassword(true);
-    try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      const res = await fetch(`/api/workspaces/users/${userId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ password: editPassword.trim() }),
-      });
-      if (res.ok) {
-        showToast("Employee password updated successfully!");
-        setEditPassword("");
-      } else {
-        showToast("Failed to update password on server.", false);
-      }
-    } catch {
-      showToast("Error updating password.", false);
-    } finally {
-      setIsUpdatingPassword(false);
-    }
-  };
-
-  // Remove User Handler
-  const handleRemoveUser = async (userId: string) => {
-    const target = users.find(u => u.id === userId);
-    if (!target) return;
+  // DELETE USER HANDLER
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetUser) return;
+    const target = deleteTargetUser;
     if (target.email === "harikishorereddy9908@gmail.com") {
       showToast("Cannot remove the primary workspace owner.", false);
+      setDeleteTargetUser(null);
       return;
     }
 
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      await fetch(`/api/workspaces/users/${userId}`, {
+      await fetch(`/api/workspaces/users/${target.id}`, {
         method: "DELETE",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -330,115 +405,122 @@ export default function UsersTab() {
       });
     } catch {}
 
-    const updated = users.filter(u => u.id !== userId);
+    const updated = users.filter(u => u.id !== target.id);
     saveUsers(updated);
-    setShowUserModal(false);
-    showToast(`Removed ${target.name} from workspace.`);
-  };
-
-  // Change Role Handler
-  const handleChangeRole = async (userId: string, role: "Admin" | "Creator") => {
-    const updated = users.map(u => u.id === userId ? { ...u, role } : u);
-    saveUsers(updated);
-    if (selectedUser && selectedUser.id === userId) {
-      setSelectedUser({ ...selectedUser, role });
+    setDeleteTargetUser(null);
+    if (editingUser?.id === target.id) {
+      setEditingUser(null);
     }
-    showToast(`Updated role to ${role}`);
-
-    try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      await fetch(`/api/workspaces/users/${userId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ role }),
-      });
-    } catch (err) {
-      console.warn("Could not sync role change to server:", err);
-    }
+    showToast(`Deleted employee ${target.name} from workspace.`);
   };
 
   // Filtered Users computation
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
-      // Search filter
       const matchesSearch = 
         user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      // Role filter
-      const matchesRole = 
-        roleFilter === "All Roles" ||
-        (roleFilter === "Admins" && user.role.toLowerCase() === "admin") ||
-        (roleFilter === "Creators" && user.role.toLowerCase() !== "admin");
 
-      // Member access status filter
-      const isUserActive = (user.status || "Active").toLowerCase() === "active";
-      const matchesMember = 
-        memberFilter === "All members" ||
-        (memberFilter === "Access Granted" && isUserActive) ||
-        (memberFilter === "Access Revoked" && !isUserActive);
+      const userRole = (user.role || "").toLowerCase();
+      let matchesRole = true;
+      if (roleFilter === "Admins") matchesRole = userRole === "admin";
+      else if (roleFilter === "Mentors") matchesRole = userRole === "mentor";
+      else if (roleFilter === "Creators") matchesRole = userRole === "creator";
+
+      let matchesMember = true;
+      const isActive = (user.status || "Active").toLowerCase() === "active";
+      if (memberFilter === "Access Granted") matchesMember = isActive;
+      if (memberFilter === "Access Revoked") matchesMember = !isActive;
 
       return matchesSearch && matchesRole && matchesMember;
     });
   }, [users, searchQuery, roleFilter, memberFilter]);
 
-  // Generate Initials
   const getInitials = (name: string) => {
-    const parts = name.trim().split(" ");
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
+    if (!name) return "U";
+    return name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+  };
+
+  // Toggle single nav item in list
+  const toggleNavItem = (list: string[], setList: (v: string[]) => void, id: string) => {
+    if (list.includes(id)) {
+      setList(list.filter(item => item !== id));
+    } else {
+      setList([...list, id]);
     }
-    return name.slice(0, 2).toUpperCase();
   };
 
   return (
-    <div className="space-y-6 pb-20">
-      
-      {/* Main Users & Groups Card */}
-      <div className="bg-white border border-[#E2E7EC]/90 rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.03)] p-7 font-sans">
-        
-        {/* Card Header */}
+    <div className="space-y-6">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold animate-in slide-in-from-top-3 ${
+          toastMessage.ok 
+            ? "bg-emerald-50 text-emerald-800 border-emerald-200" 
+            : "bg-rose-50 text-rose-800 border-rose-200"
+        }`}>
+          {toastMessage.ok ? <Check size={18} className="text-emerald-600" /> : <AlertCircle size={18} className="text-rose-600" />}
+          <span>{toastMessage.text}</span>
+        </div>
+      )}
+
+      {/* Main Container */}
+      <div className="bg-white border border-[#E2E7EC] rounded-2xl p-6 sm:p-8 shadow-xs">
+        {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center gap-2">
-            <h2 className="text-[20px] font-bold text-[#20262E] tracking-tight">
-              Users &amp; groups
-            </h2>
-            <span className="text-[14px] text-[#57636E] font-medium">
-              ({users.length})
-            </span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h2 className="text-[20px] font-bold text-[#20262E] flex items-center gap-2.5">
+                <span>Users &amp; groups</span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#EBF5FB] text-[#154360] font-bold border border-[#154360]/15">
+                  {users.length} {users.length === 1 ? "Employee" : "Employees"}
+                </span>
+              </h2>
+              <p className="text-[13px] text-[#57636E] mt-1">
+                Manage roles (Admin, Mentor, Creator), side navbar access, and login permissions dynamically.
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setNewName("");
+                setNewEmail("");
+                setNewPassword("");
+                setNewRole("Mentor");
+                setNewAllowedNav(["for-you", "library", "meetings"]);
+                setGiveImmediateAccess(true);
+                setShowAddModal(true);
+              }}
+              className="bg-[#154360] hover:bg-[#0E2F44] text-white text-[13px] font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer shrink-0"
+            >
+              <UserPlus size={16} />
+              <span>+ Add user</span>
+            </button>
           </div>
-          <p className="text-[13px] text-[#57636E] mt-1 leading-relaxed">
-            Global permissions define what people can do on RCRD. Administrators can grant or revoke employee login access at any time.
-          </p>
         </div>
 
-        {/* Filter & Action Controls Bar */}
+        {/* Toolbar: Search & Filters */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
-          <div className="flex flex-wrap items-center gap-2.5 flex-1">
-            
+          <div className="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {/* Search Input */}
-            <div className="relative min-w-[240px] flex-1 max-w-sm">
+            <div className="relative flex-1 max-w-[340px]">
               <input
                 type="text"
+                placeholder="Search by name or email address"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Enter a name or email address"
-                className="w-full px-3.5 py-2 bg-white border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-lg text-[13px] text-[#20262E] placeholder:text-[#57636E] focus:outline-none focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/10 transition-all"
+                className="w-full pl-3.5 pr-8 py-2 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] placeholder:text-[#57636E] focus:outline-none focus:border-[#154360] focus:bg-white transition-colors"
               />
               {searchQuery && (
-                <button
+                <button 
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#57636E]"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#20262E]"
                 >
                   <X size={14} />
                 </button>
               )}
             </div>
 
-            {/* Role Filter Dropdown */}
+            {/* Role Filter */}
             <div className="relative">
               <button
                 type="button"
@@ -446,36 +528,34 @@ export default function UsersTab() {
                   setIsRoleDropdownOpen(!isRoleDropdownOpen);
                   setIsMemberDropdownOpen(false);
                 }}
-                className="h-[38px] px-3.5 bg-white border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-lg text-[13px] font-medium text-[#20262E] flex items-center gap-2 transition-colors focus:outline-none focus:border-[#154360]"
+                className="flex items-center gap-2 px-3 py-2 bg-[#F5F6F8] hover:bg-slate-200/80 border border-[#E2E7EC] rounded-xl text-xs font-semibold text-[#20262E] transition-colors cursor-pointer"
               >
-                <span>{roleFilter}</span>
-                <ChevronDown size={14} className={`text-[#57636E] transition-transform ${isRoleDropdownOpen ? "rotate-180" : ""}`} />
+                <span>Role: {roleFilter}</span>
+                <ChevronDown size={14} className="text-[#57636E]" />
               </button>
 
               {isRoleDropdownOpen && (
-                <div className="absolute left-0 mt-1.5 w-40 bg-white border border-[#E2E7EC] rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
-                  {(["All Roles", "Admins", "Creators"] as const).map(option => (
+                <div className="absolute top-full left-0 mt-1.5 w-40 bg-white border border-[#E2E7EC] rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95">
+                  {(["All Roles", "Admins", "Mentors", "Creators"] as const).map(role => (
                     <button
-                      key={option}
+                      key={role}
                       onClick={() => {
-                        setRoleFilter(option);
+                        setRoleFilter(role);
                         setIsRoleDropdownOpen(false);
                       }}
-                      className={`w-full px-3.5 py-2 text-left text-[13px] flex items-center justify-between transition-colors ${
-                        roleFilter === option 
-                          ? "bg-[#EBF5FB] text-[#0E2F44] font-semibold" 
-                          : "text-[#20262E] hover:bg-[#F5F6F8]"
+                      className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between transition-colors ${
+                        roleFilter === role ? "bg-[#EBF5FB] text-[#154360]" : "text-[#20262E] hover:bg-[#F5F6F8]"
                       }`}
                     >
-                      <span>{option}</span>
-                      {roleFilter === option && <Check size={14} className="text-[#154360]" />}
+                      <span>{role}</span>
+                      {roleFilter === role && <Check size={12} className="text-[#154360]" />}
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Member Access Status Filter Dropdown */}
+            {/* Access Status Filter */}
             <div className="relative">
               <button
                 type="button"
@@ -483,223 +563,261 @@ export default function UsersTab() {
                   setIsMemberDropdownOpen(!isMemberDropdownOpen);
                   setIsRoleDropdownOpen(false);
                 }}
-                className="h-[38px] px-3.5 bg-white border border-[#E2E7EC] hover:border-[#E2E7EC] rounded-lg text-[13px] font-medium text-[#20262E] flex items-center gap-2 transition-colors focus:outline-none focus:border-[#154360]"
+                className="flex items-center gap-2 px-3 py-2 bg-[#F5F6F8] hover:bg-slate-200/80 border border-[#E2E7EC] rounded-xl text-xs font-semibold text-[#20262E] transition-colors cursor-pointer"
               >
-                <span>{memberFilter}</span>
-                <ChevronDown size={14} className={`text-[#57636E] transition-transform ${isMemberDropdownOpen ? "rotate-180" : ""}`} />
+                <span>Status: {memberFilter}</span>
+                <ChevronDown size={14} className="text-[#57636E]" />
               </button>
 
               {isMemberDropdownOpen && (
-                <div className="absolute left-0 mt-1.5 w-48 bg-white border border-[#E2E7EC] rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
-                  {(["All members", "Access Granted", "Access Revoked"] as const).map(option => (
+                <div className="absolute top-full left-0 mt-1.5 w-44 bg-white border border-[#E2E7EC] rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95">
+                  {(["All members", "Access Granted", "Access Revoked"] as const).map(status => (
                     <button
-                      key={option}
+                      key={status}
                       onClick={() => {
-                        setMemberFilter(option);
+                        setMemberFilter(status);
                         setIsMemberDropdownOpen(false);
                       }}
-                      className={`w-full px-3.5 py-2 text-left text-[13px] flex items-center justify-between transition-colors ${
-                        memberFilter === option 
-                          ? "bg-[#EBF5FB] text-[#0E2F44] font-semibold" 
-                          : "text-[#20262E] hover:bg-[#F5F6F8]"
+                      className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between transition-colors ${
+                        memberFilter === status ? "bg-[#EBF5FB] text-[#154360]" : "text-[#20262E] hover:bg-[#F5F6F8]"
                       }`}
                     >
-                      <span>{option}</span>
-                      {memberFilter === option && <Check size={14} className="text-[#154360]" />}
+                      <span>{status}</span>
+                      {memberFilter === status && <Check size={12} className="text-[#154360]" />}
                     </button>
                   ))}
                 </div>
               )}
             </div>
-
           </div>
 
-          {/* Add User Action Button */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => fetchUsers(true)}
-              title="Refresh users"
-              className="p-2 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-lg transition-colors cursor-pointer"
-            >
-              <RefreshCw size={15} className={loading ? "animate-spin text-[#154360]" : ""} />
-            </button>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="bg-[#154360] hover:bg-[#0E2F44] text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
-            >
-              <Plus size={16} />
-              <span>Add user</span>
-            </button>
-          </div>
+          {/* Refresh Action */}
+          <button
+            onClick={() => fetchUsers(true)}
+            title="Refresh users from server"
+            className="p-2 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-xl transition-colors cursor-pointer shrink-0 self-end sm:self-center"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin text-[#154360]" : ""} />
+          </button>
         </div>
 
         {/* Users Table */}
-        <div className="border border-[#E2E7EC]/80 rounded-xl overflow-hidden bg-white">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-[#E2E7EC]/80 bg-[#F5F6F8]/60 text-[12px] font-semibold text-[#57636E] uppercase tracking-wider">
-                <th className="py-3 px-4">Name</th>
-                <th className="py-3 px-4">Role</th>
-                <th className="py-3 px-4">Date added</th>
-                <th className="py-3 px-4">Email address</th>
-                <th className="py-3 px-4">Login Status</th>
-                <th className="py-3 px-4 text-right">Access Controls</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-[13px]">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-[#57636E]">
-                    <div className="flex items-center justify-center gap-2 text-xs font-medium">
-                      <RefreshCw size={15} className="animate-spin text-[#154360]" />
-                      <span>Loading workspace users...</span>
-                    </div>
-                  </td>
+        <div className="border border-[#E2E7EC]/90 rounded-2xl overflow-hidden bg-white shadow-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[700px]">
+              <thead>
+                <tr className="border-b border-[#E2E7EC] bg-[#F8FAFC] text-[11px] font-bold text-[#57636E] uppercase tracking-wider">
+                  <th className="py-3.5 px-4">Employee</th>
+                  <th className="py-3.5 px-4">Role</th>
+                  <th className="py-3.5 px-4">Side Navbar Access</th>
+                  <th className="py-3.5 px-4">Email</th>
+                  <th className="py-3.5 px-4">Login Status</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
-              ) : filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-[#57636E]">
-                    <p className="font-semibold text-[#20262E] text-sm">No users found</p>
-                    <p className="text-xs text-[#57636E] mt-1">Try adjusting your search or filter settings.</p>
-                  </td>
-                </tr>
-              ) : (
-                filteredUsers.map(user => {
-                  const isAdmin = user.role.toLowerCase() === "admin";
-                  const avatarColor = isAdmin 
-                    ? "bg-[#2980B9] text-white" 
-                    : "bg-[#154360] text-white";
-                  const isActive = (user.status || "Active").toLowerCase() === "active";
-                  const isPrimaryOwner = user.email === "harikishorereddy9908@gmail.com";
+              </thead>
+              <tbody className="divide-y divide-[#E2E7EC]/60 text-[13px]">
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="py-14 text-center text-[#57636E]">
+                      <div className="flex items-center justify-center gap-2 text-xs font-medium">
+                        <RefreshCw size={16} className="animate-spin text-[#154360]" />
+                        <span>Loading workspace users...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-14 text-center text-[#57636E]">
+                      <p className="font-bold text-[#20262E] text-sm">No employees match your filter</p>
+                      <p className="text-xs text-[#57636E] mt-1">Click &quot;+ Add user&quot; to provision a new team member.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUsers.map(user => {
+                    const roleUpper = (user.role || "Creator").toUpperCase();
+                    const isAdmin = roleUpper === "ADMIN";
+                    const isMentor = roleUpper === "MENTOR";
+                    const isActive = (user.status || "Active").toLowerCase() === "active";
+                    const isPrimaryOwner = user.email === "harikishorereddy9908@gmail.com";
+                    const allowed = user.allowedNavItems || getDefaultNavItemsForRole(user.role);
 
-                  return (
-                    <tr 
-                      key={user.id}
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setShowUserModal(true);
-                      }}
-                      className="hover:bg-[#F5F6F8]/80 cursor-pointer transition-colors group"
-                    >
-                      {/* Name with circular avatar */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold ${avatarColor} shrink-0`}>
-                            {getInitials(user.name)}
+                    return (
+                      <tr 
+                        key={user.id}
+                        className="hover:bg-[#F5F6F8]/70 transition-colors group"
+                      >
+                        {/* Name with circular avatar */}
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${
+                              isAdmin ? "bg-[#154360] text-white" : isMentor ? "bg-[#6C3483] text-white" : "bg-[#2E4053] text-white"
+                            }`}>
+                              {getInitials(user.name)}
+                            </div>
+                            <div>
+                              <p className="font-bold text-[#20262E]">{user.name}</p>
+                              <p className="text-[11px] text-[#57636E]">Added {user.dateAdded}</p>
+                            </div>
                           </div>
-                          <span className="font-semibold text-[#20262E] group-hover:text-[#154360] transition-colors">
-                            {user.name}
+                        </td>
+
+                        {/* Role Badge */}
+                        <td className="py-3.5 px-4">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold border ${
+                            isAdmin 
+                              ? "bg-blue-50 text-blue-800 border-blue-200" 
+                              : isMentor 
+                              ? "bg-purple-50 text-purple-800 border-purple-200" 
+                              : "bg-slate-100 text-slate-800 border-slate-200"
+                          }`}>
+                            {user.role}
                           </span>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Role */}
-                      <td className="py-3.5 px-4 text-[#57636E]">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[12px] font-medium bg-slate-100 text-[#20262E]">
-                          {user.role}
-                        </span>
-                      </td>
-
-                      {/* Date Added */}
-                      <td className="py-3.5 px-4 text-[#57636E]">
-                        {user.dateAdded}
-                      </td>
-
-                      {/* Email address */}
-                      <td className="py-3.5 px-4 text-[#57636E] font-mono text-[12px]">
-                        {user.email}
-                      </td>
-
-                      {/* Status */}
-                      <td className="py-3.5 px-4">
-                        {isActive ? (
-                          <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 shadow-xs">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 shadow-xs">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                            Access Revoked
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Access Action Buttons */}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2.5">
-                          {!isPrimaryOwner ? (
-                            isActive ? (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleAccess(user.id, false);
-                                }}
-                                className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-                                title="Revoke login access for this employee"
-                              >
-                                <UserX size={13} />
-                                <span>Revoke Access</span>
-                              </button>
+                        {/* Allowed Side Navbars */}
+                        <td className="py-3.5 px-4">
+                          <div className="flex flex-wrap items-center gap-1.5 max-w-[260px]">
+                            {isAdmin ? (
+                              <span className="text-[11px] font-semibold text-[#154360] bg-[#EBF5FB] px-2 py-0.5 rounded-md border border-[#154360]/15">
+                                All Sidebars (6)
+                              </span>
+                            ) : allowed.length === 0 ? (
+                              <span className="text-[11px] text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                                None Enabled
+                              </span>
                             ) : (
+                              allowed.map(navId => {
+                                const item = ALL_NAV_ITEMS.find(i => i.id === navId);
+                                return (
+                                  <span 
+                                    key={navId}
+                                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[#20262E] bg-slate-100 px-2 py-0.5 rounded-md border border-[#E2E7EC]"
+                                    title={item?.description}
+                                  >
+                                    {NAV_ICONS[navId]}
+                                    <span>{item?.label || navId}</span>
+                                  </span>
+                                );
+                              })
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Email address */}
+                        <td className="py-3.5 px-4 text-[#57636E] font-mono text-[12px]">
+                          {user.email}
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-3.5 px-4">
+                          {isActive ? (
+                            <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 shadow-xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200 shadow-xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                              Access Revoked
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Actions: Give/Revoke, Edit, Delete */}
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Give / Revoke Access Button */}
+                            {!isPrimaryOwner && (
+                              isActive ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleAccess(user.id, false)}
+                                  className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-xs cursor-pointer"
+                                  title="Revoke login access"
+                                >
+                                  <UserX size={13} />
+                                  <span className="hidden md:inline">Revoke Access</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleAccess(user.id, true)}
+                                  className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1 shadow-xs cursor-pointer"
+                                  title="Give login access"
+                                >
+                                  <UserCheck size={13} />
+                                  <span className="hidden md:inline">Give Access</span>
+                                </button>
+                              )
+                            )}
+
+                            {/* Edit Button */}
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(user)}
+                              className="p-1.5 bg-slate-100 hover:bg-[#EBF5FB] text-[#20262E] hover:text-[#154360] border border-[#E2E7EC] hover:border-[#154360]/30 rounded-lg transition-colors cursor-pointer"
+                              title="Edit user role and sidebar navigation"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+
+                            {/* Delete Button */}
+                            {!isPrimaryOwner && (
                               <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleAccess(user.id, true);
-                                }}
-                                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
-                                title="Give login access to this employee"
+                                onClick={() => setDeleteTargetUser(user)}
+                                className="p-1.5 bg-slate-100 hover:bg-rose-50 text-[#57636E] hover:text-rose-700 border border-[#E2E7EC] hover:border-rose-200 rounded-lg transition-colors cursor-pointer"
+                                title="Delete employee from workspace"
                               >
-                                <UserCheck size={13} />
-                                <span>Give Access</span>
+                                <Trash2 size={14} />
                               </button>
-                            )
-                          ) : (
-                            <span className="text-[11px] font-bold text-[#57636E] uppercase bg-slate-100 px-2 py-0.5 rounded">Owner</span>
-                          )}
-                          <ChevronRight size={16} className="text-[#57636E] group-hover:text-[#20262E] transition-colors" />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                            )}
 
+                            {isPrimaryOwner && (
+                              <span className="text-[11px] font-bold text-[#57636E] uppercase bg-slate-100 px-2 py-0.5 rounded">Owner</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
-      {/* ADD USER MODAL (ADMIN CREATES EMPLOYEE ACCESS) */}
+      {/* ========================================================================= */}
+      {/* ADD EMPLOYEE MODAL (ROLE + SIDE NAVBAR SELECTION + CREDENTIALS) */}
+      {/* ========================================================================= */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[480px] overflow-hidden border border-[#E2E7EC] animate-in zoom-in-95 duration-150">
-            
-            {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-[#E2E7EC] flex items-center justify-between bg-[#F5F6F8]/60">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#EBF5FB] border border-[#154360]/20 flex items-center justify-center text-[#154360]">
-                  <UserPlus size={18} />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[540px] my-8 overflow-hidden border border-[#E2E7EC] animate-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-[#E2E7EC] flex items-center justify-between bg-[#F8FAFC]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#EBF5FB] border border-[#154360]/20 flex items-center justify-center text-[#154360]">
+                  <UserPlus size={20} />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[#20262E]">Add Employee &amp; Grant Access</h3>
-                  <p className="text-xs text-[#57636E]">Create user credentials so employees can sign in.</p>
+                  <p className="text-xs text-[#57636E]">Assign role, side navbars, and initial login password.</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Modal Form */}
-            <form onSubmit={handleAddUser} className="p-6 space-y-4">
+            {/* Form */}
+            <form onSubmit={handleAddUser} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto custom-scrollbar">
+              {/* Full Name */}
               <div>
-                <label className="block text-[12px] font-semibold text-[#20262E] uppercase tracking-wider mb-1.5">
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
                   Full Name
                 </label>
                 <input
@@ -707,12 +825,13 @@ export default function UsersTab() {
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   placeholder="e.g. Sarah Jenkins"
-                  className="w-full px-3.5 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] placeholder:text-[#57636E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium"
+                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium"
                 />
               </div>
 
+              {/* Work Email */}
               <div>
-                <label className="block text-[12px] font-semibold text-[#20262E] uppercase tracking-wider mb-1.5">
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
                   Work Email Address *
                 </label>
                 <input
@@ -721,13 +840,14 @@ export default function UsersTab() {
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
                   placeholder="sarah.jenkins@company.com"
-                  className="w-full px-3.5 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] placeholder:text-[#57636E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium"
+                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium"
                 />
               </div>
 
+              {/* Login Password */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-[12px] font-semibold text-[#20262E] uppercase tracking-wider">
+                  <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider">
                     Login Password
                   </label>
                   <span className="text-[11px] text-[#57636E]">Default: rcrd2026</span>
@@ -737,8 +857,8 @@ export default function UsersTab() {
                     type={showNewPassword ? "text" : "password"}
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
-                    placeholder="Set employee password (or leave empty for rcrd2026)"
-                    className="w-full px-3.5 py-2.5 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] placeholder:text-[#57636E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium pr-10"
+                    placeholder="Set password (or empty for rcrd2026)"
+                    className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium pr-10"
                   />
                   <button
                     type="button"
@@ -750,268 +870,457 @@ export default function UsersTab() {
                 </div>
               </div>
 
+              {/* ROLE SELECTION (Admin, Mentor, Creator) */}
               <div>
-                <label className="block text-[12px] font-semibold text-[#20262E] uppercase tracking-wider mb-1.5">
-                  Role &amp; Permissions
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-2">
+                  Role &amp; Responsibility
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2.5">
+                  {/* Creator */}
                   <div
-                    onClick={() => setNewRole("Creator")}
-                    className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                    onClick={() => handleNewRoleChange("Creator")}
+                    className={`p-3 rounded-2xl border cursor-pointer transition-all ${
                       newRole === "Creator"
-                        ? "border-[#154360] bg-[#EBF5FB]/50 ring-1 ring-[#154360]/20"
-                        : "border-[#E2E7EC] hover:border-[#E2E7EC] bg-white"
+                        ? "border-[#154360] bg-[#EBF5FB] ring-2 ring-[#154360]/20"
+                        : "border-[#E2E7EC] hover:border-slate-300 bg-white"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-[#20262E]">Creator</span>
+                      <span className="font-bold text-xs text-[#20262E]">Creator</span>
                       {newRole === "Creator" && <Check size={14} className="text-[#154360]" />}
                     </div>
-                    <p className="text-[11px] text-[#57636E] leading-snug">Can record, edit, and attend meetings</p>
+                    <p className="text-[10px] text-[#57636E] leading-tight">Videos &amp; Meetings</p>
                   </div>
 
+                  {/* Mentor */}
                   <div
-                    onClick={() => setNewRole("Admin")}
-                    className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                      newRole === "Admin"
-                        ? "border-[#154360] bg-[#EBF5FB]/50 ring-1 ring-[#154360]/20"
-                        : "border-[#E2E7EC] hover:border-[#E2E7EC] bg-white"
+                    onClick={() => handleNewRoleChange("Mentor")}
+                    className={`p-3 rounded-2xl border cursor-pointer transition-all ${
+                      newRole === "Mentor"
+                        ? "border-[#6C3483] bg-[#F4ECF7] ring-2 ring-[#6C3483]/20"
+                        : "border-[#E2E7EC] hover:border-slate-300 bg-white"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-[#20262E]">Admin</span>
+                      <span className="font-bold text-xs text-[#5B2C6F]">Mentor</span>
+                      {newRole === "Mentor" && <Check size={14} className="text-[#6C3483]" />}
+                    </div>
+                    <p className="text-[10px] text-[#57636E] leading-tight">Custom Sidebars</p>
+                  </div>
+
+                  {/* Admin */}
+                  <div
+                    onClick={() => handleNewRoleChange("Admin")}
+                    className={`p-3 rounded-2xl border cursor-pointer transition-all ${
+                      newRole === "Admin"
+                        ? "border-[#154360] bg-[#EBF5FB] ring-2 ring-[#154360]/20"
+                        : "border-[#E2E7EC] hover:border-slate-300 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-xs text-[#20262E]">Admin</span>
                       {newRole === "Admin" && <Check size={14} className="text-[#154360]" />}
                     </div>
-                    <p className="text-[11px] text-[#57636E] leading-snug">Full workspace access and employee management</p>
+                    <p className="text-[10px] text-[#57636E] leading-tight">Full Workspace</p>
                   </div>
                 </div>
               </div>
 
-              {/* Immediate Access Checkbox */}
-              <div className="pt-2">
-                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-[#E2E7EC] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={giveImmediateAccess}
-                    onChange={e => setGiveImmediateAccess(e.target.checked)}
-                    className="w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-[#E2E7EC] cursor-pointer"
-                  />
+              {/* SIDE NAVBAR SELECTION FOR THIS EMPLOYEE */}
+              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E7EC]">
+                <div className="flex items-center justify-between mb-2">
                   <div>
-                    <span className="text-xs font-bold text-[#20262E] block">Grant Immediate Login Access</span>
-                    <span className="text-[11px] text-[#57636E] block">Employee will be able to log in with these credentials right away.</span>
+                    <h4 className="text-xs font-bold text-[#20262E] uppercase tracking-wider">
+                      Side Navbar Access ({newAllowedNav.length} of {ALL_NAV_ITEMS.length} Selected)
+                    </h4>
+                    <p className="text-[11px] text-[#57636E]">
+                      Select how many side navbar items will appear for this employee.
+                    </p>
                   </div>
-                </label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setNewAllowedNav(ALL_NAV_ITEMS.map(i => i.id))}
+                      className="text-[11px] font-bold text-[#154360] hover:underline px-1.5 py-0.5 rounded cursor-pointer"
+                    >
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewAllowedNav(["for-you", "library", "meetings"])}
+                      className="text-[11px] font-bold text-purple-700 hover:underline px-1.5 py-0.5 rounded cursor-pointer"
+                    >
+                      Mentor Preset
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewAllowedNav([])}
+                      className="text-[11px] font-bold text-[#57636E] hover:underline px-1.5 py-0.5 rounded cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  {ALL_NAV_ITEMS.map(item => {
+                    const isChecked = newAllowedNav.includes(item.id);
+                    return (
+                      <label
+                        key={item.id}
+                        onClick={() => toggleNavItem(newAllowedNav, setNewAllowedNav, item.id)}
+                        className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                          isChecked 
+                            ? "bg-white border-[#154360]/40 shadow-xs" 
+                            : "bg-transparent border-[#E2E7EC] opacity-60 hover:opacity-100"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          className="mt-0.5 w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 pointer-events-none"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-[#20262E]">
+                            {NAV_ICONS[item.id]}
+                            <span>{item.label}</span>
+                          </div>
+                          <p className="text-[10px] text-[#57636E] truncate">{item.description}</p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Modal Footer */}
-              <div className="pt-4 flex items-center justify-end gap-2.5 border-t border-[#E2E7EC]">
+              {/* Immediate Login Access Switch */}
+              <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 border border-[#E2E7EC] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={giveImmediateAccess}
+                  onChange={e => setGiveImmediateAccess(e.target.checked)}
+                  className="w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 cursor-pointer"
+                />
+                <div>
+                  <span className="text-xs font-bold text-[#20262E] block">Grant Immediate Login Access</span>
+                  <span className="text-[11px] text-[#57636E] block">
+                    Employee can log in immediately upon creation. If unchecked, access is Revoked until granted.
+                  </span>
+                </div>
+              </label>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E] text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2.5 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting || !newEmail.trim()}
-                  className="px-5 py-2 bg-[#154360] hover:bg-[#0E2F44] disabled:bg-slate-200 disabled:text-[#57636E] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                  disabled={isSubmitting}
+                  className="px-5 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
-                  {isSubmitting ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
-                  <span>{isSubmitting ? "Adding..." : "Add user & Give Access"}</span>
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Saving Employee...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus size={14} />
+                      <span>+ Add User &amp; Give Access</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
-
           </div>
         </div>
       )}
 
-      {/* USER DETAILS & ACCESS MANAGEMENT MODAL */}
-      {showUserModal && selectedUser && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[480px] overflow-hidden border border-[#E2E7EC] animate-in zoom-in-95 duration-150 font-sans">
-            
+      {/* ========================================================================= */}
+      {/* EDIT EMPLOYEE MODAL (CUSTOMIZE ROLE, SIDEBARS, ACCESS, PASSWORD) */}
+      {/* ========================================================================= */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[560px] my-8 overflow-hidden border border-[#E2E7EC] animate-in zoom-in-95 duration-150">
             {/* Header */}
-            <div className="p-6 border-b border-[#E2E7EC] flex items-start justify-between">
-              <div className="flex items-center gap-3.5">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold ${
-                  selectedUser.role.toLowerCase() === "admin" ? "bg-[#2980B9] text-white" : "bg-[#154360] text-white"
-                }`}>
-                  {getInitials(selectedUser.name)}
+            <div className="px-6 py-5 border-b border-[#E2E7EC] flex items-center justify-between bg-[#F8FAFC]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold">
+                  <Edit2 size={18} />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-[#20262E]">{selectedUser.name}</h3>
-                  <p className="text-xs text-[#57636E] font-mono mt-0.5">{selectedUser.email}</p>
+                  <h3 className="text-base font-bold text-[#20262E]">Edit Employee &amp; Permissions</h3>
+                  <p className="text-xs text-[#57636E]">{editingUser.email}</p>
                 </div>
               </div>
               <button
-                onClick={() => setShowUserModal(false)}
-                className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                onClick={() => setEditingUser(null)}
+                className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-6 space-y-5">
-              
-              {/* Access Control Box */}
-              <div className="p-4 rounded-xl border border-[#E2E7EC] bg-[#F8FAFC] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck size={18} className={(selectedUser.status || "Active").toLowerCase() === "active" ? "text-emerald-600" : "text-rose-600"} />
-                    <span className="text-xs font-bold text-[#20262E]">Login Access Status</span>
-                  </div>
-                  {(selectedUser.status || "Active").toLowerCase() === "active" ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Access Granted
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                      Access Revoked
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-xs text-[#57636E] leading-relaxed">
-                  {(selectedUser.status || "Active").toLowerCase() === "active"
-                    ? "This employee is permitted to log in with their work email and assigned password."
-                    : "This employee is blocked from logging in. Give access to allow them to sign in again."}
-                </p>
-
-                {selectedUser.email !== "harikishorereddy9908@gmail.com" && (
-                  <div className="pt-1">
-                    {(selectedUser.status || "Active").toLowerCase() === "active" ? (
-                      <button
-                        type="button"
-                        onClick={() => handleToggleAccess(selectedUser.id, false)}
-                        className="w-full py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <UserX size={14} />
-                        <span>Revoke Login Access</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleToggleAccess(selectedUser.id, true)}
-                        className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <UserCheck size={14} />
-                        <span>Give Login Access</span>
-                      </button>
-                    )}
-                  </div>
-                )}
+            {/* Form */}
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto custom-scrollbar">
+              {/* Full Name */}
+              <div>
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium"
+                />
               </div>
 
-              {/* Reset Password */}
-              <div className="p-4 rounded-xl border border-[#E2E7EC] bg-white space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <Key size={16} className="text-[#154360]" />
-                  <span className="text-xs font-bold text-[#20262E]">Set Employee Password</span>
+              {/* Role Selection */}
+              <div>
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-2">
+                  Role Assignment
+                </label>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {(["Creator", "Mentor", "Admin"] as const).map(r => (
+                    <div
+                      key={r}
+                      onClick={() => handleEditRoleChange(r)}
+                      className={`p-3 rounded-2xl border cursor-pointer transition-all ${
+                        editRole === r
+                          ? r === "Mentor" 
+                            ? "border-[#6C3483] bg-[#F4ECF7] ring-2 ring-[#6C3483]/20" 
+                            : "border-[#154360] bg-[#EBF5FB] ring-2 ring-[#154360]/20"
+                          : "border-[#E2E7EC] hover:border-slate-300 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`font-bold text-xs ${r === "Mentor" ? "text-[#5B2C6F]" : "text-[#20262E]"}`}>{r}</span>
+                        {editRole === r && <Check size={14} className={r === "Mentor" ? "text-[#6C3483]" : "text-[#154360]"} />}
+                      </div>
+                      <p className="text-[10px] text-[#57636E]">
+                        {r === "Creator" ? "Standard" : r === "Mentor" ? "Custom Navbars" : "Full Access"}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type={showEditPassword ? "text" : "password"}
-                      value={editPassword}
-                      onChange={e => setEditPassword(e.target.value)}
-                      placeholder="Enter new password"
-                      className="w-full px-3 py-2 bg-[#F5F6F8] border border-[#E2E7EC] rounded-lg text-xs text-[#20262E] pr-8 outline-none focus:border-[#154360]"
-                    />
+              </div>
+
+              {/* SIDE NAVBAR SELECTION FOR THIS EMPLOYEE */}
+              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E7EC]">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h4 className="text-xs font-bold text-[#20262E] uppercase tracking-wider">
+                      Side Navbar Access ({editAllowedNav.length} of {ALL_NAV_ITEMS.length} Enabled)
+                    </h4>
+                    <p className="text-[11px] text-[#57636E]">
+                      Customize which side navbars appear when this employee logs in.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setShowEditPassword(!showEditPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#20262E] cursor-pointer"
+                      onClick={() => setEditAllowedNav(ALL_NAV_ITEMS.map(i => i.id))}
+                      className="text-[11px] font-bold text-[#154360] hover:underline px-1 py-0.5 rounded cursor-pointer"
                     >
-                      {showEditPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                      All
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditAllowedNav(["for-you", "library", "meetings"])}
+                      className="text-[11px] font-bold text-purple-700 hover:underline px-1 py-0.5 rounded cursor-pointer"
+                    >
+                      Mentor Preset
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditAllowedNav([])}
+                      className="text-[11px] font-bold text-[#57636E] hover:underline px-1 py-0.5 rounded cursor-pointer"
+                    >
+                      Clear
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    disabled={isUpdatingPassword || !editPassword.trim()}
-                    onClick={() => handleUpdatePassword(selectedUser.id)}
-                    className="px-3.5 py-2 bg-[#154360] hover:bg-[#0E2F44] disabled:bg-slate-200 disabled:text-[#57636E] text-white text-xs font-bold rounded-lg transition-colors cursor-pointer"
-                  >
-                    {isUpdatingPassword ? "Saving..." : "Update"}
-                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  {ALL_NAV_ITEMS.map(item => {
+                    const isChecked = editAllowedNav.includes(item.id);
+                    return (
+                      <label
+                        key={item.id}
+                        onClick={() => toggleNavItem(editAllowedNav, setEditAllowedNav, item.id)}
+                        className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                          isChecked 
+                            ? "bg-white border-[#154360]/40 shadow-xs" 
+                            : "bg-transparent border-[#E2E7EC] opacity-60 hover:opacity-100"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          className="mt-0.5 w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 pointer-events-none"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-[#20262E]">
+                            {NAV_ICONS[item.id]}
+                            <span>{item.label}</span>
+                          </div>
+                          <p className="text-[10px] text-[#57636E] truncate">{item.description}</p>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Role Toggle */}
+              {/* Login Access Status */}
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#57636E] mb-2">
-                  Change Workspace Role
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-2">
+                  Login Access Status
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleChangeRole(selectedUser.id, "Admin")}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                      selectedUser.role === "Admin"
-                        ? "bg-[#154360] text-white border-[#154360] shadow-xs"
-                        : "bg-white text-[#20262E] border-[#E2E7EC] hover:bg-[#F5F6F8]"
+                <div className="grid grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setEditStatus("Active")}
+                    className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
+                      editStatus === "Active" 
+                        ? "bg-emerald-50 border-emerald-300 ring-2 ring-emerald-200" 
+                        : "bg-white border-[#E2E7EC]"
                     }`}
                   >
-                    Admin
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleChangeRole(selectedUser.id, "Creator")}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                      selectedUser.role === "Creator"
-                        ? "bg-[#154360] text-white border-[#154360] shadow-xs"
-                        : "bg-white text-[#20262E] border-[#E2E7EC] hover:bg-[#F5F6F8]"
+                    <div>
+                      <p className="text-xs font-bold text-emerald-800">Active (Access Granted)</p>
+                      <p className="text-[10px] text-[#57636E]">Employee can log in</p>
+                    </div>
+                    {editStatus === "Active" && <Check size={16} className="text-emerald-600" />}
+                  </div>
+
+                  <div
+                    onClick={() => setEditStatus("Access Revoked")}
+                    className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
+                      editStatus !== "Active" 
+                        ? "bg-rose-50 border-rose-300 ring-2 ring-rose-200" 
+                        : "bg-white border-[#E2E7EC]"
                     }`}
                   >
-                    Creator
+                    <div>
+                      <p className="text-xs font-bold text-rose-800">Access Revoked</p>
+                      <p className="text-[10px] text-[#57636E]">Login blocked</p>
+                    </div>
+                    {editStatus !== "Active" && <Check size={16} className="text-rose-600" />}
+                  </div>
+                </div>
+              </div>
+
+              {/* Password Reset */}
+              <div>
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
+                  Reset Password (Optional)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showEditPassword ? "text" : "password"}
+                    value={editPassword}
+                    onChange={e => setEditPassword(e.target.value)}
+                    placeholder="Enter new password to reset"
+                    className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#20262E] cursor-pointer"
+                  >
+                    {showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
 
-              {/* Remove User Action */}
-              {selectedUser.email !== "harikishorereddy9908@gmail.com" && (
-                <div className="pt-2 border-t border-[#E2E7EC]">
+              {/* Actions: Save & Delete */}
+              <div className="flex items-center justify-between pt-4 border-t border-[#E2E7EC]">
+                {editingUser.email !== "harikishorereddy9908@gmail.com" ? (
                   <button
-                    onClick={() => handleRemoveUser(selectedUser.id)}
-                    className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5 border border-rose-200 cursor-pointer"
+                    type="button"
+                    onClick={() => {
+                      setDeleteTargetUser(editingUser);
+                    }}
+                    className="px-3.5 py-2 text-rose-700 hover:bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Trash2 size={14} /> Remove User from Workspace
+                    <Trash2 size={14} />
+                    <span>Delete User</span>
+                  </button>
+                ) : <div />}
+
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setEditingUser(null)}
+                    className="px-4 py-2.5 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingEdit}
+                    className="px-5 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    {isSavingEdit ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        <span>Saving Changes...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={14} />
+                        <span>Save Changes</span>
+                      </>
+                    )}
                   </button>
                 </div>
-              )}
-
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 bg-[#F5F6F8] border-t border-[#E2E7EC] flex justify-end">
-              <button
-                onClick={() => setShowUserModal(false)}
-                className="px-4 py-2 bg-white border border-[#E2E7EC] hover:bg-slate-100 text-[#20262E] text-xs font-semibold rounded-xl transition-colors shadow-xs cursor-pointer"
-              >
-                Done
-              </button>
-            </div>
-
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* Floating Toast */}
-      {toastMessage && (
-        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 z-[100] border animate-in slide-in-from-bottom-5 duration-150 ${
-          toastMessage.ok 
-            ? "bg-slate-900 text-white border-slate-800" 
-            : "bg-[#154360] text-white border-[#0E2F44]"
-        }`}>
-          {toastMessage.ok ? <Check size={15} className="text-[#EBF5FB]" /> : <AlertCircle size={15} className="text-white" />}
-          <span className="text-xs font-semibold">{toastMessage.text}</span>
+      {/* ========================================================================= */}
+      {/* DELETE CONFIRMATION MODAL */}
+      {/* ========================================================================= */}
+      {deleteTargetUser && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[420px] p-6 border border-[#E2E7EC] text-center animate-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mx-auto mb-4 border border-rose-200 shadow-sm">
+              <Trash2 size={26} />
+            </div>
+            <h3 className="text-lg font-bold text-[#20262E] mb-1">Delete Employee?</h3>
+            <p className="text-xs text-[#57636E] mb-4">
+              Are you sure you want to remove <strong className="text-[#20262E] font-bold">{deleteTargetUser.name}</strong> ({deleteTargetUser.email}) from the workspace? They will permanently lose login access.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteTargetUser(null)}
+                className="px-4 py-2.5 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 size={14} />
+                <span>Yes, Delete Employee</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
-
     </div>
   );
 }

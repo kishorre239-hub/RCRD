@@ -35,6 +35,18 @@ export async function GET(req: Request) {
       users = await usersCol.find({}).limit(50).toArray();
     }
 
+    // Exclude legacy dummy or test accounts
+    users = users.filter((u) => {
+      const email = (u.email || '').toLowerCase().trim();
+      if (email === 'harikishorereddy9908@gmail.com') return true;
+      const isDummy =
+        email.includes('geonixa.com') ||
+        email.includes('@example.com') ||
+        email.includes('@meet.com') ||
+        /^(sarah|student_|mentor_|newadmin|sec_admin|reuse|test)/i.test(email);
+      return !isDummy;
+    });
+
     // Ensure the primary admin is always in the list
     const hasPrimaryAdmin = users.some(u => u.email === PRIMARY_ADMIN.email);
     if (!hasPrimaryAdmin) {

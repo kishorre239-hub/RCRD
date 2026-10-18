@@ -32,6 +32,17 @@ const DEFAULT_USERS: WorkspaceUser[] = [
 
 const LOCAL_STORAGE_KEY = "RCRD_workspace_users_list";
 
+const isDummyUserEmail = (email: string) => {
+  const e = (email || "").toLowerCase().trim();
+  if (e === "harikishorereddy9908@gmail.com") return false;
+  return (
+    e.includes("geonixa.com") ||
+    e.includes("@example.com") ||
+    e.includes("@meet.com") ||
+    /^(sarah|student_|mentor_|newadmin|sec_admin|reuse|test|audit)/i.test(e)
+  );
+};
+
 export default function UsersTab() {
   const [users, setUsers] = useState<WorkspaceUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,7 +93,8 @@ export default function UsersTab() {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          const formatted: WorkspaceUser[] = data.map((u: Record<string, unknown>, idx: number) => {
+          const cleanRemote = data.filter((u: Record<string, unknown>) => !isDummyUserEmail(String(u.email || "")));
+          const formatted: WorkspaceUser[] = cleanRemote.map((u: Record<string, unknown>, idx: number) => {
             const rawDate = u.createdAt ? new Date(Number(u.createdAt)) : new Date();
             const dateStr = !isNaN(rawDate.getTime()) 
               ? rawDate.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
@@ -103,8 +115,9 @@ export default function UsersTab() {
               hasAccess,
             };
           });
-          setUsers(formatted);
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(formatted));
+          const resultList = formatted.length > 0 ? formatted : DEFAULT_USERS;
+          setUsers(resultList);
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(resultList));
           setLoading(false);
           return;
         }
@@ -113,15 +126,19 @@ export default function UsersTab() {
       console.warn("Could not fetch remote users, checking local store:", err);
     }
 
-    // Fallback to local storage or defaults
+    // Fallback to local storage (filtering out any legacy dummy accounts) or defaults
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setUsers(parsed);
-          setLoading(false);
-          return;
+          const cleanLocal = parsed.filter((u: WorkspaceUser) => !isDummyUserEmail(u.email));
+          if (cleanLocal.length > 0) {
+            setUsers(cleanLocal);
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cleanLocal));
+            setLoading(false);
+            return;
+          }
         }
       }
     } catch {}

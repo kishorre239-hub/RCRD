@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Video, Folder,
-  Users, Shield, ChevronDown, X,
+  Users, ChevronDown, X,
   Plus, Copy, Check, Clock, FileText,
   Trash2, Calendar,
   Eye, EyeOff, Share2, Mail,
@@ -34,6 +34,30 @@ const genPwd = () => {
   return Array.from({ length: 8 }, () => c[Math.floor(Math.random() * c.length)]).join("");
 };
 const STORAGE_KEY = "rcrd_meetings";
+
+export const isDummyMeeting = (m: { id?: string; title?: string } | null | undefined): boolean => {
+  if (!m) return false;
+  const id = (m.id || "").toUpperCase().trim();
+  const title = (m.title || "").toLowerCase().trim();
+  if (
+    id === "GEO-CLASS-101" ||
+    id === "RCRD-MEET-202" ||
+    id === "REV-QA-303" ||
+    id.startsWith("GEO-CLASS") ||
+    id.startsWith("RCRD-MEET") ||
+    id.startsWith("REV-QA")
+  ) {
+    return true;
+  }
+  if (
+    title.includes("geonixa") ||
+    title.includes("interactive screen & recording workshop") ||
+    title.includes("weekly code review & mentorship")
+  ) {
+    return true;
+  }
+  return false;
+};
 
 const DURATION_PRESETS = [
   { label: "15 min", value: 15 },
@@ -140,8 +164,23 @@ export default function MeetingsPage() {
       setNow(Date.now());
       try {
         const s = localStorage.getItem(STORAGE_KEY);
-        if (s) setMeetings(JSON.parse(s));
+        if (s) {
+          const parsed = JSON.parse(s);
+          if (Array.isArray(parsed)) {
+            const clean = parsed.filter(m => !isDummyMeeting(m));
+            setMeetings(clean);
+            if (clean.length !== parsed.length) {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+            }
+          }
+        }
       } catch {}
+
+      // Proactively purge legacy dummy meetings from server
+      const dummyIds = ["GEO-CLASS-101", "RCRD-MEET-202", "REV-QA-303"];
+      dummyIds.forEach(dId => {
+        fetch(`/api/meetings?id=${encodeURIComponent(dId)}`, { method: 'DELETE' }).catch(() => {});
+      });
 
       // Auto-open Join Modal if URL contains join/id parameters
       if (typeof window !== "undefined") {
@@ -164,11 +203,12 @@ export default function MeetingsPage() {
         .then(res => res.json())
         .then(data => {
           if (data?.meetings && Array.isArray(data.meetings)) {
+            const cleanRemote = data.meetings.filter((m: Meeting) => !isDummyMeeting(m));
             setMeetings(prev => {
               const map = new Map<string, Meeting>();
-              prev.forEach(m => map.set(m.id, m));
-              data.meetings.forEach((m: Meeting) => map.set(m.id, m));
-              const merged = Array.from(map.values());
+              prev.filter(m => !isDummyMeeting(m)).forEach(m => map.set(m.id, m));
+              cleanRemote.forEach((m: Meeting) => map.set(m.id, m));
+              const merged = Array.from(map.values()).filter(m => !isDummyMeeting(m));
               localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
               return merged;
             });
@@ -438,9 +478,10 @@ export default function MeetingsPage() {
     }
   };
 
-  const upcoming = meetings.filter(m => m.status === "scheduled");
-  const live = meetings.filter(m => m.status === "live");
-  const past = meetings.filter(m => m.status === "ended");
+  const cleanMeetings = meetings.filter(m => !isDummyMeeting(m));
+  const upcoming = cleanMeetings.filter(m => m.status === "scheduled");
+  const live = cleanMeetings.filter(m => m.status === "live");
+  const past = cleanMeetings.filter(m => m.status === "ended");
 
   const filtered = (activeTab === "upcoming" ? upcoming : activeTab === "live" ? live : past).filter(m => {
     if (!searchQuery.trim()) return true;

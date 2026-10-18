@@ -122,6 +122,30 @@ export interface StoredParticipant {
   lastPing: number;
 }
 
+export function isDummyMeeting(m: { id?: string; title?: string } | null | undefined): boolean {
+  if (!m) return false;
+  const id = (m.id || '').toUpperCase().trim();
+  const title = (m.title || '').toLowerCase().trim();
+  if (
+    id === 'GEO-CLASS-101' ||
+    id === 'RCRD-MEET-202' ||
+    id === 'REV-QA-303' ||
+    id.startsWith('GEO-CLASS') ||
+    id.startsWith('RCRD-MEET') ||
+    id.startsWith('REV-QA')
+  ) {
+    return true;
+  }
+  if (
+    title.includes('geonixa') ||
+    title.includes('interactive screen & recording workshop') ||
+    title.includes('weekly code review & mentorship')
+  ) {
+    return true;
+  }
+  return false;
+}
+
 const MEETINGS_FILE = path.join(DATA_DIR, 'meetings-store.json');
 let meetingsStore: Record<string, StoredMeeting> = {};
 const participantsMemory: Record<string, Record<string, StoredParticipant>> = {};
@@ -131,6 +155,17 @@ function initMeetingsStore() {
     if (fs.existsSync(MEETINGS_FILE)) {
       const content = fs.readFileSync(MEETINGS_FILE, 'utf-8');
       meetingsStore = JSON.parse(content);
+      // Clean any dummy meetings that may exist in store
+      let hasDummy = false;
+      for (const key of Object.keys(meetingsStore)) {
+        if (isDummyMeeting(meetingsStore[key])) {
+          delete meetingsStore[key];
+          hasDummy = true;
+        }
+      }
+      if (hasDummy) {
+        persistMeetingsStore();
+      }
     }
   } catch (err) {
     console.warn('Failed to load local meetings backup store:', (err as Error)?.message);
@@ -151,14 +186,19 @@ function persistMeetingsStore() {
 initMeetingsStore();
 
 export function getAllBackupMeetings(): StoredMeeting[] {
-  return Object.values(meetingsStore);
+  return Object.values(meetingsStore).filter(m => !isDummyMeeting(m));
 }
 
 export function getBackupMeeting(id: string): StoredMeeting | null {
-  return meetingsStore[id] || null;
+  const m = meetingsStore[id] || null;
+  if (isDummyMeeting(m)) return null;
+  return m;
 }
 
 export function saveBackupMeeting(meeting: StoredMeeting): StoredMeeting {
+  if (isDummyMeeting(meeting)) {
+    return meeting;
+  }
   meetingsStore[meeting.id] = {
     ...meetingsStore[meeting.id],
     ...meeting,

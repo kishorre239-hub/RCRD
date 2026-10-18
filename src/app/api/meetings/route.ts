@@ -6,6 +6,7 @@ import {
   saveBackupMeeting,
   deleteBackupMeeting,
   StoredMeeting,
+  isDummyMeeting,
 } from '@/lib/server/localBackup';
 
 export async function GET(req: Request) {
@@ -14,11 +15,15 @@ export async function GET(req: Request) {
     const id = searchParams.get('id');
 
     if (id) {
+      if (isDummyMeeting({ id })) {
+        return NextResponse.json({ error: 'Meeting not found' }, { status: 404 });
+      }
+
       // Find single meeting
       try {
         const meetingsCol = await getCollection<StoredMeeting>('meetings');
         const dbMeeting = await meetingsCol.findOne({ id });
-        if (dbMeeting) {
+        if (dbMeeting && !isDummyMeeting(dbMeeting)) {
           saveBackupMeeting(dbMeeting);
           return NextResponse.json({ success: true, meeting: dbMeeting });
         }
@@ -27,19 +32,36 @@ export async function GET(req: Request) {
       }
 
       const backup = getBackupMeeting(id);
-      if (backup) {
+      if (backup && !isDummyMeeting(backup)) {
         return NextResponse.json({ success: true, meeting: backup });
       }
       return NextResponse.json({ error: 'Meeting not found' }, { status: 404 });
     }
 
-    // Return all meetings
+    // Proactively purge legacy dummy meetings from database & local backup
+    const dummyIds = ['GEO-CLASS-101', 'RCRD-MEET-202', 'REV-QA-303'];
+    dummyIds.forEach(dId => deleteBackupMeeting(dId));
+
+    try {
+      const meetingsCol = await getCollection<StoredMeeting>('meetings');
+      await meetingsCol.deleteMany({
+        $or: [
+          { id: { $in: dummyIds } },
+          { id: { $regex: '^(GEO-CLASS|RCRD-MEET|REV-QA)', $options: 'i' } },
+          { title: { $regex: 'geonixa|interactive screen & recording workshop|weekly code review', $options: 'i' } },
+        ],
+      });
+    } catch {
+      // ignore
+    }
+
+    // Return all valid meetings
     let meetings: StoredMeeting[] = [];
     try {
       const meetingsCol = await getCollection<StoredMeeting>('meetings');
       meetings = await meetingsCol.find({}).sort({ scheduledAt: -1 }).toArray();
       // Sync to backup
-      meetings.forEach(m => saveBackupMeeting(m));
+      meetings.filter(m => !isDummyMeeting(m)).forEach(m => saveBackupMeeting(m));
     } catch (dbErr) {
       console.warn('MongoDB fetch meetings note:', (dbErr as Error)?.message);
       meetings = getAllBackupMeetings();
@@ -49,7 +71,9 @@ export async function GET(req: Request) {
       meetings = getAllBackupMeetings();
     }
 
-    return NextResponse.json({ success: true, meetings });
+    const cleanMeetings = meetings.filter(m => !isDummyMeeting(m));
+
+    return NextResponse.json({ success: true, meetings: cleanMeetings });
   } catch (error) {
     console.error('Error fetching meetings:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -63,6 +87,10 @@ export async function POST(req: Request) {
 
     if (!id || !title) {
       return NextResponse.json({ error: 'id and title are required' }, { status: 400 });
+    }
+
+    if (isDummyMeeting({ id, title })) {
+      return NextResponse.json({ error: 'Cannot create dummy meeting' }, { status: 400 });
     }
 
     const meetingData: StoredMeeting = {

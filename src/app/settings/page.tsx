@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { 
   ExternalLink, 
   ChevronDown, Info, Download, Globe, HardDrive,
-  Shield, Share2, Bell, Cloud, Check, X
+  Share2, Bell, Cloud, Check, X
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, SettingsIcon,

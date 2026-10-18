@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Video, Folder, Plus, MoreVertical, MoreHorizontal,
-  Share2, Shield,
+  Share2,
   ChevronDown, MessageSquare, Eye, Link as LinkIcon,
   Pin, Globe, Lock, ArrowLeft,
   RefreshCw, X, Upload, Check, Cloud

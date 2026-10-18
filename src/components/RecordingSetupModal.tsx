@@ -661,7 +661,7 @@ export default function RecordingSetupModal({
   }, [stopRecording, togglePause]);
 
   // Skip countdown immediately and start recording
-  const skipCountdown = (recorderInstance?: MediaRecorder | null) => {
+  const skipCountdown = useCallback((recorderInstance?: MediaRecorder | null) => {
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
@@ -694,7 +694,7 @@ export default function RecordingSetupModal({
     } else if (rec && rec.state === 'recording') {
       setPhase('recording');
     }
-  };
+  }, [openPipController]);
 
   // Sync timer & state into Document Picture-in-Picture window
   useEffect(() => {

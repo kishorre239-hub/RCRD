@@ -47,16 +47,15 @@ function JoinMeetingContent() {
   const [joining, setJoining] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [now, setNow] = useState<number>(0);
+  const [now, setNow] = useState<number>(() => Date.now());
 
   // Clock tick for countdown
   useEffect(() => {
-    setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch meeting details
+  // Fetch meeting details for retries or manual trigger
   const fetchMeetingInfo = useCallback(async () => {
     if (!meetingId) return;
     setLoadingMeeting(true);
@@ -70,35 +69,33 @@ function JoinMeetingContent() {
         const data = await res.json();
         if (data?.meeting) {
           setMeeting(data.meeting);
-          // If server returns password and no password was in url, keep it ready
-          if (data.meeting.password && !password && !initialPwd) {
-            // Keep empty or leave for user to enter
-          }
           setLoadingMeeting(false);
           return;
         }
       }
 
       // 2. Fallback to localStorage
-      const localStr = localStorage.getItem("rcrd_meetings");
-      if (localStr) {
-        const all: MeetingData[] = JSON.parse(localStr);
-        const found = all.find(m => m.id === meetingId);
-        if (found) {
-          setMeeting(found);
-          setLoadingMeeting(false);
-          return;
+      if (typeof window !== "undefined") {
+        const localStr = localStorage.getItem("rcrd_meetings");
+        if (localStr) {
+          const all: MeetingData[] = JSON.parse(localStr);
+          const found = all.find(m => m.id === meetingId);
+          if (found) {
+            setMeeting(found);
+            setLoadingMeeting(false);
+            return;
+          }
         }
-      }
 
-      // 3. Fallback to sessionStorage
-      const sessionStr = sessionStorage.getItem(`meeting_${meetingId}`);
-      if (sessionStr) {
-        const found = JSON.parse(sessionStr);
-        if (found) {
-          setMeeting(found);
-          setLoadingMeeting(false);
-          return;
+        // 3. Fallback to sessionStorage
+        const sessionStr = sessionStorage.getItem(`meeting_${meetingId}`);
+        if (sessionStr) {
+          const found = JSON.parse(sessionStr);
+          if (found) {
+            setMeeting(found);
+            setLoadingMeeting(false);
+            return;
+          }
         }
       }
 
@@ -109,11 +106,66 @@ function JoinMeetingContent() {
     } finally {
       setLoadingMeeting(false);
     }
-  }, [meetingId, password, initialPwd]);
+  }, [meetingId]);
 
+  // Initial load asynchronously to avoid cascading synchronous setState in effect
   useEffect(() => {
-    fetchMeetingInfo();
-  }, [fetchMeetingInfo]);
+    let active = true;
+    const loadMeeting = async () => {
+      if (!meetingId) return;
+      try {
+        const res = await fetch(`/api/meetings?id=${encodeURIComponent(meetingId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (active && data?.meeting) {
+            setMeeting(data.meeting);
+            setLoadingMeeting(false);
+            return;
+          }
+        }
+
+        if (typeof window !== "undefined") {
+          const localStr = localStorage.getItem("rcrd_meetings");
+          if (localStr) {
+            const all: MeetingData[] = JSON.parse(localStr);
+            const found = all.find(m => m.id === meetingId);
+            if (active && found) {
+              setMeeting(found);
+              setLoadingMeeting(false);
+              return;
+            }
+          }
+
+          const sessionStr = sessionStorage.getItem(`meeting_${meetingId}`);
+          if (sessionStr) {
+            const found = JSON.parse(sessionStr);
+            if (active && found) {
+              setMeeting(found);
+              setLoadingMeeting(false);
+              return;
+            }
+          }
+        }
+
+        if (active) {
+          setMeetingNotFound(true);
+        }
+      } catch {
+        if (active) {
+          setMeetingNotFound(true);
+        }
+      } finally {
+        if (active) {
+          setLoadingMeeting(false);
+        }
+      }
+    };
+
+    loadMeeting();
+    return () => {
+      active = false;
+    };
+  }, [meetingId]);
 
   const fmtDate = (iso?: string) => {
     if (!iso) return "";

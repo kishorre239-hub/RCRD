@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
-import { getBackupMeeting, saveBackupMeeting, StoredMeeting } from '@/lib/server/localBackup';
+import { getBackupMeeting, saveBackupMeeting, StoredMeeting, isDummyMeeting } from '@/lib/server/localBackup';
 
 export async function POST(
   req: Request,
@@ -11,8 +11,8 @@ export async function POST(
     const body = await req.json();
     const { password } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: 'Meeting ID is required' }, { status: 400 });
+    if (!id || isDummyMeeting({ id })) {
+      return NextResponse.json({ error: 'Meeting ID not found.' }, { status: 404 });
     }
 
     let meeting: StoredMeeting | null = null;

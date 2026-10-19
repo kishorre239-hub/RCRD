@@ -184,6 +184,9 @@ export default function ClassRoomPage() {
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "done" | "error">("idle");
   const [uploadErrorMsg, setUploadErrorMsg] = useState<string>("");
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [isEndingAndSaving, setIsEndingAndSaving] = useState(false);
+  const [endingSaveStatus, setEndingSaveStatus] = useState<string>("");
+  const [endingProgress, setEndingProgress] = useState(0);
 
   // Streams & Devices
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
@@ -949,7 +952,7 @@ export default function ClassRoomPage() {
               const incomingTime = data?.updatedAt || 0;
               if (!data?.active) {
                 lastScreenShareTimestampRef.current = incomingTime;
-                setRemoteScreenShare({ active: false, updatedAt: incomingTime });
+                setRemoteScreenShare({ active: false, streamFrame: undefined, updatedAt: incomingTime });
                 setRemoteWebRTCStream(null);
               } else if (incomingTime >= lastScreenShareTimestampRef.current) {
                 lastScreenShareTimestampRef.current = incomingTime;
@@ -964,11 +967,11 @@ export default function ClassRoomPage() {
           } else if (type === "WHITEBOARD") {
             setRemoteWhiteboard(data);
             if (!isMentor) {
-              if (data.active !== undefined) setShowWhiteboard(data.active);
-              if (data.slides) setSlides(data.slides);
-              if (data.currentSlide !== undefined) setCurrentSlideIndex(data.currentSlide - 1);
-              if (data.notepadText !== undefined) setNotepadText(data.notepadText);
-              if (data.mode) setWhiteboardMode(data.mode);
+              setShowWhiteboard(Boolean(data?.active));
+              if (data?.slides) setSlides(data.slides);
+              if (data?.currentSlide !== undefined) setCurrentSlideIndex(data.currentSlide - 1);
+              if (data?.notepadText !== undefined) setNotepadText(data.notepadText);
+              if (data?.mode) setWhiteboardMode(data.mode);
             }
           } else if (type === "CHAT_MSG") {
             setChatMessages(prev => {
@@ -1076,7 +1079,7 @@ export default function ClassRoomPage() {
             const incomingTime = data.screenShare.updatedAt || 0;
             if (!data.screenShare.active) {
               lastScreenShareTimestampRef.current = incomingTime;
-              setRemoteScreenShare({ active: false, updatedAt: incomingTime });
+              setRemoteScreenShare({ active: false, streamFrame: undefined, updatedAt: incomingTime });
               setRemoteWebRTCStream(null);
             } else {
               lastScreenShareTimestampRef.current = incomingTime;
@@ -1094,7 +1097,7 @@ export default function ClassRoomPage() {
           if (data.whiteboard) {
             setRemoteWhiteboard(data.whiteboard);
             if (!isMentor) {
-              if (data.whiteboard.active !== undefined) setShowWhiteboard(data.whiteboard.active);
+              setShowWhiteboard(Boolean(data.whiteboard.active));
               if (data.whiteboard.slides) setSlides(data.whiteboard.slides);
               if (data.whiteboard.currentSlide !== undefined) setCurrentSlideIndex(data.whiteboard.currentSlide - 1);
               if (data.whiteboard.notepadText !== undefined) setNotepadText(data.whiteboard.notepadText);
@@ -1139,7 +1142,7 @@ export default function ClassRoomPage() {
     };
 
     pollState();
-    const interval = setInterval(pollState, 280);
+    const interval = setInterval(pollState, 380);
 
     return () => {
       clearInterval(interval);
@@ -1213,7 +1216,7 @@ export default function ClassRoomPage() {
       }
     };
 
-    const interval = setInterval(broadcastFrame, 240);
+    const interval = setInterval(broadcastFrame, 360);
     broadcastFrame();
 
     return () => {
@@ -1539,16 +1542,38 @@ export default function ClassRoomPage() {
     }
   };
 
-  // Render remote whiteboard onto student canvas
+  // Render remote whiteboard onto student canvas with aspect-ratio containment (no distortion on vertical or horizontal phones!)
   useEffect(() => {
-    if (!isMentor && remoteWhiteboard.active && remoteWhiteboard.canvasData && canvasRef.current) {
+    if (!isMentor && canvasRef.current) {
+      const ctx = canvasRef.current.getContext("2d");
+      if (!ctx) return;
+      if (!remoteWhiteboard.active || !remoteWhiteboard.canvasData) {
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        return;
+      }
       const img = new Image();
       img.onload = () => {
-        const ctx = canvasRef.current?.getContext("2d");
-        if (ctx && canvasRef.current) {
-          ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-          ctx.drawImage(img, 0, 0, canvasRef.current.width, canvasRef.current.height);
-        }
+        if (!canvasRef.current) return;
+        const c = canvasRef.current;
+        const currentCtx = c.getContext("2d");
+        if (!currentCtx) return;
+        const cw = c.width;
+        const ch = c.height;
+        currentCtx.fillStyle = "#FFFFFF";
+        currentCtx.fillRect(0, 0, cw, ch);
+
+        const imgW = img.width || 1280;
+        const imgH = img.height || 720;
+        const scale = Math.min(cw / imgW, ch / imgH);
+        const dw = imgW * scale;
+        const dh = imgH * scale;
+        const dx = (cw - dw) / 2;
+        const dy = (ch - dh) / 2;
+
+        currentCtx.imageSmoothingEnabled = true;
+        currentCtx.imageSmoothingQuality = "high";
+        currentCtx.drawImage(img, dx, dy, dw, dh);
       };
       img.src = remoteWhiteboard.canvasData;
     }
@@ -1665,6 +1690,8 @@ export default function ClassRoomPage() {
 
   const stopScreenShare = useCallback(() => {
     screenStream?.getTracks().forEach(t => t.stop());
+    screenStreamRef.current?.getTracks().forEach(t => t.stop());
+    screenStreamRef.current = null;
     setScreenStream(null);
     peerConnectionsRef.current.forEach((pc) => {
       const sender = pc.getSenders().find(s => s.track?.kind === "video");
@@ -1672,8 +1699,30 @@ export default function ClassRoomPage() {
         sender.replaceTrack(null).catch(() => {});
       }
     });
+
+    // Broadcast screen share stopped to students immediately
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
+        bc.postMessage({
+          type: "SCREEN_SHARE",
+          data: { active: false, presenterName: displayName, streamFrame: undefined, updatedAt: Date.now() },
+        });
+        bc.close();
+      }
+    } catch {}
+
+    // Clear server state so student pollers immediately clear screen share
+    fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        screenShare: { active: false, streamFrame: undefined, updatedAt: Date.now() },
+      }),
+    }).catch(() => {});
+
     showToast("Screen share stopped. Meeting is still active.");
-  }, [screenStream, showToast, setScreenStream]);
+  }, [screenStream, showToast, setScreenStream, roomId, displayName]);
 
   // ── Screen Share ─────────────────────────────────────────────────
   const startScreenShare = async () => {
@@ -1984,10 +2033,14 @@ export default function ClassRoomPage() {
     }
   }, [showToast, meeting?.title, meeting?.courseId, roomId, setRecState, setRecBlob, setUploadTitle, setUploadCourse, setShowUpload, setRecTimer]);
 
-  const startRecording = () => {
-    if (!screenStream) {
-      showToast("Share your screen first, then click Record.", false);
-      return;
+  const startRecording = async () => {
+    if (!screenStream && !screenStreamRef.current) {
+      try {
+        await startScreenShare();
+      } catch {
+        showToast("Share your screen or whiteboard first, then click Record.", false);
+        return;
+      }
     }
     setCountdown(3);
     setRecState("countdown");
@@ -1999,8 +2052,10 @@ export default function ClassRoomPage() {
       const t = setTimeout(() => setCountdown(c => c - 1), 1000);
       return () => clearTimeout(t);
     }
-    const tracks: MediaStreamTrack[] = [...(screenStream?.getTracks() || [])];
-    if (cameraStream) cameraStream.getVideoTracks().forEach(t => tracks.push(t));
+    const currentShare = screenStream || screenStreamRef.current;
+    const currentCam = cameraStream || cameraStreamRef.current;
+    const tracks: MediaStreamTrack[] = [...(currentShare?.getTracks() || [])];
+    if (currentCam) currentCam.getVideoTracks().forEach(t => tracks.push(t));
     const getMic = micOn
       ? navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } })
           .then(a => a.getAudioTracks().forEach(t => tracks.push(t)))
@@ -2075,15 +2130,7 @@ export default function ClassRoomPage() {
     }
   };
 
-  const endClass = () => {
-    if (recState === "recording" || recState === "paused") {
-      try {
-        stopRecording();
-      } catch {}
-    }
-    screenStream?.getTracks().forEach(t => t.stop());
-    cameraStream?.getTracks().forEach(t => t.stop());
-
+  const endClass = async () => {
     // STUDENTS: Leave cleanly and redirect immediately to Geonixa (never admin dashboard)
     if (!isMentor) {
       try {
@@ -2095,10 +2142,96 @@ export default function ClassRoomPage() {
       return;
     }
 
-    // MENTOR / HOST: End meeting for everyone, broadcast, and stay on current project (/meetings)
+    // MENTOR / HOST: Check if there is an ongoing recording or pending un-uploaded recording blob
+    const isRecordingNow = recState === "recording" || recState === "paused";
+    if (isRecordingNow || (recBlob && uploadState !== "done")) {
+      setIsEndingAndSaving(true);
+      setEndingSaveStatus("Finalizing class recording...");
+      setEndingProgress(10);
+
+      let videoBlobToUpload = recBlob;
+
+      if (isRecordingNow && mediaRecRef.current && mediaRecRef.current.state !== "inactive") {
+        try {
+          if (timerRef.current) clearInterval(timerRef.current);
+          videoBlobToUpload = await new Promise<Blob>((resolve) => {
+            if (!mediaRecRef.current) {
+              resolve(new Blob(chunksRef.current, { type: "video/webm" }));
+              return;
+            }
+            mediaRecRef.current.onstop = () => {
+              const b = new Blob(chunksRef.current, { type: "video/webm" });
+              setRecBlob(b);
+              setRecState("stopped");
+              resolve(b);
+            };
+            try {
+              mediaRecRef.current.stop();
+            } catch {
+              resolve(new Blob(chunksRef.current, { type: "video/webm" }));
+            }
+          });
+        } catch (e) {
+          console.warn("Error finalizing recording blob on meeting end:", e);
+        }
+      }
+
+      // If we have a blob, upload it to the selected Google Drive folder!
+      if (videoBlobToUpload && videoBlobToUpload.size > 0) {
+        setEndingSaveStatus("Uploading recording to your Google Drive course folder...");
+        try {
+          const d = new Date();
+          const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+          const vidTitle = uploadTitle.trim() || `Class Recording - ${meeting?.title || roomId} · ${dateStr} (${timeStr})`;
+          const targetFolder = uploadCourse || meeting?.courseId || (courses.length > 0 ? courses[0].id : "");
+          const selectedCourse = courses.find(c => c.id === targetFolder);
+          const folderName = selectedCourse ? selectedCourse.name : (courses.length > 0 ? courses[0].name : "Class Recordings");
+
+          try {
+            await uploadVideo(videoBlobToUpload, targetFolder, p => setEndingProgress(p), vidTitle, {
+              isMeeting: true,
+              folderName,
+            });
+          } catch (uploadErr) {
+            console.warn("Direct resumable upload error on meeting end, attempting fallback:", uploadErr);
+            const fd = new FormData();
+            fd.append('file', videoBlobToUpload, `${vidTitle}.webm`);
+            fd.append('title', vidTitle);
+            if (targetFolder) fd.append('courseId', targetFolder);
+            if (folderName) fd.append('folderName', folderName);
+            fd.append('isMeeting', 'true');
+            const token = await ensureValidAuthToken();
+            const fallbackRes = await fetch('/api/videos/upload', {
+              method: 'POST',
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+              body: fd,
+            });
+            if (!fallbackRes.ok) {
+              throw uploadErr;
+            }
+          }
+          setEndingProgress(100);
+          setEndingSaveStatus(`Successfully saved to Google Drive (${folderName || "Drive"})!`);
+          await new Promise(r => setTimeout(r, 1200));
+        } catch (err: unknown) {
+          const error = err as Error;
+          console.error("Auto-save recording on end meeting failed:", error);
+          setEndingSaveStatus("Saving to Google Drive failed: " + (error?.message || "Unknown error"));
+          showToast("Failed to save recording to Google Drive. Check connection.", false);
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
+    }
+
+    screenStream?.getTracks().forEach(t => t.stop());
+    cameraStream?.getTracks().forEach(t => t.stop());
+    screenStreamRef.current?.getTracks().forEach(t => t.stop());
+    cameraStreamRef.current?.getTracks().forEach(t => t.stop());
+
     const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all.map((m: Meeting) => m.id === roomId ? { ...m, status: "ended" } : m)));
-    
+
     // Broadcast meeting ended to student devices immediately
     try {
       const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
@@ -2117,7 +2250,7 @@ export default function ClassRoomPage() {
     fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'ended' }),
+      body: JSON.stringify({ status: 'ended', screenShare: { active: false }, whiteboard: { active: false } }),
     }).catch(() => {});
 
     router.push("/meetings");
@@ -2327,7 +2460,7 @@ export default function ClassRoomPage() {
   const isRemoteSharing = !isLocalSharing && !!remoteScreenShare?.active && (!!remoteScreenShare?.streamFrame || !!remoteWebRTCStream);
   const isAnyScreenSharing = isLocalSharing || isRemoteSharing;
   const isSharing = isAnyScreenSharing;
-  const isWhiteboardActive = showWhiteboard || (!isMentor && Boolean(remoteWhiteboard?.active));
+  const isWhiteboardActive = isMentor ? showWhiteboard : Boolean(remoteWhiteboard?.active);
 
   useEffect(() => {
     if (!isWhiteboardActive) return;
@@ -2347,12 +2480,33 @@ export default function ClassRoomPage() {
             canvasRef.current.height = parent.clientHeight;
             const ctx = canvasRef.current.getContext("2d");
             if (ctx) {
+              const cw = canvasRef.current.width;
+              const ch = canvasRef.current.height;
               ctx.fillStyle = "#FFFFFF";
-              ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+              ctx.fillRect(0, 0, cw, ch);
               if (prevData) {
                 const img = new Image();
                 img.onload = () => {
-                  ctx.drawImage(img, 0, 0, canvasRef.current!.width, canvasRef.current!.height);
+                  if (!canvasRef.current) return;
+                  const c = canvasRef.current;
+                  const currentCtx = c.getContext("2d");
+                  if (!currentCtx) return;
+                  const currentW = c.width;
+                  const currentH = c.height;
+                  currentCtx.fillStyle = "#FFFFFF";
+                  currentCtx.fillRect(0, 0, currentW, currentH);
+
+                  const imgW = img.width || 1280;
+                  const imgH = img.height || 720;
+                  const scale = Math.min(currentW / imgW, currentH / imgH);
+                  const dw = imgW * scale;
+                  const dh = imgH * scale;
+                  const dx = (currentW - dw) / 2;
+                  const dy = (currentH - dh) / 2;
+
+                  currentCtx.imageSmoothingEnabled = true;
+                  currentCtx.imageSmoothingQuality = "high";
+                  currentCtx.drawImage(img, dx, dy, dw, dh);
                 };
                 img.src = prevData;
               } else {
@@ -3465,6 +3619,66 @@ export default function ClassRoomPage() {
             </span>
           </button>
 
+          {/* 2b. RECORD / STOP RECORDING (Host / Mentor Only - Outside More) */}
+          {isMentor && (
+            <button
+              onClick={() => {
+                if (recState === "idle" || recState === "stopped") {
+                  startRecording();
+                } else if (recState === "recording" || recState === "paused") {
+                  stopRecording();
+                }
+              }}
+              className="flex flex-col items-center justify-center gap-1 min-w-[54px] sm:min-w-[68px] py-1 text-zinc-300 hover:text-white transition-colors cursor-pointer group"
+              title={
+                recState === "recording"
+                  ? "Stop Recording"
+                  : recState === "paused"
+                  ? "Stop Recording"
+                  : recState === "countdown"
+                  ? "Starting..."
+                  : "Start Recording"
+              }
+            >
+              <div className="relative flex items-center justify-center">
+                {recState === "recording" ? (
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-rose-600/20 border border-rose-500/60 flex items-center justify-center animate-pulse">
+                    <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 bg-rose-500 rounded-xs shadow-md" />
+                  </div>
+                ) : recState === "paused" ? (
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-600/20 border border-amber-500/60 flex items-center justify-center">
+                    <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 bg-amber-500 rounded-xs" />
+                  </div>
+                ) : recState === "countdown" ? (
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-rose-600/30 flex items-center justify-center text-xs font-bold text-rose-400">
+                    {countdown}
+                  </div>
+                ) : (
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-zinc-800/90 group-hover:bg-zinc-700 flex items-center justify-center border border-zinc-700/60 transition-colors">
+                    <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-rose-500 shadow-sm" />
+                  </div>
+                )}
+              </div>
+              <span
+                className={`text-[10px] sm:text-[11px] font-medium leading-none ${
+                  recState === "recording"
+                    ? "text-rose-400 font-bold"
+                    : recState === "paused"
+                    ? "text-amber-400 font-bold"
+                    : "text-zinc-300"
+                }`}
+              >
+                {recState === "recording"
+                  ? "Stop REC"
+                  : recState === "paused"
+                  ? "Stop REC"
+                  : recState === "countdown"
+                  ? `${countdown}s`
+                  : "Record"}
+              </span>
+            </button>
+          )}
+
           {/* 3. CHAT */}
           <button
             onClick={() => setShowChatSheet(true)}
@@ -3756,12 +3970,12 @@ export default function ClassRoomPage() {
                 </span>
               </button>
 
-              {/* Feature 4: Record Meeting (Mentor) */}
+              {/* Feature 4: Record / Pause Meeting (Mentor) */}
               {isMentor && (
                 <button
                   onClick={() => {
                     setShowMoreSheet(false);
-                    if (recState === "idle") startRecording();
+                    if (recState === "idle" || recState === "stopped") startRecording();
                     else if (recState === "recording") pauseRecording();
                     else if (recState === "paused") resumeRecording();
                   }}
@@ -3772,6 +3986,24 @@ export default function ClassRoomPage() {
                   </div>
                   <span className="text-[11px] font-semibold text-zinc-200">
                     {recState === "recording" ? "Pause REC" : recState === "paused" ? "Resume REC" : "Record"}
+                  </span>
+                </button>
+              )}
+
+              {/* Feature 4b: Stop Recording (Mentor) */}
+              {isMentor && (recState === "recording" || recState === "paused") && (
+                <button
+                  onClick={() => {
+                    setShowMoreSheet(false);
+                    stopRecording();
+                  }}
+                  className="flex flex-col items-center justify-center p-3 rounded-2xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 text-center gap-2 transition-all cursor-pointer"
+                >
+                  <div className="p-2 rounded-xl bg-rose-600 text-white">
+                    <div className="w-5 h-5 bg-white rounded-xs" />
+                  </div>
+                  <span className="text-[11px] font-semibold text-rose-300">
+                    Stop recording
                   </span>
                 </button>
               )}
@@ -4492,6 +4724,44 @@ export default function ClassRoomPage() {
         <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 z-[200] max-w-sm ${toast.ok ? "bg-white border border-[#E2E7EC] text-[#20262E]" : "bg-rose-50 border border-rose-200 text-rose-800"}`}>
           <span className="text-sm font-semibold">{toast.msg}</span>
           <button onClick={() => setToast(null)} className="p-0.5 hover:bg-slate-100 rounded-lg shrink-0 text-[#57636E]"><X size={14} /></button>
+        </div>
+      )}
+
+      {/* ─── SAVING RECORDING MODAL (ON END MEETING) ─── */}
+      {isEndingAndSaving && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[300] flex items-center justify-center p-4">
+          <div className="bg-white border border-[#E2E7EC] rounded-3xl shadow-2xl w-full max-w-md p-6 text-center space-y-5 animate-in zoom-in-95 duration-200 text-[#20262E]">
+            <div className="w-16 h-16 rounded-2xl bg-[#EBF5FB] border border-[#154360]/20 flex items-center justify-center mx-auto text-[#154360]">
+              {endingProgress >= 100 ? (
+                <Check size={32} className="text-emerald-600" />
+              ) : (
+                <Loader2 size={32} className="animate-spin text-[#154360]" />
+              )}
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-[#20262E]">
+                {endingProgress >= 100 ? "Recording Saved to Google Drive!" : "Saving Class Recording"}
+              </h3>
+              <p className="text-xs text-[#57636E] mt-1 font-medium">
+                {endingSaveStatus || "Uploading lecture video to your selected course folder..."}
+              </p>
+            </div>
+
+            <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200">
+              <div
+                className="bg-[#154360] h-full rounded-full transition-all duration-300"
+                style={{ width: `${Math.min(100, Math.max(5, endingProgress))}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-[11px] font-bold text-[#57636E]">
+              <span>Google Drive Cloud Sync</span>
+              <span className="text-[#154360]">{endingProgress}%</span>
+            </div>
+
+            <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">
+              ⚠️ Please keep this page open until the recording finishes saving.
+            </p>
+          </div>
         </div>
       )}
     </div>

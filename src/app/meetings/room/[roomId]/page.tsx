@@ -298,6 +298,9 @@ export default function ClassRoomPage() {
   // Video Element Refs
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const cameraVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteScreenVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [remoteWebRTCStream, setRemoteWebRTCStream] = useState<MediaStream | null>(null);
+  const lastScreenShareTimestampRef = useRef<number>(0);
 
   useEffect(() => {
     const t = setTimeout(() => setNow(Date.now()), 0);
@@ -317,6 +320,16 @@ export default function ClassRoomPage() {
       }
     }
   }, [screenStream]);
+
+  // Safely connect remoteWebRTCStream to student video element
+  useEffect(() => {
+    if (remoteScreenVideoRef.current) {
+      remoteScreenVideoRef.current.srcObject = remoteWebRTCStream;
+      if (remoteWebRTCStream) {
+        remoteScreenVideoRef.current.play().catch(() => {});
+      }
+    }
+  }, [remoteWebRTCStream]);
 
   // Safely connect cameraStream to video element
   useEffect(() => {
@@ -388,7 +401,7 @@ export default function ClassRoomPage() {
     }).catch(() => {});
   }, [roomId, myParticipantId]);
 
-  // Handle incoming WebRTC audio signals (offers, answers, ICE candidates)
+  // Handle incoming WebRTC audio & video signals (offers, answers, ICE candidates)
   const handleWebRTCSignal = useCallback(async (sig: { from: string; to: string; type: 'offer' | 'answer' | 'candidate'; payload: any }) => {
     if (!sig || sig.from === myParticipantId) return;
     const isForMe = sig.to === myParticipantId || (isMentor && sig.to === "host") || sig.to === "all";
@@ -409,18 +422,33 @@ export default function ClassRoomPage() {
           });
         }
 
-        // Handle receiving remote audio
+        // Attach host screen stream if host is sharing screen
+        if (isMentor && screenStreamRef.current) {
+          screenStreamRef.current.getVideoTracks().forEach((track) => {
+            pc!.addTrack(track, screenStreamRef.current!);
+          });
+        }
+
+        // Handle receiving remote tracks (audio or video screen share)
         pc.ontrack = (event) => {
-          let audio = remoteAudiosRef.current.get(targetId);
-          if (!audio) {
-            audio = new Audio();
-            audio.autoplay = true;
-            audio.setAttribute('playsinline', 'true');
-            remoteAudiosRef.current.set(targetId, audio);
+          if (event.track.kind === "video") {
+            const stream = event.streams[0] || new MediaStream([event.track]);
+            setRemoteWebRTCStream(stream);
+            event.track.onended = () => {
+              setRemoteWebRTCStream(null);
+            };
+          } else if (event.track.kind === "audio") {
+            let audio = remoteAudiosRef.current.get(targetId);
+            if (!audio) {
+              audio = new Audio();
+              audio.autoplay = true;
+              audio.setAttribute('playsinline', 'true');
+              remoteAudiosRef.current.set(targetId, audio);
+            }
+            audio.srcObject = event.streams[0] || new MediaStream([event.track]);
+            audio.muted = speakerMuted;
+            audio.play().catch(() => {});
           }
-          audio.srcObject = event.streams[0];
-          audio.muted = speakerMuted;
-          audio.play().catch(() => {});
         };
 
         pc.onicecandidate = (event) => {
@@ -428,6 +456,21 @@ export default function ClassRoomPage() {
             sendSignal(targetId, "candidate", event.candidate);
           }
         };
+      } else {
+        // If pc already exists and host is sharing screen, ensure video track is attached
+        if (isMentor && screenStreamRef.current) {
+          const vTrack = screenStreamRef.current.getVideoTracks()[0];
+          if (vTrack) {
+            const sender = pc.getSenders().find(s => s.track?.kind === "video");
+            if (sender) {
+              sender.replaceTrack(vTrack).catch(() => {});
+            } else {
+              try {
+                pc.addTrack(vTrack, screenStreamRef.current);
+              } catch {}
+            }
+          }
+        }
       }
 
       try {
@@ -457,7 +500,7 @@ export default function ClassRoomPage() {
     }
   }, [myParticipantId, isMentor, speakerMuted, sendSignal]);
 
-  // Student initiates audio connection to Host
+  // Student initiates audio and video connection to Host
   const initiateAudioCallToHost = useCallback(async () => {
     if (isMentor || !roomId) return;
     let pc = peerConnectionsRef.current.get("host");
@@ -472,16 +515,24 @@ export default function ClassRoomPage() {
       }
 
       pc.ontrack = (event) => {
-        let audio = remoteAudiosRef.current.get("host");
-        if (!audio) {
-          audio = new Audio();
-          audio.autoplay = true;
-          audio.setAttribute('playsinline', 'true');
-          remoteAudiosRef.current.set("host", audio);
+        if (event.track.kind === "video") {
+          const stream = event.streams[0] || new MediaStream([event.track]);
+          setRemoteWebRTCStream(stream);
+          event.track.onended = () => {
+            setRemoteWebRTCStream(null);
+          };
+        } else if (event.track.kind === "audio") {
+          let audio = remoteAudiosRef.current.get("host");
+          if (!audio) {
+            audio = new Audio();
+            audio.autoplay = true;
+            audio.setAttribute('playsinline', 'true');
+            remoteAudiosRef.current.set("host", audio);
+          }
+          audio.srcObject = event.streams[0] || new MediaStream([event.track]);
+          audio.muted = speakerMuted;
+          audio.play().catch(() => {});
         }
-        audio.srcObject = event.streams[0];
-        audio.muted = speakerMuted;
-        audio.play().catch(() => {});
       };
 
       pc.onicecandidate = (event) => {
@@ -492,11 +543,11 @@ export default function ClassRoomPage() {
     }
 
     try {
-      const offer = await pc.createOffer({ offerToReceiveAudio: true });
+      const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
       await pc.setLocalDescription(offer);
       sendSignal("host", "offer", offer);
     } catch (err) {
-      console.warn("Error initiating audio call to host:", err);
+      console.warn("Error initiating audio/video call to host:", err);
     }
   }, [isMentor, roomId, speakerMuted, sendSignal]);
 
@@ -802,7 +853,22 @@ export default function ClassRoomPage() {
               }
             }
           } else if (type === "SCREEN_SHARE") {
-            setRemoteScreenShare(data);
+            if (!screenStream) {
+              const incomingTime = data?.updatedAt || 0;
+              if (!data?.active) {
+                lastScreenShareTimestampRef.current = incomingTime;
+                setRemoteScreenShare({ active: false, updatedAt: incomingTime });
+                setRemoteWebRTCStream(null);
+              } else if (incomingTime >= lastScreenShareTimestampRef.current) {
+                lastScreenShareTimestampRef.current = incomingTime;
+                setRemoteScreenShare(prev => {
+                  if (!data.streamFrame && prev?.streamFrame) {
+                    return { ...data, streamFrame: prev.streamFrame };
+                  }
+                  return data;
+                });
+              }
+            }
           } else if (type === "WHITEBOARD") {
             setRemoteWhiteboard(data);
             if (!isMentor) {
@@ -850,9 +916,14 @@ export default function ClassRoomPage() {
       }, 800);
     }
 
+    let pollInFlight = false;
     const pollState = async () => {
+      if (pollInFlight) return;
+      pollInFlight = true;
       try {
-        const res = await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state?participantId=${encodeURIComponent(myParticipantId)}`);
+        const res = await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state?participantId=${encodeURIComponent(myParticipantId)}`, {
+          cache: "no-store",
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (data?.success) {
@@ -907,9 +978,22 @@ export default function ClassRoomPage() {
             });
           }
 
-          // Sync Screen Share if not host sharing
+          // Sync Screen Share if not host sharing (Strict monotonicity check prevents out-of-order stale frames)
           if (!screenStream && data.screenShare) {
-            setRemoteScreenShare(data.screenShare);
+            const incomingTime = data.screenShare.updatedAt || 0;
+            if (!data.screenShare.active) {
+              lastScreenShareTimestampRef.current = incomingTime;
+              setRemoteScreenShare({ active: false, updatedAt: incomingTime });
+              setRemoteWebRTCStream(null);
+            } else if (incomingTime >= lastScreenShareTimestampRef.current) {
+              lastScreenShareTimestampRef.current = incomingTime;
+              setRemoteScreenShare(prev => {
+                if (!data.screenShare.streamFrame && prev?.streamFrame) {
+                  return { ...data.screenShare, streamFrame: prev.streamFrame };
+                }
+                return data.screenShare;
+              });
+            }
           }
           // Sync Whiteboard if student
           if (data.whiteboard) {
@@ -953,25 +1037,13 @@ export default function ClassRoomPage() {
             });
           }
         }
-
-        // Direct meeting status check for students across devices
-        if (!isMentor) {
-          try {
-            const mRes = await fetch(`/api/meetings?id=${encodeURIComponent(roomId)}`);
-            if (mRes.ok) {
-              const mData = await mRes.json();
-              if (mData?.meeting?.status === 'ended') {
-                window.location.href = "https://www.geonixa.com/";
-                return;
-              }
-            }
-          } catch {}
-        }
-      } catch {}
+      } catch {} finally {
+        pollInFlight = false;
+      }
     };
 
     pollState();
-    const interval = setInterval(pollState, 1500);
+    const interval = setInterval(pollState, 600);
 
     return () => {
       clearInterval(interval);
@@ -979,14 +1051,15 @@ export default function ClassRoomPage() {
     };
   }, [roomId, screenStream, isMentor, triggerReaction, handleWebRTCSignal, initiateAudioCallToHost, myParticipantId, playHandRaiseChime, showToast, studentName]);
 
-  // Broadcast screen share frames when Host shares screen
+  // Broadcast screen share frames when Host shares screen (High-clarity, non-blocking, zero lag)
   useEffect(() => {
     if (!screenStream || !isMentor || !roomId) return;
     let active = true;
+    let inFlight = false;
+    let lastSentTime = 0;
+    let lastSentSample = "";
     const canvas = document.createElement("canvas");
-    canvas.width = 960;
-    canvas.height = 540;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: false });
 
     let bc: BroadcastChannel | null = null;
     try {
@@ -996,28 +1069,66 @@ export default function ClassRoomPage() {
     } catch {}
 
     const broadcastFrame = async () => {
-      if (!active || !screenVideoRef.current || !screenStream) return;
+      if (!active || !screenVideoRef.current || !screenStream || inFlight) return;
       try {
-        if (screenVideoRef.current.videoWidth > 0 && ctx) {
-          ctx.drawImage(screenVideoRef.current, 0, 0, 960, 540);
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.55);
+        const vEl = screenVideoRef.current;
+        if (vEl.videoWidth > 0 && ctx) {
+          const vw = vEl.videoWidth;
+          const vh = vEl.videoHeight;
+          // Crisp 720p proportional scaling (1280x720) ensures crystal-clear code/IDE/WhatsApp text without heavy bloat
+          const maxW = 1280;
+          const scale = Math.min(1, maxW / vw);
+          const tw = Math.round(vw * scale);
+          const th = Math.round(vh * scale);
+          if (canvas.width !== tw || canvas.height !== th) {
+            canvas.width = tw;
+            canvas.height = th;
+          }
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(vEl, 0, 0, tw, th);
+
+          // 0.75 JPEG quality gives sharp text and thin IDE line rendering without artifacts
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+          const sample = dataUrl.slice(0, 100);
+          const now = Date.now();
+          const isStatic = (sample === lastSentSample && now - lastSentTime < 2500);
+
           const payload = {
             active: true,
             presenterName: "Host",
-            streamFrame: dataUrl,
-            updatedAt: Date.now(),
+            streamFrame: isStatic ? undefined : dataUrl,
+            updatedAt: now,
           };
-          if (bc) bc.postMessage({ type: "SCREEN_SHARE", data: payload });
-          await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ screenShare: payload }),
-          }).catch(() => {});
+
+          if (!isStatic && bc) {
+            bc.postMessage({ type: "SCREEN_SHARE", data: { ...payload, streamFrame: dataUrl } });
+          }
+
+          if (isStatic && now - lastSentTime < 1800) {
+            return;
+          }
+
+          lastSentTime = now;
+          lastSentSample = sample;
+          inFlight = true;
+
+          try {
+            await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ screenShare: payload }),
+            });
+          } finally {
+            inFlight = false;
+          }
         }
-      } catch {}
+      } catch {
+        inFlight = false;
+      }
     };
 
-    const interval = setInterval(broadcastFrame, 900);
+    const interval = setInterval(broadcastFrame, 380);
     broadcastFrame();
 
     return () => {
@@ -1030,7 +1141,7 @@ export default function ClassRoomPage() {
       fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ screenShare: { active: false } }),
+        body: JSON.stringify({ screenShare: { active: false, updatedAt: Date.now() } }),
       }).catch(() => {});
     };
   }, [screenStream, isMentor, roomId]);
@@ -1470,6 +1581,12 @@ export default function ClassRoomPage() {
   const stopScreenShare = useCallback(() => {
     screenStream?.getTracks().forEach(t => t.stop());
     setScreenStream(null);
+    peerConnectionsRef.current.forEach((pc) => {
+      const sender = pc.getSenders().find(s => s.track?.kind === "video");
+      if (sender) {
+        sender.replaceTrack(null).catch(() => {});
+      }
+    });
     showToast("Screen share stopped. Meeting is still active.");
   }, [screenStream, showToast, setScreenStream]);
 
@@ -1488,7 +1605,7 @@ export default function ClassRoomPage() {
       let ds: MediaStream;
       try {
         ds = await navigator.mediaDevices.getDisplayMedia({
-          video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 8, max: 10 } },
+          video: { width: { ideal: 1920, max: 1920 }, height: { ideal: 1080, max: 1080 }, frameRate: { ideal: 30, max: 60 } },
           audio: false
         });
       } catch {
@@ -1516,6 +1633,27 @@ export default function ClassRoomPage() {
       }
       ds.getVideoTracks()[0].onended = stopScreenShare;
       setScreenStream(ds);
+
+      // Attach high-fps screen video track to WebRTC peers for instant zero-lag streaming
+      const vTrack = ds.getVideoTracks()[0];
+      if (vTrack && isMentor) {
+        peerConnectionsRef.current.forEach(async (pc, targetId) => {
+          const sender = pc.getSenders().find(s => s.track?.kind === "video");
+          if (sender) {
+            sender.replaceTrack(vTrack).catch(() => {});
+          } else {
+            try {
+              pc.addTrack(vTrack, ds);
+              const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+              await pc.setLocalDescription(offer);
+              sendSignal(targetId, "offer", offer);
+            } catch (err) {
+              console.warn("Could not attach screen video track to peer:", err);
+            }
+          }
+        });
+      }
+
       showToast("Screen sharing started! Your screen & camera work together concurrently.");
     } catch (e: unknown) {
       const err = e as Error;
@@ -2100,7 +2238,7 @@ export default function ClassRoomPage() {
   };
 
   const isLocalSharing = !!screenStream;
-  const isRemoteSharing = !isLocalSharing && !!remoteScreenShare?.active && !!remoteScreenShare?.streamFrame;
+  const isRemoteSharing = !isLocalSharing && !!remoteScreenShare?.active && (!!remoteScreenShare?.streamFrame || !!remoteWebRTCStream);
   const isAnyScreenSharing = isLocalSharing || isRemoteSharing;
   const isSharing = isAnyScreenSharing;
   const isWhiteboardActive = showWhiteboard || (!isMentor && Boolean(remoteWhiteboard?.active));
@@ -2402,13 +2540,39 @@ export default function ClassRoomPage() {
               <div className="absolute top-16 left-4 z-20 flex items-center gap-2 bg-zinc-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-700 shadow-md text-xs font-bold text-white">
                 <Monitor size={14} className="text-blue-400" />
                 <span>{remoteScreenShare?.presenterName || "Host"} is sharing screen</span>
+                {remoteWebRTCStream ? (
+                  <span className="flex items-center gap-1.5 text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Ultra HD 60FPS
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-medium">
+                    HD Live
+                  </span>
+                )}
               </div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={remoteScreenShare?.streamFrame}
-                alt="Shared Screen"
-                className="w-full h-full object-contain select-none pointer-events-none"
-              />
+              {remoteWebRTCStream ? (
+                <video
+                  ref={(el) => {
+                    remoteScreenVideoRef.current = el;
+                    if (el && remoteWebRTCStream && el.srcObject !== remoteWebRTCStream) {
+                      el.srcObject = remoteWebRTCStream;
+                      el.play().catch(() => {});
+                    }
+                  }}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-contain select-none"
+                />
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={remoteScreenShare?.streamFrame}
+                  alt="Shared Screen"
+                  className="w-full h-full object-contain select-none pointer-events-none"
+                />
+              )}
             </div>
           )}
 

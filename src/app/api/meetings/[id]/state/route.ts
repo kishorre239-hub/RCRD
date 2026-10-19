@@ -85,6 +85,13 @@ interface MeetingState {
 const DATA_DIR = path.resolve(process.cwd(), '.data');
 const STATES_FILE = path.join(DATA_DIR, 'meeting-room-states.json');
 
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+  'Pragma': 'no-cache',
+  'Expires': '0',
+  'Surrogate-Control': 'no-store',
+};
+
 const globalStore = globalThis as unknown as { __roomStates?: Record<string, MeetingState> };
 if (!globalStore.__roomStates) {
   globalStore.__roomStates = {};
@@ -99,13 +106,60 @@ if (!globalStore.__roomStates) {
   }
 }
 
-function persistRoomStates() {
-  try {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.writeFileSync(STATES_FILE, JSON.stringify(globalStore.__roomStates, null, 2), 'utf-8');
-  } catch (err) {
-    console.warn('Failed persisting room states:', err);
+let persistTimer: NodeJS.Timeout | null = null;
+let isPersisting = false;
+
+function sanitizeStateForDisk(rawStates: Record<string, MeetingState>) {
+  const sanitized: Record<string, any> = {};
+  for (const [roomId, room] of Object.entries(rawStates)) {
+    if (!room) continue;
+    sanitized[roomId] = {
+      ...room,
+      // Strip ephemeral base64 stream frames so disk writes are micro-sized (<10KB) and instant
+      hostCamera: {
+        active: Boolean(room.hostCamera?.active),
+        updatedAt: room.hostCamera?.updatedAt || Date.now(),
+      },
+      screenShare: {
+        active: Boolean(room.screenShare?.active),
+        presenterName: room.screenShare?.presenterName,
+        updatedAt: room.screenShare?.updatedAt || Date.now(),
+      },
+      participantCameras: Object.fromEntries(
+        Object.entries(room.participantCameras || {}).map(([pid, pc]) => [
+          pid,
+          {
+            active: Boolean(pc.active),
+            name: pc.name,
+            role: pc.role,
+            updatedAt: pc.updatedAt,
+          },
+        ])
+      ),
+      signals: (room.signals || []).slice(-20),
+    };
   }
+  return sanitized;
+}
+
+function schedulePersistRoomStates() {
+  if (persistTimer) return;
+  persistTimer = setTimeout(async () => {
+    persistTimer = null;
+    if (isPersisting) return;
+    isPersisting = true;
+    try {
+      if (!fs.existsSync(DATA_DIR)) {
+        await fs.promises.mkdir(DATA_DIR, { recursive: true });
+      }
+      const dataToSave = sanitizeStateForDisk(globalStore.__roomStates || {});
+      await fs.promises.writeFile(STATES_FILE, JSON.stringify(dataToSave), 'utf-8');
+    } catch (err) {
+      console.warn('Failed non-blocking persistence:', err);
+    } finally {
+      isPersisting = false;
+    }
+  }, 4000);
 }
 
 function getOrCreateRoomState(rawId: string): MeetingState {
@@ -140,7 +194,7 @@ function getOrCreateRoomState(rawId: string): MeetingState {
       reactions: [],
       signals: [],
     };
-    persistRoomStates();
+    schedulePersistRoomStates();
   }
   if (!rooms[roomId].signals) rooms[roomId].signals = [];
   if (!rooms[roomId].reactions) rooms[roomId].reactions = [];
@@ -195,10 +249,10 @@ export async function GET(
       reactions: state.reactions,
       signals: signalsForMe,
       serverTime: now,
-    });
+    }, { headers: NO_CACHE_HEADERS });
   } catch (error) {
     console.error('Error fetching room state:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500, headers: NO_CACHE_HEADERS });
   }
 }
 
@@ -367,8 +421,8 @@ export async function POST(
       });
     }
 
-    // Persist all state updates to disk
-    persistRoomStates();
+    // Debounced, non-blocking asynchronous state persistence
+    schedulePersistRoomStates();
 
     return NextResponse.json({
       success: true,
@@ -385,9 +439,9 @@ export async function POST(
         !body.participantId || s.to === body.participantId || s.to === 'all' || (body.participantId === 'host' && s.to === 'host')
       ),
       serverTime: now,
-    });
+    }, { headers: NO_CACHE_HEADERS });
   } catch (error) {
     console.error('Error updating room state:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500, headers: NO_CACHE_HEADERS });
   }
 }

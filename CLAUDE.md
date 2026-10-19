@@ -1,1 +1,3 @@
+# Loom Instructions
+
 @AGENTS.md

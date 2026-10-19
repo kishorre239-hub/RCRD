@@ -28,6 +28,7 @@ Navigate to [http://localhost:3001](http://localhost:3001).
 
 ## 3. Environment Configuration (`.env.local`)
 
+```env
 # Next.js Serverless API Route Handlers (internal /api route handlers)
 NEXT_PUBLIC_API_URL=/api
 

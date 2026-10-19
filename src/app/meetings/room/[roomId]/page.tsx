@@ -12,7 +12,7 @@ import {
   ChevronLeft, Plus, BookOpen,
   Maximize2, Minimize2, MoreHorizontal, Volume2, RefreshCw, Disc, Smartphone, NotebookPen, Video
 } from "lucide-react";
-import { getCourses, uploadVideo, ensureValidAuthToken } from "@/lib/api";
+import { getCourses, uploadVideo, ensureValidAuthToken, getDriveFolder } from "@/lib/api";
 
 interface Note {
   id: string;
@@ -424,6 +424,12 @@ export default function ClassRoomPage() {
   const remoteScreenVideoRef = useRef<HTMLVideoElement | null>(null);
   const [remoteWebRTCStream, setRemoteWebRTCStream] = useState<MediaStream | null>(null);
   const [isWebRTCVideoPlaying, setIsWebRTCVideoPlaying] = useState<boolean>(false);
+  const isWebRTCVideoPlayingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    isWebRTCVideoPlayingRef.current = isWebRTCVideoPlaying;
+  }, [isWebRTCVideoPlaying]);
+
   const lastScreenShareTimestampRef = useRef<number>(0);
   const lastWhiteboardTimestampRef = useRef<number>(0);
 
@@ -942,6 +948,11 @@ export default function ClassRoomPage() {
       })
       .catch(() => {});
     getCourses().then(setCourses).catch(() => {});
+    getDriveFolder().then(df => {
+      if (df?.folderId) {
+        setUploadCourse(prev => prev || df.folderId);
+      }
+    }).catch(() => {});
   }, [roomId, isMentor]);
 
   // Ensure students are NEVER left on admin dashboard (/meetings); if class is ended, send directly to Geonixa
@@ -1144,7 +1155,7 @@ export default function ClassRoomPage() {
       if (pollInFlight) return;
       pollInFlight = true;
       try {
-        const sinceScreenParam = isWebRTCVideoPlaying ? Date.now() : lastScreenShareTimestampRef.current;
+        const sinceScreenParam = isWebRTCVideoPlayingRef.current ? Date.now() : lastScreenShareTimestampRef.current;
         const res = await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state?participantId=${encodeURIComponent(myParticipantId)}&sinceScreen=${sinceScreenParam}&sinceWb=${lastWhiteboardTimestampRef.current}`, {
           cache: "no-store",
         });
@@ -2205,12 +2216,11 @@ export default function ClassRoomPage() {
 
     const mimeType = getOptimalMimeType();
     try {
-      // Ultra-efficient classroom lecture compression: 7.5 kbps video + 4 kbps voice
-      // Produces ~340 KB for 4 min, ~5 MB for 1 full hour (5 MB/hr target achieved!), keeping slide text & audio crisp!
+      // High quality classroom lecture recording: 800 kbps video + 64 kbps crisp audio
       const rec = new MediaRecorder(combined, { 
         mimeType, 
-        videoBitsPerSecond: 7500,
-        audioBitsPerSecond: 4000
+        videoBitsPerSecond: 800000,
+        audioBitsPerSecond: 64000
       });
       mediaRecRef.current = rec;
       chunksRef.current = [];
@@ -2296,7 +2306,16 @@ export default function ClassRoomPage() {
       const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
       const vidTitle = uploadTitle.trim() || `Meeting - ${meeting?.title || roomId} · ${dateStr} (${timeStr})`;
-      const targetFolder = uploadCourse || "";
+      let targetFolder = uploadCourse || meeting?.courseId || "";
+      if (!targetFolder) {
+        try {
+          const df = await getDriveFolder();
+          if (df?.folderId) targetFolder = df.folderId;
+        } catch {}
+      }
+      if (!targetFolder && courses.length > 0) {
+        targetFolder = courses[0].id;
+      }
       const selectedCourse = courses.find(c => c.id === targetFolder);
       const folderName = selectedCourse ? selectedCourse.name : undefined;
 
@@ -2326,7 +2345,7 @@ export default function ClassRoomPage() {
       }
 
       setUploadState("done");
-      const destName = selectedCourse?.name || "Personal Library (Root)";
+      const destName = selectedCourse?.name || "Personal Library (Google Drive)";
       showToast(`Recording saved to Google Drive (${destName})! Meeting remains active.`);
       setTimeout(() => setShowUpload(false), 1500);
     } catch (e: unknown) {
@@ -2350,8 +2369,11 @@ export default function ClassRoomPage() {
     }
 
     // MENTOR / HOST: Check if there is an ongoing recording or pending un-uploaded recording blob
-    const isRecordingNow = recState === "recording" || recState === "paused";
-    if (isRecordingNow || (recBlob && uploadState !== "done")) {
+    const hasRecordedChunks = Boolean(chunksRef.current && chunksRef.current.length > 0);
+    const isRecordingNow = Boolean((mediaRecRef.current && mediaRecRef.current.state !== "inactive") || recState === "recording" || recState === "paused");
+    const hasPendingRecording = isRecordingNow || ((recBlob || hasRecordedChunks) && uploadState !== "done");
+
+    if (hasPendingRecording) {
       setIsEndingAndSaving(true);
       setEndingSaveStatus("Finalizing class recording...");
       setEndingProgress(10);
@@ -2366,15 +2388,30 @@ export default function ClassRoomPage() {
               resolve(new Blob(chunksRef.current, { type: "video/webm" }));
               return;
             }
+
+            const safetyTimeout = setTimeout(() => {
+              const fallback = new Blob(chunksRef.current, { type: "video/webm" });
+              resolve(fallback);
+            }, 3000);
+
             mediaRecRef.current.onstop = () => {
+              clearTimeout(safetyTimeout);
               const b = new Blob(chunksRef.current, { type: "video/webm" });
               setRecBlob(b);
               setRecState("stopped");
               resolve(b);
             };
+
             try {
-              mediaRecRef.current.stop();
+              if (mediaRecRef.current.state === "recording" || mediaRecRef.current.state === "paused") {
+                mediaRecRef.current.requestData();
+                mediaRecRef.current.stop();
+              } else {
+                clearTimeout(safetyTimeout);
+                resolve(new Blob(chunksRef.current, { type: "video/webm" }));
+              }
             } catch {
+              clearTimeout(safetyTimeout);
               resolve(new Blob(chunksRef.current, { type: "video/webm" }));
             }
           });
@@ -2383,22 +2420,38 @@ export default function ClassRoomPage() {
         }
       }
 
+      // Reconstruct from chunksRef if videoBlobToUpload is missing or empty
+      if ((!videoBlobToUpload || videoBlobToUpload.size < 50) && chunksRef.current && chunksRef.current.length > 0) {
+        videoBlobToUpload = new Blob(chunksRef.current, { type: "video/webm" });
+      }
+
       // If we have a blob, upload it to the selected Google Drive folder!
       if (videoBlobToUpload && videoBlobToUpload.size > 0) {
-        setEndingSaveStatus("Uploading recording to your Google Drive course folder...");
+        setEndingSaveStatus("Uploading recording to your Google Drive folder...");
         try {
           const d = new Date();
           const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
           const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
           const vidTitle = uploadTitle.trim() || `Class Recording - ${meeting?.title || roomId} · ${dateStr} (${timeStr})`;
-          const targetFolder = uploadCourse || meeting?.courseId || (courses.length > 0 ? courses[0].id : "");
+          
+          let targetFolder = uploadCourse || meeting?.courseId || "";
+          if (!targetFolder) {
+            try {
+              const df = await getDriveFolder();
+              if (df?.folderId) targetFolder = df.folderId;
+            } catch {}
+          }
+          if (!targetFolder && courses.length > 0) {
+            targetFolder = courses[0].id;
+          }
+
           const selectedCourse = courses.find(c => c.id === targetFolder);
           const folderName = selectedCourse ? selectedCourse.name : (courses.length > 0 ? courses[0].name : "Class Recordings");
 
           try {
             await uploadVideo(videoBlobToUpload, targetFolder, p => setEndingProgress(p), vidTitle, {
               isMeeting: true,
-              folderName,
+              folderName: selectedCourse ? folderName : undefined,
             });
           } catch (uploadErr) {
             console.warn("Direct resumable upload error on meeting end, attempting fallback:", uploadErr);
@@ -2406,7 +2459,7 @@ export default function ClassRoomPage() {
             fd.append('file', videoBlobToUpload, `${vidTitle}.webm`);
             fd.append('title', vidTitle);
             if (targetFolder) fd.append('courseId', targetFolder);
-            if (folderName) fd.append('folderName', folderName);
+            if (selectedCourse?.name) fd.append('folderName', selectedCourse.name);
             fd.append('isMeeting', 'true');
             const token = await ensureValidAuthToken();
             const fallbackRes = await fetch('/api/videos/upload', {
@@ -2424,12 +2477,24 @@ export default function ClassRoomPage() {
         } catch (err: unknown) {
           const error = err as Error;
           console.error("Auto-save recording on end meeting failed:", error);
-          setEndingSaveStatus("Saving to Google Drive failed: " + (error?.message || "Unknown error"));
-          showToast("Failed to save recording to Google Drive. Check connection.", false);
+          // Safety Net: Save locally if cloud failed so recording is NEVER lost
+          try {
+            const url = URL.createObjectURL(videoBlobToUpload);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${uploadTitle.trim() || `Class Recording - ${meeting?.title || roomId}`}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          } catch {}
+          setEndingSaveStatus("Saved to your downloads (Cloud upload error: " + (error?.message || "connection error") + ")");
+          showToast("Recording saved locally. Cloud upload failed.", false);
           await new Promise(r => setTimeout(r, 2000));
         }
       }
     }
+
 
     screenStream?.getTracks().forEach(t => t.stop());
     cameraStream?.getTracks().forEach(t => t.stop());

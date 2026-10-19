@@ -1,6 +1,8 @@
 import { google, drive_v3 } from 'googleapis';
 import fs from 'fs';
 import path from 'path';
+import type { SystemSettings } from '@/lib/server/types';
+
 // The user's Google Drive root folder: GEONIXA LOOM
 export const DEFAULT_ROOT_FOLDER_ID = '1XuI65NmTH9w_8FYM1LJZYLPCYvWg27N7';
 export const DEFAULT_MEETING_FOLDER_ID = DEFAULT_ROOT_FOLDER_ID;
@@ -28,6 +30,26 @@ export function extractDriveFolderId(input?: string | null): string {
 export function getRootFolderId(): string {
   const raw = process.env.GOOGLE_DRIVE_FOLDER_ID || process.env.DRIVE_DEFAULT_FOLDER_ID || DEFAULT_ROOT_FOLDER_ID;
   return extractDriveFolderId(raw);
+}
+
+let cachedDynamicRootFolderId: string | null = null;
+
+export async function getEffectiveRootFolderId(): Promise<string> {
+  if (cachedDynamicRootFolderId) return cachedDynamicRootFolderId;
+  try {
+    const { getCollection } = await import('@/lib/server/db');
+    const settingsCol = await getCollection<SystemSettings>('system_settings');
+    const settings = await settingsCol.findOne({});
+    if (settings?.driveRootFolderId) {
+      cachedDynamicRootFolderId = extractDriveFolderId(settings.driveRootFolderId);
+      return cachedDynamicRootFolderId;
+    }
+  } catch {}
+  return getRootFolderId();
+}
+
+export function setCachedDynamicRootFolderId(folderId: string | null) {
+  cachedDynamicRootFolderId = folderId ? extractDriveFolderId(folderId) : null;
 }
 
 // Embedded fallback credentials for seamless Vercel serverless deployment
@@ -308,20 +330,28 @@ export async function createResumableUploadSession(params: {
 
   let targetFolder: string | undefined = undefined;
   if (params.folderId && params.folderId !== 'root' && params.folderId !== 'all') {
-    if (params.folderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || params.folderId === 'MEETING' || params.folderId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || params.folderId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW') {
+    const rawId = params.folderId.trim();
+    if (rawId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || rawId === 'MEETING' || rawId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || rawId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW') {
       targetFolder = await getMeetingFolderId();
-    } else if (params.folderId === 'screen-shares' || params.folderId === 'team-updates') {
-      targetFolder = getRootFolderId();
-    } else if (params.folderName && params.folderName.trim()) {
-      targetFolder = await getOrCreateNamedDriveFolder(params.folderName.trim());
-    } else if (params.folderId.startsWith('folder-')) {
-      const cleanName = params.folderId.replace(/^folder-/, '');
+    } else if (rawId === 'screen-shares' || rawId === 'team-updates') {
+      targetFolder = await getEffectiveRootFolderId();
+    } else if (rawId.startsWith('folder-')) {
+      const cleanName = rawId.replace(/^folder-/, '');
       targetFolder = await getOrCreateNamedDriveFolder(cleanName);
     } else {
-      targetFolder = extractDriveFolderId(params.folderId);
+      const extracted = extractDriveFolderId(rawId);
+      if (extracted && extracted !== DEFAULT_ROOT_FOLDER_ID) {
+        targetFolder = extracted;
+      } else if (params.folderName && params.folderName.trim() && params.folderName !== 'Class Recordings') {
+        targetFolder = await getOrCreateNamedDriveFolder(params.folderName.trim());
+      } else {
+        targetFolder = extracted || (await getEffectiveRootFolderId());
+      }
     }
+  } else if (params.folderName && params.folderName.trim() && params.folderName !== 'Class Recordings') {
+    targetFolder = await getOrCreateNamedDriveFolder(params.folderName.trim());
   } else {
-    targetFolder = getRootFolderId();
+    targetFolder = await getEffectiveRootFolderId();
   }
 
   if (targetFolder) {
@@ -732,20 +762,28 @@ export async function uploadBufferToDrive(params: {
   try {
     let targetFolder: string | undefined = undefined;
     if (params.folderId && params.folderId !== 'root' && params.folderId !== 'all') {
-      if (params.folderId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || params.folderId === 'MEETING' || params.folderId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || params.folderId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW') {
+      const rawId = params.folderId.trim();
+      if (rawId === '1xdlBONuoQe9UJscCe-QA5msK4BkEq7J4' || rawId === 'MEETING' || rawId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || rawId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW') {
         targetFolder = await getMeetingFolderId();
-      } else if (params.folderId === 'screen-shares' || params.folderId === 'team-updates') {
-        targetFolder = getRootFolderId();
-      } else if (params.folderName && params.folderName.trim()) {
-        targetFolder = await getOrCreateNamedDriveFolder(params.folderName.trim());
-      } else if (params.folderId.startsWith('folder-')) {
-        const cleanName = params.folderId.replace(/^folder-/, '');
+      } else if (rawId === 'screen-shares' || rawId === 'team-updates') {
+        targetFolder = await getEffectiveRootFolderId();
+      } else if (rawId.startsWith('folder-')) {
+        const cleanName = rawId.replace(/^folder-/, '');
         targetFolder = await getOrCreateNamedDriveFolder(cleanName);
       } else {
-        targetFolder = extractDriveFolderId(params.folderId);
+        const extracted = extractDriveFolderId(rawId);
+        if (extracted && extracted !== DEFAULT_ROOT_FOLDER_ID) {
+          targetFolder = extracted;
+        } else if (params.folderName && params.folderName.trim() && params.folderName !== 'Class Recordings') {
+          targetFolder = await getOrCreateNamedDriveFolder(params.folderName.trim());
+        } else {
+          targetFolder = extracted || (await getEffectiveRootFolderId());
+        }
       }
+    } else if (params.folderName && params.folderName.trim() && params.folderName !== 'Class Recordings') {
+      targetFolder = await getOrCreateNamedDriveFolder(params.folderName.trim());
     } else {
-      targetFolder = getRootFolderId();
+      targetFolder = await getEffectiveRootFolderId();
     }
 
     const rawName = (params.name || `Recording-${Date.now()}`).trim();

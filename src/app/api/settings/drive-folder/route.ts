@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { SystemSettings } from '@/lib/server/types';
+import { setCachedDynamicRootFolderId } from '@/lib/server/drive';
 
 export async function GET(req: Request) {
   try {
@@ -47,6 +48,8 @@ export async function POST(req: Request) {
       { $set: { driveRootFolderId: folderId, updatedAt: Date.now() } },
       { upsert: true }
     );
+
+    setCachedDynamicRootFolderId(folderId);
 
     return NextResponse.json({ success: true, folderId });
   } catch (error: unknown) {

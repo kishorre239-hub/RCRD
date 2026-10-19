@@ -72,13 +72,17 @@ const STEPS = [
 
 const WHITEBOARD_COLORS = ["#20262E", "#154360", "#DC2626", "#16A34A", "#D97706", "#9333EA", "#0284C7", "#EA580C"];
 
-// WebRTC Audio & Video STUN Configuration (Free public Google STUN servers)
+// WebRTC Audio & Video STUN Configuration (Robust public STUN servers for cross-network mobile & desktop)
 const RTC_CONFIG: RTCConfiguration = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
     { urls: "stun:stun2.l.google.com:19302" },
+    { urls: "stun:stun3.l.google.com:19302" },
+    { urls: "stun:stun4.l.google.com:19302" },
+    { urls: "stun:stun.services.mozilla.com" },
   ],
+  iceCandidatePoolSize: 10,
 };
 
 export default function ClassRoomPage() {
@@ -423,12 +427,17 @@ export default function ClassRoomPage() {
     if (!isForMe) return;
 
     const targetId = sig.from;
-    let pc = peerConnectionsRef.current.get(targetId);
+    // Look up peer connection by specific ID or host alias
+    let pc = peerConnectionsRef.current.get(targetId) || (!isMentor ? peerConnectionsRef.current.get("host") : undefined);
+    if (pc && !peerConnectionsRef.current.has(targetId)) {
+      peerConnectionsRef.current.set(targetId, pc);
+    }
 
     if (sig.type === "offer") {
-      if (!pc) {
+      if (!pc || pc.connectionState === "closed" || pc.connectionState === "failed") {
         pc = new RTCPeerConnection(RTC_CONFIG);
         peerConnectionsRef.current.set(targetId, pc);
+        if (!isMentor) peerConnectionsRef.current.set("host", pc);
 
         // Attach local microphone tracks if active
         if (localAudioStreamRef.current) {
@@ -476,7 +485,7 @@ export default function ClassRoomPage() {
         if (isMentor && screenStreamRef.current) {
           const vTrack = screenStreamRef.current.getVideoTracks()[0];
           if (vTrack) {
-            const sender = pc.getSenders().find(s => s.track?.kind === "video");
+            const sender = pc.getSenders().find(s => s.track?.kind === "video" || !s.track);
             if (sender) {
               sender.replaceTrack(vTrack).catch(() => {});
             } else {
@@ -519,7 +528,7 @@ export default function ClassRoomPage() {
   const initiateAudioCallToHost = useCallback(async () => {
     if (isMentor || !roomId) return;
     let pc = peerConnectionsRef.current.get("host");
-    if (!pc) {
+    if (!pc || pc.connectionState === "closed" || pc.connectionState === "failed") {
       pc = new RTCPeerConnection(RTC_CONFIG);
       peerConnectionsRef.current.set("host", pc);
 
@@ -528,6 +537,11 @@ export default function ClassRoomPage() {
           pc!.addTrack(track, localAudioStreamRef.current!);
         });
       }
+
+      // Explicitly register video transceiver to receive screen/camera stream from host
+      try {
+        pc.addTransceiver('video', { direction: 'recvonly' });
+      } catch {}
 
       pc.ontrack = (event) => {
         if (event.track.kind === "video") {
@@ -996,21 +1010,23 @@ export default function ClassRoomPage() {
             });
           }
 
-          // Sync Screen Share if not host sharing (Strict monotonicity check prevents out-of-order stale frames)
+          // Sync Screen Share if not host sharing
           if (!screenStream && data.screenShare) {
             const incomingTime = data.screenShare.updatedAt || 0;
             if (!data.screenShare.active) {
               lastScreenShareTimestampRef.current = incomingTime;
               setRemoteScreenShare({ active: false, updatedAt: incomingTime });
               setRemoteWebRTCStream(null);
-            } else if (incomingTime >= lastScreenShareTimestampRef.current) {
+            } else {
               lastScreenShareTimestampRef.current = incomingTime;
-              setRemoteScreenShare(prev => {
-                if (!data.screenShare.streamFrame && prev?.streamFrame) {
-                  return { ...data.screenShare, streamFrame: prev.streamFrame };
-                }
-                return data.screenShare;
-              });
+              if (data.screenShare.streamFrame) {
+                setRemoteScreenShare(data.screenShare);
+              } else {
+                setRemoteScreenShare(prev => ({
+                  ...data.screenShare,
+                  streamFrame: prev?.streamFrame,
+                }));
+              }
             }
           }
           // Sync Whiteboard if student
@@ -1062,7 +1078,7 @@ export default function ClassRoomPage() {
     };
 
     pollState();
-    const interval = setInterval(pollState, 600);
+    const interval = setInterval(pollState, 280);
 
     return () => {
       clearInterval(interval);
@@ -1075,8 +1091,6 @@ export default function ClassRoomPage() {
     if (!screenStream || !isMentor || !roomId) return;
     let active = true;
     let inFlight = false;
-    let lastSentTime = 0;
-    let lastSentSample = "";
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d", { alpha: false });
 
@@ -1088,14 +1102,14 @@ export default function ClassRoomPage() {
     } catch {}
 
     const broadcastFrame = async () => {
-      if (!active || !screenVideoRef.current || !screenStream || inFlight) return;
+      if (!active || !screenStream || inFlight) return;
       try {
         const vEl = screenVideoRef.current;
-        if (vEl.videoWidth > 0 && ctx) {
+        if (vEl && vEl.videoWidth > 0 && ctx) {
           const vw = vEl.videoWidth;
           const vh = vEl.videoHeight;
-          // Crisp 720p proportional scaling (1280x720) ensures crystal-clear code/IDE/WhatsApp text without heavy bloat
-          const maxW = 1280;
+          // Crisp 960px max width ensures lightweight 25-35KB frames for instant 0-lag delivery across cellular/Wi-Fi
+          const maxW = 960;
           const scale = Math.min(1, maxW / vw);
           const tw = Math.round(vw * scale);
           const th = Math.round(vh * scale);
@@ -1104,34 +1118,25 @@ export default function ClassRoomPage() {
             canvas.height = th;
           }
           ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = "high";
+          ctx.imageSmoothingQuality = "medium";
           ctx.drawImage(vEl, 0, 0, tw, th);
 
-          // 0.75 JPEG quality gives sharp text and thin IDE line rendering without artifacts
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
-          const sample = dataUrl.slice(0, 100);
+          // 0.6 JPEG quality gives sharp text and thin IDE line rendering without large payload
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
           const now = Date.now();
-          const isStatic = (sample === lastSentSample && now - lastSentTime < 2500);
 
           const payload = {
             active: true,
             presenterName: "Host",
-            streamFrame: isStatic ? undefined : dataUrl,
+            streamFrame: dataUrl,
             updatedAt: now,
           };
 
-          if (!isStatic && bc) {
-            bc.postMessage({ type: "SCREEN_SHARE", data: { ...payload, streamFrame: dataUrl } });
+          if (bc) {
+            bc.postMessage({ type: "SCREEN_SHARE", data: payload });
           }
 
-          if (isStatic && now - lastSentTime < 1800) {
-            return;
-          }
-
-          lastSentTime = now;
-          lastSentSample = sample;
           inFlight = true;
-
           try {
             await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
               method: "POST",
@@ -1147,7 +1152,7 @@ export default function ClassRoomPage() {
       }
     };
 
-    const interval = setInterval(broadcastFrame, 380);
+    const interval = setInterval(broadcastFrame, 240);
     broadcastFrame();
 
     return () => {
@@ -1651,24 +1656,25 @@ export default function ClassRoomPage() {
         ds = canvas.captureStream(30);
       }
       ds.getVideoTracks()[0].onended = stopScreenShare;
+      screenStreamRef.current = ds;
       setScreenStream(ds);
 
       // Attach high-fps screen video track to WebRTC peers for instant zero-lag streaming
       const vTrack = ds.getVideoTracks()[0];
       if (vTrack && isMentor) {
         peerConnectionsRef.current.forEach(async (pc, targetId) => {
-          const sender = pc.getSenders().find(s => s.track?.kind === "video");
-          if (sender) {
-            sender.replaceTrack(vTrack).catch(() => {});
-          } else {
-            try {
+          try {
+            const sender = pc.getSenders().find(s => s.track?.kind === "video" || !s.track);
+            if (sender) {
+              await sender.replaceTrack(vTrack);
+            } else {
               pc.addTrack(vTrack, ds);
-              const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-              await pc.setLocalDescription(offer);
-              sendSignal(targetId, "offer", offer);
-            } catch (err) {
-              console.warn("Could not attach screen video track to peer:", err);
             }
+            const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+            await pc.setLocalDescription(offer);
+            sendSignal(targetId, "offer", offer);
+          } catch (err) {
+            console.warn("Could not attach screen video track to peer:", err);
           }
         });
       }

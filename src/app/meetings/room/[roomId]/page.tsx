@@ -310,6 +310,7 @@ export default function ClassRoomPage() {
   const localAudioStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const remoteAudiosRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const processedSignalIdsRef = useRef<Set<string>>(new Set());
   const displayedReactionsRef = useRef<Set<string>>(new Set());
 
@@ -523,6 +524,43 @@ export default function ClassRoomPage() {
     }).catch(() => {});
   }, [roomId, myParticipantId]);
 
+  // Helper to retrieve or create DOM-attached remote audio element (avoids autoplay blockage)
+  const getOrCreateRemoteAudio = useCallback((id: string) => {
+    let audio = remoteAudiosRef.current.get(id);
+    if (!audio || (typeof document !== "undefined" && !document.body.contains(audio))) {
+      if (typeof document !== "undefined") {
+        audio = document.createElement("audio");
+        audio.autoplay = true;
+        audio.setAttribute("playsinline", "true");
+        audio.style.display = "none";
+        audio.id = `remote_audio_${id.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+        document.body.appendChild(audio);
+        remoteAudiosRef.current.set(id, audio);
+      } else {
+        audio = new Audio();
+        remoteAudiosRef.current.set(id, audio);
+      }
+    }
+    return audio;
+  }, []);
+
+  // Helper to drain queued ICE candidates once remote description is set
+  const drainCandidateQueue = useCallback(async (targetId: string, pc: RTCPeerConnection) => {
+    const list = pendingCandidatesRef.current.get(targetId) || [];
+    if (targetId !== "host" && pendingCandidatesRef.current.has("host")) {
+      list.push(...(pendingCandidatesRef.current.get("host") || []));
+      pendingCandidatesRef.current.delete("host");
+    }
+    pendingCandidatesRef.current.delete(targetId);
+    for (const cand of list) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(cand));
+      } catch (err) {
+        console.warn("Error adding queued ICE candidate for", targetId, err);
+      }
+    }
+  }, []);
+
   // Handle incoming WebRTC audio & video signals (offers, answers, ICE candidates)
   const handleWebRTCSignal = useCallback(async (sig: { from: string; to: string; type: 'offer' | 'answer' | 'candidate'; payload: unknown }) => {
     if (!sig || sig.from === myParticipantId) return;
@@ -542,6 +580,14 @@ export default function ClassRoomPage() {
         peerConnectionsRef.current.set(targetId, pc);
         if (!isMentor) peerConnectionsRef.current.set("host", pc);
 
+        // Pre-configure transceivers for bidirectional audio & high-fps video
+        try {
+          pc.addTransceiver('audio', { direction: 'sendrecv' });
+        } catch {}
+        try {
+          pc.addTransceiver('video', { direction: isMentor ? 'sendrecv' : 'recvonly' });
+        } catch {}
+
         // Attach local microphone tracks if active
         if (localAudioStreamRef.current) {
           localAudioStreamRef.current.getAudioTracks().forEach((track) => {
@@ -554,6 +600,9 @@ export default function ClassRoomPage() {
           screenStreamRef.current.getVideoTracks().forEach((track) => {
             pc!.addTrack(track, screenStreamRef.current!);
           });
+          screenStreamRef.current.getAudioTracks().forEach((track) => {
+            pc!.addTrack(track, screenStreamRef.current!);
+          });
         }
 
         // Handle receiving remote tracks (audio or video screen share)
@@ -561,27 +610,27 @@ export default function ClassRoomPage() {
           if (event.track.kind === "video") {
             const stream = event.streams[0] || new MediaStream([event.track]);
             setRemoteWebRTCStream(stream);
+            setIsWebRTCVideoPlaying(true);
             event.track.onended = () => {
               setIsWebRTCVideoPlaying(false);
               setRemoteWebRTCStream(null);
             };
             event.track.onmute = () => {
-              setIsWebRTCVideoPlaying(false);
+              // Video packet jitter, keep stream
             };
             event.track.onunmute = () => {
               setRemoteWebRTCStream(event.streams[0] || new MediaStream([event.track]));
+              setIsWebRTCVideoPlaying(true);
             };
           } else if (event.track.kind === "audio") {
-            let audio = remoteAudiosRef.current.get(targetId);
-            if (!audio) {
-              audio = new Audio();
-              audio.autoplay = true;
-              audio.setAttribute('playsinline', 'true');
-              remoteAudiosRef.current.set(targetId, audio);
-            }
-            audio.srcObject = event.streams[0] || new MediaStream([event.track]);
+            const audio = getOrCreateRemoteAudio(targetId);
+            const stream = event.streams[0] || new MediaStream([event.track]);
+            audio.srcObject = stream;
             audio.muted = speakerMuted;
-            audio.play().catch(() => {});
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(() => {});
+            }
           }
         };
 
@@ -605,7 +654,7 @@ export default function ClassRoomPage() {
           }
         };
       } else {
-        // If pc already exists and host is sharing screen, ensure video track is attached
+        // If pc already exists and host is sharing screen, ensure tracks are attached
         if (isMentor && screenStreamRef.current) {
           const vTrack = screenStreamRef.current.getVideoTracks()[0];
           if (vTrack) {
@@ -619,27 +668,11 @@ export default function ClassRoomPage() {
             }
           }
         }
-        // Ensure student ontrack listener is always active during renegotiation
-        if (!isMentor && !pc.ontrack) {
-          pc.ontrack = (event) => {
-            if (event.track.kind === "video") {
-              const stream = event.streams[0] || new MediaStream([event.track]);
-              setRemoteWebRTCStream(stream);
-              event.track.onended = () => {
-                setIsWebRTCVideoPlaying(false);
-                setRemoteWebRTCStream(null);
-              };
-              event.track.onmute = () => {
-                setIsWebRTCVideoPlaying(false);
-              };
-              event.track.onunmute = () => setRemoteWebRTCStream(event.streams[0] || new MediaStream([event.track]));
-            }
-          };
-        }
       }
 
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(sig.payload as RTCSessionDescriptionInit));
+        await drainCandidateQueue(targetId, pc);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         sendSignal(targetId, "answer", answer);
@@ -650,20 +683,27 @@ export default function ClassRoomPage() {
       if (pc && pc.signalingState !== "stable") {
         try {
           await pc.setRemoteDescription(new RTCSessionDescription(sig.payload as RTCSessionDescriptionInit));
+          await drainCandidateQueue(targetId, pc);
         } catch (err) {
           console.warn("Error handling WebRTC answer:", err);
         }
       }
     } else if (sig.type === "candidate") {
-      if (pc && sig.payload) {
-        try {
-          await pc.addIceCandidate(new RTCIceCandidate(sig.payload as RTCIceCandidateInit));
-        } catch (err) {
-          console.warn("Error adding ICE candidate:", err);
+      if (sig.payload) {
+        if (!pc || !pc.remoteDescription) {
+          const list = pendingCandidatesRef.current.get(targetId) || [];
+          list.push(sig.payload as RTCIceCandidateInit);
+          pendingCandidatesRef.current.set(targetId, list);
+        } else {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(sig.payload as RTCIceCandidateInit));
+          } catch (err) {
+            console.warn("Error adding ICE candidate:", err);
+          }
         }
       }
     }
-  }, [myParticipantId, isMentor, speakerMuted, sendSignal]);
+  }, [myParticipantId, isMentor, speakerMuted, sendSignal, drainCandidateQueue, getOrCreateRemoteAudio]);
 
   // Student initiates audio and video connection to Host
   const initiateAudioCallToHost = useCallback(async () => {
@@ -673,42 +713,42 @@ export default function ClassRoomPage() {
       pc = new RTCPeerConnection(RTC_CONFIG);
       peerConnectionsRef.current.set("host", pc);
 
+      try {
+        pc.addTransceiver('audio', { direction: 'sendrecv' });
+      } catch {}
+      try {
+        pc.addTransceiver('video', { direction: 'recvonly' });
+      } catch {}
+
       if (localAudioStreamRef.current) {
         localAudioStreamRef.current.getAudioTracks().forEach((track) => {
           pc!.addTrack(track, localAudioStreamRef.current!);
         });
       }
 
-      // Explicitly register video transceiver to receive screen/camera stream from host
-      try {
-        pc.addTransceiver('video', { direction: 'recvonly' });
-      } catch {}
-
       pc.ontrack = (event) => {
         if (event.track.kind === "video") {
           const stream = event.streams[0] || new MediaStream([event.track]);
           setRemoteWebRTCStream(stream);
+          setIsWebRTCVideoPlaying(true);
           event.track.onended = () => {
             setIsWebRTCVideoPlaying(false);
             setRemoteWebRTCStream(null);
           };
-          event.track.onmute = () => {
-            setIsWebRTCVideoPlaying(false);
-          };
+          event.track.onmute = () => {};
           event.track.onunmute = () => {
             setRemoteWebRTCStream(event.streams[0] || new MediaStream([event.track]));
+            setIsWebRTCVideoPlaying(true);
           };
         } else if (event.track.kind === "audio") {
-          let audio = remoteAudiosRef.current.get("host");
-          if (!audio) {
-            audio = new Audio();
-            audio.autoplay = true;
-            audio.setAttribute('playsinline', 'true');
-            remoteAudiosRef.current.set("host", audio);
-          }
-          audio.srcObject = event.streams[0] || new MediaStream([event.track]);
+          const audio = getOrCreateRemoteAudio("host");
+          const stream = event.streams[0] || new MediaStream([event.track]);
+          audio.srcObject = stream;
           audio.muted = speakerMuted;
-          audio.play().catch(() => {});
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(() => {});
+          }
         }
       };
 
@@ -740,7 +780,7 @@ export default function ClassRoomPage() {
     } catch (err) {
       console.warn("Error initiating audio/video call to host:", err);
     }
-  }, [isMentor, roomId, speakerMuted, sendSignal]);
+  }, [isMentor, roomId, speakerMuted, sendSignal, getOrCreateRemoteAudio]);
 
   // Synchronize speaker muted state to all remote audio elements
   useEffect(() => {
@@ -749,20 +789,38 @@ export default function ClassRoomPage() {
     });
   }, [speakerMuted]);
 
-  // Mobile / browser autoplay policy unlock: resume audio elements on first touch or click
+  // Mobile / browser autoplay policy unlock: resume audio elements on first touch or click or keypress
   useEffect(() => {
     const unlockAudio = () => {
       remoteAudiosRef.current.forEach((audio) => {
-        if (audio.paused && audio.srcObject) {
+        if (audio.srcObject) {
           audio.play().catch(() => {});
         }
       });
     };
     window.addEventListener("click", unlockAudio, { passive: true });
     window.addEventListener("touchstart", unlockAudio, { passive: true });
+    window.addEventListener("keydown", unlockAudio, { passive: true });
     return () => {
       window.removeEventListener("click", unlockAudio);
       window.removeEventListener("touchstart", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    };
+  }, []);
+
+  // Cleanup remote audio elements from DOM on component unmount
+  useEffect(() => {
+    return () => {
+      remoteAudiosRef.current.forEach((audio) => {
+        try {
+          audio.pause();
+          audio.srcObject = null;
+          if (audio.parentNode) {
+            audio.parentNode.removeChild(audio);
+          }
+        } catch {}
+      });
+      remoteAudiosRef.current.clear();
     };
   }, []);
 
@@ -1312,7 +1370,56 @@ export default function ClassRoomPage() {
       clearInterval(interval);
       if (bc) bc.close();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, screenStream, isMentor, triggerReaction, handleWebRTCSignal, initiateAudioCallToHost, myParticipantId, playHandRaiseChime, showToast, studentName, pushChatPopup]);
+
+  // Auto-connect / reconnect student WebRTC stream whenever host is sharing screen
+  useEffect(() => {
+    if (isMentor || !remoteScreenShare?.active || isWebRTCVideoPlaying) return;
+    const retry = () => {
+      const pc = peerConnectionsRef.current.get("host");
+      if (!pc || pc.connectionState === "failed" || pc.connectionState === "disconnected" || !isWebRTCVideoPlayingRef.current) {
+        initiateAudioCallToHost();
+      }
+    };
+    retry();
+    const interval = setInterval(retry, 3500);
+    return () => clearInterval(interval);
+  }, [isMentor, remoteScreenShare?.active, isWebRTCVideoPlaying, initiateAudioCallToHost]);
+
+  // Mentor auto-acquires microphone on room load so audio track is ready for connecting students
+  useEffect(() => {
+    if (isMentor && micOn && !localAudioStreamRef.current && typeof navigator !== "undefined" && navigator.mediaDevices) {
+      navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        video: false,
+      }).then((stream) => {
+        localAudioStreamRef.current = stream;
+        const track = stream.getAudioTracks()[0];
+        if (track) {
+          peerConnectionsRef.current.forEach(async (pc, targetId) => {
+            try {
+              const sender = pc.getSenders().find(s => s.track?.kind === "audio");
+              if (sender) {
+                await sender.replaceTrack(track);
+              } else {
+                pc.addTrack(track, stream);
+                const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+                await pc.setLocalDescription(offer);
+                sendSignal(targetId, "offer", offer);
+              }
+            } catch {}
+          });
+        }
+      }).catch((err) => {
+        console.warn("Host microphone waiting for user interaction or permission:", err);
+      });
+    }
+  }, [isMentor, micOn, sendSignal]);
 
   // Broadcast screen share frames when Host shares screen (High-clarity, non-blocking, zero lag)
   useEffect(() => {
@@ -1901,6 +2008,10 @@ export default function ClassRoomPage() {
       if (sender) {
         sender.replaceTrack(null).catch(() => {});
       }
+      const aSender = pc.getSenders().find(s => s.track?.kind === "audio");
+      if (aSender && localAudioStreamRef.current?.getAudioTracks()[0]) {
+        aSender.replaceTrack(localAudioStreamRef.current.getAudioTracks()[0]).catch(() => {});
+      }
     });
 
     // Broadcast screen share stopped to students immediately
@@ -1942,8 +2053,12 @@ export default function ClassRoomPage() {
       let ds: MediaStream;
       try {
         ds = await navigator.mediaDevices.getDisplayMedia({
-          video: { width: { ideal: 1920, max: 1920 }, height: { ideal: 1080, max: 1080 }, frameRate: { ideal: 30, max: 60 } },
-          audio: false
+          video: { width: { ideal: 1920, max: 1920 }, height: { ideal: 1080, max: 1080 }, frameRate: { ideal: 60, max: 60 } },
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          }
         });
       } catch {
         // Resilient fallback: active presentation canvas stream
@@ -1987,22 +2102,59 @@ export default function ClassRoomPage() {
         }),
       }).catch(() => {});
 
-      // Attach high-fps screen video track to WebRTC peers for instant zero-lag streaming
+      // Attach high-fps screen video track & audio to WebRTC peers for instant zero-lag streaming
       const vTrack = ds.getVideoTracks()[0];
+      const screenAudioTrack = ds.getAudioTracks()[0];
       if (vTrack && isMentor) {
+        let combinedAudioTrack: MediaStreamTrack | null = null;
+        if (screenAudioTrack) {
+          try {
+            const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+            if (AudioCtx) {
+              const actx = new AudioCtx();
+              const dest = actx.createMediaStreamDestination();
+              const sSrc = actx.createMediaStreamSource(new MediaStream([screenAudioTrack]));
+              sSrc.connect(dest);
+              if (localAudioStreamRef.current && localAudioStreamRef.current.getAudioTracks().length > 0) {
+                try {
+                  const mSrc = actx.createMediaStreamSource(localAudioStreamRef.current);
+                  mSrc.connect(dest);
+                } catch {}
+              }
+              combinedAudioTrack = dest.stream.getAudioTracks()[0] || screenAudioTrack;
+            } else {
+              combinedAudioTrack = screenAudioTrack;
+            }
+          } catch {
+            combinedAudioTrack = screenAudioTrack;
+          }
+        } else if (localAudioStreamRef.current) {
+          combinedAudioTrack = localAudioStreamRef.current.getAudioTracks()[0] || null;
+        }
+
         peerConnectionsRef.current.forEach(async (pc, targetId) => {
           try {
-            const sender = pc.getSenders().find(s => s.track?.kind === "video" || !s.track);
-            if (sender) {
-              await sender.replaceTrack(vTrack);
+            const vSender = pc.getSenders().find(s => s.track?.kind === "video" || !s.track);
+            if (vSender) {
+              await vSender.replaceTrack(vTrack);
             } else {
               pc.addTrack(vTrack, ds);
             }
+
+            if (combinedAudioTrack) {
+              const aSender = pc.getSenders().find(s => s.track?.kind === "audio");
+              if (aSender) {
+                await aSender.replaceTrack(combinedAudioTrack);
+              } else {
+                pc.addTrack(combinedAudioTrack, ds);
+              }
+            }
+
             const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
             await pc.setLocalDescription(offer);
             sendSignal(targetId, "offer", offer);
           } catch (err) {
-            console.warn("Could not attach screen video track to peer:", err);
+            console.warn("Could not attach screen stream to peer:", err);
           }
         });
       }
@@ -2138,17 +2290,27 @@ export default function ClassRoomPage() {
             video: false,
           });
           localAudioStreamRef.current = stream;
-          const track = stream.getAudioTracks()[0];
-          peerConnectionsRef.current.forEach((pc) => {
-            const sender = pc.getSenders().find(s => s.track?.kind === "audio");
-            if (sender) {
-              sender.replaceTrack(track);
-            } else {
-              pc.addTrack(track, stream);
-            }
-          });
         } else {
           localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = true);
+        }
+
+        const track = localAudioStreamRef.current?.getAudioTracks()[0];
+        if (track) {
+          peerConnectionsRef.current.forEach(async (pc, targetId) => {
+            try {
+              const sender = pc.getSenders().find(s => s.track?.kind === "audio");
+              if (sender) {
+                await sender.replaceTrack(track);
+              } else {
+                pc.addTrack(track, localAudioStreamRef.current!);
+                const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+                await pc.setLocalDescription(offer);
+                sendSignal(targetId, "offer", offer);
+              }
+            } catch (err) {
+              console.warn("Could not route mic track to peer:", err);
+            }
+          });
         }
         showToast("Microphone unmuted - Voice live!");
       } catch {
@@ -3124,13 +3286,13 @@ export default function ClassRoomPage() {
                   autoPlay
                   playsInline
                   muted
+                  onLoadedMetadata={() => setIsWebRTCVideoPlaying(true)}
+                  onCanPlay={() => setIsWebRTCVideoPlaying(true)}
                   onPlaying={() => setIsWebRTCVideoPlaying(true)}
                   onTimeUpdate={() => setIsWebRTCVideoPlaying(true)}
-                  onWaiting={() => setIsWebRTCVideoPlaying(false)}
-                  onStalled={() => setIsWebRTCVideoPlaying(false)}
                   onError={() => setIsWebRTCVideoPlaying(false)}
-                  onPause={() => setIsWebRTCVideoPlaying(false)}
-                  className={`absolute inset-0 w-full h-full object-contain select-none transition-opacity duration-300 ${
+                  onEnded={() => setIsWebRTCVideoPlaying(false)}
+                  className={`absolute inset-0 w-full h-full object-contain select-none transition-opacity duration-200 ${
                     isWebRTCVideoPlaying ? "opacity-100 z-10" : "opacity-0 pointer-events-none"
                   }`}
                 />

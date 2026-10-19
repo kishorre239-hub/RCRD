@@ -54,18 +54,20 @@ export default function LoginPage() {
           }
         } catch {}
 
+        const resolvedName = data.name || (email ? email.split('@')[0] : "User");
         const profileObj = {
-          name: data.name || "Hari Kishore Reddy",
+          name: resolvedName,
           email: data.email || email,
           role: data.role || "Admin",
           allowedNavItems: navItems,
           plan: "Pro Plan",
-          avatarText: (data.name || "HR")
+          avatarText: resolvedName
             .split(" ")
+            .filter(Boolean)
             .map((n: string) => n[0])
             .join("")
             .substring(0, 2)
-            .toUpperCase(),
+            .toUpperCase() || "U",
         };
         localStorage.setItem("rcrd_user_profile", JSON.stringify(profileObj));
         localStorage.setItem("user", JSON.stringify(data));

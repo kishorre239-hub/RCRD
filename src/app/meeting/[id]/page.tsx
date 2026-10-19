@@ -19,6 +19,7 @@ interface MeetingData {
   duration: number;
   status: "scheduled" | "live" | "ended";
   attendees?: number;
+  hostName?: string;
 }
 
 function JoinMeetingContent() {
@@ -263,8 +264,11 @@ function JoinMeetingContent() {
       }
       sessionStorage.setItem(`participant_name_${meetingId}`, trimmedName);
 
+      const resolvedHost = data?.meeting?.hostName || meeting?.hostName || "";
+      const hostParam = resolvedHost ? `&hostName=${encodeURIComponent(resolvedHost)}` : "";
+
       // Redirect into the classroom
-      const targetUrl = `/meetings/room/${encodeURIComponent(meetingId)}?role=participant&name=${encodeURIComponent(trimmedName)}`;
+      const targetUrl = `/meetings/room/${encodeURIComponent(meetingId)}?role=participant&name=${encodeURIComponent(trimmedName)}${hostParam}`;
       router.push(targetUrl);
     } catch (err: unknown) {
       setJoining(false);
@@ -277,7 +281,9 @@ function JoinMeetingContent() {
           } catch {}
           sessionStorage.setItem(`meeting_${meetingId}`, JSON.stringify(meeting));
           sessionStorage.setItem(`participant_name_${meetingId}`, trimmedName);
-          const targetUrl = `/meetings/room/${encodeURIComponent(meetingId)}?role=participant&name=${encodeURIComponent(trimmedName)}`;
+          const resolvedHost = meeting.hostName || "";
+          const hostParam = resolvedHost ? `&hostName=${encodeURIComponent(resolvedHost)}` : "";
+          const targetUrl = `/meetings/room/${encodeURIComponent(meetingId)}?role=participant&name=${encodeURIComponent(trimmedName)}${hostParam}`;
           router.push(targetUrl);
           return;
         } else {

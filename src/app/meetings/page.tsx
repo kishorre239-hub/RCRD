@@ -28,6 +28,7 @@ interface Meeting {
   id: string; title: string; courseId: string | null; password: string;
   scheduledAt: string; duration: number; status: "scheduled" | "live" | "ended";
   attendees: number; createdAt: string; notes: string;
+  hostName?: string;
 }
 
 const genPwd = () => {
@@ -383,6 +384,20 @@ export default function MeetingsPage() {
     }
 
     const scheduledIso = computeScheduledIso();
+    const userProf = (() => {
+      try {
+        const usr = localStorage.getItem("user");
+        if (usr) {
+          const u = JSON.parse(usr);
+          if (u?.name && u.name.trim()) return u;
+        }
+        const raw = localStorage.getItem("rcrd_user_profile");
+        if (raw) return JSON.parse(raw);
+      } catch {}
+      return null;
+    })();
+    const creatorName = userProf?.name?.trim() || "";
+
     const m: Meeting = {
       id: Date.now().toString().slice(-8),
       title: newTitle.trim(),
@@ -394,6 +409,7 @@ export default function MeetingsPage() {
       attendees: 0,
       createdAt: new Date().toISOString(),
       notes: "",
+      hostName: creatorName || undefined,
     };
     save([m, ...meetings], m);
     setShowCreate(false);
@@ -408,7 +424,22 @@ export default function MeetingsPage() {
     const updated = meetings.map(x => x.id === m.id ? liveMeeting : x);
     save(updated, liveMeeting);
     sessionStorage.setItem(`meeting_${m.id}`, JSON.stringify(liveMeeting));
-    router.push(`/meetings/room/${m.id}?role=mentor`);
+    const hName = m.hostName || (() => {
+      try {
+        const usr = localStorage.getItem("user");
+        if (usr) {
+          const u = JSON.parse(usr);
+          if (u?.name && u.name.trim()) return u.name.trim();
+        }
+        const raw = localStorage.getItem("rcrd_user_profile");
+        if (raw) {
+          const p = JSON.parse(raw);
+          if (p?.name && p.name.trim()) return p.name.trim();
+        }
+      } catch {}
+      return null;
+    })() || "";
+    router.push(`/meetings/room/${m.id}?role=mentor${hName ? `&name=${encodeURIComponent(hName)}&hostName=${encodeURIComponent(hName)}` : ''}`);
   };
 
   const handleJoin = async () => {

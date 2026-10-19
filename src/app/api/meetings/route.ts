@@ -83,7 +83,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { id, title, courseId, password, scheduledAt, duration, status } = body;
+    const { id, title, courseId, password, scheduledAt, duration, status, hostName } = body;
 
     if (!id || !title) {
       return NextResponse.json({ error: 'id and title are required' }, { status: 400 });
@@ -101,6 +101,7 @@ export async function POST(req: Request) {
       scheduledAt: scheduledAt || new Date().toISOString(),
       duration: Number(duration) || 60,
       status: (status as 'scheduled' | 'live' | 'ended') || 'scheduled',
+      hostName: (hostName || body.hostName || body.createdByName || '').trim() || undefined,
       updatedAt: Date.now(),
     };
 

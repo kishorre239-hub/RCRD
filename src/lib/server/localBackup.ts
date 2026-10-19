@@ -104,6 +104,7 @@ export interface StoredMeeting {
   scheduledAt: string;
   duration: number;
   status: 'scheduled' | 'live' | 'ended';
+  hostName?: string;
   createdAt?: number;
   updatedAt?: number;
   [key: string]: unknown;

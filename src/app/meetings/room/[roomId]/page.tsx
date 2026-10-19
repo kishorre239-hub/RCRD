@@ -30,7 +30,7 @@ interface Note {
   };
 }
 interface Course { id: string; name: string; }
-interface Meeting { id: string; title: string; courseId: string | null; password: string; scheduledAt?: string; duration: number; status: string; }
+interface Meeting { id: string; title: string; courseId: string | null; password: string; scheduledAt?: string; duration: number; status: string; hostName?: string; }
 interface Participant {
   id: string;
   name: string;
@@ -93,9 +93,67 @@ export default function ClassRoomPage() {
   const roleParam = searchParams.get("role");
   const isMentor = roleParam === "host" || roleParam === "mentor";
   const isReadonly = searchParams.get("readonly") === "true" || !isMentor;
-  const studentName = searchParams.get("name") || (isMentor ? "Host" : "Participant");
+  const rawQueryName = searchParams.get("name")?.trim();
+  const studentName = (!isMentor && rawQueryName && rawQueryName.toLowerCase() !== "host") ? rawQueryName : (!isMentor ? "Participant" : "");
+
+  // Dynamically resolve host name from:
+  // 1. ?hostName= query param
+  // 2. ?name= query param (when role=host/mentor)
+  // 3. localStorage (logged-in user or rcrd_user_profile)
+  const [hostName, setHostName] = useState<string>(() => {
+    const queryHost = searchParams.get("hostName")?.trim();
+    if (queryHost && queryHost.toLowerCase() !== "host") return queryHost;
+    if (isMentor && rawQueryName && rawQueryName.toLowerCase() !== "host") {
+      return rawQueryName;
+    }
+    if (typeof window !== "undefined") {
+      try {
+        const usr = localStorage.getItem("user");
+        if (usr) {
+          const u = JSON.parse(usr);
+          const uName = (u?.name || (u?.email ? u.email.split('@')[0] : ''))?.trim();
+          if (uName && uName.toLowerCase() !== "host") return uName;
+        }
+        const prof = localStorage.getItem("rcrd_user_profile");
+        if (prof) {
+          const p = JSON.parse(prof);
+          const pName = p?.name?.trim();
+          if (pName && pName.toLowerCase() !== "host") return pName;
+        }
+      } catch {}
+    }
+    return (isMentor && rawQueryName && rawQueryName.toLowerCase() !== "host") ? rawQueryName : "";
+  });
 
   const [meeting, setMeeting] = useState<Meeting | null>(null);
+
+  // Sync host name dynamically whenever meeting has hostName
+  useEffect(() => {
+    if (meeting?.hostName) {
+      setHostName(meeting.hostName);
+    }
+  }, [meeting?.hostName]);
+
+  useEffect(() => {
+    if (isMentor && (!hostName || hostName.toLowerCase() === "host")) {
+      fetch("/api/auth/me")
+        .then(res => res.ok ? res.json() : null)
+        .then(d => {
+          if (d?.user?.name) {
+            setHostName(d.user.name);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isMentor, hostName]);
+
+  const effectiveHostName = hostName || meeting?.hostName || (isMentor && rawQueryName && rawQueryName.toLowerCase() !== "host" ? rawQueryName : "") || (isMentor ? "Host" : (meeting?.hostName || "Host"));
+
+  const displayName = isMentor
+    ? (effectiveHostName || "Host")
+    : (studentName || "Participant");
+
+  const displayInitial = (displayName.replace(/[^a-zA-Z0-9]/g, "").charAt(0) || displayName.charAt(0) || "U").toUpperCase();
   const [bypassLobby, setBypassLobby] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -282,19 +340,22 @@ export default function ClassRoomPage() {
   }>({ active: false });
 
   // Real participants only - pure function initializer to prevent impure Date.now() on re-renders
-  const [participants, setParticipants] = useState<Participant[]>(() => [
-    {
-      id: isMentor ? "host" : `student_${Date.now()}`,
-      name: isMentor ? "You (Host)" : studentName,
-      role: isMentor ? "Host" : "Student",
-      avatar: (isMentor ? "H" : (studentName ? studentName.substring(0, 2) : "S")).toUpperCase(),
-      isMuted: !isMentor, // Students start muted by default to eliminate class disturbance!
-      isVideoOn: false,
-      isHandRaised: false,
-      canScreenShare: isMentor,
-      canChat: true,
-    },
-  ]);
+  const [participants, setParticipants] = useState<Participant[]>(() => {
+    const initHost = (isMentor && rawQueryName && rawQueryName.toLowerCase() !== "host") ? rawQueryName : "Host";
+    return [
+      {
+        id: isMentor ? "host" : `student_${Date.now()}`,
+        name: isMentor ? `${initHost} (Host, you)` : (studentName || "Participant"),
+        role: isMentor ? "Host" : "Student",
+        avatar: (isMentor ? (initHost.charAt(0) || "H") : (studentName ? studentName.substring(0, 2) : "S")).toUpperCase(),
+        isMuted: !isMentor, // Students start muted by default to eliminate class disturbance!
+        isVideoOn: false,
+        isHandRaised: false,
+        canScreenShare: isMentor,
+        canChat: true,
+      },
+    ];
+  });
 
   // In-Meeting Chat State (Welcome note only - no dummy student)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -648,7 +709,7 @@ export default function ClassRoomPage() {
     // Broadcast hand raise event immediately to host and room
     const hrPayload = {
       participantId: myParticipantId,
-      name: isMentor ? "Host" : studentName,
+      name: isMentor ? displayName : studentName,
       isHandRaised: next,
     };
     try {
@@ -685,7 +746,7 @@ export default function ClassRoomPage() {
       return;
     }
     if (!chatInput.trim()) return;
-    const mySenderName = isMentor ? "Host" : (studentName || "Student");
+    const mySenderName = isMentor ? displayName : (studentName || "Student");
     const msg: ChatMessage = {
       id: `${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       sender: mySenderName,
@@ -739,6 +800,9 @@ export default function ClassRoomPage() {
       }
       setTimeout(() => {
         setMeeting(m);
+        if (m?.hostName) {
+          setHostName(m.hostName);
+        }
         if (m.courseId) setUploadCourse(m.courseId);
         try {
           const roomNotes = JSON.parse(localStorage.getItem("RCRD_MEETING_NOTES") || "{}");
@@ -754,6 +818,9 @@ export default function ClassRoomPage() {
       .then(data => {
         if (data?.meeting) {
           setMeeting(data.meeting);
+          if (data.meeting.hostName) {
+            setHostName(data.meeting.hostName);
+          }
           if (!isMentor && data.meeting.status === 'ended') {
             window.location.href = "https://www.geonixa.com/";
             return;
@@ -775,10 +842,10 @@ export default function ClassRoomPage() {
   // Real-time server-synchronized participant heartbeat
   useEffect(() => {
     if (!roomId) return;
-    const cleanKey = (name: string) => (name || '').replace(/\s*\((Student|Host|You)\)/gi, '').trim().toLowerCase();
-    const currentName = isMentor ? "Host" : (studentName || "Student");
+    const cleanKey = (name: string) => (name || '').replace(/\s*\((Student|Host|You|you|me)\)/gi, '').trim().toLowerCase();
+    const currentName = isMentor ? displayName : (studentName || "Student");
     const currentRole = isMentor ? "Host" : "Student";
-    const currentAvatar = (isMentor ? "H" : (studentName ? studentName.substring(0, 2) : "S")).toUpperCase();
+    const currentAvatar = (currentName.replace(/[^a-zA-Z0-9]/g, "").substring(0, 2) || "U").toUpperCase();
 
     const syncParticipants = async () => {
       try {
@@ -802,12 +869,13 @@ export default function ClassRoomPage() {
             const rawName = p.name || 'Participant';
             const normKey = cleanKey(rawName);
             const isMe = p.id === myParticipantId || normKey === cleanKey(currentName);
-            const displayName = isMe
-              ? (isMentor ? "You (Host)" : `${studentName || "You"} (Student)`)
-              : (p.role === "Host" || normKey === "host" ? "Host" : rawName.replace(/\s*\((Student|Host|You)\)/gi, '').trim());
+            const hostLabel = effectiveHostName || "Host";
+            const displayNameItem = isMe
+              ? (isMentor ? `${hostLabel} (Host, you)` : `${studentName || "You"} (Student)`)
+              : (p.role === "Host" || normKey === "host" ? `${hostLabel} (Host)` : rawName.replace(/\s*\((Student|Host|You|you|me)\)/gi, '').trim());
             const mappedItem: Participant = {
               id: isMe ? myParticipantId : (p.id || ''),
-              name: displayName,
+              name: displayNameItem,
               role: (p.role as "Host" | "Student") || (normKey === "host" ? "Host" : 'Student'),
               avatar: p.avatar || rawName.substring(0, 2).toUpperCase(),
               isMuted: p.isMuted ?? true,
@@ -1127,7 +1195,7 @@ export default function ClassRoomPage() {
 
           const payload = {
             active: true,
-            presenterName: "Host",
+            presenterName: displayName || "Host",
             streamFrame: dataUrl,
             updatedAt: now,
           };
@@ -1766,10 +1834,10 @@ export default function ClassRoomPage() {
             ctx.font = "bold 40px sans-serif";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.fillText("HR", 320, 160 + bounce);
+            ctx.fillText(displayInitial, 320, 160 + bounce);
             ctx.font = "bold 14px sans-serif";
             ctx.fillStyle = "#94a3b8";
-            ctx.fillText("Host Video Feed (Live Camera)", 320, 260);
+            ctx.fillText(`${displayName} Video Feed (Live Camera)`, 320, 260);
             requestAnimationFrame(drawFrame);
           };
           drawFrame();
@@ -2312,13 +2380,13 @@ export default function ClassRoomPage() {
     return () => window.removeEventListener("resize", updateCanvasSize);
   }, [isWhiteboardActive, isFullScreen]);
 
-  const myCleanName = (isMentor ? "Host" : (studentName || "Student")).replace(/\s*\((Student|Host|You)\)/gi, '').trim().toLowerCase();
+  const myCleanName = (isMentor ? (effectiveHostName || "Host") : (studentName || "Student")).replace(/\s*\((Student|Host|You|you|me)\)/gi, '').trim().toLowerCase();
   const uniqueOtherParticipants: Participant[] = [];
   const seenParticipants = new Set<string>();
   participants.forEach(p => {
     if (p.id === myParticipantId) return;
-    const cleanKey = (p.name || '').replace(/\s*\((Student|Host|You)\)/gi, '').trim().toLowerCase();
-    if (cleanKey === myCleanName || cleanKey === "you (host)" || cleanKey === "you") return;
+    const cleanKey = (p.name || '').replace(/\s*\((Student|Host|You|you|me)\)/gi, '').trim().toLowerCase();
+    if (cleanKey === myCleanName || cleanKey === "you (host)" || cleanKey === "you" || cleanKey.includes("you")) return;
     if (!seenParticipants.has(cleanKey)) {
       seenParticipants.add(cleanKey);
       uniqueOtherParticipants.push(p);
@@ -2411,15 +2479,13 @@ export default function ClassRoomPage() {
     );
   }
 
-  const displayName = isMentor ? "Hari Kishore Reddy" : (studentName || "Hari Kishore Reddy");
-  const displayInitial = displayName.charAt(0).toUpperCase() || "H";
-
   const copyInviteDetails = () => {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
     const pwd = meeting?.password || "";
     const directLink = pwd ? `${origin}/meeting/${roomId}?pwd=${encodeURIComponent(pwd)}` : `${origin}/meeting/${roomId}`;
     const passInfo = pwd ? `\nPasscode: ${pwd}` : "";
-    const info = `Class Meeting Invitation\nTopic: ${meeting?.title || 'Class Room'}\nDirect Join Link: ${directLink}\nMeeting ID: ${roomId}${passInfo}`;
+    const hostInfo = `\nHost: ${displayName}`;
+    const info = `Class Meeting Invitation\nTopic: ${meeting?.title || 'Class Room'}${hostInfo}\nDirect Join Link: ${directLink}\nMeeting ID: ${roomId}${passInfo}`;
     navigator.clipboard.writeText(info);
     showToast("Invite link & details copied!");
   };
@@ -2458,7 +2524,7 @@ export default function ClassRoomPage() {
             )}
           </div>
 
-          {/* Center: Meeting Title Pill with Dropdown [⤢] Hari Kishore Re... ⌵ */}
+          {/* Center: Meeting Title Pill with Dropdown */}
           <div className="pointer-events-auto">
             <button
               onClick={() => setShowMeetingInfoModal(true)}
@@ -2467,7 +2533,7 @@ export default function ClassRoomPage() {
             >
               <Maximize2 size={12} className="text-zinc-400 shrink-0" />
               <span className="truncate">
-                {meeting?.title || "Hari Kishore Reddy's Meeting"}
+                {meeting?.title || `${displayName}'s Meeting`}
               </span>
               <ChevronDown size={13} className="text-zinc-400 shrink-0" />
             </button>
@@ -3138,7 +3204,7 @@ export default function ClassRoomPage() {
                   >
                     <div className="flex items-center gap-1 font-bold text-white text-[9px] sm:text-[10px]">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      <span>Host</span>
+                      <span>{effectiveHostName || "Host"}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="text-[9px] text-slate-400 hidden sm:inline">Drag to move</span>
@@ -3182,7 +3248,7 @@ export default function ClassRoomPage() {
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-[#20262E]">
                         <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#154360] text-white flex items-center justify-center font-bold text-xs sm:text-base shadow-sm">
-                          HR
+                          {displayInitial}
                         </div>
                         <span className="text-[9px] sm:text-[10px] font-semibold text-[#57636E] mt-0.5 truncate max-w-[90%]">Camera Off</span>
                       </div>
@@ -3857,7 +3923,7 @@ export default function ClassRoomPage() {
 
               <div>
                 <div className="text-[10px] uppercase font-bold text-zinc-500 mb-0.5">Host</div>
-                <div className="text-white font-medium">Hari Kishore Reddy</div>
+                <div className="text-white font-medium">{effectiveHostName}</div>
               </div>
 
               <div className="pt-2">

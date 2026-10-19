@@ -32,6 +32,27 @@ const DEFAULT_PROFILE: UserProfileData = {
 export function getStoredProfile(): UserProfileData {
   if (typeof window === "undefined") return DEFAULT_PROFILE;
   try {
+    const userRaw = localStorage.getItem("user");
+    if (userRaw) {
+      const u = JSON.parse(userRaw);
+      const name = (u?.name || (u?.email ? u.email.split('@')[0] : '') || '').trim();
+      if (name) {
+        const initials = name
+          .split(' ')
+          .filter(Boolean)
+          .map((n: string) => n[0])
+          .join('')
+          .substring(0, 2)
+          .toUpperCase() || 'U';
+        return {
+          name,
+          email: u.email || '',
+          role: u.role || 'Member',
+          plan: 'Pro Plan',
+          avatarText: initials,
+        };
+      }
+    }
     const raw = localStorage.getItem("rcrd_user_profile");
     if (raw) return JSON.parse(raw);
   } catch {}

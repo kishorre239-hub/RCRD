@@ -107,7 +107,29 @@ export default function ClassRoomPage() {
   const isMentor = roleParam === "host" || roleParam === "mentor";
   const isReadonly = searchParams.get("readonly") === "true" || !isMentor;
   const rawQueryName = searchParams.get("name")?.trim();
-  const studentName = (!isMentor && rawQueryName && rawQueryName.toLowerCase() !== "host") ? rawQueryName : (!isMentor ? "Participant" : "");
+  const [studentName] = useState<string>(() => {
+    if (isMentor) return "";
+    if (rawQueryName && rawQueryName.toLowerCase() !== "host" && rawQueryName.toLowerCase() !== "participant") {
+      return rawQueryName;
+    }
+    if (typeof window !== "undefined") {
+      try {
+        const usr = localStorage.getItem("user");
+        if (usr) {
+          const u = JSON.parse(usr);
+          const uName = (u?.name || (u?.email ? u.email.split('@')[0] : ''))?.trim();
+          if (uName && uName.toLowerCase() !== "host") return uName;
+        }
+        const prof = localStorage.getItem("rcrd_user_profile");
+        if (prof) {
+          const p = JSON.parse(prof);
+          const pName = p?.name?.trim();
+          if (pName && pName.toLowerCase() !== "host") return pName;
+        }
+      } catch {}
+    }
+    return rawQueryName || "Student";
+  });
 
   // Dynamically resolve host name from:
   // 1. ?hostName= query param
@@ -676,6 +698,23 @@ export default function ClassRoomPage() {
       audio.muted = speakerMuted;
     });
   }, [speakerMuted]);
+
+  // Mobile / browser autoplay policy unlock: resume audio elements on first touch or click
+  useEffect(() => {
+    const unlockAudio = () => {
+      remoteAudiosRef.current.forEach((audio) => {
+        if (audio.paused && audio.srcObject) {
+          audio.play().catch(() => {});
+        }
+      });
+    };
+    window.addEventListener("click", unlockAudio, { passive: true });
+    window.addEventListener("touchstart", unlockAudio, { passive: true });
+    return () => {
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
 
   // Real-time emoji reaction broadcasted to ALL participants (Host + Students)
   const triggerReaction = useCallback((emoji: string, senderName?: string, broadcast: boolean = true) => {
@@ -4076,24 +4115,27 @@ export default function ClassRoomPage() {
               </button>
 
               {/* Feature 2: Whiteboard (Sketch & Notepad) */}
-              {isMentor && (
-                <button
-                  onClick={() => {
-                    setShowMoreSheet(false);
+              <button
+                onClick={() => {
+                  setShowMoreSheet(false);
+                  if (isMentor) {
                     const next = !showWhiteboard;
                     setShowWhiteboard(next);
                     broadcastWhiteboard(next);
-                  }}
-                  className="flex flex-col items-center justify-center p-3 rounded-2xl bg-zinc-800/70 hover:bg-zinc-800 border border-zinc-700/40 text-center gap-2 transition-all cursor-pointer"
-                >
-                  <div className={`p-2 rounded-xl ${showWhiteboard ? "bg-emerald-600/20 text-emerald-400" : "bg-purple-600/20 text-purple-400"}`}>
-                    <Edit3 size={22} />
-                  </div>
-                  <span className="text-[11px] font-semibold text-zinc-200">
-                    Whiteboard
-                  </span>
-                </button>
-              )}
+                  } else {
+                    setShowWhiteboard(true);
+                    setStudentViewMode("whiteboard");
+                  }
+                }}
+                className="flex flex-col items-center justify-center p-3 rounded-2xl bg-zinc-800/70 hover:bg-zinc-800 border border-zinc-700/40 text-center gap-2 transition-all cursor-pointer"
+              >
+                <div className={`p-2 rounded-xl ${showWhiteboard ? "bg-emerald-600/20 text-emerald-400" : "bg-purple-600/20 text-purple-400"}`}>
+                  <Edit3 size={22} />
+                </div>
+                <span className="text-[11px] font-semibold text-zinc-200">
+                  Whiteboard
+                </span>
+              </button>
 
               {/* Feature 3: Class Notes */}
               <button

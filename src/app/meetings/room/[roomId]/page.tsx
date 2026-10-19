@@ -127,13 +127,6 @@ export default function ClassRoomPage() {
 
   const [meeting, setMeeting] = useState<Meeting | null>(null);
 
-  // Sync host name dynamically whenever meeting has hostName
-  useEffect(() => {
-    if (meeting?.hostName) {
-      setHostName(meeting.hostName);
-    }
-  }, [meeting?.hostName]);
-
   useEffect(() => {
     if (isMentor && (!hostName || hostName.toLowerCase() === "host")) {
       fetch("/api/auth/me")
@@ -902,7 +895,7 @@ export default function ClassRoomPage() {
         method: 'DELETE',
       }).catch(() => {});
     };
-  }, [roomId, myParticipantId, isMentor, studentName, micOn, cameraOn, isHandRaised]);
+  }, [roomId, myParticipantId, isMentor, studentName, micOn, cameraOn, isHandRaised, displayName, effectiveHostName]);
 
   // Real-time synchronization loop: Host camera, Screen share, Whiteboard slides, Chat, Notes, Reactions
   useEffect(() => {
@@ -1236,12 +1229,12 @@ export default function ClassRoomPage() {
         body: JSON.stringify({ screenShare: { active: false, updatedAt: Date.now() } }),
       }).catch(() => {});
     };
-  }, [screenStream, isMentor, roomId]);
+  }, [screenStream, isMentor, roomId, displayName]);
 
   // Broadcast camera frames for Host AND Student participants
   useEffect(() => {
     const myRole = isMentor ? 'Host' : 'Student';
-    const myName = isMentor ? 'Host' : studentName;
+    const myName = isMentor ? displayName : studentName;
 
     if (!cameraStream || !cameraOn || !roomId) {
       if (roomId) {
@@ -1344,7 +1337,7 @@ export default function ClassRoomPage() {
         }),
       }).catch(() => {});
     };
-  }, [cameraStream, cameraOn, isMentor, studentName, myParticipantId, roomId]);
+  }, [cameraStream, cameraOn, isMentor, studentName, myParticipantId, roomId, displayName]);
 
   // Broadcast whiteboard state (multi-slide & notepad)
   const broadcastWhiteboard = useCallback((

@@ -349,21 +349,29 @@ export async function POST(
 
     // 1. Screen share update
     if (body.screenShare !== undefined) {
+      const isScreenActive = Boolean(body.screenShare.active);
       state.screenShare = {
-        active: Boolean(body.screenShare.active),
+        active: isScreenActive,
         presenterName: body.screenShare.presenterName || state.screenShare.presenterName,
         streamFrame: body.screenShare.streamFrame !== undefined ? body.screenShare.streamFrame : state.screenShare.streamFrame,
         updatedAt: now,
       };
-      if (!body.screenShare.active) {
+      if (isScreenActive) {
+        // When screen share begins, automatically deactivate whiteboard so students immediately switch to screen share
+        if (state.whiteboard) {
+          state.whiteboard.active = false;
+          state.whiteboard.updatedAt = now;
+        }
+      } else {
         state.screenShare.streamFrame = undefined;
       }
     }
 
     // 2. Whiteboard update (supporting slides & notepad text)
     if (body.whiteboard !== undefined) {
+      const isWbActive = Boolean(body.whiteboard.active);
       state.whiteboard = {
-        active: Boolean(body.whiteboard.active),
+        active: isWbActive,
         canvasData: body.whiteboard.canvasData !== undefined ? body.whiteboard.canvasData : state.whiteboard.canvasData,
         currentSlide: body.whiteboard.currentSlide !== undefined ? body.whiteboard.currentSlide : state.whiteboard.currentSlide,
         totalSlides: body.whiteboard.totalSlides !== undefined ? body.whiteboard.totalSlides : state.whiteboard.totalSlides,
@@ -372,7 +380,14 @@ export async function POST(
         mode: body.whiteboard.mode !== undefined ? body.whiteboard.mode : state.whiteboard.mode,
         updatedAt: now,
       };
-      if (!body.whiteboard.active) {
+      if (isWbActive) {
+        // When whiteboard is activated, deactivate screen share
+        if (state.screenShare) {
+          state.screenShare.active = false;
+          state.screenShare.streamFrame = undefined;
+          state.screenShare.updatedAt = now;
+        }
+      } else {
         state.whiteboard.canvasData = undefined;
       }
     }

@@ -423,7 +423,9 @@ export default function ClassRoomPage() {
   const cameraVideoRef = useRef<HTMLVideoElement>(null);
   const remoteScreenVideoRef = useRef<HTMLVideoElement | null>(null);
   const [remoteWebRTCStream, setRemoteWebRTCStream] = useState<MediaStream | null>(null);
+  const [isWebRTCVideoPlaying, setIsWebRTCVideoPlaying] = useState<boolean>(false);
   const lastScreenShareTimestampRef = useRef<number>(0);
+  const lastWhiteboardTimestampRef = useRef<number>(0);
 
   useEffect(() => {
     const t = setTimeout(() => setNow(Date.now()), 0);
@@ -554,7 +556,11 @@ export default function ClassRoomPage() {
             const stream = event.streams[0] || new MediaStream([event.track]);
             setRemoteWebRTCStream(stream);
             event.track.onended = () => {
+              setIsWebRTCVideoPlaying(false);
               setRemoteWebRTCStream(null);
+            };
+            event.track.onmute = () => {
+              setIsWebRTCVideoPlaying(false);
             };
             event.track.onunmute = () => {
               setRemoteWebRTCStream(event.streams[0] || new MediaStream([event.track]));
@@ -570,6 +576,20 @@ export default function ClassRoomPage() {
             audio.srcObject = event.streams[0] || new MediaStream([event.track]);
             audio.muted = speakerMuted;
             audio.play().catch(() => {});
+          }
+        };
+
+        pc.onconnectionstatechange = () => {
+          if (pc?.connectionState === "failed" || pc?.connectionState === "disconnected") {
+            setIsWebRTCVideoPlaying(false);
+            setRemoteWebRTCStream(null);
+          }
+        };
+
+        pc.oniceconnectionstatechange = () => {
+          if (pc?.iceConnectionState === "failed" || pc?.iceConnectionState === "disconnected") {
+            setIsWebRTCVideoPlaying(false);
+            setRemoteWebRTCStream(null);
           }
         };
 
@@ -599,7 +619,13 @@ export default function ClassRoomPage() {
             if (event.track.kind === "video") {
               const stream = event.streams[0] || new MediaStream([event.track]);
               setRemoteWebRTCStream(stream);
-              event.track.onended = () => setRemoteWebRTCStream(null);
+              event.track.onended = () => {
+                setIsWebRTCVideoPlaying(false);
+                setRemoteWebRTCStream(null);
+              };
+              event.track.onmute = () => {
+                setIsWebRTCVideoPlaying(false);
+              };
               event.track.onunmute = () => setRemoteWebRTCStream(event.streams[0] || new MediaStream([event.track]));
             }
           };
@@ -657,7 +683,11 @@ export default function ClassRoomPage() {
           const stream = event.streams[0] || new MediaStream([event.track]);
           setRemoteWebRTCStream(stream);
           event.track.onended = () => {
+            setIsWebRTCVideoPlaying(false);
             setRemoteWebRTCStream(null);
+          };
+          event.track.onmute = () => {
+            setIsWebRTCVideoPlaying(false);
           };
           event.track.onunmute = () => {
             setRemoteWebRTCStream(event.streams[0] || new MediaStream([event.track]));
@@ -673,6 +703,20 @@ export default function ClassRoomPage() {
           audio.srcObject = event.streams[0] || new MediaStream([event.track]);
           audio.muted = speakerMuted;
           audio.play().catch(() => {});
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (pc?.connectionState === "failed" || pc?.connectionState === "disconnected") {
+          setIsWebRTCVideoPlaying(false);
+          setRemoteWebRTCStream(null);
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        if (pc?.iceConnectionState === "failed" || pc?.iceConnectionState === "disconnected") {
+          setIsWebRTCVideoPlaying(false);
+          setRemoteWebRTCStream(null);
         }
       };
 
@@ -1100,7 +1144,8 @@ export default function ClassRoomPage() {
       if (pollInFlight) return;
       pollInFlight = true;
       try {
-        const res = await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state?participantId=${encodeURIComponent(myParticipantId)}`, {
+        const sinceScreenParam = isWebRTCVideoPlaying ? Date.now() : lastScreenShareTimestampRef.current;
+        const res = await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state?participantId=${encodeURIComponent(myParticipantId)}&sinceScreen=${sinceScreenParam}&sinceWb=${lastWhiteboardTimestampRef.current}`, {
           cache: "no-store",
         });
         if (!res.ok) return;
@@ -1191,6 +1236,9 @@ export default function ClassRoomPage() {
           // Sync Whiteboard if student
           if (data.whiteboard) {
             setRemoteWhiteboard(data.whiteboard);
+            if (data.whiteboard.updatedAt) {
+              lastWhiteboardTimestampRef.current = data.whiteboard.updatedAt;
+            }
             if (!isMentor) {
               const isWbActive = Boolean(data.whiteboard.active);
               if (isWbActive) {
@@ -1278,10 +1326,22 @@ export default function ClassRoomPage() {
       }
     } catch {}
 
+    let helperVideo: HTMLVideoElement | null = null;
+    if (!screenVideoRef.current || screenVideoRef.current.videoWidth === 0) {
+      helperVideo = document.createElement("video");
+      helperVideo.muted = true;
+      helperVideo.autoplay = true;
+      helperVideo.playsInline = true;
+      helperVideo.srcObject = screenStream;
+      helperVideo.play().catch(() => {});
+    }
+
     const broadcastFrame = async () => {
       if (!active || !screenStream || inFlight) return;
       try {
-        const vEl = screenVideoRef.current;
+        const vEl = (screenVideoRef.current && screenVideoRef.current.videoWidth > 0)
+          ? screenVideoRef.current
+          : helperVideo;
         if (vEl && vEl.videoWidth > 0 && ctx && sampleCtx) {
           const vw = vEl.videoWidth;
           const vh = vEl.videoHeight;
@@ -1351,6 +1411,9 @@ export default function ClassRoomPage() {
     return () => {
       active = false;
       clearInterval(interval);
+      if (helperVideo) {
+        helperVideo.srcObject = null;
+      }
       if (bc) {
         bc.postMessage({ type: "SCREEN_SHARE", data: { active: false, updatedAt: Date.now() } });
         bc.close();
@@ -2601,7 +2664,7 @@ export default function ClassRoomPage() {
   };
 
   const isLocalSharing = !!screenStream;
-  const isRemoteSharing = !isLocalSharing && !!remoteScreenShare?.active && (!!remoteScreenShare?.streamFrame || !!remoteWebRTCStream);
+  const isRemoteSharing = !isLocalSharing && !!remoteScreenShare?.active;
   const isAnyScreenSharing = isLocalSharing || isRemoteSharing;
   const isSharing = isAnyScreenSharing;
   const isWhiteboardActive = isMentor
@@ -2934,20 +2997,29 @@ export default function ClassRoomPage() {
 
           {/* Remote Host Screen Share (Live synced to students) */}
           {isRemoteSharing && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black">
-              <div className="absolute top-16 left-4 z-20 flex items-center gap-2 bg-zinc-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-zinc-700 shadow-md text-xs font-bold text-white">
-                <Monitor size={14} className="text-blue-400" />
-                <span>{remoteScreenShare?.presenterName || "Host"} is sharing screen</span>
-                {remoteWebRTCStream ? (
-                  <span className="flex items-center gap-1.5 text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium">
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black overflow-hidden select-none">
+              <div className="absolute top-16 left-3 sm:left-4 z-20 flex items-center gap-1.5 sm:gap-2 bg-zinc-900/90 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-zinc-700 shadow-md text-xs font-bold text-white max-w-[90vw] overflow-x-auto">
+                <Monitor size={14} className="text-blue-400 shrink-0" />
+                <span className="truncate max-w-[140px] sm:max-w-none">{remoteScreenShare?.presenterName || "Host"} is sharing screen</span>
+                {isWebRTCVideoPlaying ? (
+                  <span className="flex items-center gap-1.5 text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Ultra HD 60FPS
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-medium">
+                  <span className="flex items-center gap-1 text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-medium shrink-0">
                     HD Live
                   </span>
                 )}
+                <button
+                  type="button"
+                  onClick={toggleFullScreen}
+                  className="flex items-center gap-1 text-[10px] sm:text-[11px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-lg font-semibold border border-white/20 transition-all cursor-pointer ml-0.5 shrink-0"
+                  title="Fullscreen"
+                >
+                  <Maximize2 size={11} className="text-blue-300" />
+                  <span className="hidden sm:inline">Fit / Fullscreen</span>
+                </button>
                 {!isMentor && remoteWhiteboard?.active && (
                   <button
                     type="button"
@@ -2955,7 +3027,7 @@ export default function ClassRoomPage() {
                       setShowWhiteboard(true);
                       setStudentViewMode("whiteboard");
                     }}
-                    className="flex items-center gap-1 text-[10px] sm:text-[11px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-lg font-semibold border border-white/20 transition-all cursor-pointer ml-1"
+                    className="flex items-center gap-1 text-[10px] sm:text-[11px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-lg font-semibold border border-white/20 transition-all cursor-pointer ml-0.5 shrink-0"
                     title="View mentor's lecture notes"
                   >
                     <BookOpen size={11} className="text-amber-300" />
@@ -2963,7 +3035,19 @@ export default function ClassRoomPage() {
                   </button>
                 )}
               </div>
-              {remoteWebRTCStream ? (
+
+              {/* Layer 1: HTTP Live Frame Stream (Rock-solid fallback, immediate 0ms appearance) */}
+              {remoteScreenShare?.streamFrame && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={remoteScreenShare.streamFrame}
+                  alt="Shared Screen"
+                  className="absolute inset-0 w-full h-full object-contain select-none pointer-events-none"
+                />
+              )}
+
+              {/* Layer 2: WebRTC Ultra HD 60FPS Video (Fades in over Layer 1 when packets arrive) */}
+              {remoteWebRTCStream && (
                 <video
                   ref={(el) => {
                     remoteScreenVideoRef.current = el;
@@ -2975,15 +3059,34 @@ export default function ClassRoomPage() {
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-full object-contain select-none"
+                  onPlaying={() => setIsWebRTCVideoPlaying(true)}
+                  onTimeUpdate={() => setIsWebRTCVideoPlaying(true)}
+                  onWaiting={() => setIsWebRTCVideoPlaying(false)}
+                  onStalled={() => setIsWebRTCVideoPlaying(false)}
+                  onError={() => setIsWebRTCVideoPlaying(false)}
+                  onPause={() => setIsWebRTCVideoPlaying(false)}
+                  className={`absolute inset-0 w-full h-full object-contain select-none transition-opacity duration-300 ${
+                    isWebRTCVideoPlaying ? "opacity-100 z-10" : "opacity-0 pointer-events-none"
+                  }`}
                 />
-              ) : (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={remoteScreenShare?.streamFrame}
-                  alt="Shared Screen"
-                  className="w-full h-full object-contain select-none pointer-events-none"
-                />
+              )}
+
+              {/* Layer 3: Presentation Connecting State (Only if neither WebRTC nor frame is ready yet) */}
+              {!remoteScreenShare?.streamFrame && !isWebRTCVideoPlaying && (
+                <div className="flex flex-col items-center justify-center gap-3 p-6 text-center select-none z-10">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-xl">
+                    <Monitor size={28} className="animate-pulse" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white tracking-wide">
+                      {remoteScreenShare?.presenterName || "Host"} is presenting screen
+                    </p>
+                    <p className="text-xs text-zinc-400 mt-1 flex items-center justify-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping" />
+                      Connecting to live presentation stream...
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
           )}

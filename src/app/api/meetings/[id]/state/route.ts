@@ -110,7 +110,7 @@ let persistTimer: NodeJS.Timeout | null = null;
 let isPersisting = false;
 
 function sanitizeStateForDisk(rawStates: Record<string, MeetingState>) {
-  const sanitized: Record<string, any> = {};
+  const sanitized: Record<string, unknown> = {};
   for (const [roomId, room] of Object.entries(rawStates)) {
     if (!room) continue;
     sanitized[roomId] = {
@@ -229,12 +229,43 @@ export async function GET(
     // Prune signals older than 25 seconds
     state.signals = (state.signals || []).filter(s => now - s.timestamp < 25000);
 
-    // Read requesting participantId to filter relevant WebRTC signals
+    // Read query params for delta synchronization & signal routing
     const url = new URL(req.url);
     const requestingPid = url.searchParams.get('participantId');
+    const sinceScreenStr = url.searchParams.get('sinceScreen');
+    const sinceWbStr = url.searchParams.get('sinceWb');
+
+    const sinceScreen = sinceScreenStr ? Number(sinceScreenStr) : 0;
+    const sinceWb = sinceWbStr ? Number(sinceWbStr) : 0;
+
     const signalsForMe = (state.signals || []).filter(s =>
       !requestingPid || s.to === requestingPid || s.to === 'all' || (requestingPid === 'host' && s.to === 'host')
     );
+
+    // Delta payload optimization: if client already has the latest frame or slide data, strip base64 to save 95%+ bandwidth
+    let screenShareToSend = state.screenShare;
+    if (state.screenShare && sinceScreen > 0 && state.screenShare.updatedAt <= sinceScreen) {
+      screenShareToSend = {
+        active: state.screenShare.active,
+        presenterName: state.screenShare.presenterName,
+        updatedAt: state.screenShare.updatedAt,
+      };
+    }
+
+    let whiteboardToSend = state.whiteboard;
+    if (state.whiteboard) {
+      const skipHeavyWb = (sinceWb > 0 && state.whiteboard.updatedAt <= sinceWb) || (state.screenShare?.active && !state.whiteboard.active);
+      if (skipHeavyWb) {
+        whiteboardToSend = {
+          active: state.whiteboard.active,
+          currentSlide: state.whiteboard.currentSlide,
+          totalSlides: state.whiteboard.totalSlides,
+          mode: state.whiteboard.mode,
+          notepadText: state.whiteboard.notepadText,
+          updatedAt: state.whiteboard.updatedAt,
+        };
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -242,8 +273,8 @@ export async function GET(
       hostCamera: state.hostCamera,
       participantCameras: state.participantCameras || {},
       handRaises: state.handRaises || [],
-      screenShare: state.screenShare,
-      whiteboard: state.whiteboard,
+      screenShare: screenShareToSend,
+      whiteboard: whiteboardToSend,
       chat: state.chat,
       notes: state.notes,
       reactions: state.reactions,

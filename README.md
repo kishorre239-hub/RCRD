@@ -3,6 +3,7 @@
 The dedicated Loom screen recording, video collaboration, timeline editing, and WebRTC meetings product in the Geonixa Monorepo.
 
 ## 1. Scope & Features
+
 - **Loom Screen Recorder (`/record`):** Full screen, browser tab, webcam overlay, microphone audio, countdown timer, pause/resume, and real-time chunk streaming.
 - **Video Watch & Editor (`/video/[id]`):** Interactive timeline player with frame-level trimming, cuts, transcription notes, comments, and speed controls.
 - **Personal Video Library (`/library`):** Recorded video list, folders, tag management, and search.
@@ -43,6 +44,7 @@ GMAIL_APP_PASSWORD=your-app-password
 ## 4. Vercel Deployment Configuration
 
 When deploying this project independently to **Vercel**:
+
 1. **Framework Preset:** `Next.js`
 2. **Root Directory:** `apps/loom-app`
 3. **Build Command:** `next build`

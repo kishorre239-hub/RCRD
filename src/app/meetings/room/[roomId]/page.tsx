@@ -10,7 +10,7 @@ import {
   Pen, Eraser, Edit3, Shield, Users, MessageSquare, Copy, Send,
   VolumeX, RotateCcw, RotateCw, Paperclip, Image as ImageIcon, Download,
   ChevronLeft, Plus, BookOpen,
-  Maximize2, Minimize2, GripHorizontal, Move, MoreHorizontal, Volume2, RefreshCw, Disc, Smartphone, NotebookPen, Video
+  Maximize2, Minimize2, MoreHorizontal, Volume2, RefreshCw, Disc, Smartphone, NotebookPen, Video
 } from "lucide-react";
 import { getCourses, uploadVideo, ensureValidAuthToken } from "@/lib/api";
 
@@ -72,6 +72,15 @@ const STEPS = [
 
 const WHITEBOARD_COLORS = ["#20262E", "#154360", "#DC2626", "#16A34A", "#D97706", "#9333EA", "#0284C7", "#EA580C"];
 
+// WebRTC Audio & Video STUN Configuration (Free public Google STUN servers)
+const RTC_CONFIG: RTCConfiguration = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
+  ],
+};
+
 export default function ClassRoomPage() {
   const router = useRouter();
   const params = useParams();
@@ -79,7 +88,6 @@ export default function ClassRoomPage() {
   const roomId = params.roomId as string;
   const roleParam = searchParams.get("role");
   const isMentor = roleParam === "host" || roleParam === "mentor";
-  const role = isMentor ? "host" : (roleParam || "student");
   const isReadonly = searchParams.get("readonly") === "true" || !isMentor;
   const studentName = searchParams.get("name") || (isMentor ? "Host" : "Participant");
 
@@ -290,6 +298,22 @@ export default function ClassRoomPage() {
   ]);
   const [chatInput, setChatInput] = useState("");
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const [recentChatPopups, setRecentChatPopups] = useState<ChatMessage[]>([]);
+  const popupTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const pushChatPopup = useCallback((msg: ChatMessage) => {
+    setRecentChatPopups(prev => [...prev.slice(-2), msg]);
+    if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
+    popupTimerRef.current = setTimeout(() => {
+      setRecentChatPopups([]);
+    }, 7000);
+  }, []);
+
+  useEffect(() => {
+    if (showChatSheet) {
+      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, showChatSheet]);
 
   const mediaRecRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -367,17 +391,8 @@ export default function ClassRoomPage() {
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, []);
 
-  // WebRTC Audio STUN Configuration (Free public Google STUN servers)
-  const RTC_CONFIG: RTCConfiguration = {
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" },
-      { urls: "stun:stun2.l.google.com:19302" },
-    ],
-  };
-
-  // Broadcast WebRTC signals (offer, answer, candidate) for 2-way real-time audio
-  const sendSignal = useCallback((to: string, type: 'offer' | 'answer' | 'candidate', payload: any) => {
+  // Broadcast WebRTC signals (offer, answer, candidate) for 2-way real-time audio & video
+  const sendSignal = useCallback((to: string, type: 'offer' | 'answer' | 'candidate', payload: unknown) => {
     if (!roomId) return;
     const sig = {
       id: `sig_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -402,7 +417,7 @@ export default function ClassRoomPage() {
   }, [roomId, myParticipantId]);
 
   // Handle incoming WebRTC audio & video signals (offers, answers, ICE candidates)
-  const handleWebRTCSignal = useCallback(async (sig: { from: string; to: string; type: 'offer' | 'answer' | 'candidate'; payload: any }) => {
+  const handleWebRTCSignal = useCallback(async (sig: { from: string; to: string; type: 'offer' | 'answer' | 'candidate'; payload: unknown }) => {
     if (!sig || sig.from === myParticipantId) return;
     const isForMe = sig.to === myParticipantId || (isMentor && sig.to === "host") || sig.to === "all";
     if (!isForMe) return;
@@ -474,7 +489,7 @@ export default function ClassRoomPage() {
       }
 
       try {
-        await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+        await pc.setRemoteDescription(new RTCSessionDescription(sig.payload as RTCSessionDescriptionInit));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         sendSignal(targetId, "answer", answer);
@@ -484,7 +499,7 @@ export default function ClassRoomPage() {
     } else if (sig.type === "answer") {
       if (pc && pc.signalingState !== "stable") {
         try {
-          await pc.setRemoteDescription(new RTCSessionDescription(sig.payload));
+          await pc.setRemoteDescription(new RTCSessionDescription(sig.payload as RTCSessionDescriptionInit));
         } catch (err) {
           console.warn("Error handling WebRTC answer:", err);
         }
@@ -492,7 +507,7 @@ export default function ClassRoomPage() {
     } else if (sig.type === "candidate") {
       if (pc && sig.payload) {
         try {
-          await pc.addIceCandidate(new RTCIceCandidate(sig.payload));
+          await pc.addIceCandidate(new RTCIceCandidate(sig.payload as RTCIceCandidateInit));
         } catch (err) {
           console.warn("Error adding ICE candidate:", err);
         }
@@ -656,15 +671,17 @@ export default function ClassRoomPage() {
       return;
     }
     if (!chatInput.trim()) return;
+    const mySenderName = isMentor ? "Host" : (studentName || "Student");
     const msg: ChatMessage = {
-      id: Date.now().toString(),
-      sender: isMentor ? "You (Host)" : studentName,
+      id: `${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      sender: mySenderName,
       role: isMentor ? "Host" : "Student",
       text: chatInput.trim(),
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     };
     setChatMessages(prev => [...prev, msg]);
     setChatInput("");
+    pushChatPopup(msg);
     try {
       if (typeof BroadcastChannel !== "undefined") {
         const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
@@ -883,6 +900,7 @@ export default function ClassRoomPage() {
               if (prev.some(m => m.id === data.id)) return prev;
               return [...prev, data];
             });
+            pushChatPopup(data);
           } else if (type === "NOTE_UPDATE") {
             if (Array.isArray(data)) {
               setNotes(data);
@@ -935,7 +953,7 @@ export default function ClassRoomPage() {
 
           // Process WebRTC audio signals
           if (Array.isArray(data.signals) && data.signals.length > 0) {
-            data.signals.forEach((sig: { id: string; from: string; to: string; type: 'offer' | 'answer' | 'candidate'; payload: any }) => {
+            data.signals.forEach((sig: { id: string; from: string; to: string; type: 'offer' | 'answer' | 'candidate'; payload: unknown }) => {
               if (!processedSignalIdsRef.current.has(sig.id)) {
                 processedSignalIdsRef.current.add(sig.id);
                 handleWebRTCSignal(sig);
@@ -1013,9 +1031,10 @@ export default function ClassRoomPage() {
               const newIncoming = data.chat.filter((m: ChatMessage) => !existingIds.has(m.id));
               if (newIncoming.length > 0) {
                 newIncoming.forEach((m: ChatMessage) => {
-                  const myName = isMentor ? "You (Host)" : studentName;
-                  if (m.sender !== myName && !m.sender.includes("You")) {
-                    showToast(`💬 ${m.sender}: ${m.text.slice(0, 40)}${m.text.length > 40 ? "..." : ""}`);
+                  const isMe = (isMentor && m.role === "Host") || (!isMentor && (m.sender === studentName || m.sender === "You"));
+                  if (!isMe && m.sender !== "Class Assistant") {
+                    pushChatPopup(m);
+                    showToast(`💬 ${m.sender}: ${m.text.slice(0, 45)}${m.text.length > 45 ? "..." : ""}`);
                   }
                 });
                 const map = new Map<string, ChatMessage>();
@@ -1049,7 +1068,7 @@ export default function ClassRoomPage() {
       clearInterval(interval);
       if (bc) bc.close();
     };
-  }, [roomId, screenStream, isMentor, triggerReaction, handleWebRTCSignal, initiateAudioCallToHost, myParticipantId, playHandRaiseChime, showToast, studentName]);
+  }, [roomId, screenStream, isMentor, triggerReaction, handleWebRTCSignal, initiateAudioCallToHost, myParticipantId, playHandRaiseChime, showToast, studentName, pushChatPopup]);
 
   // Broadcast screen share frames when Host shares screen (High-clarity, non-blocking, zero lag)
   useEffect(() => {
@@ -2501,6 +2520,20 @@ export default function ClassRoomPage() {
               <RefreshCw size={14} className="text-white" />
             </button>
 
+            {/* 💬 Chat Quick Toggle Button */}
+            <button
+              onClick={() => setShowChatSheet(!showChatSheet)}
+              className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full ${showChatSheet ? "bg-blue-600 text-white border-blue-500 shadow-blue-500/30" : "bg-zinc-900/90 hover:bg-zinc-800 text-white border-zinc-700/60"} border flex items-center justify-center transition-all cursor-pointer shadow-md`}
+              title="Toggle Live Chat"
+            >
+              <MessageSquare size={14} className={showChatSheet ? "text-white" : "text-blue-400"} />
+              {chatMessages.length > 0 && !showChatSheet && (
+                <span className="absolute -top-1 -right-1 min-w-[15px] h-3.5 px-1 bg-blue-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow">
+                  {chatMessages.length}
+                </span>
+              )}
+            </button>
+
             {/* ⛶ Fullscreen Toggle Button */}
             <button
               onClick={toggleFullScreen}
@@ -3834,29 +3867,77 @@ export default function ClassRoomPage() {
         </div>
       )}
 
-      {/* ─── IN-MEETING CHAT (Zoom Dark Pattern) ─── */}
+      {/* ─── LIVE FLOATING CHAT POPUPS (Always visible across video & whiteboard when chat sheet is closed) ─── */}
+      {recentChatPopups.length > 0 && !showChatSheet && (
+        <div className="fixed bottom-24 left-4 sm:left-6 z-[140] flex flex-col gap-2 max-w-[88vw] sm:max-w-sm pointer-events-auto animate-in fade-in slide-in-from-bottom-3 duration-200">
+          {recentChatPopups.map((msg) => {
+            const isMe = (isMentor && msg.role === "Host") || (!isMentor && (msg.sender === studentName || msg.sender === "You"));
+            return (
+              <div
+                key={msg.id}
+                onClick={() => setShowChatSheet(true)}
+                className="bg-zinc-900/95 backdrop-blur-md border border-zinc-700/80 rounded-2xl px-3.5 py-2.5 shadow-2xl text-left cursor-pointer hover:bg-zinc-800 transition-all group"
+                title="Click to open in-meeting chat"
+              >
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-[11px] font-bold text-blue-400 flex items-center gap-1.5">
+                    <MessageSquare size={12} className="text-blue-400" />
+                    <span>{isMe ? "You" : msg.sender}</span>
+                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
+                      msg.role === "Host" ? "bg-blue-900/60 text-blue-300 border border-blue-700/50" : "bg-zinc-800 text-zinc-400"
+                    }`}>
+                      {msg.role}
+                    </span>
+                  </span>
+                  <span className="text-[10px] text-zinc-500">{msg.time}</span>
+                </div>
+                <p className="text-xs text-zinc-100 font-medium break-words leading-relaxed line-clamp-2">
+                  {msg.text}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ─── IN-MEETING CHAT (Ultra-Clean, High-Z Drawer - Always Visible & Interactive) ─── */}
       {showChatSheet && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col justify-end md:justify-center md:items-center p-0 md:p-4 animate-in fade-in duration-150"
+          className="fixed inset-0 z-[150] flex flex-col justify-end md:justify-stretch md:items-end animate-in fade-in duration-150"
           onClick={() => setShowChatSheet(false)}
         >
+          {/* Subtle click-outside backdrop */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" />
+
+          {/* Chat Window / Drawer */}
           <div
-            className="w-full md:max-w-md bg-[#1C1C1E] border border-zinc-800 rounded-t-3xl md:rounded-3xl flex flex-col h-[80vh] md:h-[600px] text-white shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-200"
+            className="relative z-10 w-full md:w-96 bg-[#161619] border-t md:border-t-0 md:border-l border-zinc-800 rounded-t-3xl md:rounded-none flex flex-col h-[75vh] md:h-full text-white shadow-2xl overflow-hidden animate-in slide-in-from-bottom md:slide-in-from-right duration-200"
             onClick={e => e.stopPropagation()}
           >
+            {/* Mobile Top Drag Indicator */}
+            <div className="w-10 h-1 bg-zinc-600 rounded-full mx-auto mt-2 md:hidden" />
+
             {/* Header */}
-            <div className="px-4 py-3 flex items-center justify-between border-b border-zinc-800/80">
+            <div className="px-4 py-3 flex items-center justify-between border-b border-zinc-800/80 bg-[#121214]">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+                  <MessageSquare size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white tracking-wide leading-none">In-Meeting Chat</h3>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">Live room messaging</p>
+                </div>
+              </div>
               <button
                 onClick={() => setShowChatSheet(false)}
-                className="w-8 h-8 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-300 transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                title="Close Chat"
               >
                 <X size={16} />
               </button>
-              <h3 className="text-sm font-bold text-white tracking-wide">In-Meeting Chat</h3>
-              <div className="w-8" />
             </div>
 
-            {/* Messages */}
+            {/* Messages Feed */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {chatMessages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-6 text-zinc-500">
@@ -3865,30 +3946,37 @@ export default function ClassRoomPage() {
                   <p className="text-[11px] text-zinc-500 mt-0.5">Send a message to everyone in the room.</p>
                 </div>
               ) : (
-                chatMessages.map(msg => (
-                  <div key={msg.id} className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-bold text-white flex items-center gap-1.5">
-                        {msg.sender}
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                chatMessages.map(msg => {
+                  const isMe = (isMentor && msg.role === "Host") || (!isMentor && (msg.sender === studentName || msg.sender === "You"));
+                  return (
+                    <div key={msg.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
+                      <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mb-1 px-1">
+                        <span className="font-semibold text-zinc-300">
+                          {isMe ? "You" : msg.sender}
+                        </span>
+                        <span className={`text-[8px] px-1 py-0.2 rounded font-bold ${
                           msg.role === "Host" ? "bg-blue-900/60 text-blue-300 border border-blue-700/50" : "bg-zinc-800 text-zinc-400"
                         }`}>
                           {msg.role}
                         </span>
-                      </span>
-                      <span className="text-[10px] text-zinc-500">{msg.time}</span>
+                        <span className="text-[9px] text-zinc-500">{msg.time}</span>
+                      </div>
+                      <div className={`max-w-[85%] px-3 py-2 text-xs leading-relaxed break-words shadow-sm ${
+                        isMe
+                          ? "bg-blue-600 text-white rounded-2xl rounded-tr-xs"
+                          : "bg-zinc-800/90 border border-zinc-700/60 text-zinc-100 rounded-2xl rounded-tl-xs"
+                      }`}>
+                        {msg.text}
+                      </div>
                     </div>
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 leading-relaxed break-words shadow-sm">
-                      {msg.text}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
               <div ref={chatBottomRef} />
             </div>
 
             {/* Input Bar */}
-            <div className="p-3 border-t border-zinc-800/80 bg-[#141416] flex items-center gap-2">
+            <div className="p-3 border-t border-zinc-800/80 bg-[#121214] flex items-center gap-2">
               <input
                 type="text"
                 value={chatInput}
@@ -3900,7 +3988,8 @@ export default function ClassRoomPage() {
               <button
                 onClick={() => sendChatMessage()}
                 disabled={!chatInput.trim()}
-                className="p-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl transition-all cursor-pointer shrink-0 shadow-sm"
+                className="p-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl transition-all cursor-pointer shrink-0 shadow-sm"
+                title="Send Message"
               >
                 <Send size={15} />
               </button>

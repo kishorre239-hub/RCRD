@@ -10,7 +10,7 @@ import {
   Pen, Eraser, Edit3, Shield, Users, MessageSquare, Copy, Send,
   VolumeX, RotateCcw, RotateCw, Paperclip, Image as ImageIcon, Download,
   ChevronLeft, Plus, BookOpen,
-  Maximize2, Minimize2, GripHorizontal, Move, MoreHorizontal, Volume2, RefreshCw, Disc, Smartphone, Sparkles, Video
+  Maximize2, Minimize2, GripHorizontal, Move, MoreHorizontal, Volume2, RefreshCw, Disc, Smartphone, NotebookPen, Video
 } from "lucide-react";
 import { getCourses, uploadVideo, ensureValidAuthToken } from "@/lib/api";
 
@@ -170,6 +170,7 @@ export default function ClassRoomPage() {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [whiteboardMode, setWhiteboardMode] = useState<'sketch' | 'notepad'>('sketch');
   const [notepadText, setNotepadText] = useState('');
+  const [hideSketchTools, setHideSketchTools] = useState(false);
 
   // Whiteboard Undo / Redo / Reverse History
   const historyRef = useRef<ImageData[]>([]);
@@ -2098,35 +2099,55 @@ export default function ClassRoomPage() {
     }
   };
 
-  useEffect(() => {
-    if (showWhiteboard && canvasRef.current) {
-      const parent = canvasRef.current.parentElement;
-      if (parent) {
-        if (canvasRef.current.width !== parent.clientWidth || canvasRef.current.height !== parent.clientHeight) {
-          canvasRef.current.width = parent.clientWidth;
-          canvasRef.current.height = parent.clientHeight;
-          const ctx = canvasRef.current.getContext("2d");
-          if (ctx) {
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            try {
-              historyRef.current = [ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height)];
-              redoRef.current = [];
-              setTimeout(() => {
-                setCanUndo(false);
-                setCanRedo(false);
-              }, 0);
-            } catch {}
-          }
-        }
-      }
-    }
-  }, [showWhiteboard]);
-
   const isLocalSharing = !!screenStream;
   const isRemoteSharing = !isLocalSharing && !!remoteScreenShare?.active && !!remoteScreenShare?.streamFrame;
   const isAnyScreenSharing = isLocalSharing || isRemoteSharing;
   const isSharing = isAnyScreenSharing;
+  const isWhiteboardActive = showWhiteboard || (!isMentor && Boolean(remoteWhiteboard?.active));
+
+  useEffect(() => {
+    if (!isWhiteboardActive) return;
+    const updateCanvasSize = () => {
+      if (canvasRef.current && canvasRef.current.parentElement) {
+        const parent = canvasRef.current.parentElement;
+        if (parent.clientWidth > 0 && parent.clientHeight > 0) {
+          if (canvasRef.current.width !== parent.clientWidth || canvasRef.current.height !== parent.clientHeight) {
+            let prevData: string | null = null;
+            try {
+              if (canvasRef.current.width > 0 && canvasRef.current.height > 0) {
+                prevData = canvasRef.current.toDataURL("image/png");
+              }
+            } catch {}
+
+            canvasRef.current.width = parent.clientWidth;
+            canvasRef.current.height = parent.clientHeight;
+            const ctx = canvasRef.current.getContext("2d");
+            if (ctx) {
+              ctx.fillStyle = "#FFFFFF";
+              ctx.fillRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+              if (prevData) {
+                const img = new Image();
+                img.onload = () => {
+                  ctx.drawImage(img, 0, 0, canvasRef.current!.width, canvasRef.current!.height);
+                };
+                img.src = prevData;
+              } else {
+                try {
+                  historyRef.current = [ctx.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height)];
+                  redoRef.current = [];
+                  setCanUndo(false);
+                  setCanRedo(false);
+                } catch {}
+              }
+            }
+          }
+        }
+      }
+    };
+    updateCanvasSize();
+    window.addEventListener("resize", updateCanvasSize);
+    return () => window.removeEventListener("resize", updateCanvasSize);
+  }, [isWhiteboardActive, isFullScreen]);
 
   const myCleanName = (isMentor ? "Host" : (studentName || "Student")).replace(/\s*\((Student|Host|You)\)/gi, '').trim().toLowerCase();
   const uniqueOtherParticipants: Participant[] = [];
@@ -2249,108 +2270,110 @@ export default function ClassRoomPage() {
     <div className="h-screen bg-black flex flex-col overflow-hidden text-white select-none font-sans relative">
       
       {/* ─── Top Floating Control Bar (Authentic Zoom Mobile & Laptop Pattern) ─── */}
-      <div className="absolute top-0 inset-x-0 h-14 z-30 px-3 sm:px-6 flex items-center justify-between bg-gradient-to-b from-black/85 via-black/40 to-transparent pointer-events-none">
-        
-        {/* Left: Green Shield Security Icon */}
-        <div className="pointer-events-auto flex items-center gap-2">
-          <button
-            onClick={() => setShowSecurityPopup(true)}
-            className="w-8 h-8 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-emerald-400 shadow-lg transition-colors cursor-pointer"
-            title="Meeting Security & Encryption"
-          >
-            <Shield size={16} className="fill-emerald-400/20 text-emerald-400" />
-          </button>
-
-          {recState === "recording" && (
-            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-red-500 font-bold bg-red-950/70 border border-red-800/80 rounded-full px-2.5 py-0.5 animate-pulse">
-              <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />REC {fmtT(recTimer)}
-            </span>
-          )}
-          {recState === "paused" && (
-            <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-amber-400 font-bold bg-amber-950/70 border border-amber-800/80 rounded-full px-2.5 py-0.5">
-              <Pause size={10} />PAUSED
-            </span>
-          )}
-        </div>
-
-        {/* Center: Meeting Title Pill with Dropdown [⤢] Hari Kishore Re... ⌵ */}
-        <div className="pointer-events-auto">
-          <button
-            onClick={() => setShowMeetingInfoModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/60 text-xs font-semibold text-white shadow-xl transition-all cursor-pointer max-w-[190px] sm:max-w-[320px]"
-            title="View Meeting Information"
-          >
-            <Maximize2 size={12} className="text-zinc-400 shrink-0" />
-            <span className="truncate">
-              {meeting?.title || "Hari Kishore Reddy's Meeting"}
-            </span>
-            <ChevronDown size={13} className="text-zinc-400 shrink-0" />
-          </button>
-        </div>
-
-        {/* Right: Quick Action Buttons from Screenshot 1 & 4 */}
-        <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
-          {/* ✏️ Whiteboard */}
-          {isMentor && (
+      {!isWhiteboardActive && (
+        <div className="absolute top-0 inset-x-0 h-14 z-30 px-3 sm:px-6 flex items-center justify-between bg-gradient-to-b from-black/85 via-black/40 to-transparent pointer-events-none">
+          
+          {/* Left: Green Shield Security Icon */}
+          <div className="pointer-events-auto flex items-center gap-2">
             <button
-              onClick={() => {
-                const next = !showWhiteboard;
-                setShowWhiteboard(next);
-                broadcastWhiteboard(next);
-              }}
-              className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-                showWhiteboard
-                  ? "bg-white text-black shadow-lg"
-                  : "bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700/60"
-              }`}
-              title="Whiteboard & Notepad"
+              onClick={() => setShowSecurityPopup(true)}
+              className="w-8 h-8 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-emerald-400 shadow-lg transition-colors cursor-pointer"
+              title="Meeting Security & Encryption"
             >
-              <Pen size={14} />
+              <Shield size={16} className="fill-emerald-400/20 text-emerald-400" />
             </button>
-          )}
 
-          {/* ✨ Notes */}
-          <button
-            onClick={() => setShowNotesSheet(true)}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700/60 flex items-center justify-center transition-all cursor-pointer relative"
-            title="Class Notes"
-          >
-            <Sparkles size={14} className="text-amber-400" />
-            {notes.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-                {notes.length}
+            {recState === "recording" && (
+              <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-red-500 font-bold bg-red-950/70 border border-red-800/80 rounded-full px-2.5 py-0.5 animate-pulse">
+                <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />REC {fmtT(recTimer)}
               </span>
             )}
-          </button>
+            {recState === "paused" && (
+              <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-amber-400 font-bold bg-amber-950/70 border border-amber-800/80 rounded-full px-2.5 py-0.5">
+                <Pause size={10} />PAUSED
+              </span>
+            )}
+          </div>
 
-          {/* 🔊 Speaker Audio Toggle */}
-          <button
-            onClick={toggleSpeaker}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700/60 flex items-center justify-center transition-all cursor-pointer"
-            title={speakerMuted ? "Unmute Speaker" : "Mute Speaker"}
-          >
-            {speakerMuted ? <VolumeX size={15} className="text-rose-400" /> : <Volume2 size={15} className="text-white" />}
-          </button>
+          {/* Center: Meeting Title Pill with Dropdown [⤢] Hari Kishore Re... ⌵ */}
+          <div className="pointer-events-auto">
+            <button
+              onClick={() => setShowMeetingInfoModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/60 text-xs font-semibold text-white shadow-xl transition-all cursor-pointer max-w-[190px] sm:max-w-[320px]"
+              title="View Meeting Information"
+            >
+              <Maximize2 size={12} className="text-zinc-400 shrink-0" />
+              <span className="truncate">
+                {meeting?.title || "Hari Kishore Reddy's Meeting"}
+              </span>
+              <ChevronDown size={13} className="text-zinc-400 shrink-0" />
+            </button>
+          </div>
 
-          {/* 📷 / 🔄 Camera Flip Toggle */}
-          <button
-            onClick={toggleFacingMode}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700/60 flex items-center justify-center transition-all cursor-pointer"
-            title="Switch Camera (Front/Back)"
-          >
-            <RefreshCw size={14} className="text-white" />
-          </button>
+          {/* Right: Quick Action Buttons from Screenshot 1 & 4 */}
+          <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2">
+            {/* ✏️ Whiteboard */}
+            {isMentor && (
+              <button
+                onClick={() => {
+                  const next = !showWhiteboard;
+                  setShowWhiteboard(next);
+                  broadcastWhiteboard(next);
+                }}
+                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                  showWhiteboard
+                    ? "bg-white text-black shadow-lg"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700/60"
+                }`}
+                title="Whiteboard & Notepad"
+              >
+                <Pen size={14} />
+              </button>
+            )}
 
-          {/* ⛶ Fullscreen Toggle Button */}
-          <button
-            onClick={toggleFullScreen}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700/60 flex items-center justify-center transition-all cursor-pointer shadow-md"
-            title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-          >
-            {isFullScreen ? <Minimize2 size={15} className="text-white" /> : <Maximize2 size={15} className="text-white" />}
-          </button>
+            {/* 📝 Notes */}
+            <button
+              onClick={() => setShowNotesSheet(true)}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700/60 flex items-center justify-center transition-all cursor-pointer relative"
+              title="Class Notes"
+            >
+              <NotebookPen size={14} className="text-amber-400" />
+              {notes.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {notes.length}
+                </span>
+              )}
+            </button>
+
+            {/* 🔊 Speaker Audio Toggle */}
+            <button
+              onClick={toggleSpeaker}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700/60 flex items-center justify-center transition-all cursor-pointer"
+              title={speakerMuted ? "Unmute Speaker" : "Mute Speaker"}
+            >
+              {speakerMuted ? <VolumeX size={15} className="text-rose-400" /> : <Volume2 size={15} className="text-white" />}
+            </button>
+
+            {/* 📷 / 🔄 Camera Flip Toggle */}
+            <button
+              onClick={toggleFacingMode}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700/60 flex items-center justify-center transition-all cursor-pointer"
+              title="Switch Camera (Front/Back)"
+            >
+              <RefreshCw size={14} className="text-white" />
+            </button>
+
+            {/* ⛶ Fullscreen Toggle Button */}
+            <button
+              onClick={toggleFullScreen}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-zinc-900/90 hover:bg-zinc-800 text-white border border-zinc-700/60 flex items-center justify-center transition-all cursor-pointer shadow-md"
+              title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+            >
+              {isFullScreen ? <Minimize2 size={15} className="text-white" /> : <Maximize2 size={15} className="text-white" />}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ─── Main Content ─────────────────────────────────────────── */}
       <div className="flex-1 flex min-h-0 relative">
@@ -2390,9 +2413,9 @@ export default function ClassRoomPage() {
           )}
 
           {/* Whiteboard (Multi-Slide & Ruled Notepad Sheet) */}
-          {showWhiteboard && (
+          {isWhiteboardActive && (
             <div
-              className="absolute inset-0 z-20 bg-white"
+              className={`${isFullScreen ? "fixed inset-0 z-50" : "absolute inset-0 z-40"} bg-white flex flex-col select-none overflow-hidden`}
               onClick={() => {
                 setShowSizePicker(false);
                 if (textBox && textBox.text.trim()) {
@@ -2401,107 +2424,183 @@ export default function ClassRoomPage() {
               }}
             >
               {/* Whiteboard Top Navigation & Controls Bar */}
-              <div className="absolute top-2.5 inset-x-2.5 sm:inset-x-6 z-30 flex items-center justify-between bg-white/95 backdrop-blur-md border border-[#E2E7EC] shadow-md rounded-2xl px-3 sm:px-4 py-2 gap-2">
-                {/* Left: Mode toggle (Mentor Only) or View Badge (Students) */}
-                {isMentor ? (
-                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWhiteboardMode('sketch');
-                        broadcastWhiteboard(true, undefined, undefined, undefined, 'sketch');
-                      }}
-                      className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                        whiteboardMode === 'sketch' ? 'bg-white text-[#154360] shadow-sm' : 'text-[#57636E] hover:text-[#20262E]'
-                      }`}
-                    >
-                      <Pen size={13} />
-                      <span className="hidden sm:inline">Sketch Board</span>
-                      <span className="sm:hidden">Sketch</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setWhiteboardMode('notepad');
-                        broadcastWhiteboard(true, undefined, undefined, undefined, 'notepad');
-                      }}
-                      className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                        whiteboardMode === 'notepad' ? 'bg-white text-[#154360] shadow-sm' : 'text-[#57636E] hover:text-[#20262E]'
-                      }`}
-                    >
-                      <FileText size={13} />
-                      <span className="hidden sm:inline">Notepad Sheet</span>
-                      <span className="sm:hidden">Notepad</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#EBF5FB] text-[#154360] font-bold text-xs border border-[#154360]/20 shrink-0">
-                    <BookOpen size={14} />
-                    <span>Mentor Board (View Only)</span>
-                  </div>
-                )}
+              <div className="absolute top-2 inset-x-2 sm:inset-x-6 z-30 flex items-center justify-between bg-white/95 backdrop-blur-md border border-[#E2E7EC] shadow-md rounded-2xl px-2 sm:px-4 py-1.5 sm:py-2 gap-1 sm:gap-2">
+                {/* Left: Mode toggle (Mentor Only) or View Badge (Students) + Clean Non-Overlapping REC badge */}
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                  {isMentor ? (
+                    <div className="flex items-center gap-1 bg-slate-100 p-0.5 sm:p-1 rounded-xl shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWhiteboardMode('sketch');
+                          broadcastWhiteboard(true, undefined, undefined, undefined, 'sketch');
+                        }}
+                        className={`flex items-center gap-1 px-2 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          whiteboardMode === 'sketch' ? 'bg-white text-[#154360] shadow-sm' : 'text-[#57636E] hover:text-[#20262E]'
+                        }`}
+                      >
+                        <Pen size={13} />
+                        <span className="hidden sm:inline">Sketch Board</span>
+                        <span className="sm:hidden text-[11px]">Sketch</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWhiteboardMode('notepad');
+                          broadcastWhiteboard(true, undefined, undefined, undefined, 'notepad');
+                        }}
+                        className={`flex items-center gap-1 px-2 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          whiteboardMode === 'notepad' ? 'bg-white text-[#154360] shadow-sm' : 'text-[#57636E] hover:text-[#20262E]'
+                        }`}
+                      >
+                        <FileText size={13} />
+                        <span className="hidden sm:inline">Notepad Sheet</span>
+                        <span className="sm:hidden text-[11px]">Notepad</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-[#EBF5FB] text-[#154360] font-bold text-xs border border-[#154360]/20 shrink-0">
+                      <BookOpen size={13} />
+                      <span className="hidden sm:inline">Mentor Board (View Only)</span>
+                      <span className="sm:hidden text-[11px] font-extrabold">Board</span>
+                    </div>
+                  )}
+
+                  {/* Clean Non-Overlapping Recording Badge in Whiteboard Header */}
+                  {recState === "recording" && (
+                    <div className="flex items-center gap-1 text-[10px] sm:text-xs text-red-600 font-bold bg-red-50 border border-red-200 rounded-full px-2 sm:px-2.5 py-0.5 sm:py-1 animate-pulse shrink-0">
+                      <span className="w-1.5 h-1.5 bg-red-600 rounded-full" />
+                      <span className="hidden sm:inline">REC</span>
+                      <span>{fmtT(recTimer)}</span>
+                    </div>
+                  )}
+                  {recState === "paused" && (
+                    <div className="flex items-center gap-1 text-[10px] sm:text-xs text-amber-600 font-bold bg-amber-50 border border-amber-200 rounded-full px-2 sm:px-2.5 py-0.5 sm:py-1 shrink-0">
+                      <Pause size={10} />
+                      <span>PAUSED</span>
+                    </div>
+                  )}
+                </div>
 
                 {/* Center: Slide Controls (< Slide X / Y > | + Add Slide for mentor only, clean pill for student) */}
-                <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                   {isMentor ? (
                     <>
                       <button
                         type="button"
                         onClick={() => switchSlide(currentSlideIndex - 1)}
                         disabled={currentSlideIndex <= 0}
-                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#20262E] transition-colors"
+                        className="p-1 sm:p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#20262E] transition-colors cursor-pointer"
                         title="Previous Slide"
                       >
-                        <ChevronLeft size={16} />
+                        <ChevronLeft size={15} />
                       </button>
-                      <div className="px-2.5 py-1 bg-slate-100 rounded-lg text-xs font-bold text-[#20262E] whitespace-nowrap">
+                      <div className="px-2 sm:px-2.5 py-1 bg-slate-100 rounded-lg text-[11px] sm:text-xs font-bold text-[#20262E] whitespace-nowrap">
                         Slide {currentSlideIndex + 1} / {slides.length}
                       </div>
                       <button
                         type="button"
                         onClick={() => switchSlide(currentSlideIndex + 1)}
                         disabled={currentSlideIndex >= slides.length - 1}
-                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#20262E] transition-colors"
+                        className="p-1 sm:p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#20262E] transition-colors cursor-pointer"
                         title="Next Slide"
                       >
-                        <ChevronRight size={16} />
+                        <ChevronRight size={15} />
                       </button>
                       <button
                         type="button"
                         onClick={addNewSlide}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#EBF5FB] hover:bg-[#d4e6f1] text-[#154360] text-xs font-bold border border-[#154360]/20 transition-all shadow-xs"
+                        className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg bg-[#EBF5FB] hover:bg-[#d4e6f1] text-[#154360] text-[11px] sm:text-xs font-bold border border-[#154360]/20 transition-all shadow-xs cursor-pointer shrink-0"
                         title="Add New Slide"
                       >
-                        <Plus size={14} />
-                        <span className="hidden md:inline">Add Slide</span>
+                        <Plus size={13} />
+                        <span className="hidden sm:inline">Add Slide</span>
                       </button>
                     </>
                   ) : (
-                    <div className="px-3 py-1 bg-slate-100 rounded-lg text-xs font-bold text-[#20262E]">
-                      Slide {currentSlideIndex + 1} of {slides.length}
+                    <div className="px-2 sm:px-3 py-1 bg-slate-100 rounded-lg text-[11px] sm:text-xs font-bold text-[#20262E] whitespace-nowrap">
+                      Slide {currentSlideIndex + 1} / {slides.length}
                     </div>
                   )}
                 </div>
 
-                {/* Right: Fullscreen, Download PDF & Exit */}
-                <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {/* Right: Quick Controls, Fullscreen, Download PDF & Exit */}
+                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                  {/* Microphone Quick Control */}
+                  <button
+                    type="button"
+                    onClick={toggleMic}
+                    className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
+                      micOn ? "bg-slate-100 hover:bg-slate-200 text-[#20262E]" : "bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200"
+                    }`}
+                    title={micOn ? "Mute Microphone" : "Unmute Microphone"}
+                  >
+                    {micOn ? <Mic size={14} className="text-[#154360]" /> : <MicOff size={14} className="text-rose-600" />}
+                    <span className="hidden xl:inline">{micOn ? "Mute" : "Unmute"}</span>
+                  </button>
+
+                  {/* Camera Quick Control (Hidden on small mobile to keep single-line neat layout) */}
+                  <button
+                    type="button"
+                    onClick={toggleCamera}
+                    className={`hidden sm:flex p-1.5 sm:px-2.5 sm:py-1 rounded-xl items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
+                      cameraOn ? "bg-slate-100 hover:bg-slate-200 text-[#20262E]" : "bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200"
+                    }`}
+                    title={cameraOn ? "Stop Video" : "Start Video"}
+                  >
+                    {cameraOn ? <Video size={14} className="text-[#154360]" /> : <VideoOff size={14} className="text-rose-600" />}
+                    <span className="hidden xl:inline">{cameraOn ? "Video" : "Video Off"}</span>
+                  </button>
+
+                  {/* Participants Quick Access (Hidden on small mobile to keep single-line neat layout) */}
+                  <button
+                    type="button"
+                    onClick={() => setShowParticipantsSheet(true)}
+                    className="hidden sm:flex p-1.5 sm:px-2.5 sm:py-1 rounded-xl items-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-[#20262E] transition-all cursor-pointer relative"
+                    title="View Participants"
+                  >
+                    <Users size={14} className="text-[#154360]" />
+                    <span className="hidden xl:inline">People</span>
+                    <span className="text-[10px] font-bold text-[#57636E]">({participants.length})</span>
+                  </button>
+
+                  {/* Chat Quick Access */}
+                  <button
+                    type="button"
+                    onClick={() => setShowChatSheet(true)}
+                    className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl flex items-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-[#20262E] transition-all cursor-pointer relative"
+                    title="Open Class Chat"
+                  >
+                    <MessageSquare size={14} className="text-[#154360]" />
+                    <span className="hidden xl:inline">Chat</span>
+                    {chatMessages.length > 0 && (
+                      <span className="w-2 h-2 rounded-full bg-blue-600 absolute top-1 right-1" />
+                    )}
+                  </button>
+
+                  {/* Fullscreen Toggle */}
                   <button
                     type="button"
                     onClick={toggleFullScreen}
-                    className="p-1.5 rounded-xl hover:bg-slate-100 text-[#57636E] hover:text-[#20262E] transition-colors"
+                    className="p-1.5 rounded-xl hover:bg-slate-100 text-[#57636E] hover:text-[#20262E] transition-colors cursor-pointer"
                     title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                   >
-                    {isFullScreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                    {isFullScreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
                   </button>
+
+                  {/* Download Multi-Slide PDF */}
                   <button
                     type="button"
                     onClick={downloadAllSlidesAsPdf}
-                    className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold transition-all shadow-sm"
+                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold transition-all shadow-sm cursor-pointer shrink-0"
                     title="Download all slides as multi-page PDF"
                   >
                     <Download size={13} />
                     <span className="hidden sm:inline">Download PDF</span>
+                    <span className="sm:hidden text-[11px]">PDF</span>
                   </button>
+
+                  {/* Close Whiteboard */}
                   {isMentor && (
                     <button
                       type="button"
@@ -2509,22 +2608,14 @@ export default function ClassRoomPage() {
                         setShowWhiteboard(false);
                         broadcastWhiteboard(false);
                       }}
-                      className="p-1.5 rounded-xl hover:bg-slate-100 text-[#57636E] hover:text-[#20262E] transition-colors"
+                      className="p-1.5 rounded-xl hover:bg-rose-50 text-[#57636E] hover:text-rose-600 transition-colors cursor-pointer shrink-0"
                       title="Close Whiteboard"
                     >
-                      <X size={18} />
+                      <X size={17} />
                     </button>
                   )}
                 </div>
               </div>
-
-              {/* For Students: View-Only Badge */}
-              {!isMentor && (
-                <div className="absolute top-16 left-4 z-20 flex items-center gap-2 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl border border-[#E2E7EC] shadow-sm text-xs font-bold text-[#154360]">
-                  <BookOpen size={14} className="text-[#154360]" />
-                  <span>Mentor Whiteboard (View Only)</span>
-                </div>
-              )}
 
               {/* Mode 1: Notepad Sheet (Ruled Notebook typing) */}
               {whiteboardMode === 'notepad' && (
@@ -2595,169 +2686,193 @@ export default function ClassRoomPage() {
 
               {/* Whiteboard Toolbar - ONLY visible to Mentor in Sketch Mode */}
               {isMentor && whiteboardMode === 'sketch' && (
-                <div
-                  className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-md px-4 py-2.5 rounded-2xl flex items-center gap-2.5 border border-slate-700 shadow-2xl z-[100] max-w-[96vw] overflow-x-auto"
-                  onClick={e => e.stopPropagation()}
-                >
-                  {/* Color Picker & Swatches */}
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="color"
-                      value={penColor}
-                      onChange={(e) => { setIsEraser(false); setPenColor(e.target.value); }}
-                      className="w-7 h-7 rounded-lg cursor-pointer border-0 p-0 bg-transparent shrink-0"
-                      title="Custom Color"
-                    />
-                    <div className="flex gap-1">
-                      {WHITEBOARD_COLORS.slice(0, 6).map(c => (
-                        <button
-                          key={c}
-                          onClick={() => { setIsEraser(false); setPenColor(c); }}
-                          style={{ backgroundColor: c }}
-                          className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-125 shrink-0 ${
-                            !isEraser && penColor.toUpperCase() === c.toUpperCase() ? "border-white scale-125 shadow-lg" : "border-slate-500"
-                          }`}
-                          title={c}
+                <>
+                  {hideSketchTools ? (
+                    <button
+                      type="button"
+                      onClick={() => setHideSketchTools(false)}
+                      className="absolute bottom-4 left-4 bg-slate-900/95 hover:bg-slate-800 text-white border border-slate-700 shadow-2xl px-3.5 py-2 rounded-2xl flex items-center gap-2 text-xs font-bold z-[100] cursor-pointer transition-all animate-in fade-in"
+                      title="Show Drawing Tools"
+                    >
+                      <Pen size={14} className="text-[#38bdf8]" />
+                      <span>Drawing Tools</span>
+                    </button>
+                  ) : (
+                    <div
+                      className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-md px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl flex items-center gap-2 sm:gap-2.5 border border-slate-700 shadow-2xl z-[100] max-w-[96vw] overflow-x-auto transition-all"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      {/* Color Picker & Swatches */}
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="color"
+                          value={penColor}
+                          onChange={(e) => { setIsEraser(false); setPenColor(e.target.value); }}
+                          className="w-7 h-7 rounded-lg cursor-pointer border-0 p-0 bg-transparent shrink-0"
+                          title="Custom Color"
                         />
-                      ))}
+                        <div className="flex gap-1">
+                          {WHITEBOARD_COLORS.slice(0, 6).map(c => (
+                            <button
+                              key={c}
+                              onClick={() => { setIsEraser(false); setPenColor(c); }}
+                              style={{ backgroundColor: c }}
+                              className={`w-5 h-5 rounded-full border-2 transition-transform hover:scale-125 shrink-0 ${
+                                !isEraser && penColor.toUpperCase() === c.toUpperCase() ? "border-white scale-125 shadow-lg" : "border-slate-500"
+                              }`}
+                              title={c}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="w-px h-6 bg-slate-700 shrink-0" />
+                      
+                      {/* Pen Tool & Size */}
+                      <div className="relative shrink-0">
+                        <button
+                          onClick={() => { setActiveTool("pen"); setIsEraser(false); setShowSizePicker(prev => !prev); }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            activeTool === "pen" && !isEraser ? "bg-[#154360] text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
+                          }`}
+                          title="Pen tool"
+                        >
+                          <Pen size={13} />
+                          <span>{penSize}px</span>
+                        </button>
+                        {showSizePicker && !isEraser && (
+                          <div className="absolute bottom-[115%] left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 rounded-xl p-3 w-48 shadow-2xl z-[120]">
+                            <p className="text-[10px] text-[#57636E] font-bold uppercase mb-2">Pen Size: {penSize}px</p>
+                            <input type="range" min={1} max={40} value={penSize} onChange={e => setPenSize(Number(e.target.value))} className="w-full accent-blue-500 cursor-pointer" />
+                            <div className="flex justify-between text-[10px] text-[#57636E] mt-1"><span>1px</span><span>40px</span></div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Eraser Tool */}
+                      <div className="relative shrink-0">
+                        <button
+                          onClick={() => { setActiveTool("pen"); setIsEraser(!isEraser); setShowSizePicker(isEraser ? false : showSizePicker); }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            isEraser ? "bg-[#154360] text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
+                          }`}
+                          title="Eraser tool"
+                        >
+                          <Eraser size={13} />
+                          <span>Eraser</span>
+                        </button>
+                        {isEraser && (
+                          <div className="absolute bottom-[115%] left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 rounded-xl p-3 w-48 shadow-2xl z-[120]">
+                            <p className="text-[10px] text-[#57636E] font-bold uppercase mb-2">Eraser Size: {eraserSize}px</p>
+                            <input type="range" min={10} max={100} value={eraserSize} onChange={e => setEraserSize(Number(e.target.value))} className="w-full accent-amber-500 cursor-pointer" />
+                            <div className="flex justify-between text-[10px] text-[#57636E] mt-1"><span>10px</span><span>100px</span></div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="w-px h-6 bg-slate-700 shrink-0" />
+
+                      {/* REVERSE (Undo - restores erased data) Button */}
+                      <button
+                        onClick={handleReverse}
+                        disabled={!canUndo}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                          canUndo
+                            ? "bg-slate-800 hover:bg-slate-700 text-white shadow cursor-pointer"
+                            : "bg-slate-800/40 text-[#57636E] cursor-not-allowed"
+                        }`}
+                        title="Reverse: Restore previous erased data (Undo)"
+                      >
+                        <RotateCcw size={13} className="text-[#EBF5FB]" />
+                        <span>Reverse</span>
+                      </button>
+
+                      {/* REDO Button */}
+                      <button
+                        onClick={handleRedo}
+                        disabled={!canRedo}
+                        className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                          canRedo
+                            ? "bg-slate-800 hover:bg-slate-700 text-white shadow cursor-pointer"
+                            : "bg-slate-800/40 text-[#57636E] cursor-not-allowed"
+                        }`}
+                        title="Redo"
+                      >
+                        <RotateCw size={13} className="text-[#154360]" />
+                      </button>
+
+                      <div className="w-px h-6 bg-slate-700 shrink-0" />
+
+                      {/* Switch to Notepad Mode */}
+                      <button
+                        onClick={() => {
+                          setWhiteboardMode('notepad');
+                          broadcastWhiteboard(true, undefined, undefined, undefined, 'notepad');
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all shrink-0 cursor-pointer"
+                        title="Switch to Notepad Sheet"
+                      >
+                        <FileText size={13} className="text-emerald-400" />
+                        <span>Notepad</span>
+                      </button>
+
+                      {/* UPLOAD Slide or Image to Whiteboard */}
+                      <button
+                        onClick={() => slideFileInputRef.current?.click()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all shrink-0 cursor-pointer"
+                        title="Upload and insert slide or image onto whiteboard"
+                      >
+                        <ImageIcon size={13} className="text-[#2980B9]" />
+                        <span>Upload Slide</span>
+                      </button>
+                      <input
+                        ref={slideFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleSlideImageUpload}
+                        className="hidden"
+                      />
+
+                      <div className="w-px h-6 bg-slate-700 shrink-0" />
+
+                      {/* Clear Whiteboard */}
+                      <button
+                        onClick={clearWhiteboard}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800 text-slate-300 hover:bg-[#154360] hover:text-white transition-all shrink-0 cursor-pointer"
+                        title="Clear Whiteboard"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+
+                      {/* Minimize / Hide Tools Button */}
+                      <button
+                        type="button"
+                        onClick={() => setHideSketchTools(true)}
+                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors shrink-0 cursor-pointer"
+                        title="Minimize toolbar for clean canvas"
+                      >
+                        <ChevronDown size={14} />
+                      </button>
+
+                      {/* Exit Board */}
+                      <button
+                        onClick={() => {
+                          setShowWhiteboard(false);
+                          broadcastWhiteboard(false);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
+                      >
+                        <X size={13} /> Exit
+                      </button>
                     </div>
-                  </div>
-
-                  <div className="w-px h-6 bg-slate-700 shrink-0" />
-                  
-                  {/* Pen Tool & Size */}
-                  <div className="relative shrink-0">
-                    <button
-                      onClick={() => { setActiveTool("pen"); setIsEraser(false); setShowSizePicker(prev => !prev); }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        activeTool === "pen" && !isEraser ? "bg-[#154360] text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
-                      }`}
-                      title="Pen tool"
-                    >
-                      <Pen size={13} />
-                      <span>{penSize}px</span>
-                    </button>
-                    {showSizePicker && !isEraser && (
-                      <div className="absolute bottom-[115%] left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 rounded-xl p-3 w-48 shadow-2xl z-[120]">
-                        <p className="text-[10px] text-[#57636E] font-bold uppercase mb-2">Pen Size: {penSize}px</p>
-                        <input type="range" min={1} max={40} value={penSize} onChange={e => setPenSize(Number(e.target.value))} className="w-full accent-blue-500 cursor-pointer" />
-                        <div className="flex justify-between text-[10px] text-[#57636E] mt-1"><span>1px</span><span>40px</span></div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Eraser Tool */}
-                  <div className="relative shrink-0">
-                    <button
-                      onClick={() => { setActiveTool("pen"); setIsEraser(!isEraser); setShowSizePicker(isEraser ? false : showSizePicker); }}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        isEraser ? "bg-[#154360] text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
-                      }`}
-                      title="Eraser tool"
-                    >
-                      <Eraser size={13} />
-                      <span>Eraser</span>
-                    </button>
-                    {isEraser && (
-                      <div className="absolute bottom-[115%] left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 rounded-xl p-3 w-48 shadow-2xl z-[120]">
-                        <p className="text-[10px] text-[#57636E] font-bold uppercase mb-2">Eraser Size: {eraserSize}px</p>
-                        <input type="range" min={10} max={100} value={eraserSize} onChange={e => setEraserSize(Number(e.target.value))} className="w-full accent-amber-500 cursor-pointer" />
-                        <div className="flex justify-between text-[10px] text-[#57636E] mt-1"><span>10px</span><span>100px</span></div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="w-px h-6 bg-slate-700 shrink-0" />
-
-                  {/* REVERSE (Undo - restores erased data) Button */}
-                  <button
-                    onClick={handleReverse}
-                    disabled={!canUndo}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      canUndo
-                        ? "bg-slate-800 hover:bg-slate-700 text-white shadow cursor-pointer"
-                        : "bg-slate-800/40 text-[#57636E] cursor-not-allowed"
-                    }`}
-                    title="Reverse: Restore previous erased data (Undo)"
-                  >
-                    <RotateCcw size={13} className="text-[#EBF5FB]" />
-                    <span>Reverse</span>
-                  </button>
-
-                  {/* REDO Button */}
-                  <button
-                    onClick={handleRedo}
-                    disabled={!canRedo}
-                    className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                      canRedo
-                        ? "bg-slate-800 hover:bg-slate-700 text-white shadow cursor-pointer"
-                        : "bg-slate-800/40 text-[#57636E] cursor-not-allowed"
-                    }`}
-                    title="Redo"
-                  >
-                    <RotateCw size={13} className="text-[#154360]" />
-                  </button>
-
-                  <div className="w-px h-6 bg-slate-700 shrink-0" />
-
-                  {/* Switch to Notepad Mode */}
-                  <button
-                    onClick={() => {
-                      setWhiteboardMode('notepad');
-                      broadcastWhiteboard(true, undefined, undefined, undefined, 'notepad');
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all shrink-0"
-                    title="Switch to Notepad Sheet"
-                  >
-                    <FileText size={13} className="text-emerald-400" />
-                    <span>Notepad</span>
-                  </button>
-
-                  {/* UPLOAD Slide or Image to Whiteboard */}
-                  <button
-                    onClick={() => slideFileInputRef.current?.click()}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all shrink-0"
-                    title="Upload and insert slide or image onto whiteboard"
-                  >
-                    <ImageIcon size={13} className="text-[#2980B9]" />
-                    <span>Upload Slide</span>
-                  </button>
-                  <input
-                    ref={slideFileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleSlideImageUpload}
-                    className="hidden"
-                  />
-
-                  <div className="w-px h-6 bg-slate-700 shrink-0" />
-
-                  {/* Clear Whiteboard */}
-                  <button
-                    onClick={clearWhiteboard}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800 text-slate-300 hover:bg-[#154360] hover:text-white transition-all shrink-0"
-                    title="Clear Whiteboard"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-
-                  {/* Exit Board */}
-                  <button
-                    onClick={() => {
-                      setShowWhiteboard(false);
-                      broadcastWhiteboard(false);
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-[#154360] text-slate-300 hover:text-white text-xs font-bold transition-all flex items-center gap-1.5 shrink-0"
-                  >
-                    <X size={13} /> Exit
-                  </button>
-                </div>
+                  )}
+                </>
               )}
             </div>
           )}
 
           {/* When Screen Share IS ACTIVE: Draggable & Minimizable Floating Host Camera Card (Image 2) */}
-          {isAnyScreenSharing && !showWhiteboard && (
+          {isAnyScreenSharing && !isWhiteboardActive && (
             <div
               style={{
                 transform: `translate3d(${cameraCardPos.x}px, ${cameraCardPos.y}px, 0)`,
@@ -2894,7 +3009,7 @@ export default function ClassRoomPage() {
           )}
 
           {/* Center Stage: Authentic Zoom Pattern (Screenshot 1, 2, 4) */}
-          {!isAnyScreenSharing && !showWhiteboard && (
+          {!isAnyScreenSharing && !isWhiteboardActive && (
             <div className="relative w-full h-full flex items-center justify-center">
               {/* Primary Video Display */}
               {isMentor && cameraOn ? (
@@ -3053,103 +3168,105 @@ export default function ClassRoomPage() {
       </div>
 
       {/* ─── Bottom Toolbar (Authentic Zoom 6-Button Pattern for Mobile & Laptop) ─── */}
-      <div className="h-16 sm:h-20 bg-[#0A0A0C] border-t border-zinc-800/80 px-2 sm:px-6 flex items-center justify-around md:justify-center md:gap-8 shrink-0 z-30 select-none">
-        
-        {/* 1. MUTE / UNMUTE */}
-        <button
-          onClick={toggleMic}
-          className="flex flex-col items-center justify-center gap-1 min-w-[54px] sm:min-w-[68px] py-1 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-          title={micOn ? "Mute Microphone" : "Unmute Microphone"}
-        >
-          {micOn ? (
-            <Mic size={22} className="text-white" />
-          ) : (
-            <MicOff size={22} className="text-rose-500" />
-          )}
-          <span className={`text-[10px] sm:text-[11px] font-medium leading-none ${micOn ? "text-zinc-300" : "text-rose-400 font-semibold"}`}>
-            {micOn ? "Mute" : "Unmute"}
-          </span>
-        </button>
-
-        {/* 2. START / STOP VIDEO */}
-        <button
-          onClick={toggleCamera}
-          className="flex flex-col items-center justify-center gap-1 min-w-[54px] sm:min-w-[68px] py-1 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-          title={cameraOn ? "Stop Video" : "Start Video"}
-        >
-          {cameraOn ? (
-            <Video size={22} className="text-white" />
-          ) : (
-            <VideoOff size={22} className="text-rose-500" />
-          )}
-          <span className={`text-[10px] sm:text-[11px] font-medium leading-none ${cameraOn ? "text-zinc-300" : "text-rose-400 font-semibold"}`}>
-            {cameraOn ? "Stop video" : "Start video"}
-          </span>
-        </button>
-
-        {/* 3. CHAT */}
-        <button
-          onClick={() => setShowChatSheet(true)}
-          className="flex flex-col items-center justify-center gap-1 min-w-[54px] sm:min-w-[68px] py-1 text-zinc-300 hover:text-white transition-colors cursor-pointer relative"
-          title="Open Chat"
-        >
-          <div className="relative">
-            <MessageSquare size={22} className="text-white" />
-            {chatMessages.length > 0 && (
-              <span className="absolute -top-1 -right-2 bg-blue-600 text-white text-[9px] font-bold px-1 rounded-full leading-tight">
-                {chatMessages.length}
-              </span>
+      {!isWhiteboardActive && (
+        <div className="h-16 sm:h-20 bg-[#0A0A0C] border-t border-zinc-800/80 px-2 sm:px-6 flex items-center justify-around md:justify-center md:gap-8 shrink-0 z-30 select-none">
+          
+          {/* 1. MUTE / UNMUTE */}
+          <button
+            onClick={toggleMic}
+            className="flex flex-col items-center justify-center gap-1 min-w-[54px] sm:min-w-[68px] py-1 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+            title={micOn ? "Mute Microphone" : "Unmute Microphone"}
+          >
+            {micOn ? (
+              <Mic size={22} className="text-white" />
+            ) : (
+              <MicOff size={22} className="text-rose-500" />
             )}
-          </div>
-          <span className="text-[10px] sm:text-[11px] font-medium leading-none text-zinc-300">
-            Chat
-          </span>
-        </button>
-
-        {/* 4. PARTICIPANTS with count badge */}
-        <button
-          onClick={() => setShowParticipantsSheet(true)}
-          className="flex flex-col items-center justify-center gap-1 min-w-[54px] sm:min-w-[68px] py-1 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-          title="Participants"
-        >
-          <div className="relative">
-            <Users size={22} className="text-white" />
-            <span className="absolute -top-1 -right-2.5 bg-zinc-700 border border-zinc-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full leading-tight">
-              {participants.length}
+            <span className={`text-[10px] sm:text-[11px] font-medium leading-none ${micOn ? "text-zinc-300" : "text-rose-400 font-semibold"}`}>
+              {micOn ? "Mute" : "Unmute"}
             </span>
-          </div>
-          <span className="text-[10px] sm:text-[11px] font-medium leading-none text-zinc-300">
-            Participants
-          </span>
-        </button>
+          </button>
 
-        {/* 5. MORE (•••) */}
-        <button
-          onClick={() => setShowMoreSheet(true)}
-          className="flex flex-col items-center justify-center gap-1 min-w-[54px] sm:min-w-[68px] py-1 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-          title="More Actions & Tools"
-        >
-          <MoreHorizontal size={22} className="text-white" />
-          <span className="text-[10px] sm:text-[11px] font-medium leading-none text-zinc-300">
-            More
-          </span>
-        </button>
+          {/* 2. START / STOP VIDEO */}
+          <button
+            onClick={toggleCamera}
+            className="flex flex-col items-center justify-center gap-1 min-w-[54px] sm:min-w-[68px] py-1 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+            title={cameraOn ? "Stop Video" : "Start Video"}
+          >
+            {cameraOn ? (
+              <Video size={22} className="text-white" />
+            ) : (
+              <VideoOff size={22} className="text-rose-500" />
+            )}
+            <span className={`text-[10px] sm:text-[11px] font-medium leading-none ${cameraOn ? "text-zinc-300" : "text-rose-400 font-semibold"}`}>
+              {cameraOn ? "Stop video" : "Start video"}
+            </span>
+          </button>
 
-        {/* 6. END / LEAVE (Red octagonal button with X) */}
-        <button
-          onClick={endClass}
-          className="flex flex-col items-center justify-center gap-1 min-w-[54px] sm:min-w-[68px] py-1 text-rose-500 hover:text-rose-400 transition-colors cursor-pointer group"
-          title={isMentor ? "End Call for All" : "Leave Meeting"}
-        >
-          <div className="w-8 h-8 rounded-xl bg-rose-600 hover:bg-rose-700 flex items-center justify-center text-white shadow-lg transition-transform active:scale-95">
-            <X size={18} strokeWidth={3} />
-          </div>
-          <span className="text-[10px] sm:text-[11px] font-bold leading-none text-rose-500">
-            {isMentor ? "End" : "Leave"}
-          </span>
-        </button>
+          {/* 3. CHAT */}
+          <button
+            onClick={() => setShowChatSheet(true)}
+            className="flex flex-col items-center justify-center gap-1 min-w-[54px] sm:min-w-[68px] py-1 text-zinc-300 hover:text-white transition-colors cursor-pointer relative"
+            title="Open Chat"
+          >
+            <div className="relative">
+              <MessageSquare size={22} className="text-white" />
+              {chatMessages.length > 0 && (
+                <span className="absolute -top-1 -right-2 bg-blue-600 text-white text-[9px] font-bold px-1 rounded-full leading-tight">
+                  {chatMessages.length}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-medium leading-none text-zinc-300">
+              Chat
+            </span>
+          </button>
 
-      </div>
+          {/* 4. PARTICIPANTS with count badge */}
+          <button
+            onClick={() => setShowParticipantsSheet(true)}
+            className="flex flex-col items-center justify-center gap-1 min-w-[54px] sm:min-w-[68px] py-1 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+            title="Participants"
+          >
+            <div className="relative">
+              <Users size={22} className="text-white" />
+              <span className="absolute -top-1 -right-2.5 bg-zinc-700 border border-zinc-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full leading-tight">
+                {participants.length}
+              </span>
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-medium leading-none text-zinc-300">
+              Participants
+            </span>
+          </button>
+
+          {/* 5. MORE (•••) */}
+          <button
+            onClick={() => setShowMoreSheet(true)}
+            className="flex flex-col items-center justify-center gap-1 min-w-[54px] sm:min-w-[68px] py-1 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+            title="More Actions & Tools"
+          >
+            <MoreHorizontal size={22} className="text-white" />
+            <span className="text-[10px] sm:text-[11px] font-medium leading-none text-zinc-300">
+              More
+            </span>
+          </button>
+
+          {/* 6. END / LEAVE (Red octagonal button with X) */}
+          <button
+            onClick={endClass}
+            className="flex flex-col items-center justify-center gap-1 min-w-[54px] sm:min-w-[68px] py-1 text-rose-500 hover:text-rose-400 transition-colors cursor-pointer group"
+            title={isMentor ? "End Call for All" : "Leave Meeting"}
+          >
+            <div className="w-8 h-8 rounded-xl bg-rose-600 hover:bg-rose-700 flex items-center justify-center text-white shadow-lg transition-transform active:scale-95">
+              <X size={18} strokeWidth={3} />
+            </div>
+            <span className="text-[10px] sm:text-[11px] font-bold leading-none text-rose-500">
+              {isMentor ? "End" : "Leave"}
+            </span>
+          </button>
+
+        </div>
+      )}
 
       {/* ─── PARTICIPANTS BOTTOM SHEET / MODAL (Screenshot 2 Pattern) ─── */}
       {showParticipantsSheet && (

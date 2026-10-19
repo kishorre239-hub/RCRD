@@ -377,33 +377,45 @@ function JoinMeetingContent() {
             <div className="bg-white rounded-3xl border border-[#E2E7EC]/90 shadow-xl shadow-slate-200/50 overflow-hidden">
               
               {/* Meeting Banner Header */}
-              <div className="p-6 sm:p-7 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white relative overflow-hidden">
-                <div className="absolute right-0 bottom-0 translate-x-6 translate-y-6 w-32 h-32 bg-[#154360]/20 rounded-full blur-2xl pointer-events-none" />
+              <div className="p-6 sm:p-7 bg-gradient-to-br from-[#154360] via-[#1B4F72] to-[#0E2F44] text-white relative overflow-hidden">
+                <div className="absolute right-0 bottom-0 translate-x-6 translate-y-6 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none" />
 
                 {/* Status Badges */}
                 <div className="flex items-center justify-between gap-2 mb-3.5">
                   <div className="flex items-center gap-2">
                     {isLive && (
-                      <span className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-emerald-400 bg-emerald-950/70 border border-emerald-500/40 px-3 py-1 rounded-full shadow-xs">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                        LIVE SESSION
+                      <span
+                        style={{ color: "#ffffff", backgroundColor: "#dc2626", borderColor: "#f87171" }}
+                        className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-white bg-red-600 border border-red-400 px-3.5 py-1.5 rounded-full shadow-md shadow-red-950/20"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+                        <span style={{ color: "#ffffff" }}>LIVE SESSION</span>
                       </span>
                     )}
                     {isScheduled && (
-                      <span className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-sky-300 bg-sky-950/70 border border-sky-500/40 px-3 py-1 rounded-full shadow-xs">
-                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
-                        SCHEDULED CLASS
+                      <span
+                        style={{ color: "#ffffff", backgroundColor: "#0284c7", borderColor: "#38bdf8" }}
+                        className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-white bg-sky-600 border border-sky-400 px-3.5 py-1.5 rounded-full shadow-md shadow-sky-950/20"
+                      >
+                        <Clock size={14} className="text-white stroke-[2.5]" />
+                        <span style={{ color: "#ffffff" }}>SCHEDULED CLASS</span>
                       </span>
                     )}
                     {isEnded && (
-                      <span className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-emerald-300 bg-emerald-950/80 border border-emerald-500/50 px-3 py-1 rounded-full shadow-xs">
-                        <CheckCircle2 size={13} className="text-emerald-400" />
-                        <span>SESSION COMPLETED</span>
+                      <span
+                        style={{ color: "#ffffff", backgroundColor: "#059669", borderColor: "#34d399" }}
+                        className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-white bg-emerald-600 border border-emerald-400 px-3.5 py-1.5 rounded-full shadow-md shadow-emerald-950/20"
+                      >
+                        <CheckCircle2 size={15} className="text-white stroke-[2.5]" />
+                        <span style={{ color: "#ffffff" }}>SESSION COMPLETED</span>
                       </span>
                     )}
                   </div>
 
-                  <span className="text-[11px] font-mono font-bold bg-white/10 px-2.5 py-1 rounded-lg border border-white/20 text-slate-200 shadow-xs">
+                  <span
+                    style={{ color: "#ffffff", backgroundColor: "rgba(255, 255, 255, 0.22)", borderColor: "rgba(255, 255, 255, 0.4)" }}
+                    className="text-xs font-mono font-extrabold px-3 py-1.5 rounded-xl border border-white/40 text-white shadow-xs backdrop-blur-md tracking-wider"
+                  >
                     ID: {meeting.id}
                   </span>
                 </div>
@@ -411,31 +423,40 @@ function JoinMeetingContent() {
                 {/* Title */}
                 <h1
                   style={{ color: "#ffffff" }}
-                  className="text-2xl sm:text-3xl font-extrabold !text-white tracking-tight leading-snug my-2 drop-shadow-md capitalize"
+                  className="text-2xl sm:text-3xl font-black !text-white tracking-tight leading-snug my-2.5 drop-shadow-md capitalize"
                 >
                   {meeting.title}
                 </h1>
 
                 {/* Date, Time & Duration Meta */}
-                <div className="flex flex-wrap items-center gap-y-2 gap-x-3 text-xs pt-1 font-semibold">
-                  <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 backdrop-blur-xs">
-                    <Calendar size={14} className="text-sky-300" />
-                    <span style={{ color: "#f8fafc" }} className="!text-slate-100">{fmtDate(meeting.scheduledAt)}</span>
+                <div className="flex flex-wrap items-center gap-2.5 text-xs pt-1.5 font-bold">
+                  <div
+                    style={{ color: "#ffffff", backgroundColor: "rgba(255, 255, 255, 0.18)", borderColor: "rgba(255, 255, 255, 0.3)" }}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-white/30 text-white backdrop-blur-md shadow-xs"
+                  >
+                    <Calendar size={15} className="text-cyan-300 stroke-[2.2] shrink-0" />
+                    <span style={{ color: "#ffffff" }} className="!text-white font-semibold">{fmtDate(meeting.scheduledAt)}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 bg-white/15 px-3 py-1.5 rounded-xl border border-white/15 backdrop-blur-xs">
-                    <Clock size={14} className="text-sky-300" />
-                    <span style={{ color: "#f8fafc" }} className="!text-slate-100">{formatDuration(meeting.duration)}</span>
+                  <div
+                    style={{ color: "#ffffff", backgroundColor: "rgba(255, 255, 255, 0.18)", borderColor: "rgba(255, 255, 255, 0.3)" }}
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-white/30 text-white backdrop-blur-md shadow-xs"
+                  >
+                    <Clock size={15} className="text-cyan-300 stroke-[2.2] shrink-0" />
+                    <span style={{ color: "#ffffff" }} className="!text-white font-semibold">{formatDuration(meeting.duration)}</span>
                   </div>
                 </div>
 
                 {/* Live Countdown Banner if Scheduled */}
                 {isScheduled && (
-                  <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-semibold text-blue-200">
-                    <span className="flex items-center gap-1.5">
-                      <Sparkles size={13} className="text-[#154360]" />
-                      Class Countdown
+                  <div className="mt-4 pt-3.5 border-t border-white/20 flex items-center justify-between text-xs font-bold text-sky-100">
+                    <span className="flex items-center gap-1.5 text-sky-200">
+                      <Sparkles size={14} className="text-amber-300" />
+                      <span style={{ color: "#e0f2fe" }}>Class Countdown</span>
                     </span>
-                    <span className="font-mono font-bold text-white bg-[#154360]/40 px-2.5 py-0.5 rounded-lg border border-[#154360]/30">
+                    <span
+                      style={{ color: "#ffffff", backgroundColor: "rgba(255, 255, 255, 0.25)", borderColor: "rgba(255, 255, 255, 0.4)" }}
+                      className="font-mono font-black text-white px-3 py-1 rounded-lg border border-white/30 shadow-xs"
+                    >
                       {getCountdown(meeting.scheduledAt)}
                     </span>
                   </div>
@@ -444,22 +465,22 @@ function JoinMeetingContent() {
 
               {/* Form Section OR Ended State */}
               {isEnded ? (
-                <div className="p-6 sm:p-8 text-center space-y-5">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center mx-auto text-emerald-600">
-                    <CheckCircle2 size={28} />
+                <div className="p-7 sm:p-9 text-center space-y-6">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-300 flex items-center justify-center mx-auto text-emerald-600 shadow-md shadow-emerald-500/10">
+                    <CheckCircle2 size={34} className="stroke-[2.5]" />
                   </div>
-                  <div>
-                    <h3 className="text-base font-bold text-[#20262E]">Session Completed</h3>
-                    <p className="text-xs text-[#57636E] mt-1.5 leading-relaxed max-w-sm mx-auto">
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-extrabold text-[#20262E] tracking-tight">Session Completed</h3>
+                    <p className="text-xs sm:text-sm text-[#57636E] leading-relaxed max-w-sm mx-auto font-medium">
                       This class session has concluded. Please visit the official Geonixa website for upcoming schedules, resources, and courses.
                     </p>
                   </div>
                   <a
                     href="https://www.geonixa.com/"
-                    className="w-full py-3 px-4 bg-gradient-to-r from-[#154360] to-[#0E2F44] hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3.5 px-5 bg-gradient-to-r from-[#154360] via-[#1A5276] to-[#0E2F44] hover:brightness-110 active:scale-[0.99] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-[#154360]/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>Visit Geonixa Website</span>
-                    <ArrowRight size={14} />
+                    <span style={{ color: "#ffffff" }}>Visit Geonixa Website</span>
+                    <ArrowRight size={15} />
                   </a>
                 </div>
               ) : (

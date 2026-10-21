@@ -17,6 +17,7 @@ import RcrdLogo from "@/components/RcrdLogo";
 import ProfileFlyout from "@/components/ProfileFlyout";
 import AppHeader from "@/components/AppHeader";
 import { openGlobalRecording } from "@/components/GlobalRecordingManager";
+import RecordVideoButton from "@/components/RecordVideoButton";
 import { useNavPermissions } from "@/lib/navPermissions";
 
 export default function HomePage() {
@@ -85,16 +86,10 @@ export default function HomePage() {
           )}
         </div>
 
-        <div className="p-5 border-t border-[#E2E7EC] bg-white flex-shrink-0">
-          <button 
-            id="tour-record-btn"
-            onClick={() => { openGlobalRecording(); setIsMobileMenuOpen(false); }}
-            className="w-full bg-[#154360] hover:bg-[#0E2F44] text-white py-3.5 px-6 rounded-2xl text-[15px] font-bold flex items-center justify-center gap-2.5 shadow-[0_10px_25px_-5px_rgba(21, 67, 96,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(12,83,37,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
-          >
-            <VideoCameraIcon size={20} />
-            <span>Record Video</span>
-          </button>
-        </div>
+        <RecordVideoButton 
+          id="tour-record-btn"
+          onClick={() => { openGlobalRecording(); setIsMobileMenuOpen(false); }}
+        />
       </aside>
 
       {/* Main Content Area */}

@@ -264,9 +264,9 @@ export function useLiveKitSFU({
       const vTrack = mediaStream.getVideoTracks()[0];
       if (!vTrack) return false;
 
-      // Set contentHint to 'detail' for maximum presentation text clarity
+      // Set contentHint to 'motion' for fluid 60fps video & YouTube playback without freezing or stutter
       if ('contentHint' in vTrack) {
-        vTrack.contentHint = 'detail';
+        vTrack.contentHint = 'motion';
       }
 
       const localVTrack = new LocalVideoTrack(vTrack);
@@ -277,7 +277,7 @@ export function useLiveKitSFU({
         simulcast: true,
         source: Track.Source.ScreenShare,
         videoEncoding: {
-          maxBitrate: 6_000_000, // 6.0 Mbps for crisp, non-blurry 1080p video & animation
+          maxBitrate: 3_500_000, // 3.5 Mbps for fluid, buffer-free 1080p 60fps playback across mobile & broadband
           maxFramerate: 60,
         },
       });

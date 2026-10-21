@@ -566,14 +566,27 @@ export default function ClassRoomPage() {
   useEffect(() => {
     const activeStream = livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream;
     if (remoteScreenVideoRef.current && activeStream) {
-      if (remoteScreenVideoRef.current.srcObject !== activeStream) {
-        remoteScreenVideoRef.current.srcObject = activeStream;
-        remoteScreenVideoRef.current.muted = true;
-        remoteScreenVideoRef.current.playsInline = true;
-        remoteScreenVideoRef.current.setAttribute('playsinline', '');
-        remoteScreenVideoRef.current.setAttribute('webkit-playsinline', '');
-        remoteScreenVideoRef.current.play().catch(() => {});
+      const el = remoteScreenVideoRef.current;
+      if (el.srcObject !== activeStream) {
+        el.srcObject = activeStream;
+        el.muted = true;
+        el.playsInline = true;
+        el.setAttribute('playsinline', '');
+        el.setAttribute('webkit-playsinline', '');
+        el.play().catch(() => {});
       }
+      const handlePlay = () => setIsWebRTCVideoPlaying(true);
+      const handlePause = () => {
+        if (el && el.srcObject && !el.ended) {
+          el.play().catch(() => {});
+        }
+      };
+      el.addEventListener('playing', handlePlay);
+      el.addEventListener('pause', handlePause);
+      return () => {
+        el.removeEventListener('playing', handlePlay);
+        el.removeEventListener('pause', handlePause);
+      };
     }
     if (!isMentor && activeStream) {
       setShowWhiteboard(false);
@@ -1631,9 +1644,10 @@ export default function ClassRoomPage() {
                 setShowWhiteboard(false);
                 setStudentViewMode("screen");
               }
-              // Prevent unnecessary re-renders if frame and active status did not change
+              // If WebRTC / SFU video is actively playing, avoid heavy base64 JPEG decode and state churn
+              const hasLiveWebRTC = isWebRTCVideoPlayingRef.current || isSFUStreaming;
               setRemoteScreenShare(prev => {
-                const nextFrame = data.screenShare.streamFrame || prev?.streamFrame;
+                const nextFrame = hasLiveWebRTC ? undefined : (data.screenShare.streamFrame || prev?.streamFrame);
                 if (
                   prev?.active === data.screenShare.active &&
                   prev?.presenterName === data.screenShare.presenterName &&
@@ -1824,6 +1838,32 @@ export default function ClassRoomPage() {
     const broadcastFrame = async () => {
       if (!active || !screenStream || inFlight) return;
       try {
+        // When LiveKit SFU is active, 60FPS video is ALREADY streaming over WebRTC!
+        // Send only a lightweight metadata heartbeat without expensive canvas capture / base64 encode
+        if (livekitSFU.isSFUActive) {
+          inFlight = true;
+          try {
+            const now = Date.now();
+            const payload = {
+              active: true,
+              presenterName: displayName || "Host",
+              updatedAt: now,
+            };
+            if (bc) {
+              bc.postMessage({ type: "SCREEN_SHARE", data: payload });
+            }
+            await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ screenShare: payload }),
+            });
+          } finally {
+            inFlight = false;
+          }
+          return;
+        }
+
+        // Resilient fallback only when SFU is offline (P2P / HTTP fallback)
         const vEl = (screenVideoRef.current && screenVideoRef.current.videoWidth > 0)
           ? screenVideoRef.current
           : helperVideo;
@@ -1846,7 +1886,7 @@ export default function ClassRoomPage() {
           lastSample = sampleStr;
           heartbeatCounter = 0;
 
-          // Ultra-crisp 720px max width ensures tiny 14-18KB frames for instant 0-lag delivery across cellular 5G/4G
+          // Ultra-crisp 720px max width ensures tiny 14-18KB frames for instant delivery
           const maxW = 720;
           const scale = Math.min(1, maxW / vw);
           const tw = Math.round(vw * scale);
@@ -1859,7 +1899,6 @@ export default function ClassRoomPage() {
           ctx.imageSmoothingQuality = "medium";
           ctx.drawImage(vEl, 0, 0, tw, th);
 
-          // 0.45 JPEG quality gives sharp text and code lines with minimal decode overhead on phones
           const dataUrl = canvas.toDataURL("image/jpeg", 0.45);
           const now = Date.now();
 
@@ -1874,7 +1913,6 @@ export default function ClassRoomPage() {
             bc.postMessage({ type: "SCREEN_SHARE", data: payload });
           }
 
-          // Always persist active screen share state to server so students never see inactive avatar or lag
           inFlight = true;
           try {
             await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
@@ -1891,7 +1929,7 @@ export default function ClassRoomPage() {
       }
     };
 
-    const interval = setInterval(broadcastFrame, 320);
+    const interval = setInterval(broadcastFrame, livekitSFU.isSFUActive ? 4000 : 800);
     broadcastFrame();
 
     return () => {
@@ -2494,7 +2532,7 @@ export default function ClassRoomPage() {
       const screenAudioTrack = ds.getAudioTracks()[0];
       if (vTrack) {
         if ('contentHint' in vTrack) {
-          vTrack.contentHint = 'detail';
+          vTrack.contentHint = 'motion';
         }
       }
 
@@ -3768,13 +3806,7 @@ export default function ClassRoomPage() {
 
           {/* Screen Video (Host Local Stream) */}
           <video
-            ref={(el) => {
-              screenVideoRef.current = el;
-              if (el && screenStream && el.srcObject !== screenStream) {
-                el.srcObject = screenStream;
-                el.play().catch(() => {});
-              }
-            }}
+            ref={screenVideoRef}
             autoPlay
             playsInline
             muted
@@ -3784,46 +3816,8 @@ export default function ClassRoomPage() {
           {/* Remote Host Screen Share (Live synced to students) */}
           {isRemoteSharing && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black overflow-hidden select-none">
-              <div className="absolute top-16 left-3 sm:left-4 z-20 flex items-center gap-1.5 sm:gap-2 bg-zinc-900/90 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-zinc-700 shadow-md text-xs font-bold text-white max-w-[90vw] overflow-x-auto">
-                <Monitor size={14} className="text-blue-400 shrink-0" />
-                <span className="truncate max-w-[140px] sm:max-w-none">{remoteScreenShare?.presenterName || "Host"} is sharing screen</span>
-                {isWebRTCVideoPlaying ? (
-                  <span className="flex items-center gap-1.5 text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Ultra HD 60FPS
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-medium shrink-0">
-                    HD Live
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={toggleFullScreen}
-                  className="flex items-center gap-1 text-[10px] sm:text-[11px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-lg font-semibold border border-white/20 transition-all cursor-pointer ml-0.5 shrink-0"
-                  title="Fullscreen"
-                >
-                  <Maximize2 size={11} className="text-blue-300" />
-                  <span className="hidden sm:inline">Fit / Fullscreen</span>
-                </button>
-                {!isMentor && remoteWhiteboard?.active && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowWhiteboard(true);
-                      setStudentViewMode("whiteboard");
-                    }}
-                    className="flex items-center gap-1 text-[10px] sm:text-[11px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-lg font-semibold border border-white/20 transition-all cursor-pointer ml-0.5 shrink-0"
-                    title="View mentor's lecture notes"
-                  >
-                    <BookOpen size={11} className="text-amber-300" />
-                    <span>View Notes</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Layer 1: HTTP Live Frame Stream (Rock-solid fallback, immediate 0ms appearance) */}
-              {remoteScreenShare?.streamFrame && (
+              {/* Layer 1: HTTP Live Frame Stream (Rock-solid fallback, only when WebRTC is not yet playing) */}
+              {!isWebRTCVideoPlaying && !livekitSFU.sfuRemoteStream && remoteScreenShare?.streamFrame && (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={remoteScreenShare.streamFrame}
@@ -3832,21 +3826,10 @@ export default function ClassRoomPage() {
                 />
               )}
 
-              {/* Layer 2: WebRTC Ultra HD 60FPS Video (Fades in over Layer 1 when packets arrive) */}
+              {/* Layer 2: WebRTC Ultra HD 60FPS Video (Pure, uninterrupted full-screen playback) */}
               {(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream) && (
                 <video
-                  ref={(el) => {
-                    remoteScreenVideoRef.current = el;
-                    const activeStream = livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream;
-                    if (el && activeStream && el.srcObject !== activeStream) {
-                      el.srcObject = activeStream;
-                      el.muted = true;
-                      el.playsInline = true;
-                      el.setAttribute('playsinline', '');
-                      el.setAttribute('webkit-playsinline', '');
-                      el.play().catch(() => {});
-                    }
-                  }}
+                  ref={remoteScreenVideoRef}
                   autoPlay
                   playsInline
                   muted
@@ -4359,8 +4342,8 @@ export default function ClassRoomPage() {
             </div>
           )}
 
-          {/* When Screen Share IS ACTIVE: Draggable & Minimizable Floating Host Camera Card (Image 2) */}
-          {isAnyScreenSharing && !isWhiteboardActive && (
+          {/* When Screen Share IS ACTIVE: Draggable Floating Host Camera Card (Only when Host Camera is actively streaming and not minimized) */}
+          {isAnyScreenSharing && !isWhiteboardActive && !isCameraCardMinimized && ((isMentor && cameraOn) || (!isMentor && remoteHostCamera?.active && remoteHostCamera?.streamFrame)) && (
             <div
               style={{
                 transform: `translate3d(${cameraCardPos.x}px, ${cameraCardPos.y}px, 0)`,
@@ -4368,113 +4351,93 @@ export default function ClassRoomPage() {
               }}
               className="absolute top-2 right-2 sm:top-4 sm:right-4 z-30 flex flex-col items-end gap-1.5 pointer-events-auto select-none"
             >
-              {isCameraCardMinimized ? (
-                /* Minimized pill to completely uncover lecture notes behind it */
-                <button
-                  type="button"
-                  onClick={() => setIsCameraCardMinimized(false)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700 shadow-2xl backdrop-blur-md text-xs font-bold cursor-pointer transition-all"
-                  title="Expand Host Camera"
-                >
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Host Camera</span>
-                  <Maximize2 size={12} className="text-slate-400 ml-0.5" />
-                </button>
-              ) : (
-                /* Full Video Card with Drag Grip & Minimize button */
-                <div className="w-28 sm:w-56 h-22 sm:h-38 bg-white rounded-xl sm:rounded-2xl overflow-hidden border-2 border-[#154360] shadow-2xl relative flex flex-col">
-                  {/* Drag Handle Top Bar */}
-                  <div
-                    onMouseDown={(e) => {
-                      cameraDragRef.current = { startX: e.clientX, startY: e.clientY, initX: cameraCardPos.x, initY: cameraCardPos.y };
-                      const handleMouseMove = (me: MouseEvent) => {
-                        if (!cameraDragRef.current) return;
-                        setCameraCardPos({
-                          x: cameraDragRef.current.initX + (me.clientX - cameraDragRef.current.startX),
-                          y: cameraDragRef.current.initY + (me.clientY - cameraDragRef.current.startY),
-                        });
-                      };
-                      const handleMouseUp = () => {
-                        cameraDragRef.current = null;
-                        window.removeEventListener("mousemove", handleMouseMove);
-                        window.removeEventListener("mouseup", handleMouseUp);
-                      };
-                      window.addEventListener("mousemove", handleMouseMove);
-                      window.addEventListener("mouseup", handleMouseUp);
-                    }}
-                    onTouchStart={(e) => {
-                      if (!e.touches[0]) return;
-                      const t = e.touches[0];
-                      cameraDragRef.current = { startX: t.clientX, startY: t.clientY, initX: cameraCardPos.x, initY: cameraCardPos.y };
-                    }}
-                    onTouchMove={(e) => {
-                      if (!cameraDragRef.current || !e.touches[0]) return;
-                      const t = e.touches[0];
+              {/* Full Video Card with Drag Grip & Minimize button */}
+              <div className="w-28 sm:w-56 h-22 sm:h-38 bg-white rounded-xl sm:rounded-2xl overflow-hidden border-2 border-[#154360] shadow-2xl relative flex flex-col">
+                {/* Drag Handle Top Bar */}
+                <div
+                  onMouseDown={(e) => {
+                    cameraDragRef.current = { startX: e.clientX, startY: e.clientY, initX: cameraCardPos.x, initY: cameraCardPos.y };
+                    const handleMouseMove = (me: MouseEvent) => {
+                      if (!cameraDragRef.current) return;
                       setCameraCardPos({
-                        x: cameraDragRef.current.initX + (t.clientX - cameraDragRef.current.startX),
-                        y: cameraDragRef.current.initY + (t.clientY - cameraDragRef.current.startY),
+                        x: cameraDragRef.current.initX + (me.clientX - cameraDragRef.current.startX),
+                        y: cameraDragRef.current.initY + (me.clientY - cameraDragRef.current.startY),
                       });
-                    }}
-                    onTouchEnd={() => {
+                    };
+                    const handleMouseUp = () => {
                       cameraDragRef.current = null;
-                    }}
-                    className="h-5 sm:h-6 bg-slate-900/90 backdrop-blur-xs flex items-center justify-between px-2 cursor-grab active:cursor-grabbing text-slate-300 text-[10px] sm:text-xs z-10 shrink-0 select-none"
-                    title="Drag anywhere to uncover notes underneath"
-                  >
-                    <div className="flex items-center gap-1 font-bold text-white text-[9px] sm:text-[10px]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      <span>{effectiveHostName || "Host"}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[9px] text-slate-400 hidden sm:inline">Drag to move</span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsCameraCardMinimized(true);
-                        }}
-                        className="w-4 h-4 rounded hover:bg-slate-700 flex items-center justify-center text-white"
-                        title="Minimize to read notes"
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
+                      window.removeEventListener("mousemove", handleMouseMove);
+                      window.removeEventListener("mouseup", handleMouseUp);
+                    };
+                    window.addEventListener("mousemove", handleMouseMove);
+                    window.addEventListener("mouseup", handleMouseUp);
+                  }}
+                  onTouchStart={(e) => {
+                    if (!e.touches[0]) return;
+                    const t = e.touches[0];
+                    cameraDragRef.current = { startX: t.clientX, startY: t.clientY, initX: cameraCardPos.x, initY: cameraCardPos.y };
+                  }}
+                  onTouchMove={(e) => {
+                    if (!cameraDragRef.current || !e.touches[0]) return;
+                    const t = e.touches[0];
+                    setCameraCardPos({
+                      x: cameraDragRef.current.initX + (t.clientX - cameraDragRef.current.startX),
+                      y: cameraDragRef.current.initY + (t.clientY - cameraDragRef.current.startY),
+                    });
+                  }}
+                  onTouchEnd={() => {
+                    cameraDragRef.current = null;
+                  }}
+                  className="h-5 sm:h-6 bg-slate-900/90 backdrop-blur-xs flex items-center justify-between px-2 cursor-grab active:cursor-grabbing text-slate-300 text-[10px] sm:text-xs z-10 shrink-0 select-none"
+                  title="Drag anywhere to uncover notes underneath"
+                >
+                  <div className="flex items-center gap-1 font-bold text-white text-[9px] sm:text-[10px]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span>{effectiveHostName || "Host"}</span>
                   </div>
-
-                  {/* Video Content */}
-                  <div className="relative flex-1 w-full bg-slate-900 overflow-hidden">
-                    {isMentor && cameraOn ? (
-                      <video
-                        ref={(el) => {
-                          cameraVideoRef.current = el;
-                          if (el && cameraStream && el.srcObject !== cameraStream) {
-                            el.srcObject = cameraStream;
-                            el.play().catch(() => {});
-                          }
-                        }}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="w-full h-full object-cover"
-                      />
-                    ) : !isMentor && remoteHostCamera?.active && remoteHostCamera?.streamFrame ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={remoteHostCamera.streamFrame}
-                        alt="Host Live Camera"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-[#20262E]">
-                        <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#154360] text-white flex items-center justify-center font-bold text-xs sm:text-base shadow-sm">
-                          {displayInitial}
-                        </div>
-                        <span className="text-[9px] sm:text-[10px] font-semibold text-[#57636E] mt-0.5 truncate max-w-[90%]">Camera Off</span>
-                      </div>
-                    )}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-slate-400 hidden sm:inline">Drag to move</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsCameraCardMinimized(true);
+                      }}
+                      className="w-4 h-4 rounded hover:bg-slate-700 flex items-center justify-center text-white"
+                      title="Minimize to read notes"
+                    >
+                      <X size={10} />
+                    </button>
                   </div>
                 </div>
-              )}
+
+                {/* Video Content */}
+                <div className="relative flex-1 w-full bg-slate-900 overflow-hidden">
+                  {isMentor && cameraOn ? (
+                    <video
+                      ref={cameraVideoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                    />
+                  ) : !isMentor && remoteHostCamera?.active && remoteHostCamera?.streamFrame ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={remoteHostCamera.streamFrame}
+                      alt="Host Live Camera"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-[#20262E]">
+                      <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#154360] text-white flex items-center justify-center font-bold text-xs sm:text-base shadow-sm">
+                        {displayInitial}
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-semibold text-[#57636E] mt-0.5 truncate max-w-[90%]">Camera Off</span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Connected Student Mini Avatar Badges (Hidden on mobile to keep presentation completely unobstructed!) */}
               <div className="hidden sm:flex gap-1.5 max-w-[280px] overflow-x-auto">

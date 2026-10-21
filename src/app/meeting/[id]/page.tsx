@@ -291,8 +291,12 @@ function JoinMeetingContent() {
 
       const data = await res.json();
 
-      if (data?.status === 'ended' || data?.meeting?.status === 'ended') {
-        window.location.href = "https://www.geonixa.com/";
+      if (data?.status === 'ended' || data?.meeting?.status === 'ended' || data?.expired) {
+        setJoining(false);
+        setErrorMsg("This meeting has ended and the link has expired.");
+        setTimeout(() => {
+          window.location.href = "https://www.geonixa.com/";
+        }, 1500);
         return;
       }
 
@@ -371,14 +375,16 @@ function JoinMeetingContent() {
           >
             Geonixa Website
           </a>
-          <button
-            onClick={copyDirectLink}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E2E7EC] bg-white hover:bg-[#F5F6F8] text-xs font-semibold text-[#20262E] shadow-2xs transition-all"
-            title="Copy direct join link"
-          >
-            {copiedLink ? <Check size={13} className="text-[#2980B9]" /> : <Copy size={13} className="text-[#154360]" />}
-            <span>{copiedLink ? "Link Copied!" : "Share Link"}</span>
-          </button>
+          {!isEnded && (
+            <button
+              onClick={copyDirectLink}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E2E7EC] bg-white hover:bg-[#F5F6F8] text-xs font-semibold text-[#20262E] shadow-2xs transition-all"
+              title="Copy direct join link"
+            >
+              {copiedLink ? <Check size={13} className="text-[#2980B9]" /> : <Copy size={13} className="text-[#154360]" />}
+              <span>{copiedLink ? "Link Copied!" : "Share Link"}</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -406,34 +412,23 @@ function JoinMeetingContent() {
               <div>
                 <h2 className="text-lg font-bold text-[#20262E]">Meeting Not Found</h2>
                 <p className="text-xs text-[#57636E] mt-1 max-w-sm mx-auto leading-relaxed">
-                  We could not find an active class for ID <span className="font-mono font-bold text-[#20262E]">{meetingId}</span>. Please verify the ID or request a new invite link from your instructor.
+                  We could not find an active class for ID <span className="font-mono font-bold text-[#20262E]">{meetingId}</span>. The meeting may have ended, expired, or been removed.
                 </p>
               </div>
 
-              <div className="pt-2 flex flex-col gap-2.5">
+              <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
                 <button
-                  onClick={() => {
-                    const studentSafeName = studentName?.trim() || "Student";
-                    router.push(`/meetings/room/${encodeURIComponent(meetingId)}?role=participant&name=${encodeURIComponent(studentSafeName)}`);
-                  }}
-                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  onClick={fetchMeetingInfo}
+                  className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Video size={14} /> Join Class Room Directly
+                  <RefreshCw size={13} /> Retry
                 </button>
-                <div className="flex flex-col sm:flex-row gap-2.5">
-                  <button
-                    onClick={fetchMeetingInfo}
-                    className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <RefreshCw size={13} /> Retry
-                  </button>
-                  <a
-                    href="https://www.geonixa.com/"
-                    className="flex-1 py-2.5 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
-                  >
-                    Visit Geonixa <ChevronRight size={13} />
-                  </a>
-                </div>
+                <a
+                  href="https://www.geonixa.com/"
+                  className="flex-1 py-2.5 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+                >
+                  Visit Geonixa <ChevronRight size={13} />
+                </a>
               </div>
             </div>
           )}
@@ -469,11 +464,11 @@ function JoinMeetingContent() {
                     )}
                     {isEnded && (
                       <span
-                        style={{ color: "#ffffff", backgroundColor: "#059669", borderColor: "#34d399" }}
-                        className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-white bg-emerald-600 border border-emerald-400 px-3.5 py-1.5 rounded-full shadow-md shadow-emerald-950/20"
+                        style={{ color: "#ffffff", backgroundColor: "#e11d48", borderColor: "#f43f5e" }}
+                        className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-white bg-rose-600 border border-rose-400 px-3.5 py-1.5 rounded-full shadow-md shadow-rose-950/20"
                       >
-                        <CheckCircle2 size={15} className="text-white stroke-[2.5]" />
-                        <span style={{ color: "#ffffff" }}>SESSION COMPLETED</span>
+                        <AlertCircle size={15} className="text-white stroke-[2.5]" />
+                        <span style={{ color: "#ffffff" }}>LINK EXPIRED</span>
                       </span>
                     )}
                   </div>
@@ -532,13 +527,13 @@ function JoinMeetingContent() {
               {/* Form Section OR Ended State */}
               {isEnded ? (
                 <div className="p-7 sm:p-9 text-center space-y-6">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-300 flex items-center justify-center mx-auto text-emerald-600 shadow-md shadow-emerald-500/10">
-                    <CheckCircle2 size={34} className="stroke-[2.5]" />
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-50 to-red-50 border-2 border-rose-300 flex items-center justify-center mx-auto text-rose-600 shadow-md shadow-rose-500/10">
+                    <AlertCircle size={34} className="stroke-[2.5]" />
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-xl font-extrabold text-[#20262E] tracking-tight">Session Completed</h3>
+                    <h3 className="text-xl font-extrabold text-[#20262E] tracking-tight">Meeting Link Expired</h3>
                     <p className="text-xs sm:text-sm text-[#57636E] leading-relaxed max-w-sm mx-auto font-medium">
-                      This class session has concluded. Please visit the official Geonixa website for upcoming schedules, resources, and courses.
+                      This class session has concluded and the link has permanently expired. You can no longer join this meeting. Please visit Geonixa for upcoming courses and schedules.
                     </p>
                   </div>
                   <a

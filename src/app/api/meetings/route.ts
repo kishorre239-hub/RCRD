@@ -98,6 +98,7 @@ export async function POST(req: Request) {
       duration: Number(duration) || 60,
       status: (status as 'scheduled' | 'live' | 'ended') || 'scheduled',
       hostName: (hostName || body.hostName || body.createdByName || '').trim() || undefined,
+      notes: body.notes || [],
       updatedAt: Date.now(),
     };
 
@@ -126,7 +127,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const body = await req.json();
-    const { id, status } = body;
+    const { id, status, notes } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'id is required' }, { status: 400 });
@@ -136,21 +137,21 @@ export async function PATCH(req: Request) {
     const existing = getBackupMeeting(id);
     if (existing) {
       if (status) existing.status = status;
+      if (notes !== undefined) existing.notes = notes;
       existing.updatedAt = Date.now();
       saveBackupMeeting(existing);
     }
 
     // Update in MongoDB
     try {
+      const updateFields: Record<string, unknown> = { updatedAt: Date.now() };
+      if (status) updateFields.status = status;
+      if (notes !== undefined) updateFields.notes = notes;
+
       const meetingsCol = await getCollection<StoredMeeting>('meetings');
       await meetingsCol.updateOne(
         { id },
-        {
-          $set: {
-            ...(status ? { status } : {}),
-            updatedAt: Date.now(),
-          },
-        }
+        { $set: updateFields }
       );
     } catch (dbErr) {
       console.warn('MongoDB patch meeting note:', (dbErr as Error)?.message);

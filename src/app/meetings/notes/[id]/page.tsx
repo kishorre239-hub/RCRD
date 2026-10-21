@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import { useRouter, useParams } from "next/navigation";
+import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { 
   ArrowLeft, FileText, Download, Upload, Paperclip, 
-  Trash2, Search, Plus, Calendar, Clock, Check, Video, X
+  Trash2, Search, Plus, Calendar, Clock, Check, Video, X, Lock
 } from "lucide-react";
 
 interface NoteAttachment {
@@ -28,27 +28,32 @@ interface Note {
 interface Meeting {
   id: string;
   title: string;
-  courseId: string;
+  courseId?: string | null;
   scheduledAt: string;
   duration: number;
-  password: string;
+  password?: string;
   status: "scheduled" | "live" | "ended";
   attendees?: number;
+  notes?: Note[];
+  hostName?: string;
 }
 
-export default function MeetingNotesPage() {
+function MeetingNotesContent() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const meetingId = (params?.id as string) || "";
 
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [isHost, setIsHost] = useState(false);
   const [activeTab, setActiveTab] = useState<"all" | "host" | "participant" | "group">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [newNoteText, setNewNoteText] = useState("");
   const [newNoteType, setNewNoteType] = useState<"host" | "participant" | "group">("group");
   const [newAttachment, setNewAttachment] = useState<NoteAttachment | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -58,85 +63,129 @@ export default function MeetingNotesPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Load meeting details
+  // Determine if viewer is Host (only Host can download or add/edit notes)
+  useEffect(() => {
+    const roleParam = searchParams.get("role")?.toLowerCase();
+    if (roleParam === "host" || roleParam === "mentor") {
+      setIsHost(true);
+      return;
+    }
+    try {
+      const userProfile = localStorage.getItem("rcrd_user_profile");
+      const userObj = localStorage.getItem("user");
+      if (userProfile) {
+        const p = JSON.parse(userProfile);
+        if (p?.role === "admin" || p?.role === "instructor" || p?.role === "host") {
+          setIsHost(true);
+          return;
+        }
+      }
+      if (userObj) {
+        const u = JSON.parse(userObj);
+        if (u?.role === "admin" || u?.role === "instructor" || u?.role === "host") {
+          setIsHost(true);
+          return;
+        }
+      }
+    } catch {}
+    setIsHost(false);
+  }, [searchParams]);
+
+  // Load meeting details & real notes from backend API, room state, and localStorage
   useEffect(() => {
     if (!meetingId) return;
 
-    setTimeout(() => {
-      // 1. Try sessionStorage or localStorage
+    let isMounted = true;
+    setLoading(true);
+
+    const loadData = async () => {
+      let resolvedNotes: Note[] = [];
+
+      // 1. Try local storage cache
       try {
-        const sess = sessionStorage.getItem(`meeting_${meetingId}`);
-        if (sess) {
-          setMeeting(JSON.parse(sess));
-        }
-        const local = localStorage.getItem("RCRD_SCHEDULED_MEETINGS");
+        const local = localStorage.getItem(`meeting_notes_${meetingId}`);
         if (local) {
-          const list: Meeting[] = JSON.parse(local);
-          const found = list.find(m => m.id === meetingId);
-          if (found) setMeeting(found);
-        }
-      } catch {}
-    }, 0);
-
-    // 2. Fetch from backend API
-    fetch(`/api/meetings?id=${meetingId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data?.meeting) {
-          setMeeting(data.meeting);
-        }
-      })
-      .catch(() => {});
-  }, [meetingId]);
-
-  // Load notes (supporting both room session notes and saved notes)
-  useEffect(() => {
-    if (!meetingId) return;
-
-    setTimeout(() => {
-      try {
-        // 1. Try RCRD_MEETING_NOTES and rcrd_notes first (created during live call)
-        const roomNotesJson = localStorage.getItem("RCRD_MEETING_NOTES");
-        const altNotesJson = localStorage.getItem("rcrd_notes");
-        if (roomNotesJson) {
-          const roomNotesObj = JSON.parse(roomNotesJson);
-          if (Array.isArray(roomNotesObj[meetingId]) && roomNotesObj[meetingId].length > 0) {
-            setNotes(roomNotesObj[meetingId]);
-            return;
-          }
-        }
-        if (altNotesJson) {
-          const altNotesObj = JSON.parse(altNotesJson);
-          if (Array.isArray(altNotesObj[meetingId]) && altNotesObj[meetingId].length > 0) {
-            setNotes(altNotesObj[meetingId]);
-            return;
-          }
-        }
-        // 2. Try meeting_notes_${meetingId}
-        const saved = localStorage.getItem(`meeting_notes_${meetingId}`);
-        if (saved) {
-          const parsed: Note[] = JSON.parse(saved);
+          const parsed = JSON.parse(local);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setNotes(parsed);
-            return;
+            resolvedNotes = parsed;
+          }
+        }
+        if (resolvedNotes.length === 0) {
+          const roomNotesJson = localStorage.getItem("RCRD_MEETING_NOTES");
+          if (roomNotesJson) {
+            const roomNotesObj = JSON.parse(roomNotesJson);
+            if (Array.isArray(roomNotesObj[meetingId]) && roomNotesObj[meetingId].length > 0) {
+              resolvedNotes = roomNotesObj[meetingId];
+            }
+          }
+        }
+        if (resolvedNotes.length === 0) {
+          const altNotesJson = localStorage.getItem("rcrd_notes");
+          if (altNotesJson) {
+            const altNotesObj = JSON.parse(altNotesJson);
+            if (Array.isArray(altNotesObj[meetingId]) && altNotesObj[meetingId].length > 0) {
+              resolvedNotes = altNotesObj[meetingId];
+            }
           }
         }
       } catch {}
 
-      // Initial default session notes if completely empty
-      setNotes([
-        {
-          id: "note-demo-1",
-          type: "group",
-          author: "Host",
-          timestamp: Date.now() - 3600000,
-          content: "Class session summary: Core lecture discussion, whiteboard formulas, and class materials.",
+      if (isMounted && resolvedNotes.length > 0) {
+        setNotes(resolvedNotes);
+      }
+
+      // 2. Fetch from backend /api/meetings
+      try {
+        const res = await fetch(`/api/meetings?id=${encodeURIComponent(meetingId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted && data?.meeting) {
+            setMeeting(data.meeting);
+            if (Array.isArray(data.meeting.notes) && data.meeting.notes.length > 0) {
+              resolvedNotes = data.meeting.notes;
+              setNotes(data.meeting.notes);
+            }
+          }
         }
-      ]);
-    }, 0);
+      } catch {}
+
+      // 3. Fetch from room state API /api/meetings/[id]/state (captures real-time notes uploaded during meeting)
+      try {
+        const stateRes = await fetch(`/api/meetings/${encodeURIComponent(meetingId)}/state`);
+        if (stateRes.ok) {
+          const stateData = await stateRes.json();
+          if (isMounted) {
+            if (stateData?.status && !meeting?.status) {
+              setMeeting(prev => prev ? { ...prev, status: stateData.status } : null);
+            }
+            if (Array.isArray(stateData.notes) && stateData.notes.length > 0) {
+              // Merge with existing
+              const map = new Map<string, Note>();
+              resolvedNotes.forEach(n => map.set(n.id, n));
+              stateData.notes.forEach((n: Note) => map.set(n.id, n));
+              const merged = Array.from(map.values());
+              setNotes(merged);
+              try {
+                localStorage.setItem(`meeting_notes_${meetingId}`, JSON.stringify(merged));
+              } catch {}
+            }
+          }
+        }
+      } catch {}
+
+      if (isMounted) {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [meetingId]);
 
-  // Persist notes across all storage keys
+  // Persist notes across all storage keys and backend APIs
   const saveNotes = (updated: Note[]) => {
     setNotes(updated);
     try {
@@ -151,14 +200,32 @@ export default function MeetingNotesPage() {
       altNotesObj[meetingId] = updated;
       localStorage.setItem("rcrd_notes", JSON.stringify(altNotesObj));
     } catch {}
+
+    // Persist to database meeting document
+    fetch('/api/meetings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: meetingId, notes: updated }),
+    }).catch(() => {});
+
+    // Persist to room state
+    fetch(`/api/meetings/${encodeURIComponent(meetingId)}/state`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes: updated }),
+    }).catch(() => {});
   };
 
   // Handle file attachment for new note
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isHost) {
+      showToast("Only the host has access to upload files.");
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 15 * 1024 * 1024) {
-      showToast("File size too large (max 15MB).");
+    if (file.size > 20 * 1024 * 1024) {
+      showToast("File size too large (max 20MB).");
       return;
     }
     const reader = new FileReader();
@@ -177,6 +244,10 @@ export default function MeetingNotesPage() {
 
   // Import notes from file (.txt, .md, .json)
   const handleImportNotes = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isHost) {
+      showToast("Only the host has access to import notes.");
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -198,7 +269,7 @@ export default function MeetingNotesPage() {
       const importedNote: Note = {
         id: `note-${Date.now()}`,
         type: "group",
-        author: "Imported File",
+        author: isHost ? "Host" : "Instructor",
         content: text,
         timestamp: Date.now(),
         attachment: {
@@ -215,8 +286,12 @@ export default function MeetingNotesPage() {
     e.target.value = "";
   };
 
-  // Export notes to Markdown/Text
+  // Export notes to Markdown/Text (Host only)
   const handleExportNotes = () => {
+    if (!isHost) {
+      showToast("Only the host has access to export notes.");
+      return;
+    }
     if (notes.length === 0) {
       showToast("No notes to export.");
       return;
@@ -245,8 +320,12 @@ export default function MeetingNotesPage() {
     showToast("Notes exported to Markdown!");
   };
 
-  // Add a note
+  // Add a note (Host only)
   const handleAddNote = () => {
+    if (!isHost) {
+      showToast("Only the host has permission to add notes.");
+      return;
+    }
     if (!newNoteText.trim() && !newAttachment) {
       showToast("Please enter text or attach a file.");
       return;
@@ -265,8 +344,12 @@ export default function MeetingNotesPage() {
     showToast("Note added successfully!");
   };
 
-  // Delete a note
+  // Delete a note (Host only)
   const handleDeleteNote = (id: string) => {
+    if (!isHost) {
+      showToast("Only the host can delete notes.");
+      return;
+    }
     saveNotes(notes.filter(n => n.id !== id));
     showToast("Note deleted.");
   };
@@ -284,6 +367,8 @@ export default function MeetingNotesPage() {
     });
   }, [notes, activeTab, searchQuery]);
 
+  const isMeetingEnded = meeting?.status === "ended";
+
   return (
     <div className="min-h-screen bg-[#F5F6F8] text-[#20262E] font-sans flex flex-col">
       {/* Toast */}
@@ -300,7 +385,7 @@ export default function MeetingNotesPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push("/meetings")}
-              className="p-2 rounded-xl text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 transition-colors"
+              className="p-2 rounded-xl text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 transition-colors cursor-pointer"
               title="Back to Meetings"
             >
               <ArrowLeft size={18} />
@@ -310,8 +395,14 @@ export default function MeetingNotesPage() {
                 <h1 className="text-lg font-bold text-[#20262E]">
                   {meeting?.title || "Class Meeting Notes"}
                 </h1>
-                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-[#EBF5FB] text-[#0E2F44] border border-[#154360]/30">
-                  {meeting?.status || "Ended"}
+                <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
+                  isMeetingEnded
+                    ? "bg-slate-100 text-slate-700 border-slate-300"
+                    : meeting?.status === "live"
+                    ? "bg-red-50 text-red-600 border-red-200 animate-pulse"
+                    : "bg-sky-50 text-sky-600 border-sky-200"
+                }`}>
+                  {isMeetingEnded ? "Ended" : (meeting?.status || "Ended")}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-xs text-[#57636E] mt-0.5">
@@ -338,39 +429,50 @@ export default function MeetingNotesPage() {
 
           {/* Action buttons */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => importInputRef.current?.click()}
-              className="px-3 py-1.5 rounded-xl border border-[#E2E7EC] hover:bg-[#F5F6F8] text-xs font-bold text-[#20262E] flex items-center gap-1.5 transition-colors shadow-xs"
-              title="Upload Notes file (.txt, .md, .json)"
-            >
-              <Upload size={13} className="text-[#154360]" />
-              <span>Upload Notes</span>
-            </button>
-            <input
-              ref={importInputRef}
-              type="file"
-              accept=".txt,.md,.json"
-              onChange={handleImportNotes}
-              className="hidden"
-            />
+            {/* Host Only: Upload Notes */}
+            {isHost && (
+              <>
+                <button
+                  onClick={() => importInputRef.current?.click()}
+                  className="px-3 py-1.5 rounded-xl border border-[#E2E7EC] hover:bg-[#F5F6F8] text-xs font-bold text-[#20262E] flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                  title="Upload Notes file (.txt, .md, .json)"
+                >
+                  <Upload size={13} className="text-[#154360]" />
+                  <span>Upload Notes</span>
+                </button>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".txt,.md,.json"
+                  onChange={handleImportNotes}
+                  className="hidden"
+                />
+              </>
+            )}
 
-            <button
-              onClick={handleExportNotes}
-              className="px-3 py-1.5 rounded-xl border border-[#E2E7EC] hover:bg-[#F5F6F8] text-xs font-bold text-[#20262E] flex items-center gap-1.5 transition-colors shadow-xs"
-              title="Export all notes to Markdown"
-            >
-              <Download size={13} className="text-[#2980B9]" />
-              <span>Export Notes</span>
-            </button>
+            {/* Host Only: Export Notes */}
+            {isHost && (
+              <button
+                onClick={handleExportNotes}
+                className="px-3 py-1.5 rounded-xl border border-[#E2E7EC] hover:bg-[#F5F6F8] text-xs font-bold text-[#20262E] flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                title="Export all notes to Markdown"
+              >
+                <Download size={13} className="text-[#2980B9]" />
+                <span>Export Notes</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => router.push(`/meetings/room/${meetingId}`)}
-              className="px-4 py-1.5 rounded-xl bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
-              title="Open meeting room"
-            >
-              <Video size={13} />
-              <span>Open Room</span>
-            </button>
+            {/* Open Room: Only visible if meeting is NOT ended */}
+            {!isMeetingEnded && (
+              <button
+                onClick={() => router.push(`/meetings/room/${meetingId}`)}
+                className="px-4 py-1.5 rounded-xl bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                title="Open meeting room"
+              >
+                <Video size={13} />
+                <span>Open Room</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -385,7 +487,7 @@ export default function MeetingNotesPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all capitalize flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all capitalize flex items-center gap-1.5 cursor-pointer ${
                   activeTab === tab
                     ? "bg-[#154360] text-white shadow-sm"
                     : "text-[#57636E] hover:text-[#20262E] hover:bg-slate-100"
@@ -414,7 +516,7 @@ export default function MeetingNotesPage() {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#57636E]"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#20262E] cursor-pointer"
               >
                 <X size={12} />
               </button>
@@ -424,12 +526,21 @@ export default function MeetingNotesPage() {
 
         {/* Notes Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredNotes.length === 0 ? (
+          {loading ? (
+            <div className="col-span-full bg-white rounded-2xl border border-[#E2E7EC] p-12 text-center text-[#57636E] flex flex-col items-center justify-center">
+              <FileText size={32} className="text-[#154360] animate-pulse mb-2" />
+              <p className="text-xs font-semibold text-[#57636E]">Loading class notes...</p>
+            </div>
+          ) : filteredNotes.length === 0 ? (
             <div className="col-span-full bg-white rounded-2xl border border-[#E2E7EC] p-12 text-center text-[#57636E] flex flex-col items-center justify-center">
               <FileText size={36} className="text-slate-300 mb-2" />
-              <h3 className="text-sm font-bold text-[#20262E]">No notes found</h3>
+              <h3 className="text-sm font-bold text-[#20262E]">No notes uploaded</h3>
               <p className="text-xs text-[#57636E] max-w-sm mt-1">
-                {searchQuery ? "No notes matching your search filter." : "There are no notes in this section yet. Add a note or upload a file below."}
+                {searchQuery
+                  ? "No notes matching your search filter."
+                  : isHost
+                  ? "No notes uploaded during this class session yet. Use the composer below to add notes or attachments."
+                  : "No notes were uploaded by the instructor during this meeting session."}
               </p>
             </div>
           ) : (
@@ -480,114 +591,146 @@ export default function MeetingNotesPage() {
                           <p className="text-[10px] text-[#57636E]">{(n.attachment.size / 1024).toFixed(1)} KB</p>
                         </div>
                       </div>
-                      <a
-                        href={n.attachment.dataUrl}
-                        download={n.attachment.name}
-                        className="px-2.5 py-1 rounded-lg bg-white border border-[#E2E7EC] hover:bg-[#EBF5FB] hover:border-[#154360]/30 text-[#20262E] hover:text-[#0E2F44] text-xs font-bold flex items-center gap-1 transition-colors shadow-xs shrink-0"
-                        title="Download attachment"
-                      >
-                        <Download size={12} />
-                        <span>Download</span>
-                      </a>
+                      {/* Host has exclusive access to download attachments */}
+                      {isHost ? (
+                        <a
+                          href={n.attachment.dataUrl}
+                          download={n.attachment.name}
+                          className="px-2.5 py-1 rounded-lg bg-white border border-[#E2E7EC] hover:bg-[#EBF5FB] hover:border-[#154360]/30 text-[#20262E] hover:text-[#0E2F44] text-xs font-bold flex items-center gap-1 transition-colors shadow-xs shrink-0 cursor-pointer"
+                          title="Download attachment"
+                        >
+                          <Download size={12} />
+                          <span>Download</span>
+                        </a>
+                      ) : (
+                        <div
+                          className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 text-[11px] font-medium flex items-center gap-1 border border-slate-200 shrink-0"
+                          title="Only the host has permission to download class attachments"
+                        >
+                          <Lock size={11} className="text-slate-400" />
+                          <span>Host Only</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
 
-                {/* Card footer delete button */}
-                <div className="flex justify-end pt-3 mt-2 border-t border-slate-50">
-                  <button
-                    onClick={() => handleDeleteNote(n.id)}
-                    className="p-1 text-slate-300 hover:text-[#154360] hover:bg-[#154360]/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                    title="Delete Note"
-                  >
-                    <Trash2 size={13} />
-                  </button>
-                </div>
+                {/* Card footer delete button (Host only) */}
+                {isHost && (
+                  <div className="flex justify-end pt-3 mt-2 border-t border-slate-50">
+                    <button
+                      onClick={() => handleDeleteNote(n.id)}
+                      className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 cursor-pointer"
+                      title="Delete Note"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                )}
               </div>
             ))
           )}
         </div>
 
-        {/* Note Composer Bar */}
-        <div className="bg-white rounded-2xl border border-[#E2E7EC] p-4 shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-[#20262E] flex items-center gap-1.5">
-              <Plus size={14} className="text-[#154360]" />
-              Add New Meeting Note
-            </span>
-            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[11px] font-bold">
-              {(["group", "host", "participant"] as const).map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setNewNoteType(t)}
-                  className={`px-2.5 py-0.5 rounded-md transition-all capitalize ${
-                    newNoteType === t ? "bg-white text-[#154360] shadow-xs" : "text-[#57636E] hover:text-[#20262E]"
-                  }`}
-                >
-                  {t === "group" ? "Group Note" : t === "host" ? "Host Private" : "Participant"}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Attached file chip preview */}
-          {newAttachment && (
-            <div className="flex items-center justify-between p-2 bg-[#EBF5FB] border border-[#154360]/30 rounded-xl text-xs text-blue-900">
-              <div className="flex items-center gap-2 truncate">
-                <Paperclip size={13} className="text-[#154360] shrink-0" />
-                <span className="font-semibold truncate">{newAttachment.name}</span>
-                <span className="text-[10px] text-[#154360] shrink-0">({(newAttachment.size / 1024).toFixed(1)} KB)</span>
+        {/* Note Composer Bar: Only shown to Host */}
+        {isHost ? (
+          <div className="bg-white rounded-2xl border border-[#E2E7EC] p-4 shadow-sm space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-[#20262E] flex items-center gap-1.5">
+                <Plus size={14} className="text-[#154360]" />
+                Add New Meeting Note
+              </span>
+              <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[11px] font-bold">
+                {(["group", "host", "participant"] as const).map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setNewNoteType(t)}
+                    className={`px-2.5 py-0.5 rounded-md transition-all capitalize cursor-pointer ${
+                      newNoteType === t ? "bg-white text-[#154360] shadow-xs" : "text-[#57636E] hover:text-[#20262E]"
+                    }`}
+                  >
+                    {t === "group" ? "Group Note" : t === "host" ? "Host Private" : "Participant"}
+                  </button>
+                ))}
               </div>
-              <button
-                onClick={() => setNewAttachment(null)}
-                className="text-[#154360] hover:text-[#154360] p-0.5"
-                title="Remove attachment"
-              >
-                <X size={13} />
-              </button>
             </div>
-          )}
 
-          <textarea
-            value={newNoteText}
-            onChange={e => setNewNoteText(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                handleAddNote();
-              }
-            }}
-            placeholder="Write meeting notes, key discussion points, or summaries... (Ctrl+Enter to save)"
-            rows={3}
-            className="w-full bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-3 text-xs text-[#20262E] placeholder-slate-400 focus:bg-white focus:border-[#154360] outline-none resize-none shadow-xs font-normal"
-          />
+            {/* Attached file chip preview */}
+            {newAttachment && (
+              <div className="flex items-center justify-between p-2 bg-[#EBF5FB] border border-[#154360]/30 rounded-xl text-xs text-blue-900">
+                <div className="flex items-center gap-2 truncate">
+                  <Paperclip size={13} className="text-[#154360] shrink-0" />
+                  <span className="font-semibold truncate">{newAttachment.name}</span>
+                  <span className="text-[10px] text-[#154360] shrink-0">({(newAttachment.size / 1024).toFixed(1)} KB)</span>
+                </div>
+                <button
+                  onClick={() => setNewAttachment(null)}
+                  className="text-[#154360] hover:text-[#154360] p-0.5 cursor-pointer"
+                  title="Remove attachment"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            )}
 
-          <div className="flex items-center justify-between pt-1">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E2E7EC] hover:bg-slate-100 text-[#20262E] text-xs font-bold transition-all shadow-xs"
-              title="Attach a file to this note"
-            >
-              <Paperclip size={13} />
-              <span>Attach File</span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              onChange={handleFileSelect}
-              className="hidden"
+            <textarea
+              value={newNoteText}
+              onChange={e => setNewNoteText(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                  handleAddNote();
+                }
+              }}
+              placeholder="Write meeting notes, key discussion points, or summaries... (Ctrl+Enter to save)"
+              rows={3}
+              className="w-full bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-3 text-xs text-[#20262E] placeholder-slate-400 focus:bg-white focus:border-[#154360] outline-none resize-none shadow-xs font-normal"
             />
 
-            <button
-              onClick={handleAddNote}
-              className="px-5 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl text-xs font-bold transition-all shadow-sm"
-            >
-              Save Note
-            </button>
+            <div className="flex items-center justify-between pt-1">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E2E7EC] hover:bg-slate-100 text-[#20262E] text-xs font-bold transition-all shadow-xs cursor-pointer"
+                title="Attach a file to this note"
+              >
+                <Paperclip size={13} />
+                <span>Attach File</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+
+              <button
+                onClick={handleAddNote}
+                className="px-5 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+              >
+                Save Note
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-[#E2E7EC] p-4 text-center text-xs text-[#57636E] flex items-center justify-center gap-1.5">
+            <Lock size={13} className="text-slate-400" />
+            <span>Class lecture notes and attachments are managed exclusively by the instructor.</span>
+          </div>
+        )}
       </main>
     </div>
+  );
+}
+
+export default function MeetingNotesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F5F6F8] flex items-center justify-center">
+        <div className="text-xs font-bold text-[#57636E]">Loading notes...</div>
+      </div>
+    }>
+      <MeetingNotesContent />
+    </Suspense>
   );
 }

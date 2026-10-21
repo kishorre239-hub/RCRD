@@ -353,6 +353,12 @@ export default function ClassRoomPage() {
     return `student_${Date.now()}`;
   });
 
+  const handleSFUDataReceived = useCallback(({ type }: { type: string; payload: unknown; sender: string }) => {
+    if (type === "MEETING_ENDED" && !isMentor) {
+      window.location.href = "https://www.geonixa.com/";
+    }
+  }, [isMentor]);
+
   // LiveKit SFU Architecture hook (for high-scale 150+ student classrooms when configured)
   const livekitSFU = useLiveKitSFU({
     roomId,
@@ -361,6 +367,12 @@ export default function ClassRoomPage() {
     role: isMentor ? 'Host' : 'Student',
     password: meeting?.password || '',
     speakerMuted,
+    onDataReceived: handleSFUDataReceived,
+  });
+
+  const livekitSFURef = useRef(livekitSFU);
+  useEffect(() => {
+    livekitSFURef.current = livekitSFU;
   });
 
   const initSFURef = useRef(livekitSFU.initSFU);
@@ -904,7 +916,7 @@ export default function ClassRoomPage() {
           audio.play().catch(() => {});
         }
       });
-      livekitSFU.unlockAudioSFU();
+      livekitSFURef.current.unlockAudioSFU();
       if (remoteScreenVideoRef.current && remoteScreenVideoRef.current.srcObject) {
         remoteScreenVideoRef.current.play().then(() => {
           setIsWebRTCVideoPlaying(true);
@@ -1108,6 +1120,9 @@ export default function ClassRoomPage() {
       .then(data => {
         if (data?.meeting) {
           setMeeting(data.meeting);
+          if (Array.isArray(data.meeting.notes) && data.meeting.notes.length > 0) {
+            setNotes(data.meeting.notes);
+          }
           if (data.meeting.hostName) {
             setHostName(data.meeting.hostName);
           }
@@ -1154,7 +1169,7 @@ export default function ClassRoomPage() {
         setUploadCourse(prev => prev || df.folderId);
       }
     }).catch(() => {});
-  }, [roomId, isMentor]);
+  }, [roomId, isMentor, displayName]);
 
   // Ensure students are NEVER left on admin dashboard (/meetings); if class is ended, send directly to Geonixa
   useEffect(() => {
@@ -2067,12 +2082,20 @@ export default function ClassRoomPage() {
       const roomNotes = JSON.parse(localStorage.getItem("RCRD_MEETING_NOTES") || "{}");
       roomNotes[roomId] = updated;
       localStorage.setItem("RCRD_MEETING_NOTES", JSON.stringify(roomNotes));
+
+      localStorage.setItem(`meeting_notes_${roomId}`, JSON.stringify(updated));
     } catch {}
-    // Broadcast notes to server & channel
+    // Broadcast notes to server room state
     fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ notes: updated }),
+    }).catch(() => {});
+    // Persist to database meeting document
+    fetch('/api/meetings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: roomId, notes: updated }),
     }).catch(() => {});
     try {
       if (typeof BroadcastChannel !== "undefined") {
@@ -2751,6 +2774,24 @@ export default function ClassRoomPage() {
       return;
     }
 
+    // MENTOR / HOST: Immediately notify all student clients that the meeting has ended
+    livekitSFU.broadcastDataSFU("MEETING_ENDED", { roomId }).catch(() => {});
+    try {
+      const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
+      bc.postMessage({ type: "MEETING_ENDED", data: { roomId } });
+      setTimeout(() => bc.close(), 500);
+    } catch {}
+    fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'ended', screenShare: { active: false }, whiteboard: { active: false }, notes }),
+    }).catch(() => {});
+    fetch('/api/meetings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: roomId, status: 'ended', notes }),
+    }).catch(() => {});
+
     // MENTOR / HOST: Check if there is an ongoing recording or pending un-uploaded recording blob
     const hasRecordedChunks = Boolean(chunksRef.current && chunksRef.current.length > 0);
     const isRecordingNow = Boolean((mediaRecRef.current && mediaRecRef.current.state !== "inactive") || recState === "recording" || recState === "paused");
@@ -2887,25 +2928,28 @@ export default function ClassRoomPage() {
     const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
     localStorage.setItem(STORAGE_KEY, JSON.stringify(all.map((m: Meeting) => m.id === roomId ? { ...m, status: "ended" } : m)));
 
-    // Broadcast meeting ended to student devices immediately
+    // 1. Broadcast meeting ended over LiveKit SFU data channel (reaches all students in milliseconds!)
+    livekitSFU.broadcastDataSFU("MEETING_ENDED", { roomId }).catch(() => {});
+
+    // 2. Broadcast meeting ended to student devices immediately
     try {
       const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
       bc.postMessage({ type: "MEETING_ENDED", data: { roomId } });
       setTimeout(() => bc.close(), 500);
     } catch {}
 
-    // Mark status as ended on server API
+    // 3. Mark status as ended and persist final notes on server API
     fetch('/api/meetings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: roomId, status: 'ended' }),
+      body: JSON.stringify({ id: roomId, status: 'ended', notes }),
     }).catch(() => {});
 
-    // Mark room state as ended for real-time polling clients
+    // 4. Mark room state as ended for real-time polling clients
     fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'ended', screenShare: { active: false }, whiteboard: { active: false } }),
+      body: JSON.stringify({ status: 'ended', screenShare: { active: false }, whiteboard: { active: false }, notes }),
     }).catch(() => {});
 
     router.push("/meetings");
@@ -3205,6 +3249,54 @@ export default function ClassRoomPage() {
   const remHours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
   const remMins = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
   const remSecs = Math.floor((remainingMs % (1000 * 60)) / 1000);
+
+  // Meeting Ended / Expired Screen for all users when meeting status is 'ended'
+  if (meeting?.status === "ended" && !isMentor) {
+    return (
+      <div className="min-h-screen bg-[#1C1C1E] text-white flex flex-col justify-between p-6 font-sans antialiased text-center relative overflow-hidden">
+        <div className="flex items-center justify-between z-10 max-w-5xl mx-auto w-full">
+          <div className="flex items-center gap-3">
+            <RcrdLogo className="h-10 sm:h-12 w-auto scale-115 origin-left" />
+            <span className="text-xs bg-rose-500/20 border border-rose-500/40 px-3 py-1 rounded-full text-rose-300 font-bold">
+              Class Session Expired
+            </span>
+          </div>
+          <a
+            href="https://www.geonixa.com/"
+            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold text-white shadow-xs transition-colors"
+          >
+            ← Geonixa Website
+          </a>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center z-10 py-12">
+          <div className="bg-[#2C2C2E] border border-zinc-700/80 rounded-3xl p-8 sm:p-10 max-w-md w-full text-center shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
+            <div className="w-20 h-20 bg-rose-500/10 border-2 border-rose-500/30 rounded-3xl flex items-center justify-center mx-auto text-rose-400 shadow-lg">
+              <AlertCircle size={40} className="stroke-[2.5]" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-black text-white tracking-tight">
+                Meeting Link Expired
+              </h1>
+              <p className="text-xs text-zinc-400 leading-relaxed max-w-sm mx-auto">
+                The instructor has concluded this class session and this meeting link is now permanently expired. You can no longer join this room.
+              </p>
+            </div>
+            <a
+              href="https://www.geonixa.com/"
+              className="w-full py-3 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+            >
+              Return to Geonixa Homepage
+            </a>
+          </div>
+        </div>
+
+        <div className="text-[11px] text-zinc-500">
+          Geonixa Classroom Portal · Session {roomId} Concluded
+        </div>
+      </div>
+    );
+  }
 
   // Student waiting lobby (Pure White Background)
   if (isScheduledFuture && !isMentor && !bypassLobby) {

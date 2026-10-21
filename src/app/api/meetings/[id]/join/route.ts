@@ -54,6 +54,15 @@ export async function POST(
       }
     }
 
+    // Check if meeting has ended and link has expired
+    if (resolvedMeeting.status === 'ended') {
+      return NextResponse.json({
+        error: 'This meeting has ended and the link has expired.',
+        expired: true,
+        status: 'ended',
+      }, { status: 410 });
+    }
+
     // Check password (case-insensitive)
     const expectedPassword = (resolvedMeeting.password || '').trim().toUpperCase();
     const enteredPassword = (password || '').trim().toUpperCase();

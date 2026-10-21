@@ -21,7 +21,7 @@ export interface WebRTCSignal {
   id: string;
   from: string;
   to: string;
-  type: 'offer' | 'answer' | 'candidate';
+  type: 'offer' | 'answer' | 'candidate' | 'request-screen';
   payload: unknown;
   timestamp: number;
 }
@@ -226,8 +226,8 @@ export async function GET(
     // Prune reactions older than 8 seconds
     state.reactions = (state.reactions || []).filter(r => now - r.timestamp < 8000);
 
-    // Prune signals older than 25 seconds
-    state.signals = (state.signals || []).filter(s => now - s.timestamp < 25000);
+    // Prune signals older than 60 seconds (ensures reliability under high candidate volume)
+    state.signals = (state.signals || []).filter(s => now - s.timestamp < 60000);
 
     // Read query params for delta synchronization & signal routing
     const url = new URL(req.url);
@@ -340,8 +340,25 @@ export async function POST(
       }
     }
 
-    // 0d. WebRTC signaling for 2-way real-time voice audio
-    if (body.signal && body.signal.from && body.signal.to) {
+    // 0d. WebRTC signaling for 2-way real-time voice audio & 60fps screen share (single or batched)
+    if (body.signals && Array.isArray(body.signals)) {
+      if (!state.signals) state.signals = [];
+      for (const sig of body.signals) {
+        if (sig && sig.from && sig.to) {
+          state.signals.push({
+            id: sig.id || `sig_${now}_${Math.random().toString(36).substring(2, 7)}`,
+            from: sig.from,
+            to: sig.to,
+            type: sig.type,
+            payload: sig.payload,
+            timestamp: now,
+          });
+        }
+      }
+      if (state.signals.length > 1000) {
+        state.signals = state.signals.slice(-1000);
+      }
+    } else if (body.signal && body.signal.from && body.signal.to) {
       if (!state.signals) state.signals = [];
       state.signals.push({
         id: body.signal.id || `sig_${now}_${Math.random().toString(36).substring(2, 7)}`,
@@ -351,8 +368,8 @@ export async function POST(
         payload: body.signal.payload,
         timestamp: now,
       });
-      if (state.signals.length > 60) {
-        state.signals = state.signals.slice(-60);
+      if (state.signals.length > 1000) {
+        state.signals = state.signals.slice(-1000);
       }
     }
 

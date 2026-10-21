@@ -9,7 +9,7 @@ try {
 }
 
 const DEFAULT_SRV_URI = 'mongodb+srv://harikishorereddy9908_db_user:GeonixaLoom@cluster0.lsj9dut.mongodb.net/loom?appName=Cluster0';
-const DEFAULT_DIRECT_URI = 'mongodb://harikishorereddy9908_db_user:GeonixaLoom@ac-qdl9dar-shard-00-00.lsj9dut.mongodb.net:27017,ac-qdl9dar-shard-00-01.lsj9dut.mongodb.net:27017,ac-qdl9dar-shard-00-02.lsj9dut.mongodb.net:27017/loom?ssl=true&replicaSet=atlas-qdl9dar-shard-0&authSource=admin&appName=Cluster0';
+const DEFAULT_DIRECT_URI = 'mongodb://harikishorereddy9908_db_user:GeonixaLoom@ac-qdl9dar-shard-00-00.lsj9dut.mongodb.net:27017,ac-qdl9dar-shard-00-01.lsj9dut.mongodb.net:27017,ac-qdl9dar-shard-00-02.lsj9dut.mongodb.net:27017/loom?ssl=true&replicaSet=atlas-b0p3vc-shard-0&authSource=admin&appName=Cluster0';
 
 const uri = process.env.MONGODB_URI || DEFAULT_DIRECT_URI || DEFAULT_SRV_URI;
 
@@ -21,11 +21,28 @@ let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
 
 const clientOptions = {
-  maxPoolSize: 20,
+  maxPoolSize: 10,
   minPoolSize: 1,
   serverSelectionTimeoutMS: 5000,
   connectTimeoutMS: 5000,
+  maxIdleTimeMS: 30000,
 };
+
+let indexesEnsured = false;
+async function ensureEssentialIndexes(db: Db) {
+  if (indexesEnsured) return;
+  indexesEnsured = true;
+  try {
+    await Promise.all([
+      db.collection('meetings').createIndex({ id: 1 }, { unique: true, sparse: true, background: true }),
+      db.collection('meetings').createIndex({ status: 1, scheduledAt: -1 }, { background: true }),
+      db.collection('videos').createIndex({ id: 1 }, { unique: true, sparse: true, background: true }),
+      db.collection('videos').createIndex({ courseId: 1, createdAt: -1 }, { background: true }),
+    ]);
+  } catch (err) {
+    console.warn('Index creation notice (harmless if already exists):', (err as Error)?.message);
+  }
+}
 
 if (process.env.NODE_ENV === 'development') {
   if (!global._mongoClientPromise) {
@@ -34,8 +51,12 @@ if (process.env.NODE_ENV === 'development') {
   }
   clientPromise = global._mongoClientPromise;
 } else {
-  client = new MongoClient(uri, clientOptions);
-  clientPromise = client.connect();
+  // In serverless production, cache client across warm container invocations
+  if (!global._mongoClientPromise) {
+    client = new MongoClient(uri, clientOptions);
+    global._mongoClientPromise = client.connect();
+  }
+  clientPromise = global._mongoClientPromise;
 }
 
 export async function getMongoClient(): Promise<MongoClient> {
@@ -45,16 +66,16 @@ export async function getMongoClient(): Promise<MongoClient> {
     console.warn('Retrying MongoDB connection due to prior failure:', (err as Error)?.message);
     client = new MongoClient(uri, clientOptions);
     clientPromise = client.connect();
-    if (process.env.NODE_ENV === 'development') {
-      global._mongoClientPromise = clientPromise;
-    }
+    global._mongoClientPromise = clientPromise;
     return await clientPromise;
   }
 }
 
 export async function getDb(dbName: string = 'loom'): Promise<Db> {
   const clientInstance = await getMongoClient();
-  return clientInstance.db(dbName);
+  const db = clientInstance.db(dbName);
+  ensureEssentialIndexes(db).catch(() => {});
+  return db;
 }
 
 export async function getCollection<T extends Document = Document>(

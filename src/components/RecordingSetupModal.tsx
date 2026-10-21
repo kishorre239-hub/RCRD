@@ -469,12 +469,18 @@ export default function RecordingSetupModal({
         }
       }
 
-      // Ultra-efficient storage compression: 7.5 kbps video + 4 kbps voice
-      // Exactly ~5 MB per 1 full hour (~340 KB for 4 minutes instead of 21 MB)
+      combinedStream.getVideoTracks().forEach((t) => {
+        if ('contentHint' in t) {
+          t.contentHint = 'detail';
+        }
+      });
+
+      // Ultra-efficient storage compression: 16 kbps video + 6 kbps Opus voice
+      // Exactly ~10 MB per 1 full 60-minute lecture (~340 KB for 2 minutes instead of 16 MB)
       const recorder = new MediaRecorder(combinedStream, {
         mimeType: selectedMime,
-        videoBitsPerSecond: 7500,
-        audioBitsPerSecond: 4000,
+        videoBitsPerSecond: 16000,
+        audioBitsPerSecond: 6000,
       });
 
       mediaRecorderRef.current = recorder;

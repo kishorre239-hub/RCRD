@@ -27,16 +27,35 @@ export async function POST(
       console.warn('MongoDB join meeting note:', (dbErr as Error)?.message);
     }
 
-    if (!meeting) {
-      meeting = getBackupMeeting(id);
-    }
-
-    if (!meeting) {
-      return NextResponse.json({ error: 'Meeting ID not found.' }, { status: 404 });
+    let resolvedMeeting: StoredMeeting;
+    if (meeting) {
+      resolvedMeeting = meeting;
+    } else {
+      const backup = getBackupMeeting(id);
+      if (backup) {
+        resolvedMeeting = backup;
+      } else {
+        // Resilient fallback: allow joining room session dynamically
+        resolvedMeeting = {
+          id,
+          title: 'Live Classroom',
+          courseId: null,
+          password: '',
+          scheduledAt: new Date().toISOString(),
+          duration: 60,
+          status: 'live',
+          updatedAt: Date.now(),
+        };
+        saveBackupMeeting(resolvedMeeting);
+        try {
+          const meetingsCol = await getCollection<StoredMeeting>('meetings');
+          await meetingsCol.updateOne({ id }, { $set: resolvedMeeting }, { upsert: true });
+        } catch {}
+      }
     }
 
     // Check password (case-insensitive)
-    const expectedPassword = (meeting.password || '').trim().toUpperCase();
+    const expectedPassword = (resolvedMeeting.password || '').trim().toUpperCase();
     const enteredPassword = (password || '').trim().toUpperCase();
 
     if (expectedPassword && expectedPassword !== enteredPassword) {
@@ -46,12 +65,12 @@ export async function POST(
     return NextResponse.json({
       success: true,
       meeting: {
-        id: meeting.id,
-        title: meeting.title,
-        courseId: meeting.courseId,
-        scheduledAt: meeting.scheduledAt,
-        duration: meeting.duration,
-        status: meeting.status,
+        id: resolvedMeeting.id,
+        title: resolvedMeeting.title,
+        courseId: resolvedMeeting.courseId,
+        scheduledAt: resolvedMeeting.scheduledAt,
+        duration: resolvedMeeting.duration,
+        status: resolvedMeeting.status,
       },
     });
   } catch (error) {

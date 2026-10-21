@@ -130,17 +130,13 @@ export function isDummyMeeting(m: { id?: string; title?: string } | null | undef
   if (
     id === 'GEO-CLASS-101' ||
     id === 'RCRD-MEET-202' ||
-    id === 'REV-QA-303' ||
-    id.startsWith('GEO-CLASS') ||
-    id.startsWith('RCRD-MEET') ||
-    id.startsWith('REV-QA')
+    id === 'REV-QA-303'
   ) {
     return true;
   }
   if (
-    title.includes('geonixa') ||
-    title.includes('interactive screen & recording workshop') ||
-    title.includes('weekly code review & mentorship')
+    title === 'interactive screen & recording workshop' ||
+    title === 'weekly code review & mentorship'
   ) {
     return true;
   }

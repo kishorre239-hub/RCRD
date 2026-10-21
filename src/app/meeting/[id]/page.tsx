@@ -100,9 +100,34 @@ function JoinMeetingContent() {
         }
       }
 
-      // If not found anywhere
+      // 4. Resilient Fallback: Allow student to join the live room directly
+      if (meetingId && meetingId.trim().length >= 3) {
+        setMeeting({
+          id: meetingId,
+          title: "Live Classroom",
+          courseId: null,
+          scheduledAt: new Date().toISOString(),
+          duration: 60,
+          status: "live",
+        });
+        setLoadingMeeting(false);
+        return;
+      }
+
       setMeetingNotFound(true);
     } catch {
+      if (meetingId && meetingId.trim().length >= 3) {
+        setMeeting({
+          id: meetingId,
+          title: "Live Classroom",
+          courseId: null,
+          scheduledAt: new Date().toISOString(),
+          duration: 60,
+          status: "live",
+        });
+        setLoadingMeeting(false);
+        return;
+      }
       setMeetingNotFound(true);
     } finally {
       setLoadingMeeting(false);
@@ -149,10 +174,34 @@ function JoinMeetingContent() {
         }
 
         if (active) {
+          if (meetingId && meetingId.trim().length >= 3) {
+            setMeeting({
+              id: meetingId,
+              title: "Live Classroom",
+              courseId: null,
+              scheduledAt: new Date().toISOString(),
+              duration: 60,
+              status: "live",
+            });
+            setLoadingMeeting(false);
+            return;
+          }
           setMeetingNotFound(true);
         }
       } catch {
         if (active) {
+          if (meetingId && meetingId.trim().length >= 3) {
+            setMeeting({
+              id: meetingId,
+              title: "Live Classroom",
+              courseId: null,
+              scheduledAt: new Date().toISOString(),
+              duration: 60,
+              status: "live",
+            });
+            setLoadingMeeting(false);
+            return;
+          }
           setMeetingNotFound(true);
         }
       } finally {
@@ -361,19 +410,30 @@ function JoinMeetingContent() {
                 </p>
               </div>
 
-              <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+              <div className="pt-2 flex flex-col gap-2.5">
                 <button
-                  onClick={fetchMeetingInfo}
-                  className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                  onClick={() => {
+                    const studentSafeName = studentName?.trim() || "Student";
+                    router.push(`/meetings/room/${encodeURIComponent(meetingId)}?role=participant&name=${encodeURIComponent(studentSafeName)}`);
+                  }}
+                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <RefreshCw size={13} /> Retry
+                  <Video size={14} /> Join Class Room Directly
                 </button>
-                <a
-                  href="https://www.geonixa.com/"
-                  className="flex-1 py-2.5 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
-                >
-                  Visit Geonixa <ChevronRight size={13} />
-                </a>
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <button
+                    onClick={fetchMeetingInfo}
+                    className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <RefreshCw size={13} /> Retry
+                  </button>
+                  <a
+                    href="https://www.geonixa.com/"
+                    className="flex-1 py-2.5 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+                  >
+                    Visit Geonixa <ChevronRight size={13} />
+                  </a>
+                </div>
               </div>
             </div>
           )}

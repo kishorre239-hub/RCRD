@@ -38,18 +38,14 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Meeting not found' }, { status: 404 });
     }
 
-    // Proactively purge legacy dummy meetings from database & local backup
+    // Proactively purge legacy dummy sample fixture meetings only
     const dummyIds = ['GEO-CLASS-101', 'RCRD-MEET-202', 'REV-QA-303'];
     dummyIds.forEach(dId => deleteBackupMeeting(dId));
 
     try {
       const meetingsCol = await getCollection<StoredMeeting>('meetings');
       await meetingsCol.deleteMany({
-        $or: [
-          { id: { $in: dummyIds } },
-          { id: { $regex: '^(GEO-CLASS|RCRD-MEET|REV-QA)', $options: 'i' } },
-          { title: { $regex: 'geonixa|interactive screen & recording workshop|weekly code review', $options: 'i' } },
-        ],
+        id: { $in: dummyIds },
       });
     } catch {
       // ignore

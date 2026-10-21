@@ -4,6 +4,7 @@ import {
   RoomEvent,
   Track,
   VideoPresets,
+  VideoQuality,
   ConnectionState,
   LocalVideoTrack,
   LocalAudioTrack,
@@ -107,16 +108,15 @@ export function useLiveKitSFU({
         return false;
       }
 
-      // 2. Initialize LiveKit Room with Dynacast & Adaptive Streaming enabled
+      // 2. Initialize LiveKit Room with crisp HD settings
       const room = new Room({
-        adaptiveStream: true, // Automatically fetches lower layer if element size is small
-        dynacast: true,       // Pauses unused simulcast layers to save massive server bandwidth
+        adaptiveStream: false, // Prevents mobile from downscaling to blurry 360p
+        dynacast: true,
         publishDefaults: {
-          simulcast: true,    // Multi-tier simulcast for 150 students with varied networks
+          simulcast: true,
           videoSimulcastLayers: [
-            VideoPresets.h1080, // Full 1080p for broadband students
-            VideoPresets.h720,  // 720p for standard connections
-            VideoPresets.h360,  // 360p fallback for weak mobile connections
+            VideoPresets.h1080,
+            VideoPresets.h720,
           ],
         },
       });
@@ -147,21 +147,29 @@ export function useLiveKitSFU({
         setDiagnostics(prev => ({ ...prev, connectedParticipants: room.remoteParticipants.size + 1 }));
       });
 
-      // Track Subscribed (Receiving Host screen share or audio)
+      // Track Subscribed (Receiving Host screen share, microphone voice, and screen music)
       room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
         if (track.kind === Track.Kind.Video) {
+          try {
+            if ('setVideoQuality' in publication && typeof (publication as unknown as { setVideoQuality: (q: VideoQuality) => void }).setVideoQuality === 'function') {
+              (publication as unknown as { setVideoQuality: (q: VideoQuality) => void }).setVideoQuality(VideoQuality.HIGH);
+            }
+          } catch {}
           const mediaStream = new MediaStream([track.mediaStreamTrack]);
           setSfuRemoteStream(mediaStream);
         } else if (track.kind === Track.Kind.Audio) {
-          let audioEl = remoteAudioElementsRef.current.get(participant.identity);
+          // Key by track SID so Host microphone voice AND screen music play simultaneously without collision!
+          const trackKey = `${participant.identity}_${publication?.trackSid || track.sid || track.kind}`;
+          let audioEl = remoteAudioElementsRef.current.get(trackKey);
           if (!audioEl || !document.body.contains(audioEl)) {
             audioEl = document.createElement('audio');
             audioEl.autoplay = true;
             audioEl.setAttribute('playsinline', 'true');
+            audioEl.setAttribute('webkit-playsinline', 'true');
             audioEl.style.display = 'none';
-            audioEl.id = `sfu_audio_${participant.identity.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+            audioEl.id = `sfu_audio_${trackKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
             document.body.appendChild(audioEl);
-            remoteAudioElementsRef.current.set(participant.identity, audioEl);
+            remoteAudioElementsRef.current.set(trackKey, audioEl);
           }
           audioEl.srcObject = new MediaStream([track.mediaStreamTrack]);
           audioEl.muted = Boolean(speakerMuted);
@@ -170,9 +178,18 @@ export function useLiveKitSFU({
       });
 
       // Track Unsubscribed
-      room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
+      room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack, publication?: RemoteTrackPublication, participant?: RemoteParticipant) => {
         if (track.kind === Track.Kind.Video) {
           setSfuRemoteStream(null);
+        } else if (track.kind === Track.Kind.Audio && participant) {
+          const trackKey = `${participant.identity}_${publication?.trackSid || track.sid || track.kind}`;
+          const el = remoteAudioElementsRef.current.get(trackKey);
+          if (el) {
+            el.pause();
+            el.srcObject = null;
+            el.remove();
+            remoteAudioElementsRef.current.delete(trackKey);
+          }
         }
       });
 
@@ -224,19 +241,24 @@ export function useLiveKitSFU({
         simulcast: true,
         source: Track.Source.ScreenShare,
         videoEncoding: {
-          maxBitrate: 2_500_000, // 2.5 Mbps 1080p max
+          maxBitrate: 6_000_000, // 6.0 Mbps for crisp, non-blurry 1080p video & animation
           maxFramerate: 60,
         },
       });
 
-      // Publish screen tab audio if present
-      const aTrack = mediaStream.getAudioTracks()[0];
-      if (aTrack) {
-        const localATrack = new LocalAudioTrack(aTrack);
-        await room.localParticipant.publishTrack(localATrack, {
-          name: 'screen-audio',
-          source: Track.Source.ScreenShareAudio,
-        });
+      // Publish screen tab audio (music / YouTube / video / presentation audio)
+      const aTracks = mediaStream.getAudioTracks();
+      for (const aTrack of aTracks) {
+        try {
+          const localATrack = new LocalAudioTrack(aTrack);
+          await room.localParticipant.publishTrack(localATrack, {
+            name: 'screen-audio',
+            source: Track.Source.ScreenShareAudio,
+            dtx: false,
+          });
+        } catch (e) {
+          console.warn('Could not publish screen audio track to SFU:', e);
+        }
       }
 
       return true;
@@ -447,6 +469,31 @@ export function useLiveKitSFU({
     };
   }, []);
 
+  // Mobile & browser autoplay policy unlock: play all SFU remote audio on touch or click
+  useEffect(() => {
+    const unlockAudios = () => {
+      remoteAudioElementsRef.current.forEach((audio) => {
+        if (audio && audio.paused && audio.srcObject) {
+          audio.play().catch(() => {});
+        }
+      });
+    };
+    window.addEventListener('click', unlockAudios, { passive: true });
+    window.addEventListener('touchstart', unlockAudios, { passive: true });
+    return () => {
+      window.removeEventListener('click', unlockAudios);
+      window.removeEventListener('touchstart', unlockAudios);
+    };
+  }, []);
+
+  const unlockAudioSFU = useCallback(() => {
+    remoteAudioElementsRef.current.forEach((audio) => {
+      if (audio && audio.paused && audio.srcObject) {
+        audio.play().catch(() => {});
+      }
+    });
+  }, []);
+
   return {
     isSFUActive,
     sfuRemoteStream,
@@ -458,5 +505,6 @@ export function useLiveKitSFU({
     publishMicAudioSFU,
     setMicMutedSFU,
     broadcastDataSFU,
+    unlockAudioSFU,
   };
 }

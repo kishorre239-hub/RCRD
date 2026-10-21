@@ -904,6 +904,7 @@ export default function ClassRoomPage() {
           audio.play().catch(() => {});
         }
       });
+      livekitSFU.unlockAudioSFU();
       if (remoteScreenVideoRef.current && remoteScreenVideoRef.current.srcObject) {
         remoteScreenVideoRef.current.play().then(() => {
           setIsWebRTCVideoPlaying(true);
@@ -1115,9 +1116,38 @@ export default function ClassRoomPage() {
             return;
           }
           if (data.meeting.courseId) setUploadCourse(data.meeting.courseId);
+        } else if (isMentor && roomId) {
+          // If meeting is not yet saved in database, register it now so all students can find it immediately
+          fetch('/api/meetings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: roomId,
+              title: 'Live Classroom',
+              status: 'live',
+              hostName: displayName || 'Host',
+              scheduledAt: new Date().toISOString(),
+              duration: 60,
+            }),
+          }).catch(() => {});
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (isMentor && roomId) {
+          fetch('/api/meetings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: roomId,
+              title: 'Live Classroom',
+              status: 'live',
+              hostName: displayName || 'Host',
+              scheduledAt: new Date().toISOString(),
+              duration: 60,
+            }),
+          }).catch(() => {});
+        }
+      });
     getCourses().then(setCourses).catch(() => {});
     getDriveFolder().then(df => {
       if (df?.folderId) {
@@ -1524,6 +1554,9 @@ export default function ClassRoomPage() {
         video: false,
       }).then((stream) => {
         localAudioStreamRef.current = stream;
+        if (livekitSFU.isSFUActive) {
+          livekitSFU.publishMicAudioSFU(stream).catch(() => {});
+        }
         const track = stream.getAudioTracks()[0];
         if (track) {
           peerConnectionsRef.current.forEach(async (pc, targetId) => {
@@ -1544,7 +1577,14 @@ export default function ClassRoomPage() {
         console.warn("Host microphone waiting for user interaction or permission:", err);
       });
     }
-  }, [isMentor, micOn, sendSignal]);
+  }, [isMentor, micOn, sendSignal, livekitSFU]);
+
+  // Proactively publish host microphone to LiveKit SFU as soon as SFU connects
+  useEffect(() => {
+    if (isMentor && livekitSFU.isSFUActive && localAudioStreamRef.current && micOn) {
+      livekitSFU.publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
+    }
+  }, [isMentor, livekitSFU.isSFUActive, micOn, livekitSFU]);
 
   // Broadcast screen share frames when Host shares screen (High-clarity, non-blocking, zero lag)
   useEffect(() => {
@@ -2143,6 +2183,10 @@ export default function ClassRoomPage() {
       }
     });
 
+    if (localAudioStreamRef.current && livekitSFU.isSFUActive) {
+      livekitSFU.publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
+    }
+
     // Broadcast screen share stopped to students immediately
     try {
       if (typeof BroadcastChannel !== "undefined") {
@@ -2274,6 +2318,14 @@ export default function ClassRoomPage() {
           }
         } else if (localAudioStreamRef.current) {
           combinedAudioTrack = localAudioStreamRef.current.getAudioTracks()[0] || null;
+        }
+
+        if (livekitSFU.isSFUActive) {
+          if (combinedAudioTrack) {
+            livekitSFU.publishMicAudioSFU(new MediaStream([combinedAudioTrack])).catch(() => {});
+          } else if (localAudioStreamRef.current) {
+            livekitSFU.publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
+          }
         }
 
         peerConnectionsRef.current.forEach(async (pc, targetId) => {
@@ -2468,6 +2520,10 @@ export default function ClassRoomPage() {
             }
           });
         }
+        if (localAudioStreamRef.current && livekitSFU.isSFUActive) {
+          livekitSFU.publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
+          livekitSFU.setMicMutedSFU(false).catch(() => {});
+        }
         showToast("Microphone unmuted - Voice live!");
       } catch {
         showToast("Microphone access unavailable or denied.", false);
@@ -2475,6 +2531,9 @@ export default function ClassRoomPage() {
     } else {
       if (localAudioStreamRef.current) {
         localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+      }
+      if (livekitSFU.isSFUActive) {
+        livekitSFU.setMicMutedSFU(true).catch(() => {});
       }
       showToast("Microphone muted");
     }

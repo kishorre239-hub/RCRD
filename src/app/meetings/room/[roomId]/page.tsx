@@ -237,6 +237,10 @@ export default function ClassRoomPage() {
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "done" | "error">("idle");
   const [uploadErrorMsg, setUploadErrorMsg] = useState<string>("");
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const showToast = useCallback((msg: string, ok = true) => {
+    setToast({ msg, ok });
+    setTimeout(() => setToast(null), 4000);
+  }, [setToast]);
   const [isEndingAndSaving, setIsEndingAndSaving] = useState(false);
   const [endingSaveStatus, setEndingSaveStatus] = useState<string>("");
   const [endingProgress, setEndingProgress] = useState(0);
@@ -353,11 +357,63 @@ export default function ClassRoomPage() {
     return `student_${Date.now()}`;
   });
 
-  const handleSFUDataReceived = useCallback(({ type }: { type: string; payload: unknown; sender: string }) => {
+  const handleSFUDataReceived = useCallback(({ type, payload }: { type: string; payload: unknown; sender: string }) => {
     if (type === "MEETING_ENDED" && !isMentor) {
       window.location.href = "https://www.geonixa.com/";
+      return;
     }
-  }, [isMentor]);
+    const data = payload as any;
+    if (type === "SCREEN_SHARE") {
+      if (!screenStreamRef.current) {
+        if (!data?.active) {
+          setRemoteScreenShare({ active: false, streamFrame: undefined, updatedAt: Date.now() });
+          setRemoteWebRTCStream(null);
+        } else {
+          if (!isMentor) {
+            setShowWhiteboard(false);
+            setStudentViewMode("screen");
+          }
+          setRemoteScreenShare(prev => ({
+            active: true,
+            presenterName: data.presenterName || "Host",
+            streamFrame: prev?.streamFrame,
+            updatedAt: Date.now(),
+          }));
+        }
+      }
+    } else if (type === "REMOTE_MUTE_ACTION") {
+      const { targetParticipantId, targetName, isMuted: hostWantsMuted } = data || {};
+      const isTargetingMe = (targetParticipantId && targetParticipantId === myParticipantId) ||
+                            (targetName && (targetName === displayName || targetName === studentName));
+      if (isTargetingMe && !isMentor) {
+        if (hostWantsMuted) {
+          if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+          setMicOn(false);
+          if (livekitSFURef.current?.isSFUActive) livekitSFURef.current.setMicMutedSFU(true).catch(() => {});
+          showToast("The host has muted your microphone.");
+        } else {
+          if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = true);
+          setMicOn(true);
+          if (livekitSFURef.current?.isSFUActive) livekitSFURef.current.setMicMutedSFU(false).catch(() => {});
+          showToast("The host has unmuted your microphone.");
+        }
+      }
+      setParticipants(prev => prev.map(p => {
+        if ((targetParticipantId && p.id === targetParticipantId) || (targetName && p.name === targetName)) {
+          return { ...p, isMuted: Boolean(hostWantsMuted) };
+        }
+        return p;
+      }));
+    } else if (type === "REMOTE_MUTE_ALL") {
+      if (!isMentor) {
+        if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+        setMicOn(false);
+        if (livekitSFURef.current?.isSFUActive) livekitSFURef.current.setMicMutedSFU(true).catch(() => {});
+        showToast("The host muted all participants.");
+      }
+      setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
+    }
+  }, [isMentor, myParticipantId, displayName, studentName, showToast]);
 
   // LiveKit SFU Architecture hook (for high-scale 150+ student classrooms when configured)
   const livekitSFU = useLiveKitSFU({
@@ -504,6 +560,8 @@ export default function ClassRoomPage() {
     }
   }, [screenStream]);
 
+  const lastMuteActionTimestampRef = useRef<number>(0);
+
   // Safely connect remoteWebRTCStream or livekitSFU stream to student video element
   useEffect(() => {
     const activeStream = livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream;
@@ -511,10 +569,32 @@ export default function ClassRoomPage() {
       if (remoteScreenVideoRef.current.srcObject !== activeStream) {
         remoteScreenVideoRef.current.srcObject = activeStream;
         remoteScreenVideoRef.current.muted = true;
+        remoteScreenVideoRef.current.playsInline = true;
+        remoteScreenVideoRef.current.setAttribute('playsinline', '');
+        remoteScreenVideoRef.current.setAttribute('webkit-playsinline', '');
         remoteScreenVideoRef.current.play().catch(() => {});
       }
     }
-  }, [remoteWebRTCStream, livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream]);
+    if (!isMentor && activeStream) {
+      setShowWhiteboard(false);
+      setStudentViewMode("screen");
+    }
+  }, [remoteWebRTCStream, livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream, isMentor]);
+
+  // Mobile & browser autoplay policy unlock: play remote screen video on touch or click
+  useEffect(() => {
+    const unlockVideo = () => {
+      if (remoteScreenVideoRef.current && remoteScreenVideoRef.current.srcObject && remoteScreenVideoRef.current.paused) {
+        remoteScreenVideoRef.current.play().catch(() => {});
+      }
+    };
+    window.addEventListener("click", unlockVideo, { passive: true });
+    window.addEventListener("touchstart", unlockVideo, { passive: true });
+    return () => {
+      window.removeEventListener("click", unlockVideo);
+      window.removeEventListener("touchstart", unlockVideo);
+    };
+  }, []);
 
   // Safely connect cameraStream to video element
   useEffect(() => {
@@ -525,11 +605,6 @@ export default function ClassRoomPage() {
       }
     }
   }, [cameraStream, cameraOn]);
-
-  const showToast = useCallback((msg: string, ok = true) => {
-    setToast({ msg, ok });
-    setTimeout(() => setToast(null), 4000);
-  }, [setToast]);
 
   // Fullscreen Toggle
   const toggleFullScreen = useCallback(() => {
@@ -597,8 +672,8 @@ export default function ClassRoomPage() {
     candidateBatchTimerRef.current.set(to, timer);
   }, [roomId, myParticipantId]);
 
-  // Broadcast WebRTC signals (offer, answer, candidate, request-screen) for 2-way real-time audio & video
-  const sendSignal = useCallback((to: string, type: 'offer' | 'answer' | 'candidate' | 'request-screen', payload: unknown) => {
+  // Broadcast WebRTC signals (offer, answer, candidate, request-screen, screen-share, mute actions)
+  const sendSignal = useCallback((to: string, type: 'offer' | 'answer' | 'candidate' | 'request-screen' | 'SCREEN_SHARE' | 'REMOTE_MUTE_ACTION' | 'REMOTE_MUTE_ALL', payload: unknown) => {
     if (!roomId) return;
     if (type === 'candidate') {
       sendCandidateSignal(to, payload as RTCIceCandidateInit);
@@ -863,8 +938,51 @@ export default function ClassRoomPage() {
           }
         }
       }
+    } else if (sig.type === "REMOTE_MUTE_ACTION") {
+      const payload = (sig.payload || {}) as { targetParticipantId?: string; targetName?: string; isMuted?: boolean };
+      const isTargetingMe = (payload.targetParticipantId && payload.targetParticipantId === myParticipantId) ||
+                            (payload.targetName && (payload.targetName === displayName || payload.targetName === studentName));
+      if (isTargetingMe && !isMentor) {
+        if (payload.isMuted) {
+          if (localAudioStreamRef.current) {
+            localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+          }
+          setMicOn(false);
+          if (livekitSFU.isSFUActive) {
+            livekitSFU.setMicMutedSFU(true).catch(() => {});
+          }
+          showToast("The host has muted your microphone.");
+        } else {
+          if (localAudioStreamRef.current) {
+            localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = true);
+          }
+          setMicOn(true);
+          if (livekitSFU.isSFUActive) {
+            livekitSFU.setMicMutedSFU(false).catch(() => {});
+          }
+          showToast("The host has unmuted your microphone.");
+        }
+      }
+      setParticipants(prev => prev.map(p => {
+        if ((payload.targetParticipantId && p.id === payload.targetParticipantId) || (payload.targetName && p.name === payload.targetName)) {
+          return { ...p, isMuted: Boolean(payload.isMuted) };
+        }
+        return p;
+      }));
+    } else if (sig.type === "REMOTE_MUTE_ALL") {
+      if (!isMentor) {
+        if (localAudioStreamRef.current) {
+          localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+        }
+        setMicOn(false);
+        if (livekitSFU.isSFUActive) {
+          livekitSFU.setMicMutedSFU(true).catch(() => {});
+        }
+        showToast("The host muted all participants.");
+      }
+      setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
     }
-  }, [myParticipantId, isMentor, attachTrackHandlers, sendSignal, drainCandidateQueue]);
+  }, [myParticipantId, isMentor, attachTrackHandlers, sendSignal, drainCandidateQueue, displayName, studentName, livekitSFU, showToast]);
 
   // Student initiates audio and video connection to Host
   const initiateAudioCallToHost = useCallback(async () => {
@@ -1349,11 +1467,37 @@ export default function ClassRoomPage() {
             }
           } else if (type === "REACTION") {
             triggerReaction(data.emoji, data.sender, false);
-          } else if (type === "MEETING_ENDED") {
-            if (!isMentor) {
-              window.location.href = "https://www.geonixa.com/";
-              return;
+          } else if (type === "REMOTE_MUTE_ACTION") {
+            const { targetParticipantId, targetName, isMuted: hostWantsMuted } = data || {};
+            const isTargetingMe = (targetParticipantId && targetParticipantId === myParticipantId) ||
+                                  (targetName && (targetName === displayName || targetName === studentName));
+            if (isTargetingMe && !isMentor) {
+              if (hostWantsMuted) {
+                if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+                setMicOn(false);
+                if (livekitSFU.isSFUActive) livekitSFU.setMicMutedSFU(true).catch(() => {});
+                showToast("The host has muted your microphone.");
+              } else {
+                if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = true);
+                setMicOn(true);
+                if (livekitSFU.isSFUActive) livekitSFU.setMicMutedSFU(false).catch(() => {});
+                showToast("The host has unmuted your microphone.");
+              }
             }
+            setParticipants(prev => prev.map(p => {
+              if ((targetParticipantId && p.id === targetParticipantId) || (targetName && p.name === targetName)) {
+                return { ...p, isMuted: Boolean(hostWantsMuted) };
+              }
+              return p;
+            }));
+          } else if (type === "REMOTE_MUTE_ALL") {
+            if (!isMentor) {
+              if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+              setMicOn(false);
+              if (livekitSFU.isSFUActive) livekitSFU.setMicMutedSFU(true).catch(() => {});
+              showToast("The host muted all participants.");
+            }
+            setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
           }
         };
       }
@@ -1429,15 +1573,58 @@ export default function ClassRoomPage() {
             });
           }
 
+          // Sync Remote Mute Actions from Host
+          if (data.participantMuteAction && typeof data.participantMuteAction === "object") {
+            const ma = data.participantMuteAction;
+            if (ma.timestamp && ma.timestamp > lastMuteActionTimestampRef.current) {
+              lastMuteActionTimestampRef.current = ma.timestamp;
+              const isTargetingMe = (ma.targetParticipantId && ma.targetParticipantId === myParticipantId) ||
+                                    (ma.targetName && (ma.targetName === displayName || ma.targetName === studentName));
+              if (isTargetingMe && !isMentor) {
+                if (ma.isMuted) {
+                  if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+                  setMicOn(false);
+                  if (livekitSFU.isSFUActive) livekitSFU.setMicMutedSFU(true).catch(() => {});
+                  showToast("The host has muted your microphone.");
+                } else {
+                  if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = true);
+                  setMicOn(true);
+                  if (livekitSFU.isSFUActive) livekitSFU.setMicMutedSFU(false).catch(() => {});
+                  showToast("The host has unmuted your microphone.");
+                }
+              }
+              setParticipants(prev => prev.map(p => {
+                if ((ma.targetParticipantId && p.id === ma.targetParticipantId) || (ma.targetName && p.name === ma.targetName)) {
+                  return { ...p, isMuted: Boolean(ma.isMuted) };
+                }
+                return p;
+              }));
+            }
+          }
+
+          if (data.muteAll && typeof data.muteAll === "object") {
+            if (data.muteAll.timestamp && data.muteAll.timestamp > lastMuteActionTimestampRef.current) {
+              lastMuteActionTimestampRef.current = data.muteAll.timestamp;
+              if (!isMentor) {
+                if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+                setMicOn(false);
+                if (livekitSFU.isSFUActive) livekitSFU.setMicMutedSFU(true).catch(() => {});
+                showToast("The host muted all participants.");
+              }
+              setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
+            }
+          }
+
           // Sync Screen Share if not host sharing
           if (!screenStream && data.screenShare) {
             const incomingTime = data.screenShare.updatedAt || 0;
-            if (!data.screenShare.active) {
+            const isSFUStreaming = Boolean(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream);
+            if (!data.screenShare.active && !isSFUStreaming) {
               lastScreenShareTimestampRef.current = incomingTime;
               setRemoteScreenShare({ active: false, streamFrame: undefined, updatedAt: incomingTime });
               setRemoteWebRTCStream(null);
               setIsWebRTCVideoPlaying(false);
-            } else {
+            } else if (data.screenShare.active) {
               lastScreenShareTimestampRef.current = incomingTime;
               // If student is currently viewing whiteboard, auto-switch to screen share when host starts presenting screen!
               if (!isMentor && data.screenShare.active) {
@@ -1687,18 +1874,16 @@ export default function ClassRoomPage() {
             bc.postMessage({ type: "SCREEN_SHARE", data: payload });
           }
 
-          // When LiveKit SFU is active, 60fps media flows directly through the SFU; bypass wasteful HTTP base64 frame POSTs!
-          if (!livekitSFU.isSFUActive) {
-            inFlight = true;
-            try {
-              await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ screenShare: payload }),
-              });
-            } finally {
-              inFlight = false;
-            }
+          // Always persist active screen share state to server so students never see inactive avatar or lag
+          inFlight = true;
+          try {
+            await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ screenShare: payload }),
+            });
+          } finally {
+            inFlight = false;
           }
         }
       } catch {
@@ -2210,7 +2395,12 @@ export default function ClassRoomPage() {
       livekitSFU.publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
     }
 
-    // Broadcast screen share stopped to students immediately
+    // Broadcast screen share stopped to students immediately across SFU and WebRTC
+    if (livekitSFU.isSFUActive) {
+      livekitSFU.broadcastDataSFU("SCREEN_SHARE", { active: false, presenterName: displayName, updatedAt: Date.now() }).catch(() => {});
+    }
+    sendSignal("all", "SCREEN_SHARE", { active: false, presenterName: displayName, updatedAt: Date.now() });
+
     try {
       if (typeof BroadcastChannel !== "undefined") {
         const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
@@ -2311,7 +2501,9 @@ export default function ClassRoomPage() {
       // Publish to LiveKit SFU if active
       if (livekitSFU.isSFUActive) {
         livekitSFU.publishScreenShareSFU(ds).catch(() => {});
+        livekitSFU.broadcastDataSFU("SCREEN_SHARE", { active: true, presenterName: displayName || "Host", updatedAt: Date.now() }).catch(() => {});
       }
+      sendSignal("all", "SCREEN_SHARE", { active: true, presenterName: displayName || "Host", updatedAt: Date.now() });
 
       if (vTrack && isMentor) {
         let combinedAudioTrack: MediaStreamTrack | null = null;
@@ -3156,7 +3348,11 @@ export default function ClassRoomPage() {
   };
 
   const isLocalSharing = !!screenStream;
-  const isRemoteSharing = !isLocalSharing && !!remoteScreenShare?.active;
+  const isRemoteSharing = !isLocalSharing && (
+    Boolean(remoteScreenShare?.active) ||
+    Boolean(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream) ||
+    Boolean(remoteWebRTCStream)
+  );
   const isAnyScreenSharing = isLocalSharing || isRemoteSharing;
   const isSharing = isAnyScreenSharing;
   const isWhiteboardActive = isMentor
@@ -3386,10 +3582,69 @@ export default function ClassRoomPage() {
     showToast("Invite link & details copied!");
   };
 
-  const muteAllParticipants = () => {
+  const handleToggleParticipantMute = useCallback((targetParticipant: Participant) => {
+    if (!isMentor) return; // STRICT ACCESS: Only host has the access to mute or unmute
+    const shouldMute = !targetParticipant.isMuted;
+
+    // 1. Instantly update participant state
+    setParticipants(prev => prev.map(p => {
+      if (p.id === targetParticipant.id || p.name === targetParticipant.name) {
+        return { ...p, isMuted: shouldMute };
+      }
+      return p;
+    }));
+
+    // 2. Broadcast via LiveKit SFU data channel (sub-millisecond latency)
+    if (livekitSFU.isSFUActive) {
+      livekitSFU.broadcastDataSFU("REMOTE_MUTE_ACTION", {
+        targetParticipantId: targetParticipant.id,
+        targetName: targetParticipant.name,
+        isMuted: shouldMute,
+        hostName: displayName,
+      }).catch(() => {});
+    }
+
+    // 3. Broadcast via WebRTC signaling
+    sendSignal("all", "REMOTE_MUTE_ACTION", {
+      targetParticipantId: targetParticipant.id,
+      targetName: targetParticipant.name,
+      isMuted: shouldMute,
+      hostName: displayName,
+    });
+
+    // 4. Update meeting state on server
+    fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        participantMuteAction: {
+          targetParticipantId: targetParticipant.id,
+          targetName: targetParticipant.name,
+          isMuted: shouldMute,
+          timestamp: Date.now(),
+        }
+      }),
+    }).catch(() => {});
+
+    showToast(shouldMute ? `Muted ${targetParticipant.name}` : `Unmuted ${targetParticipant.name}`);
+  }, [isMentor, livekitSFU, sendSignal, roomId, displayName, showToast]);
+
+  const muteAllParticipants = useCallback(() => {
+    if (!isMentor) return;
     setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
+    if (livekitSFU.isSFUActive) {
+      livekitSFU.broadcastDataSFU("REMOTE_MUTE_ALL", { hostName: displayName }).catch(() => {});
+    }
+    sendSignal("all", "REMOTE_MUTE_ALL", { hostName: displayName });
+    fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        muteAll: { timestamp: Date.now() }
+      }),
+    }).catch(() => {});
     showToast("All participants muted.");
-  };
+  }, [isMentor, livekitSFU, sendSignal, roomId, displayName, showToast]);
 
   return (
     <div className="h-screen bg-black flex flex-col overflow-hidden text-white select-none font-sans relative">
@@ -3398,36 +3653,8 @@ export default function ClassRoomPage() {
       {!isWhiteboardActive && (
         <div className="absolute top-0 inset-x-0 h-14 z-30 px-3 sm:px-6 flex items-center justify-between bg-gradient-to-b from-black/85 via-black/40 to-transparent pointer-events-none">
           
-          {/* Left: Green Shield Security Icon & SFU Diagnostics Button */}
+          {/* Left: Recording status badge (Clean, non-distracting) */}
           <div className="pointer-events-auto flex items-center gap-2">
-            <button
-              onClick={() => setShowSecurityPopup(true)}
-              className="w-8 h-8 rounded-lg bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-emerald-400 shadow-lg transition-colors cursor-pointer"
-              title="Meeting Security & Encryption"
-            >
-              <Shield size={16} className="fill-emerald-400/20 text-emerald-400" />
-            </button>
-
-            <button
-              onClick={() => setShowDiagnosticsModal(true)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold border transition-colors cursor-pointer shadow-lg ${
-                livekitSFU.isSFUActive
-                  ? "bg-emerald-950/80 border-emerald-700/60 text-emerald-300 hover:bg-emerald-900/90"
-                  : isWebRTCVideoPlaying
-                  ? "bg-blue-950/80 border-blue-700/60 text-blue-300 hover:bg-blue-900/90"
-                  : "bg-zinc-900/80 border-zinc-700/60 text-zinc-300 hover:bg-zinc-800"
-              }`}
-              title="Classroom Media & Network Diagnostics"
-            >
-              <Activity size={12} className={livekitSFU.isSFUActive ? "text-emerald-400 animate-pulse" : "text-blue-400"} />
-              <span>{livekitSFU.isSFUActive ? "LiveKit SFU" : isWebRTCVideoPlaying ? "WebRTC HD" : "Connecting"}</span>
-              {livekitSFU.diagnostics.framerate > 0 && (
-                <span className="hidden sm:inline text-[9px] font-mono opacity-80 bg-black/40 px-1 py-0.5 rounded">
-                  {livekitSFU.diagnostics.framerate}fps
-                </span>
-              )}
-            </button>
-
             {recState === "recording" && (
               <span className="flex items-center gap-1.5 text-[10px] sm:text-xs text-red-500 font-bold bg-red-950/70 border border-red-800/80 rounded-full px-2.5 py-0.5 animate-pulse">
                 <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />REC {fmtT(recTimer)}
@@ -3447,7 +3674,6 @@ export default function ClassRoomPage() {
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/60 text-xs font-semibold text-white shadow-xl transition-all cursor-pointer max-w-[190px] sm:max-w-[320px]"
               title="View Meeting Information"
             >
-              <Maximize2 size={12} className="text-zinc-400 shrink-0" />
               <span className="truncate">
                 {meeting?.title || `${displayName}'s Meeting`}
               </span>
@@ -3630,14 +3856,12 @@ export default function ClassRoomPage() {
                   onTimeUpdate={() => setIsWebRTCVideoPlaying(true)}
                   onError={() => setIsWebRTCVideoPlaying(false)}
                   onEnded={() => setIsWebRTCVideoPlaying(false)}
-                  className={`absolute inset-0 w-full h-full object-contain select-none transition-opacity duration-200 ${
-                    isWebRTCVideoPlaying ? "opacity-100 z-10" : "opacity-0 pointer-events-none"
-                  }`}
+                  className="absolute inset-0 w-full h-full object-contain select-none z-10"
                 />
               )}
 
-              {/* Layer 3: Presentation Connecting State (Only if neither WebRTC nor frame is ready yet) */}
-              {!remoteScreenShare?.streamFrame && !isWebRTCVideoPlaying && (
+              {/* Layer 3: Presentation Connecting State (Only if neither stream nor frame is available) */}
+              {!remoteScreenShare?.streamFrame && !livekitSFU.sfuRemoteStream && !remoteWebRTCStream && (
                 <div className="flex flex-col items-center justify-center gap-3 p-6 text-center select-none z-10">
                   <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-xl">
                     <Monitor size={28} className="animate-pulse" />
@@ -4273,7 +4497,7 @@ export default function ClassRoomPage() {
           )}
 
           {/* Center Stage: Authentic Zoom Pattern (Screenshot 1, 2, 4) */}
-          {!isAnyScreenSharing && !isWhiteboardActive && (
+          {!isAnyScreenSharing && !isWhiteboardActive && !livekitSFU.sfuRemoteStream && !remoteWebRTCStream && (
             <div className="relative w-full h-full flex items-center justify-center">
               {/* Primary Video Display */}
               {isMentor && cameraOn ? (
@@ -4314,10 +4538,20 @@ export default function ClassRoomPage() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                /* Camera OFF: Authentic Zoom Taupe/Brown Rounded Square Avatar Tile (Screenshot 2 & 4) */
+                /* Camera OFF: Authentic Zoom Taupe/Brown Rounded Square Avatar Tile */
                 <div className="flex flex-col items-center justify-center">
                   <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-3xl bg-[#7A5C50] text-white flex items-center justify-center text-6xl sm:text-7xl font-medium shadow-2xl select-none">
-                    {displayInitial}
+                    {isMentor
+                      ? displayInitial
+                      : ((effectiveHostName || "Host").replace(/[^a-zA-Z0-9]/g, "").charAt(0) || "H").toUpperCase()}
+                  </div>
+                  <div className="mt-4 text-center select-none">
+                    <p className="text-sm sm:text-base font-semibold text-zinc-300 tracking-wide">
+                      {isMentor ? displayName : (effectiveHostName || "Host")}
+                    </p>
+                    <p className="text-[11px] sm:text-xs text-zinc-500 mt-0.5">
+                      {isMentor ? "Camera is off" : "Host camera is off · Waiting for presentation"}
+                    </p>
                   </div>
                 </div>
               )}
@@ -4365,41 +4599,6 @@ export default function ClassRoomPage() {
               {isHandRaised && (
                 <div className="absolute top-16 right-4 z-20 bg-amber-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-lg animate-bounce">
                   ✋ Hand Raised
-                </div>
-              )}
-
-              {/* Joined Attendees Filmstrip with Live Student Video (Top-Right) */}
-              {uniqueOtherParticipants.length > 0 && (
-                <div className="absolute top-16 right-4 z-20 flex flex-col gap-2 max-h-[70vh] overflow-y-auto pointer-events-auto">
-                  {uniqueOtherParticipants.map((p) => {
-                    const studentCam = remoteParticipantCameras[p.id] || Object.values(remoteParticipantCameras).find(c => c.name === p.name);
-                    const isCamActive = (studentCam?.active && studentCam?.streamFrame) || p.isVideoOn;
-
-                    return (
-                      <div key={p.id} className="w-24 h-18 sm:w-36 sm:h-24 bg-zinc-900 rounded-xl border border-zinc-700/80 overflow-hidden relative shadow-xl flex items-center justify-center">
-                        {isCamActive && studentCam?.streamFrame ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img
-                            src={studentCam.streamFrame}
-                            alt={p.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-9 h-9 rounded-xl bg-[#7A5C50] text-white flex items-center justify-center text-sm font-bold shadow select-none">
-                            {p.avatar || p.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        {/* Status Bar */}
-                        <div className="absolute bottom-1 inset-x-1 flex items-center justify-between text-[9px] text-white bg-black/75 backdrop-blur-xs px-1.5 py-0.5 rounded-md truncate">
-                          <span className="truncate max-w-[70px] font-medium">{p.name}</span>
-                          <div className="flex items-center gap-1 shrink-0">
-                            {p.isHandRaised && <span className="text-[10px]">✋</span>}
-                            {p.isMuted ? <MicOff size={10} className="text-rose-400" /> : <Mic size={10} className="text-emerald-400" />}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
                 </div>
               )}
             </div>
@@ -4620,46 +4819,152 @@ export default function ClassRoomPage() {
               <div className="w-8" />
             </div>
 
-            {/* Participants List */}
-            <div className="flex-1 overflow-y-auto px-4 py-2 divide-y divide-zinc-800/60">
+            {/* Participants Cards (Zoom-style Cards with Live Camera Face Previews) */}
+            <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 space-y-2.5">
               {participants.map((p) => {
-                const isHost = p.role === "Host" || p.name.includes("Host");
+                const isHost = p.role === "Host" || p.name.includes("Host") || p.id === "host";
                 const isMe = (isMentor && isHost) || (!isMentor && p.name === studentName) || p.id === myParticipantId;
-                const initial = p.name.charAt(0).toUpperCase() || "H";
+                const initial = (p.name.replace(/[^a-zA-Z0-9]/g, "").charAt(0) || p.avatar || "U").toUpperCase();
+
+                // Live Camera Frame or Local Video Stream
+                const isLocalCameraActive = isMe && cameraOn && Boolean(cameraStream);
+                const remoteCam = remoteParticipantCameras[p.id];
+                const isRemoteCameraActive = !isMe && (
+                  (isHost && remoteHostCamera?.active && Boolean(remoteHostCamera?.streamFrame)) ||
+                  (remoteCam?.active && Boolean(remoteCam?.streamFrame))
+                );
+                const remoteCamSrc = (isHost && remoteHostCamera?.active && remoteHostCamera?.streamFrame)
+                  ? remoteHostCamera.streamFrame
+                  : remoteCam?.streamFrame;
+
+                const isCameraVideoActive = isLocalCameraActive || isRemoteCameraActive || p.isVideoOn;
 
                 return (
-                  <div key={p.id} className="flex items-center justify-between py-3">
-                    {/* Left: Avatar + Name */}
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-[#7A5C50] text-white flex items-center justify-center font-bold text-base shadow shrink-0 select-none">
-                        {initial}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-white truncate flex items-center gap-1.5">
-                          <span>{p.name}</span>
-                          <span className="text-xs text-zinc-400 font-normal">
-                            {isHost && isMe ? "(Host, me)" : isHost ? "(Host)" : isMe ? "(me)" : ""}
-                          </span>
+                  <div
+                    key={p.id}
+                    className="bg-[#242427] border border-zinc-800/90 hover:border-zinc-700/80 rounded-2xl p-2.5 sm:p-3 flex items-center justify-between gap-3 shadow-lg transition-all"
+                  >
+                    {/* Left: Zoom-style Face / Video Preview Box */}
+                    <div className="relative w-20 h-16 sm:w-24 sm:h-18 rounded-xl bg-zinc-950 border border-zinc-800/90 overflow-hidden flex items-center justify-center shrink-0 shadow-inner">
+                      {isLocalCameraActive ? (
+                        <video
+                          ref={(el) => {
+                            if (el && cameraStream && el.srcObject !== cameraStream) {
+                              el.srcObject = cameraStream;
+                              el.play().catch(() => {});
+                            }
+                          }}
+                          autoPlay
+                          playsInline
+                          muted
+                          className="w-full h-full object-cover -scale-x-100"
+                        />
+                      ) : isRemoteCameraActive && remoteCamSrc ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={remoteCamSrc}
+                          alt={`${p.name}'s video`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-[#7A5C50] text-white flex items-center justify-center font-bold text-base shadow-sm select-none">
+                          {initial}
                         </div>
+                      )}
+
+                      {/* Small Live Mic status overlay tag on camera preview */}
+                      <div className="absolute bottom-1 right-1 flex items-center gap-0.5 bg-black/80 backdrop-blur-xs px-1.5 py-0.5 rounded text-[10px]">
+                        {p.isMuted ? (
+                          <MicOff size={11} className="text-rose-500" />
+                        ) : (
+                          <Mic size={11} className="text-emerald-400" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Middle: Participant Info */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="text-sm font-semibold text-white truncate">
+                          {p.name.replace(/\s*\((Student|Host|You|you|me)\)/gi, '')}
+                        </span>
+                        {isMe && (
+                          <span className="text-[10px] font-bold text-blue-400 bg-blue-500/15 border border-blue-500/30 px-1.5 py-0.2 rounded shrink-0">
+                            You
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        {isHost ? (
+                          <span className="text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.2 rounded">
+                            Host
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-medium text-zinc-400 bg-zinc-800/80 border border-zinc-700/60 px-1.5 py-0.2 rounded">
+                            Student
+                          </span>
+                        )}
+
+                        {isCameraVideoActive ? (
+                          <span className="text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.2 rounded flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            Live Face
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-zinc-500 font-medium">
+                            Camera Off
+                          </span>
+                        )}
+
                         {p.isHandRaised && (
-                          <span className="text-[10px] text-amber-400 font-semibold flex items-center gap-1 mt-0.5">
-                            ✋ Hand raised
+                          <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.2 rounded">
+                            ✋ Raised Hand
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Right: Audio & Video Status Icons (Screenshot 2) */}
+                    {/* Right: Host-Only Mute/Unmute Control OR Status Icons */}
                     <div className="flex items-center gap-2 shrink-0">
-                      {p.isMuted ? (
-                        <MicOff size={17} className="text-rose-500" />
+                      {isMentor && !isMe ? (
+                        /* ONLY HOST HAS ACCESS TO MUTE / UNMUTE PARTICIPANTS */
+                        <button
+                          type="button"
+                          onClick={() => handleToggleParticipantMute(p)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer ${
+                            p.isMuted
+                              ? "bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700"
+                              : "bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40"
+                          }`}
+                          title={p.isMuted ? "Unmute participant" : "Mute participant"}
+                        >
+                          {p.isMuted ? (
+                            <>
+                              <Mic size={13} className="text-emerald-400" />
+                              <span className="text-emerald-300">Unmute</span>
+                            </>
+                          ) : (
+                            <>
+                              <MicOff size={13} className="text-rose-400" />
+                              <span>Mute</span>
+                            </>
+                          )}
+                        </button>
                       ) : (
-                        <Mic size={17} className="text-zinc-300" />
-                      )}
-                      {p.isVideoOn || (remoteParticipantCameras[p.id]?.active) ? (
-                        <Video size={17} className="text-emerald-400" />
-                      ) : (
-                        <VideoOff size={17} className="text-rose-500" />
+                        /* Student View: Status indicators only (no remote mute buttons) */
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-zinc-900/80 border border-zinc-800 rounded-xl">
+                          {p.isMuted ? (
+                            <MicOff size={15} className="text-rose-500" />
+                          ) : (
+                            <Mic size={15} className="text-emerald-400" />
+                          )}
+                          {isCameraVideoActive ? (
+                            <Video size={15} className="text-emerald-400" />
+                          ) : (
+                            <VideoOff size={15} className="text-rose-500" />
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

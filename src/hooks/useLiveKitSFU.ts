@@ -210,6 +210,42 @@ export function useLiveKitSFU({
 
       // 3. Connect to room
       await room.connect(data.serverUrl, data.token);
+
+      // 4. Immediately bind existing tracks from participants already streaming in the room
+      try {
+        room.remoteParticipants.forEach((p) => {
+          p.trackPublications.forEach((pub) => {
+            if (pub.track && pub.track.kind === Track.Kind.Video) {
+              try {
+                if ('setVideoQuality' in pub && typeof (pub as unknown as { setVideoQuality: (q: VideoQuality) => void }).setVideoQuality === 'function') {
+                  (pub as unknown as { setVideoQuality: (q: VideoQuality) => void }).setVideoQuality(VideoQuality.HIGH);
+                }
+              } catch {}
+              setSfuRemoteStream(new MediaStream([pub.track.mediaStreamTrack]));
+            }
+            if (pub.track && pub.track.kind === Track.Kind.Audio) {
+              const trackKey = `${p.identity}_${pub.trackSid || pub.track.sid || pub.track.kind}`;
+              let audioEl = remoteAudioElementsRef.current.get(trackKey);
+              if (!audioEl || !document.body.contains(audioEl)) {
+                audioEl = document.createElement('audio');
+                audioEl.autoplay = true;
+                audioEl.setAttribute('playsinline', 'true');
+                audioEl.setAttribute('webkit-playsinline', 'true');
+                audioEl.style.display = 'none';
+                audioEl.id = `sfu_audio_${trackKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+                document.body.appendChild(audioEl);
+                remoteAudioElementsRef.current.set(trackKey, audioEl);
+              }
+              audioEl.srcObject = new MediaStream([pub.track.mediaStreamTrack]);
+              audioEl.muted = Boolean(speakerMuted);
+              audioEl.play().catch(() => {});
+            }
+          });
+        });
+      } catch (trackScanErr) {
+        console.warn('Error scanning initial SFU tracks:', trackScanErr);
+      }
+
       return true;
     } catch (err) {
       console.warn('LiveKit SFU initialization failed, using resilient fallback:', err);

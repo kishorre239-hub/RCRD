@@ -21,7 +21,7 @@ export interface WebRTCSignal {
   id: string;
   from: string;
   to: string;
-  type: 'offer' | 'answer' | 'candidate' | 'request-screen';
+  type: string;
   payload: unknown;
   timestamp: number;
 }
@@ -80,6 +80,15 @@ interface MeetingState {
     timestamp: number;
   }>;
   signals: Array<WebRTCSignal>;
+  participantMuteAction?: {
+    targetParticipantId?: string;
+    targetName?: string;
+    isMuted: boolean;
+    timestamp: number;
+  };
+  muteAll?: {
+    timestamp: number;
+  };
 }
 
 const DATA_DIR = path.resolve(process.cwd(), '.data');
@@ -278,6 +287,8 @@ export async function GET(
       chat: state.chat,
       notes: state.notes,
       reactions: state.reactions,
+      participantMuteAction: state.participantMuteAction,
+      muteAll: state.muteAll,
       signals: signalsForMe,
       serverTime: now,
     }, { headers: NO_CACHE_HEADERS });
@@ -484,6 +495,21 @@ export async function POST(
       });
     }
 
+    // 6. Remote Mute Action / Mute All
+    if (body.participantMuteAction) {
+      state.participantMuteAction = {
+        targetParticipantId: body.participantMuteAction.targetParticipantId,
+        targetName: body.participantMuteAction.targetName,
+        isMuted: Boolean(body.participantMuteAction.isMuted),
+        timestamp: body.participantMuteAction.timestamp || now,
+      };
+    }
+    if (body.muteAll) {
+      state.muteAll = {
+        timestamp: body.muteAll.timestamp || now,
+      };
+    }
+
     // Debounced, non-blocking asynchronous state persistence
     schedulePersistRoomStates();
 
@@ -498,6 +524,8 @@ export async function POST(
       chat: state.chat,
       notes: state.notes,
       reactions: state.reactions,
+      participantMuteAction: state.participantMuteAction,
+      muteAll: state.muteAll,
       signals: (state.signals || []).filter(s =>
         !body.participantId || s.to === body.participantId || s.to === 'all' || (body.participantId === 'host' && s.to === 'host')
       ),

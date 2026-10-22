@@ -1400,7 +1400,7 @@ export default function ClassRoomPage() {
           if (data.meeting.courseId) setUploadCourse(data.meeting.courseId);
         } else if (!isMentor && roomId) {
           // Meeting was deleted or not found on server: redirect student to join page so they see Meeting Not Found
-          window.location.href = `/meeting/${roomId}`;
+          router.push(`/meeting/${roomId}`);
           return;
         }
       })
@@ -1647,7 +1647,7 @@ export default function ClassRoomPage() {
       if (pollInFlight) return;
       pollInFlight = true;
       try {
-        const sinceScreenParam = isWebRTCVideoPlayingRef.current ? Date.now() : lastScreenShareTimestampRef.current;
+        const sinceScreenParam = lastScreenShareTimestampRef.current;
         const res = await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state?participantId=${encodeURIComponent(myParticipantId)}&sinceScreen=${sinceScreenParam}&sinceWb=${lastWhiteboardTimestampRef.current}`, {
           cache: "no-store",
         });
@@ -1846,9 +1846,8 @@ export default function ClassRoomPage() {
     };
 
     pollState();
-    // Dynamic polling interval: relaxed to 4000ms when high-speed SFU or WebRTC stream is active,
-    // reducing Vercel serverless request rate by 90% in 150-student classes!
-    const pollIntervalMs = (livekitSFU.isSFUActive || isWebRTCVideoPlayingRef.current) ? 4000 : 1500;
+    // Responsive polling interval: 800ms when screen share is active for real-time 0-lag updates
+    const pollIntervalMs = isAnyScreenSharing ? 800 : (livekitSFU.isSFUActive ? 3000 : 1500);
     const interval = setInterval(pollState, pollIntervalMs);
 
     return () => {
@@ -2010,15 +2009,23 @@ export default function ClassRoomPage() {
             bc.postMessage({ type: "SCREEN_SHARE", data: payload });
           }
 
-          // Always persist active screen share state to server so students never see inactive avatar or lag
+          // Always persist active screen share state to server with 1.8s timeout guard so inFlight never locks
           inFlight = true;
+          const abortCtrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+          const abortTimer = setTimeout(() => {
+            if (abortCtrl) abortCtrl.abort();
+            inFlight = false;
+          }, 1800);
           try {
             await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ screenShare: payload }),
+              signal: abortCtrl?.signal,
             });
+          } catch {
           } finally {
+            clearTimeout(abortTimer);
             inFlight = false;
           }
         }
@@ -4176,8 +4183,8 @@ export default function ClassRoomPage() {
                 )}
               </div>
 
-              {/* Layer 1: HTTP Live Frame Stream (Only when video stream is not yet actively playing to prevent dual-layer shaking/jitter) */}
-              {remoteScreenShare?.streamFrame && !isWebRTCVideoPlaying && (
+              {/* Layer 1: HTTP Live Frame Stream (Always continuously updated so presentation never freezes or gets stuck) */}
+              {remoteScreenShare?.streamFrame && (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={remoteScreenShare.streamFrame}
@@ -4187,7 +4194,7 @@ export default function ClassRoomPage() {
                 />
               )}
 
-              {/* Layer 2: WebRTC Ultra HD 60FPS Video (Active stream with stable ref callback and GPU acceleration) */}
+              {/* Layer 2: WebRTC Ultra HD 60FPS Video (Active stream with stall watchdog and zero-jitter GPU acceleration) */}
               {(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream) && (
                 <video
                   ref={setRemoteVideoRef}
@@ -4197,6 +4204,9 @@ export default function ClassRoomPage() {
                   onLoadedMetadata={() => setIsWebRTCVideoPlaying(true)}
                   onCanPlay={() => setIsWebRTCVideoPlaying(true)}
                   onPlaying={() => setIsWebRTCVideoPlaying(true)}
+                  onWaiting={() => setIsWebRTCVideoPlaying(false)}
+                  onStalled={() => setIsWebRTCVideoPlaying(false)}
+                  onPause={() => setIsWebRTCVideoPlaying(false)}
                   onError={() => setIsWebRTCVideoPlaying(false)}
                   onEnded={() => setIsWebRTCVideoPlaying(false)}
                   className={`absolute inset-0 w-full h-full object-contain select-none z-10 transition-opacity duration-150 ${

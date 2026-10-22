@@ -4110,8 +4110,8 @@ export default function ClassRoomPage() {
           {/* Center: Duration Timer Badge (Removed circled title button per user request) */}
           <div className="pointer-events-auto flex items-center gap-2">
 
-            {/* Duration Timer Badge */}
-            {meetingStartTime > 0 && (
+            {/* Duration Timer Badge (Mentor Only) */}
+            {meetingStartTime > 0 && isMentor && (
               <button
                 type="button"
                 onClick={() => {
@@ -4245,42 +4245,6 @@ export default function ClassRoomPage() {
               className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black overflow-hidden select-none"
               style={{ contain: 'strict', transform: 'translateZ(0)' }}
             >
-              <div className="absolute top-16 left-3 sm:left-4 z-20 flex items-center gap-1.5 sm:gap-2 bg-zinc-900/90 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-zinc-700 shadow-md text-xs font-bold text-white max-w-[90vw] overflow-x-auto">
-                <Monitor size={14} className="text-blue-400 shrink-0" />
-                <span className="truncate max-w-[140px] sm:max-w-none">{remoteScreenShare?.presenterName || "Host"} is sharing screen</span>
-                <span className={`inline-flex items-center justify-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 min-w-[76px] text-center ${
-                  isWebRTCVideoPlaying
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isWebRTCVideoPlaying ? 'bg-emerald-400 animate-pulse' : 'bg-blue-400'}`} />
-                  <span>{isWebRTCVideoPlaying ? "Ultra HD" : "HD Live"}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={toggleFullScreen}
-                  className="flex items-center gap-1 text-[10px] sm:text-[11px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-lg font-semibold border border-white/20 transition-all cursor-pointer ml-0.5 shrink-0"
-                  title="Fullscreen"
-                >
-                  <Maximize2 size={11} className="text-blue-300" />
-                  <span className="hidden sm:inline">Fit / Fullscreen</span>
-                </button>
-                {!isMentor && remoteWhiteboard?.active && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowWhiteboard(true);
-                      setStudentViewMode("whiteboard");
-                    }}
-                    className="flex items-center gap-1 text-[10px] sm:text-[11px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-lg font-semibold border border-white/20 transition-all cursor-pointer ml-0.5 shrink-0"
-                    title="View mentor's lecture notes"
-                  >
-                    <BookOpen size={11} className="text-amber-300" />
-                    <span>View Notes</span>
-                  </button>
-                )}
-              </div>
-
               {/* Layer 1: HTTP Live Frame Stream (Persistently rendered base layer for zero-flicker transitions) */}
               {remoteScreenShare?.streamFrame && (
                 /* eslint-disable-next-line @next/next/no-img-element */

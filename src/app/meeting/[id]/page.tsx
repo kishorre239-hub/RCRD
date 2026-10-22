@@ -7,7 +7,7 @@ import {
   Calendar, Clock, Lock, User, Video,
   CheckCircle2, AlertCircle, Eye, EyeOff, Copy,
   Check, ArrowRight, Shield, Sparkles,
-  ChevronRight, RefreshCw
+  ChevronRight, RefreshCw, Mail
 } from "lucide-react";
 
 interface MeetingData {
@@ -20,6 +20,9 @@ interface MeetingData {
   status: "scheduled" | "live" | "ended";
   attendees?: number;
   hostName?: string;
+  batchId?: string | null;
+  batchName?: string | null;
+  allowedEmails?: string[];
 }
 
 function JoinMeetingContent() {
@@ -38,6 +41,21 @@ function JoinMeetingContent() {
     if (typeof window !== "undefined") {
       try {
         return localStorage.getItem("rcrd_student_name") || "";
+      } catch {}
+    }
+    return "";
+  });
+  const [studentEmail, setStudentEmail] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const qEmail = searchParams.get("email") || "";
+        if (qEmail) return qEmail;
+        const storedAuth = localStorage.getItem("rcrd_user");
+        if (storedAuth) {
+          const parsed = JSON.parse(storedAuth);
+          if (parsed?.email) return parsed.email;
+        }
+        return localStorage.getItem("rcrd_student_email") || "";
       } catch {}
     }
     return "";
@@ -273,9 +291,16 @@ function JoinMeetingContent() {
 
     const trimmedName = studentName.trim();
     const trimmedPwd = password.trim();
+    const trimmedEmail = studentEmail.trim().toLowerCase();
 
     if (!trimmedName) {
       setErrorMsg("Please enter your name to join the class.");
+      return;
+    }
+
+    const isBatchRestricted = Boolean(meeting?.allowedEmails && meeting.allowedEmails.length > 0);
+    if (isBatchRestricted && !trimmedEmail) {
+      setErrorMsg(`Student email is required for this batch-restricted classroom (${meeting?.batchName || 'Assigned Batch'}).`);
       return;
     }
 
@@ -286,7 +311,7 @@ function JoinMeetingContent() {
       const res = await fetch(`/api/meetings/${encodeURIComponent(meetingId)}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: trimmedPwd, name: trimmedName }),
+        body: JSON.stringify({ password: trimmedPwd, name: trimmedName, email: trimmedEmail }),
       });
 
       const data = await res.json();
@@ -306,9 +331,12 @@ function JoinMeetingContent() {
         return;
       }
 
-      // Remember student name for future classes
+      // Remember student details for future classes
       try {
         localStorage.setItem("rcrd_student_name", trimmedName);
+        if (trimmedEmail) {
+          localStorage.setItem("rcrd_student_email", trimmedEmail);
+        }
       } catch {}
 
       // Store meeting in session
@@ -319,9 +347,10 @@ function JoinMeetingContent() {
 
       const resolvedHost = data?.meeting?.hostName || meeting?.hostName || "";
       const hostParam = resolvedHost ? `&hostName=${encodeURIComponent(resolvedHost)}` : "";
+      const emailParam = trimmedEmail ? `&email=${encodeURIComponent(trimmedEmail)}` : "";
 
       // Redirect into the classroom
-      const targetUrl = `/meetings/room/${encodeURIComponent(meetingId)}?role=participant&name=${encodeURIComponent(trimmedName)}${hostParam}`;
+      const targetUrl = `/meetings/room/${encodeURIComponent(meetingId)}?role=participant&name=${encodeURIComponent(trimmedName)}${emailParam}${hostParam}`;
       router.push(targetUrl);
     } catch (err: unknown) {
       setJoining(false);
@@ -568,6 +597,22 @@ function JoinMeetingContent() {
                     </div>
                   )}
 
+                  {/* Batch Info Badge if meeting is assigned to a batch */}
+                  {meeting?.batchName && (
+                    <div className="p-3 bg-indigo-50/80 border border-indigo-200/80 rounded-xl flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <Shield size={16} className="text-indigo-600 shrink-0" />
+                        <div>
+                          <span className="font-bold text-indigo-950">Class Cohort: </span>
+                          <span className="font-extrabold text-indigo-800">{meeting.batchName}</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md">
+                        Enrolled Only
+                      </span>
+                    </div>
+                  )}
+
                   {/* Student Name */}
                   <div>
                     <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
@@ -586,6 +631,36 @@ function JoinMeetingContent() {
                       />
                     </div>
                     <p className="text-[11px] text-[#57636E] mt-1">This name will be shown to the instructor and attendees in the live room.</p>
+                  </div>
+
+                  {/* Student Email */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider">
+                        Student Email Address {Boolean(meeting?.allowedEmails && meeting.allowedEmails.length > 0) ? '*' : '(Optional)'}
+                      </label>
+                      {Boolean(meeting?.allowedEmails && meeting.allowedEmails.length > 0) && (
+                        <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                          Required for Batch Access
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E]" />
+                      <input
+                        type="email"
+                        required={Boolean(meeting?.allowedEmails && meeting.allowedEmails.length > 0)}
+                        value={studentEmail}
+                        onChange={e => setStudentEmail(e.target.value)}
+                        placeholder="e.g. student@gmail.com"
+                        className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8]/70 border border-[#E2E7EC] focus:border-[#154360] focus:bg-white rounded-xl text-xs text-[#20262E] placeholder:text-[#57636E] focus:ring-2 focus:ring-[#154360]/15 outline-none transition-all font-medium shadow-2xs"
+                      />
+                    </div>
+                    <p className="text-[11px] text-[#57636E] mt-1">
+                      {Boolean(meeting?.allowedEmails && meeting.allowedEmails.length > 0)
+                        ? "Only students enrolled in this batch are permitted to enter this live classroom."
+                        : "Optional email for identification in the live classroom."}
+                    </p>
                   </div>
 
                   {/* Meeting ID (Read Only badge) */}

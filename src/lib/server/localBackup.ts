@@ -118,6 +118,9 @@ export interface StoredMeeting {
   mentorEmail?: string;
   ownerId?: string;
   createdBy?: string;
+  batchId?: string | null;
+  batchName?: string | null;
+  allowedEmails?: string[];
   createdAt?: number;
   updatedAt?: number;
   [key: string]: unknown;
@@ -331,4 +334,72 @@ export function removeMeetingParticipant(meetingId: string, participantId: strin
   }
   return getMeetingParticipants(meetingId);
 }
+
+export interface StoredBatch {
+  id: string;
+  name: string;
+  topic?: string;
+  description?: string;
+  studentEmails: string[];
+  mentorEmail?: string;
+  createdBy?: string;
+  createdAt: number;
+  updatedAt: number;
+  [key: string]: unknown;
+}
+
+const BATCHES_FILE = path.join(DATA_DIR, 'batches-store.json');
+let batchesStore: Record<string, StoredBatch> = {};
+
+function initBatchesStore() {
+  try {
+    if (fs.existsSync(BATCHES_FILE)) {
+      const content = fs.readFileSync(BATCHES_FILE, 'utf-8');
+      batchesStore = JSON.parse(content);
+    }
+  } catch (err) {
+    console.warn('Failed to load local batches backup store:', (err as Error)?.message);
+  }
+}
+
+function persistBatchesStore() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(BATCHES_FILE, JSON.stringify(batchesStore, null, 2), 'utf-8');
+  } catch (err) {
+    console.warn('Failed to persist local batches backup store:', (err as Error)?.message);
+  }
+}
+
+initBatchesStore();
+
+export function getAllBackupBatches(): StoredBatch[] {
+  return Object.values(batchesStore).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+export function getBackupBatch(id: string): StoredBatch | null {
+  return batchesStore[id] || null;
+}
+
+export function saveBackupBatch(batch: StoredBatch): StoredBatch {
+  batchesStore[batch.id] = {
+    ...batchesStore[batch.id],
+    ...batch,
+    updatedAt: Date.now(),
+  };
+  persistBatchesStore();
+  return batchesStore[batch.id];
+}
+
+export function deleteBackupBatch(id: string): boolean {
+  if (batchesStore[id]) {
+    delete batchesStore[id];
+    persistBatchesStore();
+    return true;
+  }
+  return false;
+}
+
 

@@ -71,6 +71,30 @@ export async function POST(
       }, { status: 410 });
     }
 
+    // Check batch restriction
+    const isMentor = Boolean(body.isMentor || body.role === 'mentor' || body.role === 'host');
+    const studentEmail = (body.email || body.studentEmail || '').toLowerCase().trim();
+
+    if (resolvedMeeting.allowedEmails && resolvedMeeting.allowedEmails.length > 0 && !isMentor) {
+      if (!studentEmail) {
+        return NextResponse.json({
+          error: `Student email is required for this batch-restricted classroom (${resolvedMeeting.batchName || 'Assigned Batch'}).`,
+          batchRestricted: true,
+          batchName: resolvedMeeting.batchName || 'Assigned Batch',
+        }, { status: 403 });
+      }
+
+      const isAllowed = resolvedMeeting.allowedEmails.some((e: string) => (e || '').toLowerCase().trim() === studentEmail);
+      if (!isAllowed) {
+        return NextResponse.json({
+          error: `Access Denied: You are not enrolled in the batch '${resolvedMeeting.batchName || 'Batch'}'. Only enrolled students can join this meeting.`,
+          batchRestricted: true,
+          batchName: resolvedMeeting.batchName || 'Assigned Batch',
+          deniedEmail: studentEmail,
+        }, { status: 403 });
+      }
+    }
+
     // Check password (case-insensitive)
     const expectedPassword = (resolvedMeeting.password || '').trim().toUpperCase();
     const enteredPassword = (password || '').trim().toUpperCase();
@@ -88,6 +112,9 @@ export async function POST(
         scheduledAt: resolvedMeeting.scheduledAt,
         duration: resolvedMeeting.duration,
         status: resolvedMeeting.status,
+        batchId: resolvedMeeting.batchId,
+        batchName: resolvedMeeting.batchName,
+        allowedEmails: resolvedMeeting.allowedEmails,
       },
     });
   } catch (error) {

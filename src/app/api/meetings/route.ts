@@ -151,6 +151,13 @@ export async function POST(req: Request) {
     const hostEmail = (body.hostEmail || body.mentorEmail || authUser?.email || '').toLowerCase().trim() || undefined;
     const hostId = body.hostId || body.ownerId || authUser?.id || authUser?._id?.toString() || undefined;
 
+    const batchId = body.batchId || null;
+    const batchName = body.batchName || null;
+    let allowedEmails: string[] = [];
+    if (Array.isArray(body.allowedEmails)) {
+      allowedEmails = body.allowedEmails.map((e: unknown) => String(e || '').toLowerCase().trim()).filter(Boolean);
+    }
+
     const durationNum = Number(duration) || 60;
     const initialStatus = (status as 'scheduled' | 'live' | 'ended') || 'scheduled';
     const meetingData: StoredMeeting = {
@@ -168,6 +175,9 @@ export async function POST(req: Request) {
       mentorEmail: hostEmail,
       ownerId: hostId,
       createdBy: hostEmail,
+      batchId,
+      batchName,
+      allowedEmails,
       notes: body.notes || [],
       updatedAt: Date.now(),
     };

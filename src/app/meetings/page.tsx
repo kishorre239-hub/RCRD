@@ -10,7 +10,7 @@ import {
   Eye, EyeOff, Share2, Mail,
   Monitor, Play,
   CheckCircle2, ChevronRight,
-  Link2, ExternalLink
+  Link2, ExternalLink, Shield
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, SettingsIcon,
@@ -24,6 +24,16 @@ import AppHeader from "@/components/AppHeader";
 import { useNavPermissions } from "@/lib/navPermissions";
 
 interface Course { id: string; name: string; }
+interface Batch {
+  id: string;
+  name: string;
+  topic?: string;
+  description?: string;
+  studentEmails: string[];
+  mentorEmail?: string;
+  createdBy?: string;
+  createdAt?: number;
+}
 interface Meeting {
   id: string; title: string; courseId: string | null; password: string;
   scheduledAt: string; startedAt?: string; duration: number; status: "scheduled" | "live" | "ended";
@@ -33,6 +43,9 @@ interface Meeting {
   hostId?: string;
   mentorEmail?: string;
   ownerId?: string;
+  batchId?: string | null;
+  batchName?: string | null;
+  allowedEmails?: string[];
 }
 
 const genPwd = () => {
@@ -173,6 +186,8 @@ export default function MeetingsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<"AM" | "PM">("PM");
   const [newDuration, setNewDuration] = useState(60);
   const [newCourse, setNewCourse] = useState("");
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [selectedBatchId, setSelectedBatchId] = useState<string>("");
 
   // Join Meeting Form
   const [joinId, setJoinId] = useState("");
@@ -301,6 +316,12 @@ export default function MeetingsPage() {
       });
     }, 1000);
     getCourses().then(setCourses).catch(() => {});
+    fetchWithAuth('/batches')
+      .then(res => res.json())
+      .then(d => {
+        if (d?.batches) setBatches(d.batches);
+      })
+      .catch(() => {});
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
@@ -451,6 +472,8 @@ export default function MeetingsPage() {
     const creatorEmail = (userProf?.email || "").toLowerCase().trim();
     const creatorId = userProf?.id || userProf?._id || "";
 
+    const selectedBatch = batches.find(b => b.id === selectedBatchId);
+
     const m: Meeting = {
       id: Date.now().toString().slice(-8),
       title: newTitle.trim(),
@@ -467,11 +490,15 @@ export default function MeetingsPage() {
       hostId: creatorId || undefined,
       mentorEmail: creatorEmail || undefined,
       ownerId: creatorId || undefined,
+      batchId: selectedBatch ? selectedBatch.id : null,
+      batchName: selectedBatch ? selectedBatch.name : null,
+      allowedEmails: selectedBatch ? selectedBatch.studentEmails : [],
     };
     save([m, ...meetings], m);
     setShowCreate(false);
     setNewTitle("");
     setNewCourse("");
+    setSelectedBatchId("");
     setShowShare(m);
     showToast("Class meeting scheduled successfully!");
   };
@@ -915,6 +942,12 @@ export default function MeetingsPage() {
                               <Users size={11} /> {m.attendees}
                             </span>
                           )}
+                          {m.batchName && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs" title={`Enrolled: ${m.allowedEmails?.join(', ') || ''}`}>
+                              <Shield size={11} className="text-indigo-600" />
+                              Batch: {m.batchName} ({m.allowedEmails?.length || 0})
+                            </span>
+                          )}
                         </div>
 
                         {/* Compact Credentials Bar */}
@@ -1064,6 +1097,49 @@ export default function MeetingsPage() {
                       ))}
                     </select>
                   </div>
+                </div>
+
+                {/* Batch Selection for Meeting Access Control */}
+                <div className="mt-4 pt-4 border-t border-[#E2E7EC]/70">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider">
+                      Target Batch <span className="text-indigo-600 font-semibold normal-case">(Restricted Classroom Access)</span>
+                    </label>
+                    <span className="text-[11px] font-medium text-[#57636E]">
+                      Only enrolled batch students can join
+                    </span>
+                  </div>
+                  <select
+                    value={selectedBatchId}
+                    onChange={e => setSelectedBatchId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all shadow-xs cursor-pointer font-medium text-[#20262E]"
+                  >
+                    <option value="">Open Classroom (No Batch Restriction)</option>
+                    {batches.map(b => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.studentEmails?.length || 0} enrolled students){b.topic ? ` - ${b.topic}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedBatchId && (() => {
+                    const activeBatch = batches.find(b => b.id === selectedBatchId);
+                    if (!activeBatch) return null;
+                    return (
+                      <div className="mt-2.5 p-3 bg-indigo-50/80 border border-indigo-200/80 rounded-xl text-xs text-indigo-950 flex items-start gap-2.5">
+                        <Shield size={16} className="text-indigo-600 shrink-0 mt-0.5" />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-indigo-900">
+                            Strict Batch Access: <span className="font-bold underline decoration-indigo-300">{activeBatch.name}</span>
+                          </p>
+                          <p className="text-[11px] text-indigo-800/80 mt-0.5">
+                            {activeBatch.studentEmails.length > 0
+                              ? `Enrolled students (${activeBatch.studentEmails.length}): ${activeBatch.studentEmails.join(', ')}`
+                              : 'No students enrolled in this batch yet. Please add student emails in Settings > Workspace Info.'}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

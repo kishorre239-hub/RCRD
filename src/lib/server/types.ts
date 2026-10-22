@@ -110,3 +110,17 @@ export interface SystemSettings {
   platformName?: string;
   updatedAt?: number;
 }
+
+export interface Batch {
+  id?: string;
+  _id?: ObjectId | string;
+  name: string;
+  topic?: string;
+  description?: string;
+  studentEmails: string[];
+  mentorEmail?: string;
+  createdBy?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+

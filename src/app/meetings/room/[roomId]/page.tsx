@@ -31,7 +31,21 @@ interface Note {
   };
 }
 interface Course { id: string; name: string; }
-interface Meeting { id: string; title: string; courseId: string | null; password: string; scheduledAt?: string; startedAt?: string; duration: number; status: string; hostName?: string; }
+interface Meeting {
+  id: string;
+  title: string;
+  courseId: string | null;
+  password: string;
+  scheduledAt?: string;
+  startedAt?: string;
+  duration: number;
+  status: string;
+  hostName?: string;
+  hostEmail?: string;
+  batchId?: string | null;
+  batchName?: string | null;
+  allowedEmails?: string[];
+}
 interface Participant {
   id: string;
   name: string;
@@ -179,6 +193,42 @@ export default function ClassRoomPage() {
 
   const [meeting, setMeeting] = useState<Meeting | null>(null);
 
+  const initialStudentEmail = (() => {
+    const qEmail = searchParams.get("email") || searchParams.get("studentEmail");
+    if (qEmail) return qEmail.toLowerCase().trim();
+    if (typeof window !== "undefined") {
+      try {
+        const usr = localStorage.getItem("user");
+        if (usr) {
+          const u = JSON.parse(usr);
+          if (u?.email) return u.email.toLowerCase().trim();
+        }
+        const prof = localStorage.getItem("rcrd_user_profile");
+        if (prof) {
+          const p = JSON.parse(prof);
+          if (p?.email) return p.email.toLowerCase().trim();
+        }
+      } catch {}
+    }
+    return "";
+  })();
+
+  const [activeStudentEmail, setActiveStudentEmail] = useState<string>(initialStudentEmail);
+  const [emailCheckInput, setEmailCheckInput] = useState("");
+  const [emailVerificationError, setEmailVerificationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!roomId) return;
+    fetch(`/api/meetings?id=${encodeURIComponent(roomId)}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.meeting) {
+          setMeeting(data.meeting);
+        }
+      })
+      .catch(() => {});
+  }, [roomId]);
+
   useEffect(() => {
     if (isMentor && (!hostName || hostName.toLowerCase() === "host")) {
       fetch("/api/auth/me")
@@ -255,6 +305,8 @@ export default function ClassRoomPage() {
   // Stream Refs for Safe Unmount-only Cleanup (prevents screen share stopping on camera toggle!)
   const screenStreamRef = useRef<MediaStream | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
+  const localAudioStreamRef = useRef<MediaStream | null>(null);
+  const endClassRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   useEffect(() => {
     screenStreamRef.current = screenStream;
@@ -268,7 +320,7 @@ export default function ClassRoomPage() {
   const [recTimer, setRecTimer] = useState(0);
   const [countdown, setCountdown] = useState(3);
   const [recBlob, setRecBlob] = useState<Blob | null>(null);
-  const [now, setNow] = useState<number>(0);
+  const [now, setNow] = useState<number>(() => (typeof window !== "undefined" ? Date.now() : 0));
 
   // Duration & Auto-End Extension State
   const [showDurationModal, setShowDurationModal] = useState(false);
@@ -292,7 +344,7 @@ export default function ClassRoomPage() {
 
   const meetingDurationMinutes = Number(meeting?.duration) || 60;
   const meetingEndTime = meetingStartTime ? meetingStartTime + meetingDurationMinutes * 60000 : 0;
-  const remainingMs = meetingEndTime ? meetingEndTime - (now || Date.now()) : 0;
+  const remainingMs = meetingEndTime && now > 0 ? Math.max(0, meetingEndTime - now) : 0;
 
   const formatTimer = (ms: number) => {
     if (ms <= 0) return "00:00";
@@ -311,7 +363,7 @@ export default function ClassRoomPage() {
     if (!meetingStartTime || !meeting || meeting.status === "ended") return;
     const durMins = Number(meeting.duration) || 60;
     const endMs = meetingStartTime + durMins * 60000;
-    const isOver = (now || Date.now()) >= endMs;
+    const isOver = now > 0 && endMs > 0 && now >= endMs;
 
     if (isOver) {
       if (isMentor) {
@@ -333,7 +385,7 @@ export default function ClassRoomPage() {
     if (autoEndCountdown === null) return;
     if (autoEndCountdown <= 0) {
       setAutoEndCountdown(null);
-      endClass();
+      endClassRef.current();
       return;
     }
     const timer = setTimeout(() => {
@@ -401,7 +453,6 @@ export default function ClassRoomPage() {
   const cameraDragRef = useRef<{ startX: number; startY: number; initX: number; initY: number } | null>(null);
 
   // WebRTC 2-Way Voice Audio Mesh Refs & Configuration
-  const localAudioStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const remoteAudiosRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
@@ -428,91 +479,6 @@ export default function ClassRoomPage() {
     }
     return `student_${Date.now()}`;
   });
-
-  const handleSFUDataReceived = useCallback(({ type, payload }: { type: string; payload: unknown; sender: string }) => {
-    if (type === "MEETING_ENDED" && !isMentor) {
-      window.location.href = "https://www.geonixa.com/";
-      return;
-    }
-    const data = payload as any;
-    if (type === "SCREEN_SHARE") {
-      if (!screenStreamRef.current) {
-        if (!data?.active) {
-          setRemoteScreenShare({ active: false, streamFrame: undefined, updatedAt: Date.now() });
-          setRemoteWebRTCStream(null);
-        } else {
-          if (!isMentor) {
-            setShowWhiteboard(false);
-            setStudentViewMode("screen");
-          }
-          setRemoteScreenShare(prev => ({
-            active: true,
-            presenterName: data.presenterName || "Host",
-            streamFrame: prev?.streamFrame,
-            updatedAt: Date.now(),
-          }));
-        }
-      }
-    } else if (type === "REMOTE_MUTE_ACTION") {
-      const { targetParticipantId, targetName, isMuted: hostWantsMuted } = data || {};
-      const isTargetingMe = (targetParticipantId && targetParticipantId === myParticipantId) ||
-                            (targetName && (targetName === displayName || targetName === studentName));
-      if (isTargetingMe && !isMentor) {
-        if (hostWantsMuted) {
-          if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
-          setMicOn(false);
-          if (livekitSFURef.current?.isSFUActive) livekitSFURef.current.setMicMutedSFU(true).catch(() => {});
-          showToast("The host has muted your microphone.");
-        } else {
-          if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = true);
-          setMicOn(true);
-          if (livekitSFURef.current?.isSFUActive) livekitSFURef.current.setMicMutedSFU(false).catch(() => {});
-          showToast("The host has unmuted your microphone.");
-        }
-      }
-      setParticipants(prev => prev.map(p => {
-        if ((targetParticipantId && p.id === targetParticipantId) || (targetName && p.name === targetName)) {
-          return { ...p, isMuted: Boolean(hostWantsMuted) };
-        }
-        return p;
-      }));
-    } else if (type === "REMOTE_MUTE_ALL") {
-      if (!isMentor) {
-        if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
-        setMicOn(false);
-        if (livekitSFURef.current?.isSFUActive) livekitSFURef.current.setMicMutedSFU(true).catch(() => {});
-        showToast("The host muted all participants.");
-      }
-      setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
-    }
-  }, [isMentor, myParticipantId, displayName, studentName, showToast]);
-
-  // LiveKit SFU Architecture hook (for high-scale 150+ student classrooms when configured)
-  const livekitSFU = useLiveKitSFU({
-    roomId,
-    participantId: myParticipantId,
-    name: displayName,
-    role: isMentor ? 'Host' : 'Student',
-    password: meeting?.password || '',
-    speakerMuted,
-    onDataReceived: handleSFUDataReceived,
-  });
-
-  const livekitSFURef = useRef(livekitSFU);
-  useEffect(() => {
-    livekitSFURef.current = livekitSFU;
-  });
-
-  const initSFURef = useRef(livekitSFU.initSFU);
-  useEffect(() => {
-    initSFURef.current = livekitSFU.initSFU;
-  });
-
-  useEffect(() => {
-    if (roomId) {
-      initSFURef.current().catch(() => {});
-    }
-  }, [roomId]);
 
   // Remote Host Camera live sync state
   const [remoteHostCamera, setRemoteHostCamera] = useState<{
@@ -609,6 +575,87 @@ export default function ClassRoomPage() {
   useEffect(() => {
     isWebRTCVideoPlayingRef.current = isWebRTCVideoPlaying;
   }, [isWebRTCVideoPlaying]);
+
+  const handleSFUDataReceived = useCallback(({ type, payload }: { type: string; payload: unknown; sender: string }) => {
+    if (type === "MEETING_ENDED" && !isMentor) {
+      window.location.href = "https://www.geonixa.com/";
+      return;
+    }
+    const data = payload as any;
+    if (type === "SCREEN_SHARE") {
+      if (!screenStreamRef.current) {
+        if (!data?.active) {
+          setRemoteScreenShare({ active: false, streamFrame: undefined, updatedAt: Date.now() });
+          setRemoteWebRTCStream(null);
+        } else {
+          if (!isMentor) {
+            setShowWhiteboard(false);
+            setStudentViewMode("screen");
+          }
+          setRemoteScreenShare(prev => ({
+            active: true,
+            presenterName: data.presenterName || "Host",
+            streamFrame: prev?.streamFrame,
+            updatedAt: Date.now(),
+          }));
+        }
+      }
+    } else if (type === "REMOTE_MUTE_ACTION") {
+      const { targetParticipantId, targetName, isMuted: hostWantsMuted } = data || {};
+      const isTargetingMe = (targetParticipantId && targetParticipantId === myParticipantId) ||
+                            (targetName && (targetName === displayName || targetName === studentName));
+      if (isTargetingMe && !isMentor) {
+        if (hostWantsMuted) {
+          if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+          setMicOn(false);
+          if (livekitSFURef.current?.isSFUActive) livekitSFURef.current.setMicMutedSFU(true).catch(() => {});
+          showToast("The host has muted your microphone.");
+        } else {
+          if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = true);
+          setMicOn(true);
+          if (livekitSFURef.current?.isSFUActive) livekitSFURef.current.setMicMutedSFU(false).catch(() => {});
+          showToast("The host has unmuted your microphone.");
+        }
+      }
+      setParticipants(prev => prev.map(p => {
+        if ((targetParticipantId && p.id === targetParticipantId) || (targetName && p.name === targetName)) {
+          return { ...p, isMuted: Boolean(hostWantsMuted) };
+        }
+        return p;
+      }));
+    } else if (type === "REMOTE_MUTE_ALL") {
+      if (!isMentor) {
+        if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
+        setMicOn(false);
+        if (livekitSFURef.current?.isSFUActive) livekitSFURef.current.setMicMutedSFU(true).catch(() => {});
+        showToast("The host muted all participants.");
+      }
+      setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
+    }
+  }, [isMentor, myParticipantId, displayName, studentName, showToast]);
+
+  // LiveKit SFU Architecture hook (for high-scale 150+ student classrooms when configured)
+  const livekitSFU = useLiveKitSFU({
+    roomId,
+    participantId: myParticipantId,
+    name: displayName,
+    role: isMentor ? 'Host' : 'Student',
+    password: meeting?.password || '',
+    speakerMuted,
+    onDataReceived: handleSFUDataReceived,
+  });
+
+  const livekitSFURef = useRef<typeof livekitSFU | null>(null);
+  livekitSFURef.current = livekitSFU;
+
+  const initSFURef = useRef<typeof livekitSFU.initSFU | null>(null);
+  initSFURef.current = livekitSFU.initSFU;
+
+  useEffect(() => {
+    if (roomId && initSFURef.current) {
+      initSFURef.current().catch(() => {});
+    }
+  }, [roomId]);
 
   const lastScreenShareTimestampRef = useRef<number>(0);
   const lastWhiteboardTimestampRef = useRef<number>(0);
@@ -1106,7 +1153,7 @@ export default function ClassRoomPage() {
           audio.play().catch(() => {});
         }
       });
-      livekitSFURef.current.unlockAudioSFU();
+      livekitSFURef.current?.unlockAudioSFU();
       if (remoteScreenVideoRef.current && remoteScreenVideoRef.current.srcObject) {
         remoteScreenVideoRef.current.play().then(() => {
           setIsWebRTCVideoPlaying(true);
@@ -3230,6 +3277,7 @@ export default function ClassRoomPage() {
 
     router.push("/meetings");
   };
+  endClassRef.current = endClass;
 
   const handleExtendMeeting = async (minutesToAdd: number) => {
     if (!roomId || minutesToAdd <= 0) return;
@@ -3583,6 +3631,89 @@ export default function ClassRoomPage() {
 
   const courseName = courses.find(c => c.id === (meeting?.courseId || ""))?.name;
 
+  const copyInviteDetails = useCallback(() => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const pwd = meeting?.password || "";
+    const directLink = pwd ? `${origin}/meeting/${roomId}?pwd=${encodeURIComponent(pwd)}` : `${origin}/meeting/${roomId}`;
+    const passInfo = pwd ? `\nPasscode: ${pwd}` : "";
+    const hostInfo = `\nHost: ${displayName}`;
+    const batchInfo = meeting?.batchName ? `\nBatch: ${meeting.batchName}` : "";
+    const info = `Class Meeting Invitation\nTopic: ${meeting?.title || 'Class Room'}${hostInfo}${batchInfo}\nDirect Join Link: ${directLink}\nMeeting ID: ${roomId}${passInfo}`;
+    navigator.clipboard.writeText(info);
+    showToast("Invite link & details copied!");
+  }, [meeting, roomId, displayName, showToast]);
+
+  const handleToggleParticipantMute = useCallback((targetParticipant: Participant) => {
+    if (!isMentor) return; // STRICT ACCESS: Only host has the access to mute or unmute
+    const shouldMute = !targetParticipant.isMuted;
+
+    // 1. Instantly update participant state
+    setParticipants(prev => prev.map(p => {
+      if (p.id === targetParticipant.id || p.name === targetParticipant.name) {
+        return { ...p, isMuted: shouldMute };
+      }
+      return p;
+    }));
+
+    // 2. Broadcast via LiveKit SFU data channel (sub-millisecond latency)
+    if (livekitSFU.isSFUActive) {
+      livekitSFU.broadcastDataSFU("REMOTE_MUTE_ACTION", {
+        targetParticipantId: targetParticipant.id,
+        targetName: targetParticipant.name,
+        isMuted: shouldMute,
+        hostName: displayName,
+      }).catch(() => {});
+    }
+
+    // 3. Broadcast via WebRTC signaling
+    sendSignal("all", "REMOTE_MUTE_ACTION", {
+      targetParticipantId: targetParticipant.id,
+      targetName: targetParticipant.name,
+      isMuted: shouldMute,
+      hostName: displayName,
+    });
+
+    // 4. Update meeting state on server
+    fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        participantMuteAction: {
+          targetParticipantId: targetParticipant.id,
+          targetName: targetParticipant.name,
+          isMuted: shouldMute,
+          timestamp: Date.now(),
+        }
+      }),
+    }).catch(() => {});
+
+    showToast(shouldMute ? `Muted ${targetParticipant.name}` : `Unmuted ${targetParticipant.name}`);
+  }, [isMentor, livekitSFU, sendSignal, roomId, displayName, showToast]);
+
+  const muteAllParticipants = useCallback(() => {
+    if (!isMentor) return;
+    setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
+    if (livekitSFU.isSFUActive) {
+      livekitSFU.broadcastDataSFU("REMOTE_MUTE_ALL", { hostName: displayName }).catch(() => {});
+    }
+    sendSignal("all", "REMOTE_MUTE_ALL", { hostName: displayName });
+    fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        muteAll: { timestamp: Date.now() }
+      }),
+    }).catch(() => {});
+    showToast("All participants muted.");
+  }, [isMentor, livekitSFU, sendSignal, roomId, displayName, showToast]);
+
+  // Batch-Restricted Access Enforcement
+  const isBatchRestricted = Boolean(meeting?.allowedEmails && meeting.allowedEmails.length > 0);
+  const isStudentEnrolled = !isBatchRestricted || (
+    Boolean(activeStudentEmail) &&
+    (meeting?.allowedEmails || []).some(e => (e || '').toLowerCase().trim() === activeStudentEmail.toLowerCase().trim())
+  );
+
   const isScheduledFuture = !isReadonly && meeting?.status !== "live" && meeting?.scheduledAt && (new Date(meeting.scheduledAt).getTime() > now);
   const lobbyRemainingMs = meeting?.scheduledAt ? Math.max(0, new Date(meeting.scheduledAt).getTime() - now) : 0;
   const remDays = Math.floor(lobbyRemainingMs / (1000 * 60 * 60 * 24));
@@ -3590,7 +3721,7 @@ export default function ClassRoomPage() {
   const remMins = Math.floor((lobbyRemainingMs % (1000 * 60 * 60)) / (1000 * 60));
   const remSecs = Math.floor((lobbyRemainingMs % (1000 * 60)) / 1000);
 
-  // Meeting Ended / Expired Screen for all users when meeting status is 'ended'
+  // 1. Meeting Ended / Expired Screen
   if (meeting?.status === "ended" && !isMentor) {
     return (
       <div className="min-h-screen bg-[#1C1C1E] text-white flex flex-col justify-between p-6 font-sans antialiased text-center relative overflow-hidden">
@@ -3633,6 +3764,131 @@ export default function ClassRoomPage() {
 
         <div className="text-[11px] text-zinc-500">
           Geonixa Classroom Portal · Session {roomId} Concluded
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Batch-Restricted Access Denied Screen (Strict Classroom Security)
+  if (!isMentor && isBatchRestricted && !isStudentEnrolled) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] text-white flex flex-col justify-between p-6 font-sans antialiased text-center relative overflow-hidden">
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-red-600/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="flex items-center justify-between z-10 max-w-4xl mx-auto w-full">
+          <div className="flex items-center gap-3">
+            <RcrdLogo className="h-10 sm:h-12 w-auto scale-115 origin-left" />
+            <span className="text-xs bg-red-500/20 border border-red-500/40 px-3 py-1 rounded-full text-red-300 font-bold">
+              Batch Protected Classroom
+            </span>
+          </div>
+          <a
+            href="https://www.geonixa.com/"
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold text-white shadow-xs transition-colors"
+          >
+            ← Geonixa Website
+          </a>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center z-10 py-12">
+          <div className="bg-[#1E293B] border border-slate-700/80 rounded-3xl p-8 sm:p-10 max-w-lg w-full text-center shadow-2xl space-y-6">
+            <div className="w-20 h-20 bg-red-500/10 border-2 border-red-500/30 rounded-3xl flex items-center justify-center mx-auto text-red-400 shadow-lg">
+              <Lock size={38} />
+            </div>
+
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold rounded-full">
+                Enrolled Batch: {meeting?.batchName || "Assigned Batch"}
+              </span>
+              <h1 className="text-2xl font-black text-white tracking-tight">
+                Batch Access Restricted
+              </h1>
+              <p className="text-xs text-slate-300 leading-relaxed max-w-sm mx-auto">
+                This live session is exclusively configured for students enrolled in the{" "}
+                <strong className="text-white font-semibold">{meeting?.batchName || "Assigned"}</strong> batch.
+                Outside students or unverified accounts cannot enter.
+              </p>
+            </div>
+
+            {activeStudentEmail ? (
+              <div className="bg-slate-900/70 border border-red-500/30 rounded-2xl p-4 text-left">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Detected Account
+                </p>
+                <p className="text-xs font-mono font-bold text-red-300 break-all">
+                  {activeStudentEmail}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-2">
+                  This email is not registered on the batch enrollment roster.
+                </p>
+              </div>
+            ) : null}
+
+            <div className="space-y-3 pt-2">
+              <div className="text-left">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Verify with Enrolled Student Email
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={emailCheckInput}
+                    onChange={e => {
+                      setEmailCheckInput(e.target.value);
+                      setEmailVerificationError(null);
+                    }}
+                    placeholder="student@example.com"
+                    className="flex-1 px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  />
+                  <button
+                    onClick={() => {
+                      const candidate = emailCheckInput.trim().toLowerCase();
+                      if (!candidate) {
+                        setEmailVerificationError("Please enter an email address.");
+                        return;
+                      }
+                      const match = (meeting?.allowedEmails || []).some(
+                        e => (e || '').toLowerCase().trim() === candidate
+                      );
+                      if (match) {
+                        setActiveStudentEmail(candidate);
+                        try {
+                          localStorage.setItem("user", JSON.stringify({ email: candidate, name: studentName || candidate.split('@')[0] }));
+                        } catch {}
+                      } else {
+                        setEmailVerificationError(`'${candidate}' is not in the ${meeting?.batchName || 'batch'} roster.`);
+                      }
+                    }}
+                    className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md shrink-0 cursor-pointer"
+                  >
+                    Verify & Join
+                  </button>
+                </div>
+                {emailVerificationError && (
+                  <p className="text-[11px] font-semibold text-rose-400 mt-1.5">
+                    {emailVerificationError}
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-2 flex flex-col gap-2">
+                <a
+                  href="https://www.geonixa.com/"
+                  className="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all border border-slate-700 flex items-center justify-center cursor-pointer"
+                >
+                  Return to Geonixa Homepage
+                </a>
+                {meeting?.hostEmail && (
+                  <p className="text-[11px] text-slate-400">
+                    Need access? Contact Host: <span className="text-slate-300 font-mono">{meeting.hostEmail}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-[11px] text-slate-500">
+          Geonixa Classroom Security · Batch Protected Room {roomId}
         </div>
       </div>
     );
@@ -3714,81 +3970,6 @@ export default function ClassRoomPage() {
       </div>
     );
   }
-
-  const copyInviteDetails = () => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const pwd = meeting?.password || "";
-    const directLink = pwd ? `${origin}/meeting/${roomId}?pwd=${encodeURIComponent(pwd)}` : `${origin}/meeting/${roomId}`;
-    const passInfo = pwd ? `\nPasscode: ${pwd}` : "";
-    const hostInfo = `\nHost: ${displayName}`;
-    const info = `Class Meeting Invitation\nTopic: ${meeting?.title || 'Class Room'}${hostInfo}\nDirect Join Link: ${directLink}\nMeeting ID: ${roomId}${passInfo}`;
-    navigator.clipboard.writeText(info);
-    showToast("Invite link & details copied!");
-  };
-
-  const handleToggleParticipantMute = useCallback((targetParticipant: Participant) => {
-    if (!isMentor) return; // STRICT ACCESS: Only host has the access to mute or unmute
-    const shouldMute = !targetParticipant.isMuted;
-
-    // 1. Instantly update participant state
-    setParticipants(prev => prev.map(p => {
-      if (p.id === targetParticipant.id || p.name === targetParticipant.name) {
-        return { ...p, isMuted: shouldMute };
-      }
-      return p;
-    }));
-
-    // 2. Broadcast via LiveKit SFU data channel (sub-millisecond latency)
-    if (livekitSFU.isSFUActive) {
-      livekitSFU.broadcastDataSFU("REMOTE_MUTE_ACTION", {
-        targetParticipantId: targetParticipant.id,
-        targetName: targetParticipant.name,
-        isMuted: shouldMute,
-        hostName: displayName,
-      }).catch(() => {});
-    }
-
-    // 3. Broadcast via WebRTC signaling
-    sendSignal("all", "REMOTE_MUTE_ACTION", {
-      targetParticipantId: targetParticipant.id,
-      targetName: targetParticipant.name,
-      isMuted: shouldMute,
-      hostName: displayName,
-    });
-
-    // 4. Update meeting state on server
-    fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        participantMuteAction: {
-          targetParticipantId: targetParticipant.id,
-          targetName: targetParticipant.name,
-          isMuted: shouldMute,
-          timestamp: Date.now(),
-        }
-      }),
-    }).catch(() => {});
-
-    showToast(shouldMute ? `Muted ${targetParticipant.name}` : `Unmuted ${targetParticipant.name}`);
-  }, [isMentor, livekitSFU, sendSignal, roomId, displayName, showToast]);
-
-  const muteAllParticipants = useCallback(() => {
-    if (!isMentor) return;
-    setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
-    if (livekitSFU.isSFUActive) {
-      livekitSFU.broadcastDataSFU("REMOTE_MUTE_ALL", { hostName: displayName }).catch(() => {});
-    }
-    sendSignal("all", "REMOTE_MUTE_ALL", { hostName: displayName });
-    fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        muteAll: { timestamp: Date.now() }
-      }),
-    }).catch(() => {});
-    showToast("All participants muted.");
-  }, [isMentor, livekitSFU, sendSignal, roomId, displayName, showToast]);
 
   return (
     <div className="h-screen bg-black flex flex-col overflow-hidden text-white select-none font-sans relative">

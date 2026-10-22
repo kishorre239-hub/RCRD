@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { 
   ExternalLink, 
   ChevronDown, Info, Download, Globe, HardDrive,
-  Share2, Bell, Cloud, Check, X
+  Share2, Bell, Cloud, Check, X,
+  Plus, Trash2, Edit2, Users, Mail, Shield, Copy, Sparkles, Search
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, SettingsIcon,
   UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 import { 
-  saveDriveFolder, getDriveFolder 
+  saveDriveFolder, getDriveFolder, fetchWithAuth 
 } from '@/lib/api';
 import UsersTab from '@/components/UsersTab';
 import { openGlobalRecording } from "@/components/GlobalRecordingManager";
@@ -46,6 +47,18 @@ interface MeetingRecordingsState {
   meetingRecap: string;
   linkAccess: string;
   languageSetting: string;
+}
+
+interface Batch {
+  id: string;
+  name: string;
+  topic?: string;
+  description?: string;
+  studentEmails: string[];
+  mentorEmail?: string;
+  createdBy?: string;
+  createdAt?: number;
+  updatedAt?: number;
 }
 
 // PushRow declared outside of render to prevent recreation and React lint errors
@@ -191,6 +204,160 @@ export default function SettingsPage() {
 
   // Mounted state to prevent overwriting local storage on load
   const [isMounted, setIsMounted] = useState(false);
+
+  // Class Batches & Student Enrollment state
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [loadingBatches, setLoadingBatches] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
+  const [batchName, setBatchName] = useState("");
+  const [batchTopic, setBatchTopic] = useState("");
+  const [batchDescription, setBatchDescription] = useState("");
+  const [batchEmailsText, setBatchEmailsText] = useState("");
+  const [batchSaving, setBatchSaving] = useState(false);
+  const [batchToast, setBatchToast] = useState<string | null>(null);
+  const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
+  const [batchSearchQuery, setBatchSearchQuery] = useState("");
+  const [copiedBatchId, setCopiedBatchId] = useState<string | null>(null);
+
+  const showBatchNotification = (msg: string) => {
+    setBatchToast(msg);
+    setTimeout(() => setBatchToast(null), 3500);
+  };
+
+  const loadBatches = useCallback(async () => {
+    setLoadingBatches(true);
+    try {
+      const res = await fetchWithAuth('/batches');
+      const data = await res.json();
+      if (data?.batches) {
+        setBatches(data.batches);
+      }
+    } catch (err) {
+      console.warn("Failed to load batches:", err);
+    } finally {
+      setLoadingBatches(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "workspace") {
+      loadBatches();
+    }
+  }, [activeTab, loadBatches]);
+
+  const openCreateBatch = () => {
+    setEditingBatch(null);
+    setBatchName("");
+    setBatchTopic("");
+    setBatchDescription("");
+    setBatchEmailsText("");
+    setShowBatchModal(true);
+  };
+
+  const openEditBatch = (b: Batch) => {
+    setEditingBatch(b);
+    setBatchName(b.name || "");
+    setBatchTopic(b.topic || "");
+    setBatchDescription(b.description || "");
+    setBatchEmailsText((b.studentEmails || []).join("\n"));
+    setShowBatchModal(true);
+  };
+
+  const parseEmails = (text: string): string[] => {
+    const list = text.split(/[\r\n,;]+/);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const set = new Set<string>();
+    for (const item of list) {
+      const trimmed = item.trim().toLowerCase();
+      if (trimmed && emailRegex.test(trimmed)) {
+        set.add(trimmed);
+      }
+    }
+    return Array.from(set);
+  };
+
+  const handleSaveBatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!batchName.trim()) {
+      showBatchNotification("Please enter a batch name.");
+      return;
+    }
+    const studentEmails = parseEmails(batchEmailsText);
+    setBatchSaving(true);
+    try {
+      if (editingBatch) {
+        const res = await fetchWithAuth('/batches', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editingBatch.id,
+            name: batchName.trim(),
+            topic: batchTopic.trim(),
+            description: batchDescription.trim(),
+            studentEmails,
+          }),
+        });
+        const data = await res.json();
+        if (data?.batch) {
+          showBatchNotification(`Batch "${batchName}" updated successfully!`);
+          setShowBatchModal(false);
+          loadBatches();
+        } else {
+          showBatchNotification(data.error || "Failed to update batch.");
+        }
+      } else {
+        const res = await fetchWithAuth('/batches', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: batchName.trim(),
+            topic: batchTopic.trim(),
+            description: batchDescription.trim(),
+            studentEmails,
+          }),
+        });
+        const data = await res.json();
+        if (data?.batch) {
+          showBatchNotification(`Batch "${batchName}" created with ${studentEmails.length} enrolled students!`);
+          setShowBatchModal(false);
+          loadBatches();
+        } else {
+          showBatchNotification(data.error || "Failed to create batch.");
+        }
+      }
+    } catch {
+      showBatchNotification("Network error while saving batch.");
+    } finally {
+      setBatchSaving(false);
+    }
+  };
+
+  const handleDeleteBatch = async (b: Batch) => {
+    if (!confirm(`Are you sure you want to delete the batch "${b.name}"?`)) return;
+    try {
+      const res = await fetchWithAuth(`/batches?id=${encodeURIComponent(b.id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data?.success) {
+        showBatchNotification(`Batch "${b.name}" deleted.`);
+        loadBatches();
+      } else {
+        showBatchNotification(data.error || "Failed to delete batch.");
+      }
+    } catch {
+      showBatchNotification("Network error deleting batch.");
+    }
+  };
+
+  const copyBatchEmails = (b: Batch) => {
+    if (!b.studentEmails || b.studentEmails.length === 0) return;
+    navigator.clipboard.writeText(b.studentEmails.join(", "));
+    setCopiedBatchId(b.id);
+    showBatchNotification(`Copied ${b.studentEmails.length} student emails to clipboard.`);
+    setTimeout(() => setCopiedBatchId(null), 2000);
+  };
 
   // Initialize from LocalStorage
   useEffect(() => {
@@ -596,6 +763,343 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Toast Notification */}
+                {batchToast && (
+                  <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-[#154360] text-white text-xs font-semibold rounded-xl shadow-xl shadow-[#154360]/30 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                    <Check size={16} className="text-emerald-400 shrink-0" />
+                    <span>{batchToast}</span>
+                  </div>
+                )}
+
+                {/* Class Batches & Student Enrollment Section */}
+                <div className="border border-[#E2E7EC] rounded-2xl p-6 sm:p-8 bg-white shadow-xs space-y-6">
+                  {/* Section Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-[#E2E7EC]">
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200/80 flex items-center justify-center text-indigo-700 shrink-0 shadow-2xs">
+                        <Users size={24} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-bold text-[#20262E]">Class Batches & Student Enrollment</h3>
+                          <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                            {batches.length} {batches.length === 1 ? 'Batch' : 'Batches'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#57636E] mt-0.5 max-w-xl">
+                          Create dedicated cohorts (e.g. Web Development). When scheduling a meeting, select a batch so only enrolled students can join—outsiders are strictly blocked.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={openCreateBatch}
+                        className="px-4 py-2.5 bg-gradient-to-r from-[#154360] to-[#0E2F44] hover:brightness-110 active:scale-[0.99] text-white text-xs font-bold rounded-xl shadow-md shadow-[#154360]/20 flex items-center gap-2 transition-all cursor-pointer"
+                      >
+                        <Plus size={15} />
+                        <span>Create New Batch</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Filter & Search Bar */}
+                  {batches.length > 0 && (
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#57636E]" size={14} />
+                        <input
+                          type="text"
+                          value={batchSearchQuery}
+                          onChange={e => setBatchSearchQuery(e.target.value)}
+                          placeholder="Search by batch name, topic, or student email..."
+                          className="w-full pl-9 pr-3.5 py-2 bg-[#F8FAFC] border border-[#E2E7EC] focus:border-[#154360] focus:bg-white rounded-xl text-xs outline-none transition-all"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-[#57636E]">
+                        <Shield size={14} className="text-indigo-600" />
+                        <span>Total Enrolled Students: <strong className="text-[#20262E]">{batches.reduce((acc, b) => acc + (b.studentEmails?.length || 0), 0)}</strong></span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Batches Grid or Empty State */}
+                  {loadingBatches ? (
+                    <div className="py-12 text-center text-xs text-[#57636E]">
+                      <div className="inline-block w-6 h-6 border-2 border-[#154360] border-t-transparent rounded-full animate-spin mb-2" />
+                      <p>Loading class batches...</p>
+                    </div>
+                  ) : batches.length === 0 ? (
+                    <div className="p-8 sm:p-10 rounded-2xl border-2 border-dashed border-[#E2E7EC] bg-[#F8FAFC] text-center space-y-4">
+                      <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center mx-auto text-indigo-600">
+                        <Users size={28} />
+                      </div>
+                      <div className="max-w-md mx-auto">
+                        <h4 className="text-sm font-bold text-[#20262E]">No Class Batches Created Yet</h4>
+                        <p className="text-xs text-[#57636E] mt-1">
+                          Create your first batch (e.g. &ldquo;Web Development&rdquo;) and add your student emails. Once created, mentors can select this batch when starting a meeting.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          openCreateBatch();
+                          setBatchName("Web Development Batch");
+                          setBatchTopic("Full-Stack Web Development");
+                        }}
+                        className="px-4 py-2.5 bg-[#154360] hover:bg-[#1A5276] text-white text-xs font-bold rounded-xl shadow-xs inline-flex items-center gap-2 transition-all cursor-pointer"
+                      >
+                        <Plus size={14} />
+                        <span>Create &ldquo;Web Development&rdquo; Batch</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {batches
+                        .filter(b => {
+                          if (!batchSearchQuery.trim()) return true;
+                          const q = batchSearchQuery.toLowerCase();
+                          return (
+                            b.name.toLowerCase().includes(q) ||
+                            (b.topic || "").toLowerCase().includes(q) ||
+                            (b.studentEmails || []).some(e => e.toLowerCase().includes(q))
+                          );
+                        })
+                        .map(b => {
+                          const isExpanded = expandedBatchId === b.id;
+                          return (
+                            <div
+                              key={b.id}
+                              className="border border-[#E2E7EC] hover:border-indigo-300 rounded-2xl p-5 bg-white transition-all shadow-xs flex flex-col justify-between"
+                            >
+                              <div>
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <h4 className="text-sm font-extrabold text-[#20262E] truncate">
+                                        {b.name}
+                                      </h4>
+                                      {b.topic && (
+                                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#EBF5FB] text-[#154360] border border-[#154360]/20">
+                                          {b.topic}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {b.description && (
+                                      <p className="text-xs text-[#57636E] mt-1 line-clamp-2">
+                                        {b.description}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditBatch(b)}
+                                      title="Edit Batch"
+                                      className="p-1.5 text-[#57636E] hover:text-[#154360] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
+                                    >
+                                      <Edit2 size={14} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteBatch(b)}
+                                      title="Delete Batch"
+                                      className="p-1.5 text-[#57636E] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="mt-3 pt-3 border-t border-[#E2E7EC]/70 flex items-center justify-between text-xs">
+                                  <span className="inline-flex items-center gap-1.5 font-semibold text-indigo-900 bg-indigo-50/80 px-2.5 py-1 rounded-lg border border-indigo-100">
+                                    <Shield size={12} className="text-indigo-600" />
+                                    <span>{b.studentEmails?.length || 0} Students Enrolled</span>
+                                  </span>
+
+                                  <div className="flex items-center gap-2">
+                                    {b.studentEmails?.length > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => copyBatchEmails(b)}
+                                        className="inline-flex items-center gap-1 text-[11px] font-medium text-[#57636E] hover:text-[#154360] cursor-pointer"
+                                        title="Copy all student emails"
+                                      >
+                                        {copiedBatchId === b.id ? (
+                                          <>
+                                            <Check size={12} className="text-emerald-600" />
+                                            <span className="text-emerald-600 font-bold">Copied</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Copy size={12} />
+                                            <span>Copy Emails</span>
+                                          </>
+                                        )}
+                                      </button>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedBatchId(isExpanded ? null : b.id)}
+                                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#154360] hover:underline cursor-pointer"
+                                    >
+                                      <span>{isExpanded ? 'Hide' : 'View'} Emails</span>
+                                      <ChevronDown size={12} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Expanded Enrolled Emails */}
+                                {isExpanded && (
+                                  <div className="mt-3 pt-3 border-t border-indigo-100/60 bg-[#F8FAFC] p-3 rounded-xl space-y-2">
+                                    <div className="flex items-center justify-between text-[11px] font-bold text-[#57636E] uppercase tracking-wider">
+                                      <span>Authorized Student Emails</span>
+                                      <span>{b.studentEmails?.length || 0} verified</span>
+                                    </div>
+
+                                    {b.studentEmails && b.studentEmails.length > 0 ? (
+                                      <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                                        {b.studentEmails.map((email, idx) => (
+                                          <span
+                                            key={idx}
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-white border border-[#E2E7EC] text-[#20262E] shadow-2xs"
+                                          >
+                                            <Mail size={10} className="text-[#57636E]" />
+                                            {email}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-[#57636E] italic">
+                                        No student emails registered. Click &ldquo;Edit Batch&rdquo; to paste email addresses.
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Create / Edit Batch Modal */}
+                {showBatchModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-[#E2E7EC] space-y-5 animate-in zoom-in-95 duration-200">
+                      <div className="flex items-center justify-between pb-4 border-b border-[#E2E7EC]">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700">
+                            <Users size={20} />
+                          </div>
+                          <div>
+                            <h3 className="text-base font-extrabold text-[#20262E]">
+                              {editingBatch ? 'Edit Class Batch' : 'Create New Class Batch'}
+                            </h3>
+                            <p className="text-xs text-[#57636E]">
+                              Configure student enrollment and meeting access control
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowBatchModal(false)}
+                          className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+
+                      <form onSubmit={handleSaveBatch} className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
+                            Batch Name *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={batchName}
+                            onChange={e => setBatchName(e.target.value)}
+                            placeholder="e.g. Web Development - Batch 1"
+                            className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all font-medium text-[#20262E]"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
+                              Course / Topic
+                            </label>
+                            <input
+                              type="text"
+                              value={batchTopic}
+                              onChange={e => setBatchTopic(e.target.value)}
+                              placeholder="e.g. Full-Stack Web Development"
+                              className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all font-medium text-[#20262E]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
+                              Short Description
+                            </label>
+                            <input
+                              type="text"
+                              value={batchDescription}
+                              onChange={e => setBatchDescription(e.target.value)}
+                              placeholder="e.g. Monday-Friday evening cohort"
+                              className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all font-medium text-[#20262E]"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider">
+                              Enrolled Student Emails *
+                            </label>
+                            <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                              {parseEmails(batchEmailsText).length} valid emails detected
+                            </span>
+                          </div>
+                          <textarea
+                            rows={6}
+                            value={batchEmailsText}
+                            onChange={e => setBatchEmailsText(e.target.value)}
+                            placeholder={"student1@gmail.com\nstudent2@example.com\nstudent3@domain.org\n(Paste emails separated by new lines, commas, or semicolons)"}
+                            className="w-full p-3.5 bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all font-mono font-medium text-[#20262E] leading-relaxed resize-y"
+                          />
+                          <p className="text-[11px] text-[#57636E] mt-1 flex items-center gap-1.5">
+                            <Shield size={12} className="text-indigo-600 shrink-0" />
+                            <span>When a host starts a meeting assigned to this batch, only students with these emails will be allowed in.</span>
+                          </p>
+                        </div>
+
+                        <div className="pt-3 border-t border-[#E2E7EC] flex items-center justify-end gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setShowBatchModal(false)}
+                            className="px-4 py-2 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={batchSaving || !batchName.trim()}
+                            className="px-5 py-2 bg-gradient-to-r from-[#154360] to-[#0E2F44] hover:brightness-110 active:scale-[0.99] disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-[#154360]/20 transition-all cursor-pointer"
+                          >
+                            {batchSaving ? 'Saving...' : (editingBatch ? 'Save Changes' : 'Create Batch')}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1128,7 +1632,7 @@ export default function SettingsPage() {
             )}
             
             {/* Fallback for other tabs */}
-            {!["my-account", "billing", "meeting-recordings", "push-notifications", "integrations", "quick-record", "keyboard-shortcuts"].includes(activeTab) && (
+            {!["my-account", "billing", "meeting-recordings", "push-notifications", "integrations", "quick-record", "keyboard-shortcuts", "workspace", "users"].includes(activeTab) && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <SettingsIcon size={48} className="text-slate-300 mb-4" />
                 <h2 className="text-[18px] font-bold text-[#20262E] mb-2">Coming Soon</h2>

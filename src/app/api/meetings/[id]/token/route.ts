@@ -46,6 +46,15 @@ export async function POST(
 
     // Validate password if meeting has password set and user is a student
     const isMentor = role === 'host' || role === 'mentor';
+    const storedAllowedEmails = (meeting as { allowedEmails?: string[] })?.allowedEmails;
+    if (!isMentor && storedAllowedEmails && storedAllowedEmails.length > 0) {
+      const studentEmail = (body.email || body.studentEmail || '').toLowerCase().trim();
+      const isAllowed = storedAllowedEmails.some((e: string) => (e || '').toLowerCase().trim() === studentEmail);
+      if (!isAllowed) {
+        return NextResponse.json({ error: 'Access Denied: You are not enrolled in the assigned batch for this meeting.', batchRestricted: true }, { status: 403 });
+      }
+    }
+
     if (!isMentor && meeting?.password && password && meeting.password !== password) {
       return NextResponse.json({ error: 'Invalid meeting password' }, { status: 401 });
     }

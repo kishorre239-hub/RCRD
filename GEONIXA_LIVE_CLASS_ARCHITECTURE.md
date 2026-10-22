@@ -23,7 +23,9 @@
 | **Next.js Integration** | **Native npm packages (`livekit-client`, `livekit-server-sdk`)** | Heavy JS wrapper | React SDK wrapper | Custom Web SDK |
 
 ### 1.2 Decision Rationale
+
 **LiveKit** is selected as the production WebRTC SFU architecture for Geonixa because:
+
 1. **Dramatic Cost Advantage**: Agora and Daily charge on a participant-minute basis ($35+ per single 150-student class). LiveKit charges bandwidth egress (~$2.70 per class on LiveKit Cloud, or $0 additional cost when hosted on a dedicated Hetzner/AWS instance).
 2. **Zero Vendor Lock-in**: LiveKit is fully open source. Geonixa can launch on LiveKit Cloud for instant turnkey setup and later migrate to a self-hosted instance without changing a single line of frontend code.
 3. **Simulcast & Dynacast**: Automatically streams high quality (1080p) to students with fast Wi-Fi and scales down to 720p or 360p for students on weak mobile 4G networks without degrading the class for others.
@@ -77,6 +79,7 @@ graph TD
 ## 3. Teacher and Student Flow
 
 ### 3.1 Teacher Publishing Pipeline
+
 1. Teacher starts screen share in classroom.
 2. The browser requests screen video (`1920x1080` at `30-60 fps`) and tab audio.
 3. The video track is published to the SFU with **simulcast layers**:
@@ -86,6 +89,7 @@ graph TD
 4. Teacher uploads **only once** to the SFU server, consuming ~2.5 Mbps of upstream bandwidth regardless of whether 1 student or 150 students are watching!
 
 ### 3.2 Student Subscription Pipeline
+
 1. Student enters meeting room URL (`/meetings/room/[id]`).
 2. Student browser requests an authenticated short-lived room token from `/api/meetings/[id]/token`.
 3. The Next.js API route validates meeting password, role, and course enrollment, and mints an encrypted LiveKit Access Token.

@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  X, Check, ExternalLink, Sparkles, User, CreditCard, 
-  Keyboard, Download, Smartphone, LogOut, Edit3,
-  Camera, Trash2, Loader2
+  X, Check, ExternalLink, Globe, GraduationCap, 
+  BookOpen, Headset, User, LogOut, Edit3,
+  Camera, Trash2, Loader2, Sparkles
 } from "lucide-react";
 import { fetchWithAuth } from "@/lib/api";
 
@@ -78,11 +78,6 @@ export default function ProfileFlyout({
   const [editForm, setEditForm] = useState<UserProfileData>(getStoredProfile);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
-  // Secondary modals
-  const [showShortcuts, setShowShortcuts] = useState(false);
-  const [showDownloadApp, setShowDownloadApp] = useState(false);
-  const [showMobileApp, setShowMobileApp] = useState(false);
-  const [showChromeExt, setShowChromeExt] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -393,93 +388,77 @@ export default function ProfileFlyout({
             </form>
           )}
 
-          {/* Section 2: Plan & Role Info (Matching 5th image) */}
+          {/* Section 2: Geonixa Platform Links Hub (Image 4 Replacement) */}
           <div className="pt-4 border-t border-[#E2E7EC] space-y-1.5">
-            <div 
-              onClick={() => { onClose(); router.push('/settings?tab=billing'); }}
-              className="text-xs font-bold text-[#154360] hover:text-[#0E2F44] cursor-pointer flex items-center justify-between group"
-            >
-              <span>Upgrade plan</span>
-              <ExternalLink size={12} className="group-hover:translate-x-0.5 transition-transform" />
-            </div>
-            <p className="text-xs text-[#57636E]">
-              Current role: <strong className="text-[#20262E] font-semibold">{profile.role}</strong>
+            <p className="text-[11px] font-bold text-[#57636E] uppercase tracking-wider px-1 mb-2">
+              Geonixa Platform Links
             </p>
-            <p className="text-xs text-[#57636E]">
-              Current plan: <strong className="text-[#20262E] font-semibold">{profile.plan}</strong>
-            </p>
-            <p className="text-xs text-[#57636E]">
-              {videoCount}/25 videos
-            </p>
-          </div>
 
-          {/* Section 3: AI Feature Card (Matching 5th image, Loom -> RCRD) */}
-          <div className="pt-4 border-t border-[#E2E7EC]">
-            <div 
-              onClick={() => showToast("RCRD AI feature activated!")}
-              className="p-3.5 bg-gradient-to-br from-[#EBF5FB] to-white rounded-xl border border-[#154360]/25 hover:border-[#154360] transition-all cursor-pointer group shadow-2xs"
-            >
-              <div className="flex items-center gap-1.5 text-xs font-bold text-[#0E2F44] group-hover:text-[#154360]">
-                <Sparkles size={14} className="text-[#154360]" />
-                <span>Get RCRD AI✦</span>
-              </div>
-              <p className="text-[11px] text-[#57636E] mt-1 leading-relaxed">
-                Create better video messages without lifting a finger
-              </p>
-            </div>
-          </div>
-
-          {/* Section 4: Navigational Links (Matching 5th image) */}
-          <div className="pt-4 border-t border-[#E2E7EC] space-y-1">
-            <button
-              onClick={() => { onClose(); router.push('/settings'); }}
-              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors flex items-center gap-2.5 cursor-pointer"
-            >
-              <User size={15} className="text-[#57636E]" />
-              <span>View profile</span>
-            </button>
-
-            <button
-              onClick={() => { onClose(); router.push('/settings?tab=billing'); }}
-              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors flex items-center justify-between cursor-pointer"
+            {/* Geonixa Official Website */}
+            <a
+              href="https://geonixa.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#154360] hover:bg-[#EBF5FB] rounded-xl transition-all flex items-center justify-between group border border-transparent hover:border-[#154360]/20"
             >
               <span className="flex items-center gap-2.5">
-                <CreditCard size={15} className="text-[#57636E]" />
-                <span>Billing</span>
+                <Globe size={15} className="text-[#154360]" />
+                <span className="font-bold">geonixa</span>
               </span>
-              <ExternalLink size={12} className="text-[#57636E]" />
-            </button>
+              <ExternalLink size={12} className="text-[#154360] group-hover:translate-x-0.5 transition-transform" />
+            </a>
 
-            <button
-              onClick={() => setShowShortcuts(true)}
-              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors flex items-center gap-2.5 cursor-pointer"
+            {/* Geonixa LMS Portal */}
+            <a
+              href="https://lms.geonixa.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full text-left px-3 py-2 text-xs font-semibold text-purple-900 hover:bg-purple-50 rounded-xl transition-all flex items-center justify-between group border border-transparent hover:border-purple-200"
             >
-              <Keyboard size={15} className="text-[#57636E]" />
-              <span>Keyboard shortcuts</span>
-            </button>
+              <span className="flex items-center gap-2.5">
+                <GraduationCap size={15} className="text-[#6C3483]" />
+                <span className="font-bold">geonixa lms</span>
+              </span>
+              <ExternalLink size={12} className="text-[#6C3483] group-hover:translate-x-0.5 transition-transform" />
+            </a>
 
-            <button
-              onClick={() => setShowChromeExt(true)}
-              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors flex items-center gap-2.5 cursor-pointer"
+            {/* Geonixa Courses */}
+            <a
+              href="https://geonixa.com/courses"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#20262E] hover:bg-[#F5F6F8] rounded-xl transition-all flex items-center justify-between group border border-transparent hover:border-[#E2E7EC]"
             >
-              <Download size={15} className="text-[#57636E]" />
-              <span>Install Chrome extension</span>
-            </button>
+              <span className="flex items-center gap-2.5">
+                <BookOpen size={15} className="text-[#57636E]" />
+                <span>Geonixa Courses</span>
+              </span>
+              <ExternalLink size={12} className="text-[#57636E] group-hover:translate-x-0.5 transition-transform" />
+            </a>
 
-            <button
-              onClick={() => setShowDownloadApp(true)}
-              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors flex items-center gap-2.5 cursor-pointer"
+            {/* Geonixa Help & Support */}
+            <a
+              href="https://geonixa.com/contact"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#20262E] hover:bg-[#F5F6F8] rounded-xl transition-all flex items-center justify-between group border border-transparent hover:border-[#E2E7EC]"
             >
-              <Download size={15} className="text-[#57636E]" />
-              <span>Download desktop app</span>
-            </button>
+              <span className="flex items-center gap-2.5">
+                <Headset size={15} className="text-[#57636E]" />
+                <span>Geonixa Help &amp; Support</span>
+              </span>
+              <ExternalLink size={12} className="text-[#57636E] group-hover:translate-x-0.5 transition-transform" />
+            </a>
+          </div>
 
+          {/* Section 3: Profile & Settings */}
+          <div className="pt-3 border-t border-[#E2E7EC] space-y-1">
             <button
-              onClick={() => setShowMobileApp(true)}
-              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors flex items-center gap-2.5 cursor-pointer"
+              onClick={() => { onClose(); router.push('/settings'); }}
+              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#20262E] hover:bg-[#F5F6F8] rounded-xl transition-colors flex items-center gap-2.5 cursor-pointer"
             >
-              <Smartphone size={15} className="text-[#57636E]" />
-              <span>Download mobile app</span>
+              <User size={15} className="text-[#57636E]" />
+              <span>View Profile &amp; Settings</span>
             </button>
           </div>
 
@@ -514,141 +493,6 @@ export default function ProfileFlyout({
           </div>
         )}
       </div>
-
-      {/* Keyboard Shortcuts Modal */}
-      {showShortcuts && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E2E7EC] font-sans">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E7EC] mb-4">
-              <h3 className="text-base font-bold text-[#20262E] flex items-center gap-2">
-                <Keyboard size={18} className="text-[#154360]" />
-                Keyboard Shortcuts
-              </h3>
-              <button onClick={() => setShowShortcuts(false)} className="text-[#57636E] hover:text-[#20262E]">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="space-y-2.5 text-xs">
-              <div className="flex justify-between items-center py-1.5 border-b border-[#E2E7EC]/60">
-                <span className="text-[#57636E]">Start / Stop Recording</span>
-                <kbd className="px-2 py-1 bg-[#F5F6F8] border border-[#E2E7EC] rounded font-mono font-bold text-[#20262E]">Ctrl + Shift + R</kbd>
-              </div>
-              <div className="flex justify-between items-center py-1.5 border-b border-[#E2E7EC]/60">
-                <span className="text-[#57636E]">Pause / Resume Recording</span>
-                <kbd className="px-2 py-1 bg-[#F5F6F8] border border-[#E2E7EC] rounded font-mono font-bold text-[#20262E]">Ctrl + Shift + P</kbd>
-              </div>
-              <div className="flex justify-between items-center py-1.5 border-b border-[#E2E7EC]/60">
-                <span className="text-[#57636E]">Toggle Microphone</span>
-                <kbd className="px-2 py-1 bg-[#F5F6F8] border border-[#E2E7EC] rounded font-mono font-bold text-[#20262E]">Ctrl + Shift + M</kbd>
-              </div>
-              <div className="flex justify-between items-center py-1.5">
-                <span className="text-[#57636E]">Cancel Recording</span>
-                <kbd className="px-2 py-1 bg-[#F5F6F8] border border-[#E2E7EC] rounded font-mono font-bold text-[#20262E]">Esc</kbd>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Chrome Extension Modal */}
-      {showChromeExt && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E2E7EC] font-sans text-center">
-            <div className="w-12 h-12 bg-[#EBF5FB] text-[#154360] rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <Download size={24} />
-            </div>
-            <h3 className="text-base font-bold text-[#20262E]">RCRD Chrome Extension</h3>
-            <p className="text-xs text-[#57636E] mt-1.5 leading-relaxed">
-              Record full screen, tab, or webcam directly from Chrome with 1 click.
-            </p>
-            <div className="mt-5 flex gap-2">
-              <button 
-                onClick={() => {
-                  navigator.clipboard.writeText("https://chromewebstore.google.com");
-                  showToast("Chrome Web Store link copied!");
-                  setShowChromeExt(false);
-                }}
-                className="flex-1 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
-              >
-                Copy Extension Link
-              </button>
-              <button onClick={() => setShowChromeExt(false)} className="px-4 py-2.5 border border-[#E2E7EC] text-xs font-semibold rounded-xl text-[#20262E]">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Desktop App Modal */}
-      {showDownloadApp && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E2E7EC] font-sans text-center">
-            <div className="w-12 h-12 bg-[#EBF5FB] text-[#154360] rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <Download size={24} />
-            </div>
-            <h3 className="text-base font-bold text-[#20262E]">Download RCRD Desktop</h3>
-            <p className="text-xs text-[#57636E] mt-1.5 leading-relaxed">
-              Native desktop app for Windows and macOS with system tray hotkeys.
-            </p>
-            <div className="mt-5 flex gap-2">
-              <button 
-                onClick={() => {
-                  showToast("Starting Windows desktop installer download...");
-                  setShowDownloadApp(false);
-                }}
-                className="flex-1 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
-              >
-                Download for Windows
-              </button>
-              <button 
-                onClick={() => {
-                  showToast("Starting macOS desktop installer download...");
-                  setShowDownloadApp(false);
-                }}
-                className="flex-1 py-2.5 bg-white border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E] text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-              >
-                macOS (.dmg)
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Mobile App Modal */}
-      {showMobileApp && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#E2E7EC] font-sans text-center">
-            <div className="w-12 h-12 bg-[#EBF5FB] text-[#154360] rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <Smartphone size={24} />
-            </div>
-            <h3 className="text-base font-bold text-[#20262E]">RCRD for iOS & Android</h3>
-            <p className="text-xs text-[#57636E] mt-1.5 leading-relaxed">
-              Record and view video messages on your phone on the go.
-            </p>
-            <div className="mt-5 flex gap-2">
-              <button 
-                onClick={() => {
-                  showToast("Redirecting to App Store...");
-                  setShowMobileApp(false);
-                }}
-                className="flex-1 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
-              >
-                Apple App Store
-              </button>
-              <button 
-                onClick={() => {
-                  showToast("Redirecting to Google Play...");
-                  setShowMobileApp(false);
-                }}
-                className="flex-1 py-2.5 bg-white border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E] text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-              >
-                Google Play
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

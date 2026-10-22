@@ -20,6 +20,7 @@ export interface WorkspaceUser {
   status: "Active" | "Access Revoked" | "Suspended" | string;
   hasAccess?: boolean;
   allowedNavItems?: string[];
+  avatarUrl?: string | null;
 }
 
 const DEFAULT_USERS: WorkspaceUser[] = [
@@ -32,6 +33,7 @@ const DEFAULT_USERS: WorkspaceUser[] = [
     status: "Active",
     hasAccess: true,
     allowedNavItems: ALL_NAV_ITEMS.map(i => i.id),
+    avatarUrl: null,
   },
 ];
 
@@ -86,13 +88,14 @@ export default function UsersTab() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [giveImmediateAccess, setGiveImmediateAccess] = useState(true);
   const [newRole, setNewRole] = useState<"Mentor" | "Admin">("Mentor");
-  const [newAllowedNav, setNewAllowedNav] = useState<string[]>(["for-you", "library", "meetings"]);
+  const [newAllowedNav, setNewAllowedNav] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Edit User Form States
   const [editName, setEditName] = useState("");
   const [editRole, setEditRole] = useState<"Mentor" | "Admin">("Mentor");
   const [editAllowedNav, setEditAllowedNav] = useState<string[]>([]);
+  const [editAvatarUrl, setEditAvatarUrl] = useState<string | null>(null);
   const [editStatus, setEditStatus] = useState<string>("Active");
   const [editPassword, setEditPassword] = useState("");
   const [showEditPassword, setShowEditPassword] = useState(false);
@@ -106,16 +109,14 @@ export default function UsersTab() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Helper when role changes in Add modal
+  // Helper when role changes in Add modal - Image 3: DO NOT automatically check sidebars!
   const handleNewRoleChange = (role: "Mentor" | "Admin") => {
     setNewRole(role);
-    setNewAllowedNav(getDefaultNavItemsForRole(role));
   };
 
-  // Helper when role changes in Edit modal
+  // Helper when role changes in Edit modal - Image 3: DO NOT automatically check sidebars!
   const handleEditRoleChange = (role: "Mentor" | "Admin") => {
     setEditRole(role);
-    setEditAllowedNav(getDefaultNavItemsForRole(role));
   };
 
   // Fetch users from API and sync with local storage
@@ -144,7 +145,7 @@ export default function UsersTab() {
 
             const rawStatus = String(u.status || "Active");
             const hasAccess = u.hasAccess !== undefined ? !!u.hasAccess : rawStatus.toLowerCase() === "active";
-            const allowedNav = Array.isArray(u.allowedNavItems) && u.allowedNavItems.length > 0
+            const allowedNav = Array.isArray(u.allowedNavItems)
               ? (u.allowedNavItems as string[])
               : getDefaultNavItemsForRole(roleFormatted);
 
@@ -157,6 +158,7 @@ export default function UsersTab() {
               status: rawStatus,
               hasAccess,
               allowedNavItems: allowedNav,
+              avatarUrl: (u.avatarUrl as string) || null,
             };
           });
           const resultList = formatted.length > 0 ? formatted : DEFAULT_USERS;
@@ -303,9 +305,10 @@ export default function UsersTab() {
     setEditName(user.name);
     const roleClean: "Mentor" | "Admin" = user.role === "Admin" ? "Admin" : "Mentor";
     setEditRole(roleClean);
-    setEditAllowedNav(user.allowedNavItems && user.allowedNavItems.length > 0 
+    setEditAllowedNav(user.allowedNavItems && Array.isArray(user.allowedNavItems)
       ? [...user.allowedNavItems] 
       : getDefaultNavItemsForRole(roleClean));
+    setEditAvatarUrl(user.avatarUrl || null);
     setEditStatus(user.status || "Active");
     setEditPassword("");
     setShowEditPassword(false);
@@ -325,6 +328,7 @@ export default function UsersTab() {
         allowedNavItems: editAllowedNav,
         status: editStatus,
         hasAccess: editStatus.toLowerCase() === "active",
+        avatarUrl: editAvatarUrl,
       };
       if (editPassword.trim()) {
         payload.password = editPassword.trim();
@@ -348,6 +352,7 @@ export default function UsersTab() {
             allowedNavItems: editAllowedNav,
             status: editStatus,
             hasAccess: editStatus.toLowerCase() === "active",
+            avatarUrl: editAvatarUrl,
           };
         }
         return u;
@@ -567,7 +572,7 @@ export default function UsersTab() {
                 setNewEmail("");
                 setNewPassword("");
                 setNewRole("Mentor");
-                setNewAllowedNav(["for-you", "library", "meetings"]);
+                setNewAllowedNav([]);
                 setGiveImmediateAccess(true);
                 setShowAddModal(true);
               }}
@@ -576,6 +581,26 @@ export default function UsersTab() {
               <UserPlus size={16} />
               <span>+ Add user</span>
             </button>
+          </div>
+
+          {/* Quick Metrics Strip utilizing full screen width */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-[#E2E7EC]/80">
+            <div className="p-3 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl">
+              <span className="text-[11px] font-semibold text-[#57636E] uppercase tracking-wider block">Total Members</span>
+              <span className="text-base font-extrabold text-[#20262E]">{users.length}</span>
+            </div>
+            <div className="p-3 bg-purple-50/50 border border-purple-200/60 rounded-xl">
+              <span className="text-[11px] font-semibold text-purple-700 uppercase tracking-wider block">Mentors</span>
+              <span className="text-base font-extrabold text-[#6C3483]">{users.filter(u => u.role === "Mentor").length}</span>
+            </div>
+            <div className="p-3 bg-blue-50/50 border border-blue-200/60 rounded-xl">
+              <span className="text-[11px] font-semibold text-blue-700 uppercase tracking-wider block">Administrators</span>
+              <span className="text-base font-extrabold text-[#154360]">{users.filter(u => u.role === "Admin").length}</span>
+            </div>
+            <div className="p-3 bg-emerald-50/50 border border-emerald-200/60 rounded-xl">
+              <span className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider block">Active Logins</span>
+              <span className="text-base font-extrabold text-emerald-800">{users.filter(u => (u.status || "Active").toLowerCase() === "active").length}</span>
+            </div>
           </div>
         </div>
 
@@ -786,14 +811,22 @@ export default function UsersTab() {
                           )}
                         </td>
 
-                        {/* Name with circular avatar */}
+                        {/* Name with mentor profile photo or initials */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 ${
-                              isAdmin ? "bg-[#154360] text-white" : "bg-[#6C3483] text-white"
-                            }`}>
-                              {getInitials(user.name)}
-                            </div>
+                            {user.avatarUrl ? (
+                              <img
+                                src={user.avatarUrl}
+                                alt={user.name}
+                                className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-xs shrink-0 ring-1 ring-slate-200"
+                              />
+                            ) : (
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 shadow-xs ${
+                                isAdmin ? "bg-[#154360] text-white" : "bg-[#6C3483] text-white"
+                              }`}>
+                                {getInitials(user.name)}
+                              </div>
+                            )}
                             <div>
                               <p className="font-bold text-[#20262E]">{user.name}</p>
                               <p className="text-[11px] text-[#57636E]">Added {user.dateAdded}</p>
@@ -1059,25 +1092,18 @@ export default function UsersTab() {
                       Select how many side navbar items will appear for this employee.
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setNewAllowedNav(ALL_NAV_ITEMS.map(i => i.id))}
-                      className="text-[11px] font-bold text-[#154360] hover:underline px-1.5 py-0.5 rounded cursor-pointer"
+                      className="text-[11px] font-bold text-[#154360] hover:underline px-2 py-0.5 rounded bg-white border border-[#E2E7EC] cursor-pointer"
                     >
-                      All
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setNewAllowedNav(["for-you", "library", "meetings"])}
-                      className="text-[11px] font-bold text-purple-700 hover:underline px-1.5 py-0.5 rounded cursor-pointer"
-                    >
-                      Mentor Preset
+                      Select All
                     </button>
                     <button
                       type="button"
                       onClick={() => setNewAllowedNav([])}
-                      className="text-[11px] font-bold text-[#57636E] hover:underline px-1.5 py-0.5 rounded cursor-pointer"
+                      className="text-[11px] font-bold text-[#57636E] hover:underline px-2 py-0.5 rounded bg-white border border-[#E2E7EC] cursor-pointer"
                     >
                       Clear
                     </button>
@@ -1191,6 +1217,57 @@ export default function UsersTab() {
 
             {/* Form */}
             <form onSubmit={handleSaveEdit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto custom-scrollbar">
+              {/* Mentor Profile Photo (For Admins to view and change) */}
+              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E7EC] flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  {editAvatarUrl ? (
+                    <img
+                      src={editAvatarUrl}
+                      alt={editName || "User"}
+                      className="w-14 h-14 rounded-full object-cover border-2 border-white shadow-md ring-2 ring-indigo-200"
+                    />
+                  ) : (
+                    <div className={`w-14 h-14 rounded-full flex items-center justify-center text-base font-bold text-white shadow-md ${
+                      editRole === "Admin" ? "bg-[#154360]" : "bg-[#6C3483]"
+                    }`}>
+                      {getInitials(editName || editingUser.name)}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs font-bold text-[#20262E] uppercase tracking-wider">Mentor Profile Photo</p>
+                    <p className="text-[11px] text-[#57636E]">Visible to admins and throughout classroom portals</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-[#E2E7EC] hover:border-[#154360]/40 rounded-xl text-xs font-bold text-[#154360] cursor-pointer transition-all shadow-2xs">
+                    <span>{editAvatarUrl ? "Change Photo" : "Upload Photo"}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          setEditAvatarUrl(reader.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                  </label>
+                  {editAvatarUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditAvatarUrl(null)}
+                      className="px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 rounded-xl font-semibold transition-colors cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Full Name */}
               <div>
                 <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
@@ -1204,7 +1281,7 @@ export default function UsersTab() {
                 />
               </div>
 
-              {/* Role Selection (Mentor & Admin only) */}
+              {/* Role Assignment (Mentor & Admin only) */}
               <div>
                 <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-2">
                   Role Assignment
@@ -1245,25 +1322,18 @@ export default function UsersTab() {
                       Customize which side navbars appear when this employee logs in.
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setEditAllowedNav(ALL_NAV_ITEMS.map(i => i.id))}
-                      className="text-[11px] font-bold text-[#154360] hover:underline px-1 py-0.5 rounded cursor-pointer"
+                      className="text-[11px] font-bold text-[#154360] hover:underline px-2 py-0.5 rounded bg-white border border-[#E2E7EC] cursor-pointer"
                     >
-                      All
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditAllowedNav(["for-you", "library", "meetings"])}
-                      className="text-[11px] font-bold text-purple-700 hover:underline px-1 py-0.5 rounded cursor-pointer"
-                    >
-                      Mentor Preset
+                      Select All
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditAllowedNav([])}
-                      className="text-[11px] font-bold text-[#57636E] hover:underline px-1 py-0.5 rounded cursor-pointer"
+                      className="text-[11px] font-bold text-[#57636E] hover:underline px-2 py-0.5 rounded bg-white border border-[#E2E7EC] cursor-pointer"
                     >
                       Clear
                     </button>

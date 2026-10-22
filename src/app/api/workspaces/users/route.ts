@@ -75,7 +75,7 @@ export async function GET(req: Request) {
         ? ['for-you', 'library', 'meetings', 'settings', 'manage-users', 'workspace-info']
         : ['for-you', 'library', 'meetings'];
 
-      const allowedNavItems = Array.isArray(u.allowedNavItems) && u.allowedNavItems.length > 0
+      const allowedNavItems = Array.isArray(u.allowedNavItems)
         ? u.allowedNavItems
         : defaultNavForRole;
 
@@ -86,6 +86,7 @@ export async function GET(req: Request) {
         status: u.status || 'Active',
         hasAccess: (u.status || 'Active').toLowerCase() === 'active',
         allowedNavItems,
+        avatarUrl: u.avatarUrl || null,
       };
       delete copy.passwordHash;
       return copy;
@@ -119,7 +120,7 @@ export async function POST(req: Request) {
       ? ['for-you', 'library', 'meetings', 'settings', 'manage-users', 'workspace-info']
       : ['for-you', 'library', 'meetings'];
 
-    const cleanNavItems = Array.isArray(allowedNavItems) && allowedNavItems.length > 0
+    const cleanNavItems = Array.isArray(allowedNavItems)
       ? allowedNavItems
       : defaultNav;
 

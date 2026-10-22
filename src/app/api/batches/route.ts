@@ -43,6 +43,7 @@ export async function GET(req: Request) {
     const filter: Record<string, unknown> = {};
     if (!isAdmin && effectiveEmail) {
       filter.$or = [
+        { assignedMentorEmail: effectiveEmail },
         { mentorEmail: effectiveEmail },
         { createdBy: effectiveEmail },
       ];
@@ -60,7 +61,13 @@ export async function GET(req: Request) {
       const backups = getAllBackupBatches();
       batches = isAdmin
         ? backups
-        : backups.filter(b => !b.mentorEmail || b.mentorEmail === effectiveEmail || b.createdBy === effectiveEmail);
+        : (effectiveEmail
+            ? backups.filter(b =>
+                (b.assignedMentorEmail && b.assignedMentorEmail.toLowerCase() === effectiveEmail) ||
+                (b.mentorEmail && b.mentorEmail.toLowerCase() === effectiveEmail) ||
+                (b.createdBy && b.createdBy.toLowerCase() === effectiveEmail)
+              )
+            : []);
     }
 
     return NextResponse.json({ success: true, batches });
@@ -76,7 +83,7 @@ export async function POST(req: Request) {
     const authUser = authResult.authenticated && authResult.user ? authResult.user : null;
 
     const body = await req.json();
-    const { name, topic, description, studentEmails } = body;
+    const { name, topic, description, studentEmails, assignedMentorEmail, assignedMentorName } = body;
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: 'Batch name is required' }, { status: 400 });
@@ -84,8 +91,9 @@ export async function POST(req: Request) {
 
     const cleanedEmails = cleanEmails(studentEmails);
     const now = Date.now();
-    const creatorEmail = (body.mentorEmail || authUser?.email || '').toLowerCase().trim() || 'harikishorereddy9908@gmail.com';
+    const creatorEmail = (authUser?.email || body.mentorEmail || '').toLowerCase().trim() || 'harikishorereddy9908@gmail.com';
     const batchId = body.id || `batch-${now}-${Math.random().toString(36).substring(2, 7)}`;
+    const effectiveAssignedEmail = (assignedMentorEmail || body.mentorEmail || creatorEmail).toLowerCase().trim();
 
     const newBatch: StoredBatch = {
       id: batchId,
@@ -93,7 +101,9 @@ export async function POST(req: Request) {
       topic: (topic || '').trim(),
       description: (description || '').trim(),
       studentEmails: cleanedEmails,
-      mentorEmail: creatorEmail,
+      mentorEmail: effectiveAssignedEmail,
+      assignedMentorEmail: effectiveAssignedEmail,
+      assignedMentorName: (assignedMentorName || '').trim(),
       createdBy: creatorEmail,
       createdAt: now,
       updatedAt: now,
@@ -122,7 +132,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   try {
     const body = await req.json();
-    const { id, name, topic, description, studentEmails } = body;
+    const { id, name, topic, description, studentEmails, assignedMentorEmail, assignedMentorName } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Batch ID is required' }, { status: 400 });
@@ -138,6 +148,9 @@ export async function PUT(req: Request) {
       topic: topic !== undefined ? topic.trim() : existing?.topic,
       description: description !== undefined ? description.trim() : existing?.description,
       studentEmails: cleanedEmails,
+      assignedMentorEmail: assignedMentorEmail !== undefined ? (assignedMentorEmail || '').toLowerCase().trim() : existing?.assignedMentorEmail,
+      assignedMentorName: assignedMentorName !== undefined ? (assignedMentorName || '').trim() : existing?.assignedMentorName,
+      mentorEmail: assignedMentorEmail !== undefined ? (assignedMentorEmail || '').toLowerCase().trim() : (existing?.mentorEmail || existing?.assignedMentorEmail),
       updatedAt: Date.now(),
       createdAt: existing?.createdAt || Date.now(),
     };

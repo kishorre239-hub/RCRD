@@ -59,7 +59,7 @@ export async function PATCH(
   try {
     const { userId } = await params;
     const body = await req.json().catch(() => ({}));
-    const { role, status, name, password, hasAccess, allowedNavItems } = body;
+    const { role, status, name, password, hasAccess, allowedNavItems, avatarUrl } = body;
 
     const usersCol = await getCollection<User>('users');
     let targetUser: User | null = null;
@@ -97,6 +97,9 @@ export async function PATCH(
     if (password) {
       updateFields.passwordHash = await hashPassword(password);
     }
+    if (avatarUrl !== undefined) {
+      updateFields.avatarUrl = avatarUrl || undefined;
+    }
 
     const filter = targetUser._id ? { _id: targetUser._id } : { email: targetUser.email };
     await usersCol.updateOne(filter, { $set: updateFields });
@@ -112,6 +115,7 @@ export async function PATCH(
         status: updated?.status || 'Active',
         hasAccess: (updated?.status || 'Active').toLowerCase() === 'active',
         allowedNavItems: updated?.allowedNavItems || ['for-you', 'library', 'meetings'],
+        avatarUrl: updated?.avatarUrl || null,
       },
     });
   } catch (error: unknown) {

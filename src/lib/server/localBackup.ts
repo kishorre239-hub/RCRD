@@ -342,6 +342,8 @@ export interface StoredBatch {
   description?: string;
   studentEmails: string[];
   mentorEmail?: string;
+  assignedMentorEmail?: string;
+  assignedMentorName?: string;
   createdBy?: string;
   createdAt: number;
   updatedAt: number;

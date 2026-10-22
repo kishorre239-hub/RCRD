@@ -31,6 +31,8 @@ interface Batch {
   description?: string;
   studentEmails: string[];
   mentorEmail?: string;
+  assignedMentorEmail?: string;
+  assignedMentorName?: string;
   createdBy?: string;
   createdAt?: number;
 }
@@ -281,6 +283,16 @@ export default function MeetingsPage() {
           }
         })
         .catch(() => {});
+
+      // Fetch batches isolated for this specific mentor/user
+      fetchWithAuth(`/batches?${qParams.toString()}`)
+        .then(res => res.json())
+        .then(d => {
+          if (d?.batches && Array.isArray(d.batches)) {
+            setBatches(d.batches);
+          }
+        })
+        .catch(() => {});
     }, 0);
     // Realtime 1-second interval for live countdowns and dynamic status updates
     const interval = setInterval(() => {
@@ -316,12 +328,6 @@ export default function MeetingsPage() {
       });
     }, 1000);
     getCourses().then(setCourses).catch(() => {});
-    fetchWithAuth('/batches')
-      .then(res => res.json())
-      .then(d => {
-        if (d?.batches) setBatches(d.batches);
-      })
-      .catch(() => {});
     return () => {
       clearTimeout(timer);
       clearInterval(interval);

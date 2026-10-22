@@ -56,6 +56,8 @@ interface Batch {
   description?: string;
   studentEmails: string[];
   mentorEmail?: string;
+  assignedMentorEmail?: string;
+  assignedMentorName?: string;
   createdBy?: string;
   createdAt?: number;
   updatedAt?: number;
@@ -214,6 +216,9 @@ export default function SettingsPage() {
   const [batchTopic, setBatchTopic] = useState("");
   const [batchDescription, setBatchDescription] = useState("");
   const [batchEmailsText, setBatchEmailsText] = useState("");
+  const [mentorsList, setMentorsList] = useState<Array<{ name: string; email: string; role?: string }>>([]);
+  const [batchAssignedMentor, setBatchAssignedMentor] = useState<string>("");
+  const [batchAssignedMentorName, setBatchAssignedMentorName] = useState<string>("");
   const [batchSaving, setBatchSaving] = useState(false);
   const [batchToast, setBatchToast] = useState<string | null>(null);
   const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
@@ -238,6 +243,18 @@ export default function SettingsPage() {
     } finally {
       setLoadingBatches(false);
     }
+
+    try {
+      const uRes = await fetchWithAuth('/workspaces/users');
+      const uData = await uRes.json();
+      if (Array.isArray(uData)) {
+        setMentorsList(uData.map((u: { name?: string; email?: string; role?: string }) => ({
+          name: u.name || u.email || 'Mentor',
+          email: (u.email || '').toLowerCase().trim(),
+          role: u.role || 'Mentor',
+        })));
+      }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -252,6 +269,8 @@ export default function SettingsPage() {
     setBatchTopic("");
     setBatchDescription("");
     setBatchEmailsText("");
+    setBatchAssignedMentor("");
+    setBatchAssignedMentorName("");
     setShowBatchModal(true);
   };
 
@@ -261,6 +280,8 @@ export default function SettingsPage() {
     setBatchTopic(b.topic || "");
     setBatchDescription(b.description || "");
     setBatchEmailsText((b.studentEmails || []).join("\n"));
+    setBatchAssignedMentor(b.assignedMentorEmail || b.mentorEmail || "");
+    setBatchAssignedMentorName(b.assignedMentorName || "");
     setShowBatchModal(true);
   };
 
@@ -296,6 +317,8 @@ export default function SettingsPage() {
             topic: batchTopic.trim(),
             description: batchDescription.trim(),
             studentEmails,
+            assignedMentorEmail: batchAssignedMentor || undefined,
+            assignedMentorName: batchAssignedMentorName || undefined,
           }),
         });
         const data = await res.json();
@@ -315,6 +338,8 @@ export default function SettingsPage() {
             topic: batchTopic.trim(),
             description: batchDescription.trim(),
             studentEmails,
+            assignedMentorEmail: batchAssignedMentor || undefined,
+            assignedMentorName: batchAssignedMentorName || undefined,
           }),
         });
         const data = await res.json();
@@ -716,53 +741,6 @@ export default function SettingsPage() {
             {/* Tab Content: Workspace Info */}
             {activeTab === "workspace" && (
               <div className="space-y-6 pb-20">
-                <div className="border border-[#E2E7EC] rounded-2xl p-6 sm:p-8 bg-white shadow-xs">
-                  <div className="flex items-center gap-4 pb-6 border-b border-[#E2E7EC]">
-                    <div className="w-14 h-14 rounded-2xl bg-[#EBF5FB] border border-[#154360]/20 flex items-center justify-center text-[#154360]">
-                      <WorkspaceIcon size={28} />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-[#20262E]">harikishorereddy9908 Workspace</h2>
-                      <p className="text-xs text-[#57636E] mt-0.5">Primary Managed Workspace · Administrator Controlled</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
-                    <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E7EC]">
-                      <p className="text-xs font-semibold text-[#57636E] uppercase tracking-wider mb-1">Workspace Owner</p>
-                      <p className="text-sm font-bold text-[#20262E]">Hari Kishore Reddy</p>
-                      <p className="text-xs text-[#57636E]">harikishorereddy9908@gmail.com</p>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E7EC]">
-                      <p className="text-xs font-semibold text-[#57636E] uppercase tracking-wider mb-1">Access Model</p>
-                      <p className="text-sm font-bold text-[#154360]">Managed Access Only</p>
-                      <p className="text-xs text-[#57636E]">Public signup disabled; employees provisioned by Admin</p>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E7EC]">
-                      <p className="text-xs font-semibold text-[#57636E] uppercase tracking-wider mb-1">Connected Storage</p>
-                      <p className="text-sm font-bold text-emerald-700">Google Drive Enterprise (5 TB)</p>
-                      <p className="text-xs text-[#57636E]">Automated backup & sync for all employee recordings</p>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E7EC]">
-                      <p className="text-xs font-semibold text-[#57636E] uppercase tracking-wider mb-1">Employee Roster</p>
-                      <p className="text-sm font-bold text-[#20262E]">Users & Groups Provisioning</p>
-                      <button 
-                        onClick={() => {
-                          setActiveTab('users');
-                          if (typeof window !== 'undefined') {
-                            window.history.pushState(null, '', '/settings?tab=users');
-                          }
-                        }}
-                        className="text-xs font-semibold text-[#154360] hover:underline mt-0.5 flex items-center gap-1 cursor-pointer"
-                      >
-                        Manage Users & Permissions →
-                      </button>
-                    </div>
-                  </div>
-                </div>
 
                 {/* Toast Notification */}
                 {batchToast && (
@@ -892,6 +870,12 @@ export default function SettingsPage() {
                                         {b.description}
                                       </p>
                                     )}
+                                    <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-[11px] font-semibold text-[#57636E]">Assigned Mentor:</span>
+                                      <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 text-purple-800 border border-purple-200">
+                                        {b.assignedMentorName || b.assignedMentorEmail || b.mentorEmail || 'All Mentors (Shared)'}
+                                      </span>
+                                    </div>
                                   </div>
 
                                   <div className="flex items-center gap-1 shrink-0">
@@ -1056,6 +1040,32 @@ export default function SettingsPage() {
                               className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all font-medium text-[#20262E]"
                             />
                           </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
+                            Assign to Mentor (Restricted Host Access)
+                          </label>
+                          <select
+                            value={batchAssignedMentor}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setBatchAssignedMentor(val);
+                              const found = mentorsList.find(m => m.email.toLowerCase() === val.toLowerCase());
+                              setBatchAssignedMentorName(found?.name || '');
+                            }}
+                            className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-slate-300 focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all font-medium text-[#20262E] cursor-pointer"
+                          >
+                            <option value="">-- All Mentors / Unassigned (Shared) --</option>
+                            {mentorsList.map(m => (
+                              <option key={m.email} value={m.email}>
+                                {m.name} ({m.email}) [{m.role || 'Mentor'}]
+                              </option>
+                            ))}
+                          </select>
+                          <p className="text-[11px] text-[#57636E] mt-1">
+                            When assigned, this batch and its students will only appear in this specific mentor&apos;s meeting scheduler.
+                          </p>
                         </div>
 
                         <div>

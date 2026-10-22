@@ -17,7 +17,7 @@ import {
   UserIcon, WorkspaceIcon
 } from "@/components/CustomIcons";
 
-import { getCourses } from "@/lib/api";
+import { getCourses, fetchWithAuth } from "@/lib/api";
 import RcrdLogo from "@/components/RcrdLogo";
 import ProfileFlyout from "@/components/ProfileFlyout";
 import AppHeader from "@/components/AppHeader";
@@ -26,16 +26,36 @@ import { useNavPermissions } from "@/lib/navPermissions";
 interface Course { id: string; name: string; }
 interface Meeting {
   id: string; title: string; courseId: string | null; password: string;
-  scheduledAt: string; duration: number; status: "scheduled" | "live" | "ended";
+  scheduledAt: string; startedAt?: string; duration: number; status: "scheduled" | "live" | "ended";
   attendees: number; createdAt: string; notes: string;
   hostName?: string;
+  hostEmail?: string;
+  hostId?: string;
+  mentorEmail?: string;
+  ownerId?: string;
 }
 
 const genPwd = () => {
   const c = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   return Array.from({ length: 8 }, () => c[Math.floor(Math.random() * c.length)]).join("");
 };
-const STORAGE_KEY = "rcrd_meetings";
+
+export function getScopedMeetingStorageKey(): string {
+  if (typeof window === "undefined") return "rcrd_meetings";
+  try {
+    const usr = localStorage.getItem("user");
+    if (usr) {
+      const u = JSON.parse(usr);
+      if (u?.email) return `rcrd_meetings_${u.email.toLowerCase().trim()}`;
+    }
+    const prof = localStorage.getItem("rcrd_user_profile");
+    if (prof) {
+      const p = JSON.parse(prof);
+      if (p?.email) return `rcrd_meetings_${p.email.toLowerCase().trim()}`;
+    }
+  } catch {}
+  return "rcrd_meetings";
+}
 
 export const isDummyMeeting = (m: { id?: string; title?: string } | null | undefined): boolean => {
   if (!m) return false;
@@ -59,6 +79,20 @@ export const isDummyMeeting = (m: { id?: string; title?: string } | null | undef
     return true;
   }
   return false;
+};
+
+export const isMeetingDurationExpired = (
+  m: { scheduledAt?: string; startedAt?: string; duration?: number; status?: string } | null | undefined,
+  now = Date.now()
+): boolean => {
+  if (!m || m.status === 'ended') return false;
+  const startStr = m.startedAt || m.scheduledAt;
+  if (!startStr) return false;
+  const startT = new Date(startStr).getTime();
+  if (isNaN(startT)) return false;
+  const durationMins = Number(m.duration) || 60;
+  const endT = startT + durationMins * 60000;
+  return now >= endT;
 };
 
 const DURATION_PRESETS = [
@@ -165,15 +199,16 @@ export default function MeetingsPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setNow(Date.now());
+      const storageKey = getScopedMeetingStorageKey();
       try {
-        const s = localStorage.getItem(STORAGE_KEY);
+        const s = localStorage.getItem(storageKey);
         if (s) {
           const parsed = JSON.parse(s);
           if (Array.isArray(parsed)) {
             const clean = parsed.filter(m => !isDummyMeeting(m));
             setMeetings(clean);
             if (clean.length !== parsed.length) {
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+              localStorage.setItem(storageKey, JSON.stringify(clean));
             }
           }
         }
@@ -182,7 +217,7 @@ export default function MeetingsPage() {
       // Proactively purge legacy dummy meetings from server
       const dummyIds = ["GEO-CLASS-101", "RCRD-MEET-202", "REV-QA-303"];
       dummyIds.forEach(dId => {
-        fetch(`/api/meetings?id=${encodeURIComponent(dId)}`, { method: 'DELETE' }).catch(() => {});
+        fetchWithAuth(`/meetings?id=${encodeURIComponent(dId)}`, { method: 'DELETE' }).catch(() => {});
       });
 
       // Auto-open Join Modal if URL contains join/id parameters
@@ -201,20 +236,33 @@ export default function MeetingsPage() {
           }
         } catch {}
       }
-      // Sync meetings from server across all students & devices
-      fetch('/api/meetings')
+
+      // Read current mentor profile to query their isolated meetings
+      let uEmail = "";
+      let uId = "";
+      let uRole = "";
+      try {
+        const usr = localStorage.getItem("user");
+        const prof = localStorage.getItem("rcrd_user_profile");
+        const parsed = usr ? JSON.parse(usr) : (prof ? JSON.parse(prof) : null);
+        if (parsed?.email) uEmail = parsed.email;
+        if (parsed?.id || parsed?._id) uId = parsed.id || parsed._id;
+        if (parsed?.role) uRole = parsed.role;
+      } catch {}
+
+      const qParams = new URLSearchParams();
+      if (uEmail) qParams.append("email", uEmail);
+      if (uId) qParams.append("userId", uId);
+      if (uRole) qParams.append("role", uRole);
+
+      // Sync meetings from server across all students & devices with mentor isolation
+      fetchWithAuth(`/meetings?${qParams.toString()}`)
         .then(res => res.json())
         .then(data => {
           if (data?.meetings && Array.isArray(data.meetings)) {
             const cleanRemote = data.meetings.filter((m: Meeting) => !isDummyMeeting(m));
-            setMeetings(prev => {
-              const map = new Map<string, Meeting>();
-              prev.filter(m => !isDummyMeeting(m)).forEach(m => map.set(m.id, m));
-              cleanRemote.forEach((m: Meeting) => map.set(m.id, m));
-              const merged = Array.from(map.values()).filter(m => !isDummyMeeting(m));
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-              return merged;
-            });
+            setMeetings(cleanRemote);
+            localStorage.setItem(storageKey, JSON.stringify(cleanRemote));
           }
         })
         .catch(() => {});
@@ -222,28 +270,31 @@ export default function MeetingsPage() {
     // Realtime 1-second interval for live countdowns and dynamic status updates
     const interval = setInterval(() => {
       const currentTime = Date.now();
+      const storageKey = getScopedMeetingStorageKey();
       setNow(currentTime);
       setMeetings(prev => {
         let changed = false;
         const newMeetings = prev.map(m => {
+          // If duration has expired, meeting MUST end immediately
+          if (isMeetingDurationExpired(m, currentTime) && m.status !== 'ended') {
+            changed = true;
+            fetchWithAuth('/meetings', {
+              method: 'PATCH',
+              body: JSON.stringify({ id: m.id, status: 'ended' }),
+            }).catch(() => {});
+            return { ...m, status: 'ended' as const };
+          }
           if (m.status === 'scheduled') {
             const t = new Date(m.scheduledAt).getTime();
             if (currentTime >= t) {
               changed = true;
               return { ...m, status: 'live' as const };
             }
-          } else if (m.status === 'live' && m.duration) {
-            const startT = new Date(m.scheduledAt).getTime();
-            const endT = startT + m.duration * 60000;
-            if (currentTime >= endT && m.attendees === 0) { // allow active meetings to keep running
-              changed = true;
-              return { ...m, status: 'ended' as const };
-            }
           }
           return m;
         });
         if (changed) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(newMeetings));
+          localStorage.setItem(storageKey, JSON.stringify(newMeetings));
           return newMeetings;
         }
         return prev;
@@ -258,11 +309,11 @@ export default function MeetingsPage() {
 
   const save = useCallback((list: Meeting[], singleUpdated?: Meeting) => {
     setMeetings(list);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    const storageKey = getScopedMeetingStorageKey();
+    localStorage.setItem(storageKey, JSON.stringify(list));
     if (singleUpdated) {
-      fetch('/api/meetings', {
+      fetchWithAuth('/meetings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(singleUpdated),
       }).catch(() => {});
     }
@@ -397,6 +448,8 @@ export default function MeetingsPage() {
       return null;
     })();
     const creatorName = userProf?.name?.trim() || "";
+    const creatorEmail = (userProf?.email || "").toLowerCase().trim();
+    const creatorId = userProf?.id || userProf?._id || "";
 
     const m: Meeting = {
       id: Date.now().toString().slice(-8),
@@ -410,6 +463,10 @@ export default function MeetingsPage() {
       createdAt: new Date().toISOString(),
       notes: "",
       hostName: creatorName || undefined,
+      hostEmail: creatorEmail || undefined,
+      hostId: creatorId || undefined,
+      mentorEmail: creatorEmail || undefined,
+      ownerId: creatorId || undefined,
     };
     save([m, ...meetings], m);
     setShowCreate(false);
@@ -420,7 +477,7 @@ export default function MeetingsPage() {
   };
 
   const startClass = (m: Meeting) => {
-    const liveMeeting: Meeting = { ...m, status: "live" as const };
+    const liveMeeting: Meeting = { ...m, status: "live" as const, startedAt: m.startedAt || new Date().toISOString() };
     const updated = meetings.map(x => x.id === m.id ? liveMeeting : x);
     save(updated, liveMeeting);
     sessionStorage.setItem(`meeting_${m.id}`, JSON.stringify(liveMeeting));
@@ -511,7 +568,15 @@ export default function MeetingsPage() {
     }
   };
 
-  const cleanMeetings = meetings.filter(m => !isDummyMeeting(m));
+  const currentTime = now || Date.now();
+  const cleanMeetings = meetings
+    .filter(m => !isDummyMeeting(m))
+    .map(m => {
+      if (m.status !== "ended" && isMeetingDurationExpired(m, currentTime)) {
+        return { ...m, status: "ended" as const };
+      }
+      return m;
+    });
   const upcoming = cleanMeetings.filter(m => m.status === "scheduled");
   const live = cleanMeetings.filter(m => m.status === "live");
   const past = cleanMeetings.filter(m => m.status === "ended");

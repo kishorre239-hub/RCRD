@@ -8,10 +8,18 @@ import { getBackupVideoMeta } from '@/lib/server/localBackup';
 export async function GET(req: Request) {
   try {
     const authResult = await authenticateRequest(req);
-    const user = authResult.authenticated ? authResult.user : null;
-    const userId = user?.id || user?._id?.toString() || 'dev-admin-id';
+    const user = authResult.authenticated && authResult.user ? authResult.user : null;
+
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get('courseId');
+    const queryEmail = (searchParams.get('email') || searchParams.get('userEmail') || '').toLowerCase().trim();
+    const queryUserId = searchParams.get('userId') || '';
+    const queryRole = (searchParams.get('role') || '').toUpperCase().replace(/^ROLE_/, '');
+
+    const effectiveEmail = (user?.email || queryEmail || '').toLowerCase().trim();
+    const effectiveUserId = user?.id || user?._id?.toString() || queryUserId || '';
+    const effectiveRole = (user?.role || queryRole || '').toUpperCase().replace(/^ROLE_/, '');
+    const isAdmin = effectiveRole === 'ADMIN' || effectiveEmail === 'harikishorereddy9908@gmail.com' || effectiveEmail.includes('admin@');
 
     const isMeetingFilter = courseId === 'MEETING' || courseId === '1Oexp7mpRPLqN1YhvPAaIBEXeC14IRcaW' || courseId === '16MjAhpJTW8PCHm1_L-yHQzyQqHpy4SHg' || courseId === '1lmf5ZIbwPLtmpNI22TCFyeJVEibkIA3S';
 
@@ -25,8 +33,20 @@ export async function GET(req: Request) {
         } else {
           query.courseId = courseId;
         }
-      } else if (userId && user?.email) {
-        query.$or = [{ ownerId: userId }, { ownerEmail: user.email }, { isPublic: true }, { isCompanyShared: true }];
+      }
+
+      if (!isAdmin && effectiveEmail) {
+        const userFilters: Record<string, unknown>[] = [
+          { ownerEmail: effectiveEmail },
+          { mentorEmail: effectiveEmail },
+          { hostEmail: effectiveEmail },
+          { isCompanyShared: true },
+          { isPublic: true },
+        ];
+        if (effectiveUserId) {
+          userFilters.push({ ownerId: effectiveUserId });
+        }
+        query.$or = userFilters;
       }
       dbVideos = await videosCol.find(query).sort({ createdAt: -1 }).toArray();
     } catch (dbErr: unknown) {
@@ -36,6 +56,15 @@ export async function GET(req: Request) {
     // Always fetch live Google Drive videos with high-res thumbnails and metadata
     const { videos: driveVideos, connected: driveConnected } = await listDriveVideosAndFolders();
     const driveIdSet = new Set(driveVideos.map(dv => dv.id));
+
+    // Fast lookup maps for database videos
+    const dbVideoByDriveId = new Map<string, Video>();
+    const dbVideoById = new Map<string, Video>();
+    for (const v of dbVideos) {
+      if (v.driveFileId) dbVideoByDriveId.set(v.driveFileId, v);
+      const vId = v.id || v._id?.toString();
+      if (vId) dbVideoById.set(vId, v);
+    }
 
 interface VideoMapItem {
   id: string;
@@ -75,14 +104,33 @@ interface VideoMapItem {
       return videoCourseId === courseId;
     };
 
-    // 1. First add live Google Drive videos (Google Drive is the single source of truth)
+    // 1. First add live Google Drive videos with mentor isolation
     for (const dv of driveVideos) {
       const backupMeta = getBackupVideoMeta(dv.id);
       const effectiveCourseId = (backupMeta?.courseId !== undefined) ? backupMeta.courseId : (dv.courseId || '');
       if (!matchesCourse(effectiveCourseId)) continue;
+
+      const matchedDb = dbVideoByDriveId.get(dv.id) || dbVideoById.get(dv.id);
+      const vOwnerId = matchedDb?.ownerId || backupMeta?.ownerId;
+      const vOwnerEmail = (matchedDb?.ownerEmail || matchedDb?.mentorEmail || matchedDb?.hostEmail || backupMeta?.ownerEmail || backupMeta?.mentorEmail || '').toLowerCase().trim();
+      const isPublic = Boolean(matchedDb?.isPublic || backupMeta?.isPublic);
+      const isCompanyShared = Boolean(matchedDb?.isCompanyShared || backupMeta?.isCompanyShared);
+
+      if (!isAdmin && effectiveEmail) {
+        const isOwner = (vOwnerEmail && vOwnerEmail === effectiveEmail) ||
+                        (effectiveUserId && vOwnerId && vOwnerId === effectiveUserId);
+        // Strictly isolate: do not include another mentor's video
+        if (!isOwner && !isCompanyShared && !isPublic) {
+          continue;
+        }
+      }
+
       videoMap.set(dv.id, {
         ...dv,
         courseId: effectiveCourseId,
+        ownerId: vOwnerId,
+        ownerEmail: vOwnerEmail,
+        ownerName: matchedDb?.ownerName || backupMeta?.ownerName,
         title: backupMeta?.title || cleanVideoTitle(dv.title || dv.rawName || '', dv.createdAt),
         thumbnailUrl: `/api/videos/${dv.id}/thumbnail`,
         thumbnailLink: `/api/videos/${dv.id}/thumbnail`,
@@ -111,6 +159,13 @@ interface VideoMapItem {
         // If the video is a local upload or completed recording
         if (!driveId) {
           if (!matchesCourse(v.courseId)) continue;
+          if (!isAdmin && effectiveEmail) {
+            const vEmail = (v.ownerEmail || v.mentorEmail || v.hostEmail || '').toLowerCase().trim();
+            const isOwner = (vEmail && vEmail === effectiveEmail) || (effectiveUserId && v.ownerId === effectiveUserId);
+            if (!isOwner && !v.isCompanyShared && !v.isPublic) {
+              continue;
+            }
+          }
           const createdAt = v.createdAt || Date.now();
           videoMap.set(vidId, {
             ...v,

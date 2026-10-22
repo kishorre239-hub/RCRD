@@ -54,13 +54,28 @@ export default function LoginPage() {
           }
         } catch {}
 
+        const targetEmail = (data.email || email).toLowerCase().trim();
+        const previousProfileRaw = localStorage.getItem("rcrd_user_profile");
+        if (previousProfileRaw) {
+          try {
+            const prev = JSON.parse(previousProfileRaw);
+            if (prev?.email && prev.email.toLowerCase().trim() !== targetEmail) {
+              // Different mentor logging in: purge old unscoped caches
+              localStorage.removeItem("rcrd_meetings");
+              localStorage.removeItem("pinnedVideoIds");
+              localStorage.removeItem("archivedVideos");
+            }
+          } catch {}
+        }
+
         const resolvedName = data.name || (email ? email.split('@')[0] : "User");
         const profileObj = {
           name: resolvedName,
-          email: data.email || email,
+          email: targetEmail,
           role: data.role || "Admin",
           allowedNavItems: navItems,
           plan: "Pro Plan",
+          avatarUrl: data.avatarUrl || undefined,
           avatarText: resolvedName
             .split(" ")
             .filter(Boolean)
@@ -70,7 +85,7 @@ export default function LoginPage() {
             .toUpperCase() || "U",
         };
         localStorage.setItem("rcrd_user_profile", JSON.stringify(profileObj));
-        localStorage.setItem("user", JSON.stringify(data));
+        localStorage.setItem("user", JSON.stringify({ ...data, email: targetEmail }));
         window.dispatchEvent(new CustomEvent("rcrd_profile_updated", { detail: profileObj }));
       }
 

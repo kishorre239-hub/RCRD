@@ -7,6 +7,13 @@ export interface StoredVideoMeta {
   title?: string;
   courseId?: string;
   driveFileId?: string;
+  ownerId?: string;
+  ownerEmail?: string;
+  ownerName?: string;
+  mentorEmail?: string;
+  hostEmail?: string;
+  isPublic?: boolean;
+  isCompanyShared?: boolean;
   size?: number;
   status?: string;
   comments?: VideoComment[];
@@ -102,9 +109,15 @@ export interface StoredMeeting {
   courseId: string | null;
   password: string;
   scheduledAt: string;
+  startedAt?: string;
   duration: number;
   status: 'scheduled' | 'live' | 'ended';
   hostName?: string;
+  hostEmail?: string;
+  hostId?: string;
+  mentorEmail?: string;
+  ownerId?: string;
+  createdBy?: string;
   createdAt?: number;
   updatedAt?: number;
   [key: string]: unknown;
@@ -141,6 +154,20 @@ export function isDummyMeeting(m: { id?: string; title?: string } | null | undef
     return true;
   }
   return false;
+}
+
+export function isMeetingDurationExpired(
+  m: { scheduledAt?: string; startedAt?: string; duration?: number; status?: string } | null | undefined,
+  now = Date.now()
+): boolean {
+  if (!m || m.status === 'ended') return false;
+  const startStr = m.startedAt || m.scheduledAt;
+  if (!startStr) return false;
+  const startT = new Date(startStr).getTime();
+  if (isNaN(startT)) return false;
+  const durationMins = Number(m.duration) || 60;
+  const endT = startT + durationMins * 60000;
+  return now >= endT;
 }
 
 const MEETINGS_FILE = path.join(DATA_DIR, 'meetings-store.json');
@@ -183,12 +210,29 @@ function persistMeetingsStore() {
 initMeetingsStore();
 
 export function getAllBackupMeetings(): StoredMeeting[] {
+  const now = Date.now();
+  let changed = false;
+  for (const m of Object.values(meetingsStore)) {
+    if (m.status !== 'ended' && isMeetingDurationExpired(m, now)) {
+      m.status = 'ended';
+      m.updatedAt = now;
+      changed = true;
+    }
+  }
+  if (changed) {
+    persistMeetingsStore();
+  }
   return Object.values(meetingsStore).filter(m => !isDummyMeeting(m));
 }
 
 export function getBackupMeeting(id: string): StoredMeeting | null {
   const m = meetingsStore[id] || null;
-  if (isDummyMeeting(m)) return null;
+  if (!m || isDummyMeeting(m)) return null;
+  if (m.status !== 'ended' && isMeetingDurationExpired(m)) {
+    m.status = 'ended';
+    m.updatedAt = Date.now();
+    persistMeetingsStore();
+  }
   return m;
 }
 

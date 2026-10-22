@@ -37,10 +37,16 @@ export async function POST(req: Request) {
       updatedAt: Date.now(),
     };
 
-    if (user) {
-      updateFields.ownerId = user.id || user._id?.toString();
-      if (user.name) updateFields.ownerName = user.name;
-      if (user.email) updateFields.ownerEmail = user.email;
+    const effectiveOwnerEmail = (body.ownerEmail || user?.email || '').toLowerCase().trim();
+    const effectiveOwnerId = body.ownerId || user?.id || user?._id?.toString();
+    const effectiveOwnerName = body.ownerName || user?.name || '';
+
+    if (effectiveOwnerId) updateFields.ownerId = effectiveOwnerId;
+    if (effectiveOwnerName) updateFields.ownerName = effectiveOwnerName;
+    if (effectiveOwnerEmail) {
+      updateFields.ownerEmail = effectiveOwnerEmail;
+      updateFields.mentorEmail = effectiveOwnerEmail;
+      updateFields.hostEmail = effectiveOwnerEmail;
     }
 
     if (driveFileId) updateFields.driveFileId = driveFileId;

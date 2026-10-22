@@ -30,10 +30,18 @@ export async function POST(req: Request) {
     const isMeeting = Boolean(body.isMeeting || body.source === 'meeting' || courseId === 'MEETING');
     const finalCourseId = courseId || null;
 
+    const effectiveOwnerEmail = (body.ownerEmail || user.email || '').toLowerCase().trim();
+    const effectiveOwnerId = body.ownerId || user.id || user._id?.toString() || 'default-admin';
+    const effectiveOwnerName = body.ownerName || user.name || '';
+
     const videoDoc: Video = {
       title,
       courseId: finalCourseId,
-      ownerId: user.id || user._id?.toString() || 'default-admin',
+      ownerId: effectiveOwnerId,
+      ownerEmail: effectiveOwnerEmail,
+      ownerName: effectiveOwnerName,
+      mentorEmail: effectiveOwnerEmail,
+      hostEmail: effectiveOwnerEmail,
       workspaceId: user.workspaceId || 'default',
       mimeType,
       size,

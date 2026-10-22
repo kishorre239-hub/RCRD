@@ -100,12 +100,20 @@ export async function POST(req: Request) {
       }
     }
 
+    const effectiveOwnerEmail = ((formData.get('ownerEmail') as string) || user.email || '').toLowerCase().trim();
+    const effectiveOwnerId = (formData.get('ownerId') as string) || user.id || user._id?.toString();
+    const effectiveOwnerName = (formData.get('ownerName') as string) || user.name;
+
     const videoDoc: Video = {
       title,
       driveFileId: driveFileId || undefined,
       url: `/uploads/${videoId}.webm`,
       courseId: finalCourseId || undefined,
-      ownerId: user.id || user._id?.toString(),
+      ownerId: effectiveOwnerId,
+      ownerEmail: effectiveOwnerEmail,
+      ownerName: effectiveOwnerName,
+      mentorEmail: effectiveOwnerEmail,
+      hostEmail: effectiveOwnerEmail,
       workspaceId: user.workspaceId || 'default',
       size: file ? file.size : 0,
       mimeType: file ? file.type : 'video/webm',
@@ -137,6 +145,11 @@ export async function POST(req: Request) {
       title,
       courseId: finalCourseId || undefined,
       driveFileId: driveFileId || undefined,
+      ownerId: effectiveOwnerId,
+      ownerEmail: effectiveOwnerEmail,
+      ownerName: effectiveOwnerName,
+      mentorEmail: effectiveOwnerEmail,
+      hostEmail: effectiveOwnerEmail,
       size: file ? file.size : 0,
       status: 'READY',
     };

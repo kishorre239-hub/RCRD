@@ -19,6 +19,50 @@ export default function AppHeader({
   onOpenProfile,
   onToggleMobileSidebar,
 }: AppHeaderProps) {
+  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const prof = localStorage.getItem("rcrd_user_profile");
+      if (prof) {
+        const p = JSON.parse(prof);
+        if (p.avatarUrl) return p.avatarUrl;
+      }
+      const usr = localStorage.getItem("user");
+      if (usr) {
+        const u = JSON.parse(usr);
+        if (u.avatarUrl) return u.avatarUrl;
+      }
+    } catch {}
+    return null;
+  });
+
+  React.useEffect(() => {
+    const handleProfileUpdate = () => {
+      try {
+        const prof = localStorage.getItem("rcrd_user_profile");
+        if (prof) {
+          const p = JSON.parse(prof);
+          setAvatarUrl(p.avatarUrl || null);
+          return;
+        }
+        const usr = localStorage.getItem("user");
+        if (usr) {
+          const u = JSON.parse(usr);
+          setAvatarUrl(u.avatarUrl || null);
+          return;
+        }
+      } catch {}
+      setAvatarUrl(null);
+    };
+
+    window.addEventListener("rcrd_profile_updated", handleProfileUpdate);
+    window.addEventListener("storage", handleProfileUpdate);
+    return () => {
+      window.removeEventListener("rcrd_profile_updated", handleProfileUpdate);
+      window.removeEventListener("storage", handleProfileUpdate);
+    };
+  }, []);
+
   return (
     <header className="h-16 flex items-center justify-between px-4 sm:px-6 md:px-8 bg-white border-b border-[#E2E7EC] shrink-0 flex-shrink-0 z-20 shadow-xs">
       {/* Left Section: Mobile Menu Toggle Button */}
@@ -56,11 +100,19 @@ export default function AppHeader({
         <button
           type="button"
           onClick={onOpenProfile}
-          className="w-10 h-10 rounded-full flex items-center justify-center p-0.5 hover:scale-105 active:scale-95 transition-all cursor-pointer border-2 border-[#E2E7EC] hover:border-[#154360]/50 bg-white shadow-xs group"
+          className="w-10 h-10 rounded-full flex items-center justify-center p-0.5 hover:scale-105 active:scale-95 transition-all cursor-pointer border-2 border-[#E2E7EC] hover:border-[#154360]/50 bg-white shadow-xs group overflow-hidden"
           title="Open profile menu"
           aria-label="Open profile menu"
         >
-          <UserAvatarIcon size={34} className="w-8 h-8 transition-transform group-hover:scale-105" />
+          {avatarUrl ? (
+            <img 
+              src={avatarUrl} 
+              alt="Mentor Profile" 
+              className="w-full h-full rounded-full object-cover" 
+            />
+          ) : (
+            <UserAvatarIcon size={34} className="w-8 h-8 transition-transform group-hover:scale-105" />
+          )}
         </button>
       </div>
     </header>

@@ -31,7 +31,7 @@ interface Note {
   };
 }
 interface Course { id: string; name: string; }
-interface Meeting { id: string; title: string; courseId: string | null; password: string; scheduledAt?: string; duration: number; status: string; hostName?: string; }
+interface Meeting { id: string; title: string; courseId: string | null; password: string; scheduledAt?: string; startedAt?: string; duration: number; status: string; hostName?: string; }
 interface Participant {
   id: string;
   name: string;
@@ -269,6 +269,78 @@ export default function ClassRoomPage() {
   const [countdown, setCountdown] = useState(3);
   const [recBlob, setRecBlob] = useState<Blob | null>(null);
   const [now, setNow] = useState<number>(0);
+
+  // Duration & Auto-End Extension State
+  const [showDurationModal, setShowDurationModal] = useState(false);
+  const [extendMinutesInput, setExtendMinutesInput] = useState("15");
+  const [isExtending, setIsExtending] = useState(false);
+  const [hasPromptedForDuration, setHasPromptedForDuration] = useState(false);
+  const [autoEndCountdown, setAutoEndCountdown] = useState<number | null>(null);
+  const [studentDurationWarning, setStudentDurationWarning] = useState<string | null>(null);
+
+  const meetingStartTime = (() => {
+    if (meeting?.startedAt) {
+      const t = new Date(meeting.startedAt).getTime();
+      if (!isNaN(t)) return t;
+    }
+    if (meeting?.scheduledAt) {
+      const t = new Date(meeting.scheduledAt).getTime();
+      if (!isNaN(t)) return t;
+    }
+    return 0;
+  })();
+
+  const meetingDurationMinutes = Number(meeting?.duration) || 60;
+  const meetingEndTime = meetingStartTime ? meetingStartTime + meetingDurationMinutes * 60000 : 0;
+  const remainingMs = meetingEndTime ? meetingEndTime - (now || Date.now()) : 0;
+
+  const formatTimer = (ms: number) => {
+    if (ms <= 0) return "00:00";
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  };
+
+  // Monitor meeting duration expiration & prompt host / notify students
+  useEffect(() => {
+    if (!meetingStartTime || !meeting || meeting.status === "ended") return;
+    const durMins = Number(meeting.duration) || 60;
+    const endMs = meetingStartTime + durMins * 60000;
+    const isOver = (now || Date.now()) >= endMs;
+
+    if (isOver) {
+      if (isMentor) {
+        if (!hasPromptedForDuration && !showDurationModal) {
+          setShowDurationModal(true);
+          setHasPromptedForDuration(true);
+          setAutoEndCountdown(60); // 60 seconds auto-end countdown
+        }
+      } else {
+        setStudentDurationWarning(
+          `The scheduled duration of ${durMins} minutes has completed. Waiting for host to extend or conclude the class...`
+        );
+      }
+    }
+  }, [now, meetingStartTime, meeting?.duration, meeting?.status, isMentor, hasPromptedForDuration, showDurationModal]);
+
+  // Handle auto-end countdown when modal is open
+  useEffect(() => {
+    if (autoEndCountdown === null) return;
+    if (autoEndCountdown <= 0) {
+      setAutoEndCountdown(null);
+      endClass();
+      return;
+    }
+    const timer = setTimeout(() => {
+      setAutoEndCountdown(prev => (prev !== null ? prev - 1 : null));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [autoEndCountdown]);
 
   // Whiteboard State (Pure White Background, Slides & Notepad)
   const [showWhiteboard, setShowWhiteboard] = useState(false);
@@ -566,27 +638,14 @@ export default function ClassRoomPage() {
   useEffect(() => {
     const activeStream = livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream;
     if (remoteScreenVideoRef.current && activeStream) {
-      const el = remoteScreenVideoRef.current;
-      if (el.srcObject !== activeStream) {
-        el.srcObject = activeStream;
-        el.muted = true;
-        el.playsInline = true;
-        el.setAttribute('playsinline', '');
-        el.setAttribute('webkit-playsinline', '');
-        el.play().catch(() => {});
+      if (remoteScreenVideoRef.current.srcObject !== activeStream) {
+        remoteScreenVideoRef.current.srcObject = activeStream;
+        remoteScreenVideoRef.current.muted = true;
+        remoteScreenVideoRef.current.playsInline = true;
+        remoteScreenVideoRef.current.setAttribute('playsinline', '');
+        remoteScreenVideoRef.current.setAttribute('webkit-playsinline', '');
+        remoteScreenVideoRef.current.play().catch(() => {});
       }
-      const handlePlay = () => setIsWebRTCVideoPlaying(true);
-      const handlePause = () => {
-        if (el && el.srcObject && !el.ended) {
-          el.play().catch(() => {});
-        }
-      };
-      el.addEventListener('playing', handlePlay);
-      el.addEventListener('pause', handlePause);
-      return () => {
-        el.removeEventListener('playing', handlePlay);
-        el.removeEventListener('pause', handlePause);
-      };
     }
     if (!isMentor && activeStream) {
       setShowWhiteboard(false);
@@ -1306,8 +1365,10 @@ export default function ClassRoomPage() {
   useEffect(() => {
     if (!isMentor && meeting?.status === 'ended') {
       window.location.href = "https://www.geonixa.com/";
+    } else if (isMentor && meeting?.status === 'ended' && !isEndingAndSaving) {
+      router.push("/meetings");
     }
-  }, [isMentor, meeting?.status]);
+  }, [isMentor, meeting?.status, isEndingAndSaving, router]);
 
   // Real-time server-synchronized participant heartbeat
   useEffect(() => {
@@ -1511,6 +1572,12 @@ export default function ClassRoomPage() {
               showToast("The host muted all participants.");
             }
             setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
+          } else if (type === "MEETING_EXTENDED") {
+            if (data?.duration) {
+              setMeeting(prev => prev ? ({ ...prev, duration: data.duration, status: 'live' }) : prev);
+              setStudentDurationWarning(null);
+              showToast(`Meeting extended by ${data.extendedBy || 15} minutes!`);
+            }
           }
         };
       }
@@ -1539,6 +1606,10 @@ export default function ClassRoomPage() {
           if (!isMentor && data.status === "ended") {
             window.location.href = "https://www.geonixa.com/";
             return;
+          }
+          if (data?.duration && meeting && meeting.duration !== data.duration) {
+            setMeeting(prev => prev ? ({ ...prev, duration: data.duration }) : prev);
+            setStudentDurationWarning(null);
           }
 
           // Process WebRTC audio signals
@@ -1644,10 +1715,9 @@ export default function ClassRoomPage() {
                 setShowWhiteboard(false);
                 setStudentViewMode("screen");
               }
-              // If WebRTC / SFU video is actively playing, avoid heavy base64 JPEG decode and state churn
-              const hasLiveWebRTC = isWebRTCVideoPlayingRef.current || isSFUStreaming;
+              // Prevent unnecessary re-renders if frame and active status did not change
               setRemoteScreenShare(prev => {
-                const nextFrame = hasLiveWebRTC ? undefined : (data.screenShare.streamFrame || prev?.streamFrame);
+                const nextFrame = data.screenShare.streamFrame || prev?.streamFrame;
                 if (
                   prev?.active === data.screenShare.active &&
                   prev?.presenterName === data.screenShare.presenterName &&
@@ -1838,32 +1908,6 @@ export default function ClassRoomPage() {
     const broadcastFrame = async () => {
       if (!active || !screenStream || inFlight) return;
       try {
-        // When LiveKit SFU is active, 60FPS video is ALREADY streaming over WebRTC!
-        // Send only a lightweight metadata heartbeat without expensive canvas capture / base64 encode
-        if (livekitSFU.isSFUActive) {
-          inFlight = true;
-          try {
-            const now = Date.now();
-            const payload = {
-              active: true,
-              presenterName: displayName || "Host",
-              updatedAt: now,
-            };
-            if (bc) {
-              bc.postMessage({ type: "SCREEN_SHARE", data: payload });
-            }
-            await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ screenShare: payload }),
-            });
-          } finally {
-            inFlight = false;
-          }
-          return;
-        }
-
-        // Resilient fallback only when SFU is offline (P2P / HTTP fallback)
         const vEl = (screenVideoRef.current && screenVideoRef.current.videoWidth > 0)
           ? screenVideoRef.current
           : helperVideo;
@@ -1886,7 +1930,7 @@ export default function ClassRoomPage() {
           lastSample = sampleStr;
           heartbeatCounter = 0;
 
-          // Ultra-crisp 720px max width ensures tiny 14-18KB frames for instant delivery
+          // Ultra-crisp 720px max width ensures tiny 14-18KB frames for instant 0-lag delivery across cellular 5G/4G
           const maxW = 720;
           const scale = Math.min(1, maxW / vw);
           const tw = Math.round(vw * scale);
@@ -1899,6 +1943,7 @@ export default function ClassRoomPage() {
           ctx.imageSmoothingQuality = "medium";
           ctx.drawImage(vEl, 0, 0, tw, th);
 
+          // 0.45 JPEG quality gives sharp text and code lines with minimal decode overhead on phones
           const dataUrl = canvas.toDataURL("image/jpeg", 0.45);
           const now = Date.now();
 
@@ -1913,6 +1958,7 @@ export default function ClassRoomPage() {
             bc.postMessage({ type: "SCREEN_SHARE", data: payload });
           }
 
+          // Always persist active screen share state to server so students never see inactive avatar or lag
           inFlight = true;
           try {
             await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
@@ -1929,7 +1975,7 @@ export default function ClassRoomPage() {
       }
     };
 
-    const interval = setInterval(broadcastFrame, livekitSFU.isSFUActive ? 4000 : 800);
+    const interval = setInterval(broadcastFrame, 320);
     broadcastFrame();
 
     return () => {
@@ -2532,7 +2578,7 @@ export default function ClassRoomPage() {
       const screenAudioTrack = ds.getAudioTracks()[0];
       if (vTrack) {
         if ('contentHint' in vTrack) {
-          vTrack.contentHint = 'motion';
+          vTrack.contentHint = 'detail';
         }
       }
 
@@ -3185,6 +3231,66 @@ export default function ClassRoomPage() {
     router.push("/meetings");
   };
 
+  const handleExtendMeeting = async (minutesToAdd: number) => {
+    if (!roomId || minutesToAdd <= 0) return;
+    setIsExtending(true);
+    try {
+      const currentDuration = Number(meeting?.duration) || 60;
+      const newDuration = currentDuration + minutesToAdd;
+
+      // Update local meeting state immediately
+      setMeeting(prev => prev ? ({ ...prev, duration: newDuration, status: "live" }) : prev);
+
+      // Sync to server API (PATCH /api/meetings)
+      await fetch('/api/meetings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: roomId,
+          duration: newDuration,
+          status: 'live',
+        }),
+      }).catch(() => {});
+
+      // Sync to room state API
+      await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          duration: newDuration,
+          extendedBy: minutesToAdd,
+          status: 'live',
+        }),
+      }).catch(() => {});
+
+      // Broadcast over LiveKit SFU & BroadcastChannel so student clients get notified instantly
+      livekitSFU.broadcastDataSFU("MEETING_EXTENDED", {
+        duration: newDuration,
+        extendedBy: minutesToAdd,
+      }).catch(() => {});
+
+      try {
+        const bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
+        bc.postMessage({
+          type: "MEETING_EXTENDED",
+          data: { duration: newDuration, extendedBy: minutesToAdd },
+        });
+        setTimeout(() => bc.close(), 500);
+      } catch {}
+
+      setShowDurationModal(false);
+      setAutoEndCountdown(null);
+      setHasPromptedForDuration(false);
+      setStudentDurationWarning(null);
+      showToast(`Class session extended by ${minutesToAdd} minutes. Session will run for this period.`);
+    } catch (err) {
+      console.error("Failed to extend meeting duration:", err);
+      showToast("Failed to extend duration. Please try again.", false);
+    } finally {
+      setIsExtending(false);
+    }
+  };
+
   // Safe UNMOUNT-ONLY cleanup (will NEVER terminate screen share when camera toggles!)
   useEffect(() => {
     return () => {
@@ -3478,11 +3584,11 @@ export default function ClassRoomPage() {
   const courseName = courses.find(c => c.id === (meeting?.courseId || ""))?.name;
 
   const isScheduledFuture = !isReadonly && meeting?.status !== "live" && meeting?.scheduledAt && (new Date(meeting.scheduledAt).getTime() > now);
-  const remainingMs = meeting?.scheduledAt ? Math.max(0, new Date(meeting.scheduledAt).getTime() - now) : 0;
-  const remDays = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
-  const remHours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const remMins = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
-  const remSecs = Math.floor((remainingMs % (1000 * 60)) / 1000);
+  const lobbyRemainingMs = meeting?.scheduledAt ? Math.max(0, new Date(meeting.scheduledAt).getTime() - now) : 0;
+  const remDays = Math.floor(lobbyRemainingMs / (1000 * 60 * 60 * 24));
+  const remHours = Math.floor((lobbyRemainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const remMins = Math.floor((lobbyRemainingMs % (1000 * 60 * 60)) / (1000 * 60));
+  const remSecs = Math.floor((lobbyRemainingMs % (1000 * 60)) / 1000);
 
   // Meeting Ended / Expired Screen for all users when meeting status is 'ended'
   if (meeting?.status === "ended" && !isMentor) {
@@ -3705,11 +3811,11 @@ export default function ClassRoomPage() {
             )}
           </div>
 
-          {/* Center: Meeting Title Pill with Dropdown */}
-          <div className="pointer-events-auto">
+          {/* Center: Meeting Title Pill & Duration Timer Pill */}
+          <div className="pointer-events-auto flex items-center gap-2">
             <button
               onClick={() => setShowMeetingInfoModal(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/60 text-xs font-semibold text-white shadow-xl transition-all cursor-pointer max-w-[190px] sm:max-w-[320px]"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/60 text-xs font-semibold text-white shadow-xl transition-all cursor-pointer max-w-[150px] sm:max-w-[260px]"
               title="View Meeting Information"
             >
               <span className="truncate">
@@ -3717,6 +3823,34 @@ export default function ClassRoomPage() {
               </span>
               <ChevronDown size={13} className="text-zinc-400 shrink-0" />
             </button>
+
+            {/* Duration Timer Badge */}
+            {meetingStartTime > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (isMentor) setShowDurationModal(true);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all shadow-xl ${
+                  isMentor ? "cursor-pointer hover:scale-105" : "cursor-default"
+                } ${
+                  remainingMs <= 0
+                    ? "bg-rose-950/90 border border-rose-500 text-rose-300 animate-pulse"
+                    : remainingMs <= 5 * 60000
+                    ? "bg-amber-950/90 border border-amber-500 text-amber-300 animate-pulse"
+                    : "bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/60 text-zinc-300"
+                }`}
+                title={isMentor ? "Click to manage or extend duration" : "Meeting duration timer"}
+              >
+                <Clock size={12} className={remainingMs <= 0 ? "text-rose-400" : remainingMs <= 5 * 60000 ? "text-amber-400" : "text-emerald-400"} />
+                <span>
+                  {remainingMs <= 0
+                    ? "Duration Over"
+                    : formatTimer(remainingMs)}
+                </span>
+                {isMentor && <span className="text-[10px] text-zinc-400 hover:text-white font-normal underline ml-0.5">Manage</span>}
+              </button>
+            )}
           </div>
 
           {/* Right: Quick Action Buttons from Screenshot 1 & 4 */}
@@ -3806,7 +3940,13 @@ export default function ClassRoomPage() {
 
           {/* Screen Video (Host Local Stream) */}
           <video
-            ref={screenVideoRef}
+            ref={(el) => {
+              screenVideoRef.current = el;
+              if (el && screenStream && el.srcObject !== screenStream) {
+                el.srcObject = screenStream;
+                el.play().catch(() => {});
+              }
+            }}
             autoPlay
             playsInline
             muted
@@ -3816,8 +3956,46 @@ export default function ClassRoomPage() {
           {/* Remote Host Screen Share (Live synced to students) */}
           {isRemoteSharing && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black overflow-hidden select-none">
-              {/* Layer 1: HTTP Live Frame Stream (Rock-solid fallback, only when WebRTC is not yet playing) */}
-              {!isWebRTCVideoPlaying && !livekitSFU.sfuRemoteStream && remoteScreenShare?.streamFrame && (
+              <div className="absolute top-16 left-3 sm:left-4 z-20 flex items-center gap-1.5 sm:gap-2 bg-zinc-900/90 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-zinc-700 shadow-md text-xs font-bold text-white max-w-[90vw] overflow-x-auto">
+                <Monitor size={14} className="text-blue-400 shrink-0" />
+                <span className="truncate max-w-[140px] sm:max-w-none">{remoteScreenShare?.presenterName || "Host"} is sharing screen</span>
+                {isWebRTCVideoPlaying ? (
+                  <span className="flex items-center gap-1.5 text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Ultra HD 60FPS
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-medium shrink-0">
+                    HD Live
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={toggleFullScreen}
+                  className="flex items-center gap-1 text-[10px] sm:text-[11px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-lg font-semibold border border-white/20 transition-all cursor-pointer ml-0.5 shrink-0"
+                  title="Fullscreen"
+                >
+                  <Maximize2 size={11} className="text-blue-300" />
+                  <span className="hidden sm:inline">Fit / Fullscreen</span>
+                </button>
+                {!isMentor && remoteWhiteboard?.active && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowWhiteboard(true);
+                      setStudentViewMode("whiteboard");
+                    }}
+                    className="flex items-center gap-1 text-[10px] sm:text-[11px] bg-white/10 hover:bg-white/20 text-white px-2 py-0.5 rounded-lg font-semibold border border-white/20 transition-all cursor-pointer ml-0.5 shrink-0"
+                    title="View mentor's lecture notes"
+                  >
+                    <BookOpen size={11} className="text-amber-300" />
+                    <span>View Notes</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Layer 1: HTTP Live Frame Stream (Rock-solid fallback, immediate 0ms appearance) */}
+              {remoteScreenShare?.streamFrame && (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={remoteScreenShare.streamFrame}
@@ -3826,10 +4004,21 @@ export default function ClassRoomPage() {
                 />
               )}
 
-              {/* Layer 2: WebRTC Ultra HD 60FPS Video (Pure, uninterrupted full-screen playback) */}
+              {/* Layer 2: WebRTC Ultra HD 60FPS Video (Fades in over Layer 1 when packets arrive) */}
               {(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream) && (
                 <video
-                  ref={remoteScreenVideoRef}
+                  ref={(el) => {
+                    remoteScreenVideoRef.current = el;
+                    const activeStream = livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream;
+                    if (el && activeStream && el.srcObject !== activeStream) {
+                      el.srcObject = activeStream;
+                      el.muted = true;
+                      el.playsInline = true;
+                      el.setAttribute('playsinline', '');
+                      el.setAttribute('webkit-playsinline', '');
+                      el.play().catch(() => {});
+                    }
+                  }}
                   autoPlay
                   playsInline
                   muted
@@ -4342,8 +4531,8 @@ export default function ClassRoomPage() {
             </div>
           )}
 
-          {/* When Screen Share IS ACTIVE: Draggable Floating Host Camera Card (Only when Host Camera is actively streaming and not minimized) */}
-          {isAnyScreenSharing && !isWhiteboardActive && !isCameraCardMinimized && ((isMentor && cameraOn) || (!isMentor && remoteHostCamera?.active && remoteHostCamera?.streamFrame)) && (
+          {/* When Screen Share IS ACTIVE: Draggable & Minimizable Floating Host Camera Card (Image 2) */}
+          {isAnyScreenSharing && !isWhiteboardActive && (
             <div
               style={{
                 transform: `translate3d(${cameraCardPos.x}px, ${cameraCardPos.y}px, 0)`,
@@ -4351,93 +4540,113 @@ export default function ClassRoomPage() {
               }}
               className="absolute top-2 right-2 sm:top-4 sm:right-4 z-30 flex flex-col items-end gap-1.5 pointer-events-auto select-none"
             >
-              {/* Full Video Card with Drag Grip & Minimize button */}
-              <div className="w-28 sm:w-56 h-22 sm:h-38 bg-white rounded-xl sm:rounded-2xl overflow-hidden border-2 border-[#154360] shadow-2xl relative flex flex-col">
-                {/* Drag Handle Top Bar */}
-                <div
-                  onMouseDown={(e) => {
-                    cameraDragRef.current = { startX: e.clientX, startY: e.clientY, initX: cameraCardPos.x, initY: cameraCardPos.y };
-                    const handleMouseMove = (me: MouseEvent) => {
-                      if (!cameraDragRef.current) return;
-                      setCameraCardPos({
-                        x: cameraDragRef.current.initX + (me.clientX - cameraDragRef.current.startX),
-                        y: cameraDragRef.current.initY + (me.clientY - cameraDragRef.current.startY),
-                      });
-                    };
-                    const handleMouseUp = () => {
-                      cameraDragRef.current = null;
-                      window.removeEventListener("mousemove", handleMouseMove);
-                      window.removeEventListener("mouseup", handleMouseUp);
-                    };
-                    window.addEventListener("mousemove", handleMouseMove);
-                    window.addEventListener("mouseup", handleMouseUp);
-                  }}
-                  onTouchStart={(e) => {
-                    if (!e.touches[0]) return;
-                    const t = e.touches[0];
-                    cameraDragRef.current = { startX: t.clientX, startY: t.clientY, initX: cameraCardPos.x, initY: cameraCardPos.y };
-                  }}
-                  onTouchMove={(e) => {
-                    if (!cameraDragRef.current || !e.touches[0]) return;
-                    const t = e.touches[0];
-                    setCameraCardPos({
-                      x: cameraDragRef.current.initX + (t.clientX - cameraDragRef.current.startX),
-                      y: cameraDragRef.current.initY + (t.clientY - cameraDragRef.current.startY),
-                    });
-                  }}
-                  onTouchEnd={() => {
-                    cameraDragRef.current = null;
-                  }}
-                  className="h-5 sm:h-6 bg-slate-900/90 backdrop-blur-xs flex items-center justify-between px-2 cursor-grab active:cursor-grabbing text-slate-300 text-[10px] sm:text-xs z-10 shrink-0 select-none"
-                  title="Drag anywhere to uncover notes underneath"
+              {isCameraCardMinimized ? (
+                /* Minimized pill to completely uncover lecture notes behind it */
+                <button
+                  type="button"
+                  onClick={() => setIsCameraCardMinimized(false)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-700 shadow-2xl backdrop-blur-md text-xs font-bold cursor-pointer transition-all"
+                  title="Expand Host Camera"
                 >
-                  <div className="flex items-center gap-1 font-bold text-white text-[9px] sm:text-[10px]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span>{effectiveHostName || "Host"}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] text-slate-400 hidden sm:inline">Drag to move</span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsCameraCardMinimized(true);
-                      }}
-                      className="w-4 h-4 rounded hover:bg-slate-700 flex items-center justify-center text-white"
-                      title="Minimize to read notes"
-                    >
-                      <X size={10} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Video Content */}
-                <div className="relative flex-1 w-full bg-slate-900 overflow-hidden">
-                  {isMentor && cameraOn ? (
-                    <video
-                      ref={cameraVideoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="w-full h-full object-cover"
-                    />
-                  ) : !isMentor && remoteHostCamera?.active && remoteHostCamera?.streamFrame ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
-                      src={remoteHostCamera.streamFrame}
-                      alt="Host Live Camera"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-[#20262E]">
-                      <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#154360] text-white flex items-center justify-center font-bold text-xs sm:text-base shadow-sm">
-                        {displayInitial}
-                      </div>
-                      <span className="text-[9px] sm:text-[10px] font-semibold text-[#57636E] mt-0.5 truncate max-w-[90%]">Camera Off</span>
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Host Camera</span>
+                  <Maximize2 size={12} className="text-slate-400 ml-0.5" />
+                </button>
+              ) : (
+                /* Full Video Card with Drag Grip & Minimize button */
+                <div className="w-28 sm:w-56 h-22 sm:h-38 bg-white rounded-xl sm:rounded-2xl overflow-hidden border-2 border-[#154360] shadow-2xl relative flex flex-col">
+                  {/* Drag Handle Top Bar */}
+                  <div
+                    onMouseDown={(e) => {
+                      cameraDragRef.current = { startX: e.clientX, startY: e.clientY, initX: cameraCardPos.x, initY: cameraCardPos.y };
+                      const handleMouseMove = (me: MouseEvent) => {
+                        if (!cameraDragRef.current) return;
+                        setCameraCardPos({
+                          x: cameraDragRef.current.initX + (me.clientX - cameraDragRef.current.startX),
+                          y: cameraDragRef.current.initY + (me.clientY - cameraDragRef.current.startY),
+                        });
+                      };
+                      const handleMouseUp = () => {
+                        cameraDragRef.current = null;
+                        window.removeEventListener("mousemove", handleMouseMove);
+                        window.removeEventListener("mouseup", handleMouseUp);
+                      };
+                      window.addEventListener("mousemove", handleMouseMove);
+                      window.addEventListener("mouseup", handleMouseUp);
+                    }}
+                    onTouchStart={(e) => {
+                      if (!e.touches[0]) return;
+                      const t = e.touches[0];
+                      cameraDragRef.current = { startX: t.clientX, startY: t.clientY, initX: cameraCardPos.x, initY: cameraCardPos.y };
+                    }}
+                    onTouchMove={(e) => {
+                      if (!cameraDragRef.current || !e.touches[0]) return;
+                      const t = e.touches[0];
+                      setCameraCardPos({
+                        x: cameraDragRef.current.initX + (t.clientX - cameraDragRef.current.startX),
+                        y: cameraDragRef.current.initY + (t.clientY - cameraDragRef.current.startY),
+                      });
+                    }}
+                    onTouchEnd={() => {
+                      cameraDragRef.current = null;
+                    }}
+                    className="h-5 sm:h-6 bg-slate-900/90 backdrop-blur-xs flex items-center justify-between px-2 cursor-grab active:cursor-grabbing text-slate-300 text-[10px] sm:text-xs z-10 shrink-0 select-none"
+                    title="Drag anywhere to uncover notes underneath"
+                  >
+                    <div className="flex items-center gap-1 font-bold text-white text-[9px] sm:text-[10px]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span>{effectiveHostName || "Host"}</span>
                     </div>
-                  )}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] text-slate-400 hidden sm:inline">Drag to move</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsCameraCardMinimized(true);
+                        }}
+                        className="w-4 h-4 rounded hover:bg-slate-700 flex items-center justify-center text-white"
+                        title="Minimize to read notes"
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Video Content */}
+                  <div className="relative flex-1 w-full bg-slate-900 overflow-hidden">
+                    {isMentor && cameraOn ? (
+                      <video
+                        ref={(el) => {
+                          cameraVideoRef.current = el;
+                          if (el && cameraStream && el.srcObject !== cameraStream) {
+                            el.srcObject = cameraStream;
+                            el.play().catch(() => {});
+                          }
+                        }}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="w-full h-full object-cover"
+                      />
+                    ) : !isMentor && remoteHostCamera?.active && remoteHostCamera?.streamFrame ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={remoteHostCamera.streamFrame}
+                        alt="Host Live Camera"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-[#20262E]">
+                        <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#154360] text-white flex items-center justify-center font-bold text-xs sm:text-base shadow-sm">
+                          {displayInitial}
+                        </div>
+                        <span className="text-[9px] sm:text-[10px] font-semibold text-[#57636E] mt-0.5 truncate max-w-[90%]">Camera Off</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Connected Student Mini Avatar Badges (Hidden on mobile to keep presentation completely unobstructed!) */}
               <div className="hidden sm:flex gap-1.5 max-w-[280px] overflow-x-auto">
@@ -5196,6 +5405,146 @@ export default function ClassRoomPage() {
               )}
 
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── HOST DURATION EXPIRED / EXTENSION MODAL ─── */}
+      {showDurationModal && isMentor && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+        >
+          <div
+            className="w-full max-w-md bg-[#1C1C1E] border border-amber-500/40 rounded-3xl p-6 text-white shadow-2xl space-y-5 animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header with Icon and Badge */}
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                  <Clock size={22} className="stroke-[2.5]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Duration Completed
+                    </span>
+                    {autoEndCountdown !== null && (
+                      <span className="text-[10px] font-mono font-bold text-rose-400 bg-rose-950/60 border border-rose-800/80 px-2 py-0.5 rounded-full">
+                        Auto-end: {autoEndCountdown}s
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-base font-bold text-white mt-1">Scheduled Time Completed</h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDurationModal(false)}
+                className="p-1 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                title="Minimize modal"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Explanation */}
+            <div className="p-3.5 bg-zinc-900/90 rounded-2xl border border-zinc-800 space-y-1.5 text-xs">
+              <p className="text-zinc-300">
+                The scheduled duration of <span className="font-bold text-white">{meeting?.duration || 60} minutes</span> for this meeting has finished.
+              </p>
+              <p className="text-zinc-400">
+                Would you like to extend this session or conclude and end the meeting now for all participants?
+              </p>
+            </div>
+
+            {/* Section 1: Extend Duration */}
+            <div className="space-y-3 pt-1">
+              <label className="block text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+                Extend Meeting by (Minutes):
+              </label>
+
+              {/* Preset Chips */}
+              <div className="grid grid-cols-4 gap-2">
+                {[5, 10, 15, 30].map(mins => (
+                  <button
+                    key={mins}
+                    type="button"
+                    onClick={() => setExtendMinutesInput(String(mins))}
+                    className={`py-2 px-1 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                      extendMinutesInput === String(mins)
+                        ? "bg-[#154360] border-sky-400 text-white shadow-sm"
+                        : "bg-zinc-900 border-zinc-800 hover:border-zinc-700 text-zinc-300"
+                    }`}
+                  >
+                    +{mins}m
+                  </button>
+                ))}
+              </div>
+
+              {/* Custom Number Input */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type="number"
+                    min={1}
+                    max={240}
+                    value={extendMinutesInput}
+                    onChange={e => setExtendMinutesInput(e.target.value)}
+                    placeholder="Enter minutes"
+                    className="w-full h-10 px-3 bg-zinc-900 border border-zinc-700 rounded-xl text-sm font-bold text-white focus:outline-none focus:border-sky-500"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400 font-medium pointer-events-none">
+                    mins
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  disabled={isExtending || !extendMinutesInput || parseInt(extendMinutesInput) <= 0}
+                  onClick={() => handleExtendMeeting(parseInt(extendMinutesInput) || 15)}
+                  className="h-10 px-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <Check size={14} strokeWidth={3} />
+                  <span>{isExtending ? "Extending..." : "Extend & Continue"}</span>
+                </button>
+              </div>
+              <p className="text-[11px] text-zinc-400">
+                Access will be granted for these minutes only, after which you will be prompted again.
+              </p>
+            </div>
+
+            <div className="h-px bg-zinc-800" />
+
+            {/* Section 2: End Meeting Now */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={endClass}
+                className="w-full py-3 px-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer group"
+              >
+                <X size={15} strokeWidth={3} className="group-hover:scale-110 transition-transform" />
+                <span>End Meeting for All Participants Now</span>
+              </button>
+            </div>
+
+            {autoEndCountdown !== null && (
+              <p className="text-[10px] text-center text-zinc-500">
+                To prevent accidental running sessions, call will automatically close in {autoEndCountdown}s if no action is chosen.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── STUDENT DURATION OVER BANNER ─── */}
+      {!isMentor && studentDurationWarning && (
+        <div className="fixed top-16 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-40 max-w-lg w-full bg-amber-950/95 border border-amber-600/80 rounded-2xl p-3.5 text-white shadow-2xl backdrop-blur-md flex items-center gap-3 animate-in slide-in-from-top-4 duration-200">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+            <Clock size={16} />
+          </div>
+          <div className="flex-1 text-xs">
+            <p className="font-bold text-amber-200">Scheduled Duration Completed</p>
+            <p className="text-zinc-300 text-[11px] mt-0.5">{studentDurationWarning}</p>
           </div>
         </div>
       )}

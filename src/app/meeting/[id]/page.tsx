@@ -348,9 +348,23 @@ function JoinMeetingContent() {
     }
   };
 
-  const isLive = meeting?.status === "live";
-  const isScheduled = meeting?.status === "scheduled";
-  const isEnded = meeting?.status === "ended";
+  const isDurationExpired = Boolean(
+    meeting &&
+    meeting.status !== "ended" &&
+    (() => {
+      const startStr = meeting.scheduledAt;
+      if (!startStr) return false;
+      const startT = new Date(startStr).getTime();
+      if (isNaN(startT)) return false;
+      const durationMins = Number(meeting.duration) || 60;
+      return now >= startT + durationMins * 60000;
+    })()
+  );
+
+  const effectiveStatus = (meeting?.status === "ended" || isDurationExpired) ? "ended" : meeting?.status;
+  const isLive = effectiveStatus === "live";
+  const isScheduled = effectiveStatus === "scheduled";
+  const isEnded = effectiveStatus === "ended";
 
   return (
     <div className="min-h-screen bg-[#F4F7FC] flex flex-col justify-between selection:bg-[#154360] selection:text-white font-sans antialiased text-[#20262E] relative overflow-x-hidden">

@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { 
   X, Check, ExternalLink, Sparkles, User, CreditCard, 
-  Keyboard, Download, Smartphone, LogOut, Edit3
+  Keyboard, Download, Smartphone, LogOut, Edit3,
+  Camera, Trash2, Loader2
 } from "lucide-react";
+import { fetchWithAuth } from "@/lib/api";
 
 interface ProfileFlyoutProps {
   isOpen: boolean;
@@ -19,6 +21,7 @@ export interface UserProfileData {
   role: string;
   plan: string;
   avatarText: string;
+  avatarUrl?: string;
 }
 
 const DEFAULT_PROFILE: UserProfileData = {
@@ -32,29 +35,33 @@ const DEFAULT_PROFILE: UserProfileData = {
 export function getStoredProfile(): UserProfileData {
   if (typeof window === "undefined") return DEFAULT_PROFILE;
   try {
-    const userRaw = localStorage.getItem("user");
-    if (userRaw) {
-      const u = JSON.parse(userRaw);
-      const name = (u?.name || (u?.email ? u.email.split('@')[0] : '') || '').trim();
-      if (name) {
-        const initials = name
-          .split(' ')
-          .filter(Boolean)
-          .map((n: string) => n[0])
-          .join('')
-          .substring(0, 2)
-          .toUpperCase() || 'U';
-        return {
-          name,
-          email: u.email || '',
-          role: u.role || 'Member',
-          plan: 'Pro Plan',
-          avatarText: initials,
-        };
-      }
-    }
     const raw = localStorage.getItem("rcrd_user_profile");
-    if (raw) return JSON.parse(raw);
+    const parsedProf = raw ? JSON.parse(raw) : null;
+    const userRaw = localStorage.getItem("user");
+    const u = userRaw ? JSON.parse(userRaw) : null;
+
+    const name = (parsedProf?.name || u?.name || (u?.email ? u.email.split('@')[0] : '') || '').trim() || DEFAULT_PROFILE.name;
+    const email = parsedProf?.email || u?.email || DEFAULT_PROFILE.email;
+    const role = parsedProf?.role || u?.role || DEFAULT_PROFILE.role;
+    const plan = parsedProf?.plan || 'Pro Plan';
+    const avatarUrl = parsedProf?.avatarUrl || u?.avatarUrl || undefined;
+
+    const initials = name
+      .split(' ')
+      .filter(Boolean)
+      .map((n: string) => n[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase() || 'U';
+
+    return {
+      name,
+      email,
+      role,
+      plan,
+      avatarText: initials,
+      avatarUrl,
+    };
   } catch {}
   return DEFAULT_PROFILE;
 }
@@ -65,9 +72,11 @@ export default function ProfileFlyout({
   videoCount = 4
 }: ProfileFlyoutProps) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [profile, setProfile] = useState<UserProfileData>(getStoredProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<UserProfileData>(getStoredProfile);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   // Secondary modals
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -93,6 +102,115 @@ export default function ProfileFlyout({
 
   if (!isOpen) return null;
 
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast("Please select a valid image file.");
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const src = event.target?.result as string;
+      if (!src) {
+        setIsUploadingPhoto(false);
+        return;
+      }
+
+      // Resize & compress via Canvas for optimal performance
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_SIZE = 256;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height = Math.round((height * MAX_SIZE) / width);
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width = Math.round((width * MAX_SIZE) / height);
+            height = MAX_SIZE;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+
+          const updated: UserProfileData = {
+            ...profile,
+            avatarUrl: compressedDataUrl,
+          };
+          localStorage.setItem("rcrd_user_profile", JSON.stringify(updated));
+          try {
+            const usr = localStorage.getItem("user");
+            if (usr) {
+              const u = JSON.parse(usr);
+              u.avatarUrl = compressedDataUrl;
+              localStorage.setItem("user", JSON.stringify(u));
+            }
+          } catch {}
+
+          setProfile(updated);
+          setEditForm(updated);
+          setIsUploadingPhoto(false);
+
+          // Sync to server API
+          fetchWithAuth("/auth/profile", {
+            method: "PATCH",
+            body: JSON.stringify({ email: updated.email, avatarUrl: compressedDataUrl }),
+          }).catch(() => {});
+
+          window.dispatchEvent(new CustomEvent("rcrd_profile_updated", { detail: updated }));
+          showToast("Profile photo uploaded successfully!");
+        } else {
+          setIsUploadingPhoto(false);
+        }
+      };
+      img.onerror = () => setIsUploadingPhoto(false);
+      img.src = src;
+    };
+    reader.onerror = () => setIsUploadingPhoto(false);
+    reader.readAsDataURL(file);
+
+    if (e.target) e.target.value = "";
+  };
+
+  const handleRemoveAvatar = () => {
+    const updated: UserProfileData = {
+      ...profile,
+      avatarUrl: undefined,
+    };
+    localStorage.setItem("rcrd_user_profile", JSON.stringify(updated));
+    try {
+      const usr = localStorage.getItem("user");
+      if (usr) {
+        const u = JSON.parse(usr);
+        delete u.avatarUrl;
+        localStorage.setItem("user", JSON.stringify(u));
+      }
+    } catch {}
+
+    setProfile(updated);
+    setEditForm(updated);
+
+    fetchWithAuth("/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify({ email: updated.email, avatarUrl: null }),
+    }).catch(() => {});
+
+    window.dispatchEvent(new CustomEvent("rcrd_profile_updated", { detail: updated }));
+    showToast("Profile photo removed.");
+  };
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     const initials = editForm.name
@@ -108,6 +226,12 @@ export default function ProfileFlyout({
     localStorage.setItem("rcrd_user_profile", JSON.stringify(updated));
     setProfile(updated);
     setIsEditing(false);
+
+    fetchWithAuth("/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify({ email: updated.email, name: updated.name, role: updated.role }),
+    }).catch(() => {});
+
     window.dispatchEvent(new CustomEvent("rcrd_profile_updated", { detail: updated }));
     showToast("Profile updated successfully!");
   };
@@ -141,19 +265,87 @@ export default function ProfileFlyout({
           
           {/* Section 1: User Avatar & Name Card */}
           <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full bg-[#154360] text-white flex items-center justify-center text-xl font-bold shadow-md ring-4 ring-[#EBF5FB] mb-3">
-              {profile.avatarText}
+            {/* Clickable Avatar Circle with Hover Overlay and Badge */}
+            <div 
+              className="relative group/avatar cursor-pointer mb-3"
+              onClick={() => fileInputRef.current?.click()}
+              title="Click to upload profile photo"
+            >
+              <div className="w-20 h-20 rounded-full bg-[#154360] text-white flex items-center justify-center text-xl font-bold shadow-md ring-4 ring-[#EBF5FB] overflow-hidden">
+                {profile.avatarUrl ? (
+                  <img 
+                    src={profile.avatarUrl} 
+                    alt={profile.name} 
+                    className="w-full h-full object-cover" 
+                  />
+                ) : (
+                  <span>{profile.avatarText}</span>
+                )}
+              </div>
+              
+              {/* Hover Overlay */}
+              <div className="absolute inset-0 rounded-full bg-black/45 text-white flex flex-col items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                <Camera size={18} />
+                <span className="text-[10px] font-semibold mt-0.5">Upload</span>
+              </div>
+
+              {/* Camera icon badge */}
+              <div className="absolute bottom-0 right-0 p-1.5 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-full shadow-md ring-2 ring-white transition-transform group-hover/avatar:scale-110">
+                <Camera size={12} />
+              </div>
             </div>
-            
+
+            <input 
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
+
             <h3 className="text-base font-bold text-[#20262E]">{profile.name}</h3>
             <p className="text-xs text-[#57636E] mt-0.5">{profile.email}</p>
 
+            {/* Photo Action Buttons */}
+            <div className="flex items-center gap-2 mt-2.5">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingPhoto}
+                className="px-3 py-1 bg-[#EBF5FB] hover:bg-[#154360]/15 text-[#154360] text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isUploadingPhoto ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" />
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Camera size={12} />
+                    <span>{profile.avatarUrl ? "Change photo" : "Upload photo"}</span>
+                  </>
+                )}
+              </button>
+
+              {profile.avatarUrl && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAvatar}
+                  className="px-2 py-1 text-red-600 hover:bg-red-50 text-xs font-medium rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                  title="Remove photo"
+                >
+                  <Trash2 size={12} />
+                  <span>Remove</span>
+                </button>
+              )}
+            </div>
+
             <button
               onClick={() => setIsEditing(!isEditing)}
-              className="mt-3 px-4 py-1.5 border border-[#E2E7EC] hover:border-[#154360] hover:bg-[#EBF5FB]/40 text-[#20262E] hover:text-[#0E2F44] text-xs font-semibold rounded-lg transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+              className="mt-2.5 px-4 py-1.5 border border-[#E2E7EC] hover:border-[#154360] hover:bg-[#EBF5FB]/40 text-[#20262E] hover:text-[#0E2F44] text-xs font-semibold rounded-lg transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
             >
               <Edit3 size={12} className="text-[#154360]" />
-              {isEditing ? "Cancel editing" : "Edit profile"}
+              {isEditing ? "Cancel editing" : "Edit profile details"}
             </button>
           </div>
 
@@ -296,6 +488,11 @@ export default function ProfileFlyout({
               onClick={() => {
                 localStorage.removeItem("token");
                 localStorage.removeItem("user");
+                localStorage.removeItem("rcrd_user_profile");
+                localStorage.removeItem("rcrd_meetings");
+                try {
+                  sessionStorage.clear();
+                } catch {}
                 onClose();
                 router.push('/login');
               }}

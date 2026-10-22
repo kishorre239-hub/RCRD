@@ -97,6 +97,7 @@ export async function POST(req: Request) {
       email: cleanEmail,
       role: cleanRole,
       allowedNavItems,
+      avatarUrl: user.avatarUrl || null,
     });
   } catch (error: unknown) {
     console.error('Login error in loom-app:', (error as Error)?.message || error);

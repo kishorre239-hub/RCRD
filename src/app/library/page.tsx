@@ -85,18 +85,46 @@ export default function LibraryPage() {
   const [showMoveModal, setShowMoveModal] = useState<string | null>(null);
   const [moveTargetFolderId, setMoveTargetFolderId] = useState<string>('root');
   
+  // Helper to scope preferences per mentor
+  const getLibraryUserKey = useCallback((prefix: string): string => {
+    if (typeof window === 'undefined') return prefix;
+    try {
+      const usr = localStorage.getItem('user');
+      const prof = localStorage.getItem('rcrd_user_profile');
+      const parsed = usr ? JSON.parse(usr) : (prof ? JSON.parse(prof) : null);
+      if (parsed?.email) return `${prefix}_${parsed.email.toLowerCase().trim()}`;
+    } catch {}
+    return prefix;
+  }, []);
+
   // Pinned and Archived Video States (Image 3)
   const [pinnedVideoIds, setPinnedVideoIds] = useState<string[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
-      const savedPins = localStorage.getItem('pinnedVideoIds');
+      let uEmail = '';
+      try {
+        const u = localStorage.getItem('user');
+        const p = localStorage.getItem('rcrd_user_profile');
+        const parsed = u ? JSON.parse(u) : (p ? JSON.parse(p) : null);
+        if (parsed?.email) uEmail = parsed.email.toLowerCase().trim();
+      } catch {}
+      const key = uEmail ? `pinnedVideoIds_${uEmail}` : 'pinnedVideoIds';
+      const savedPins = localStorage.getItem(key);
       return savedPins ? JSON.parse(savedPins) : [];
     } catch { return []; }
   });
   const [archivedVideoIds, setArchivedVideoIds] = useState<string[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
-      const savedArchived = localStorage.getItem('archivedVideos');
+      let uEmail = '';
+      try {
+        const u = localStorage.getItem('user');
+        const p = localStorage.getItem('rcrd_user_profile');
+        const parsed = u ? JSON.parse(u) : (p ? JSON.parse(p) : null);
+        if (parsed?.email) uEmail = parsed.email.toLowerCase().trim();
+      } catch {}
+      const key = uEmail ? `archivedVideos_${uEmail}` : 'archivedVideos';
+      const savedArchived = localStorage.getItem(key);
       return savedArchived ? JSON.parse(savedArchived) : [];
     } catch { return []; }
   });
@@ -106,7 +134,7 @@ export default function LibraryPage() {
       const isPinned = prev.includes(id);
       const next = isPinned ? prev.filter(x => x !== id) : [id, ...prev];
       try {
-        localStorage.setItem('pinnedVideoIds', JSON.stringify(next));
+        localStorage.setItem(getLibraryUserKey('pinnedVideoIds'), JSON.stringify(next));
       } catch {}
       showToast(isPinned ? "Video unpinned" : "Video pinned to top!");
       return next;
@@ -133,7 +161,7 @@ export default function LibraryPage() {
     setArchivedVideoIds(prev => {
       const next = Array.from(new Set([...prev, id]));
       try {
-        localStorage.setItem('archivedVideos', JSON.stringify(next));
+        localStorage.setItem(getLibraryUserKey('archivedVideos'), JSON.stringify(next));
       } catch {}
       return next;
     });
@@ -145,7 +173,7 @@ export default function LibraryPage() {
     setArchivedVideoIds(prev => {
       const next = prev.filter(x => x !== id);
       try {
-        localStorage.setItem('archivedVideos', JSON.stringify(next));
+        localStorage.setItem(getLibraryUserKey('archivedVideos'), JSON.stringify(next));
       } catch {}
       return next;
     });

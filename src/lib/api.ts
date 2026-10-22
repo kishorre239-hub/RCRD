@@ -154,8 +154,18 @@ async function uploadViaDriveChunks(
     }
   }
 
-  // Ensure metadata completed
+  // Ensure metadata completed with current mentor identity
   const token = await ensureValidAuthToken();
+  const currentMentor = (() => {
+    try {
+      const u = localStorage.getItem('user');
+      if (u) return JSON.parse(u);
+      const p = localStorage.getItem('rcrd_user_profile');
+      if (p) return JSON.parse(p);
+    } catch {}
+    return null;
+  })();
+
   await fetch(`${API_URL}/videos/complete`, {
     method: 'POST',
     headers: {
@@ -166,6 +176,9 @@ async function uploadViaDriveChunks(
       videoId,
       driveFileId,
       size: file.size,
+      ownerEmail: (currentMentor?.email || '').toLowerCase().trim(),
+      ownerId: currentMentor?.id || currentMentor?._id || '',
+      ownerName: currentMentor?.name || '',
     }),
   }).catch(() => {});
 
@@ -180,6 +193,19 @@ export const uploadVideo = async (
   options?: { isMeeting?: boolean; folderName?: string }
 ): Promise<{ videoId: string }> => {
   let token = await ensureValidAuthToken();
+
+  const currentMentor = (() => {
+    try {
+      const u = localStorage.getItem('user');
+      if (u) return JSON.parse(u);
+      const p = localStorage.getItem('rcrd_user_profile');
+      if (p) return JSON.parse(p);
+    } catch {}
+    return null;
+  })();
+  const ownerEmail = (currentMentor?.email || '').toLowerCase().trim();
+  const ownerId = currentMentor?.id || currentMentor?._id || '';
+  const ownerName = currentMentor?.name || '';
 
   const safeTitle = title || `Recording ${new Date().toLocaleDateString('en-US')}`;
   const isMeeting = Boolean(options?.isMeeting || courseId === 'MEETING');
@@ -200,6 +226,9 @@ export const uploadVideo = async (
         courseId: courseId || null,
         folderName: options?.folderName,
         isMeeting,
+        ownerEmail,
+        ownerId,
+        ownerName,
       }),
     });
 
@@ -220,6 +249,9 @@ export const uploadVideo = async (
           courseId: courseId || null,
           folderName: options?.folderName,
           isMeeting,
+          ownerEmail,
+          ownerId,
+          ownerName,
         }),
       });
     }
@@ -286,6 +318,9 @@ export const uploadVideo = async (
     if (finalCourseId) {
       formData.append('courseId', finalCourseId);
     }
+    if (ownerEmail) formData.append('ownerEmail', ownerEmail);
+    if (ownerId) formData.append('ownerId', ownerId);
+    if (ownerName) formData.append('ownerName', ownerName);
 
     xhr.send(formData);
   });
@@ -452,6 +487,17 @@ export const getVideos = async (page = 0, size = 10, search = '', courseId = '')
   });
   if (search) query.append('search', search);
   if (courseId) query.append('courseId', courseId);
+
+  if (typeof window !== 'undefined') {
+    try {
+      const usr = localStorage.getItem('user');
+      const prof = localStorage.getItem('rcrd_user_profile');
+      const parsed = usr ? JSON.parse(usr) : (prof ? JSON.parse(prof) : null);
+      if (parsed?.email) query.append('email', parsed.email);
+      if (parsed?.id || parsed?._id) query.append('userId', parsed.id || parsed._id);
+      if (parsed?.role) query.append('role', parsed.role);
+    } catch {}
+  }
 
   const response = await fetchWithAuth(`/videos?${query.toString()}`);
   if (!response.ok) throw new Error('Failed to fetch videos');

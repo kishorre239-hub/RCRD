@@ -15,6 +15,7 @@ export interface User {
   subscriptionStatus?: 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'EXPIRED';
   subscriptionId?: string;
   subscriptionExpiresAt?: number;
+  avatarUrl?: string;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -49,6 +50,8 @@ export interface Video {
   ownerId?: string;
   ownerName?: string;
   ownerEmail?: string;
+  mentorEmail?: string;
+  hostEmail?: string;
   workspaceId?: string;
   driveFileId?: string;
   webViewLink?: string;

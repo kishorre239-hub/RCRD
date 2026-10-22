@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
-import { getBackupMeeting, saveBackupMeeting, StoredMeeting, isDummyMeeting } from '@/lib/server/localBackup';
+import { getBackupMeeting, saveBackupMeeting, StoredMeeting, isDummyMeeting, isMeetingDurationExpired } from '@/lib/server/localBackup';
 
 export async function POST(
   req: Request,
@@ -54,8 +54,16 @@ export async function POST(
       }
     }
 
-    // Check if meeting has ended and link has expired
-    if (resolvedMeeting.status === 'ended') {
+    // Check if meeting has ended or duration has expired
+    if (resolvedMeeting.status === 'ended' || isMeetingDurationExpired(resolvedMeeting)) {
+      resolvedMeeting.status = 'ended';
+      resolvedMeeting.updatedAt = Date.now();
+      saveBackupMeeting(resolvedMeeting);
+      try {
+        const meetingsCol = await getCollection<StoredMeeting>('meetings');
+        await meetingsCol.updateOne({ id }, { $set: { status: 'ended', updatedAt: Date.now() } });
+      } catch {}
+
       return NextResponse.json({
         error: 'This meeting has ended and the link has expired.',
         expired: true,

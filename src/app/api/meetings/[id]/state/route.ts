@@ -28,6 +28,13 @@ export interface WebRTCSignal {
 
 interface MeetingState {
   status?: 'scheduled' | 'live' | 'ended';
+  duration?: number;
+  startedAt?: string;
+  meetingExtended?: {
+    newDuration: number;
+    extendedBy: number;
+    timestamp: number;
+  };
   hostCamera: {
     active: boolean;
     streamFrame?: string;
@@ -279,6 +286,9 @@ export async function GET(
     return NextResponse.json({
       success: true,
       status: state.status,
+      duration: state.duration,
+      startedAt: state.startedAt,
+      meetingExtended: state.meetingExtended,
       hostCamera: state.hostCamera,
       participantCameras: state.participantCameras || {},
       handRaises: state.handRaises || [],
@@ -315,6 +325,22 @@ export async function POST(
     // Meeting lifecycle status update (e.g. 'live' | 'ended')
     if (body.status !== undefined) {
       state.status = body.status;
+    }
+
+    // Meeting duration update / extension
+    if (body.duration !== undefined) {
+      state.duration = Number(body.duration);
+    }
+    if (body.startedAt !== undefined) {
+      state.startedAt = body.startedAt;
+    }
+    if (body.extendedBy !== undefined || body.extendMinutes !== undefined) {
+      const extMins = Number(body.extendedBy || body.extendMinutes);
+      state.meetingExtended = {
+        newDuration: state.duration || 60,
+        extendedBy: extMins,
+        timestamp: now,
+      };
     }
 
     // 0. Host Camera frame update

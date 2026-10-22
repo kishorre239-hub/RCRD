@@ -187,7 +187,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const authResult = await authenticateRequest(req);
+    await authenticateRequest(req);
     const body = await req.json().catch(() => ({}));
     const userIds: string[] = Array.isArray(body.userIds) ? body.userIds : [];
 

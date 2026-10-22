@@ -6,8 +6,7 @@ import {
   Trash2, Check, UserPlus,
   RefreshCw, AlertCircle, UserCheck, UserX,
   Eye, EyeOff, Edit2,
-  Home, Film, Video, Settings as SettingsIcon, Users, Building2,
-  CheckSquare, Square
+  Home, Film, Video, Settings as SettingsIcon, Users, Building2
 } from "lucide-react";
 import { ALL_NAV_ITEMS, getDefaultNavItemsForRole } from "@/lib/navPermissions";
 
@@ -785,7 +784,6 @@ export default function UsersTab() {
                   filteredUsers.map(user => {
                     const roleUpper = (user.role || "Mentor").toUpperCase();
                     const isAdmin = roleUpper === "ADMIN";
-                    const isMentor = !isAdmin;
                     const isActive = (user.status || "Active").toLowerCase() === "active";
                     const isPrimaryOwner = user.email === PRIMARY_OWNER_EMAIL;
                     const allowed = user.allowedNavItems || getDefaultNavItemsForRole(user.role);
@@ -815,6 +813,7 @@ export default function UsersTab() {
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-3">
                             {user.avatarUrl ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
                               <img
                                 src={user.avatarUrl}
                                 alt={user.name}
@@ -1221,6 +1220,7 @@ export default function UsersTab() {
               <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E7EC] flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
                   {editAvatarUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                       src={editAvatarUrl}
                       alt={editName || "User"}

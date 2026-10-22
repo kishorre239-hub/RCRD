@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { 
   X, Check, ExternalLink, Globe, GraduationCap, 
   BookOpen, Headset, User, LogOut, Edit3,
-  Camera, Trash2, Loader2, Sparkles
+  Camera, Trash2, Loader2
 } from "lucide-react";
 import { fetchWithAuth } from "@/lib/api";
 
@@ -69,7 +69,6 @@ export function getStoredProfile(): UserProfileData {
 export default function ProfileFlyout({
   isOpen,
   onClose,
-  videoCount = 4
 }: ProfileFlyoutProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);

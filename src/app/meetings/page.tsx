@@ -601,11 +601,11 @@ export default function MeetingsPage() {
     }
   };
 
-  const currentTime = now || Date.now();
+  const currentTime = now;
   const cleanMeetings = meetings
     .filter(m => !isDummyMeeting(m))
     .map(m => {
-      if (m.status !== "ended" && isMeetingDurationExpired(m, currentTime)) {
+      if (currentTime > 0 && m.status !== "ended" && isMeetingDurationExpired(m, currentTime)) {
         return { ...m, status: "ended" as const };
       }
       return m;

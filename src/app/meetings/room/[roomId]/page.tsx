@@ -384,7 +384,7 @@ export default function ClassRoomPage() {
         return () => clearTimeout(t);
       }
     }
-  }, [now, meetingStartTime, meeting?.duration, meeting?.status, isMentor, hasPromptedForDuration, showDurationModal]);
+  }, [now, meetingStartTime, meeting, isMentor, hasPromptedForDuration, showDurationModal]);
 
   // Handle auto-end countdown when modal is open
   useEffect(() => {
@@ -584,6 +584,16 @@ export default function ClassRoomPage() {
     isWebRTCVideoPlayingRef.current = isWebRTCVideoPlaying;
   }, [isWebRTCVideoPlaying]);
 
+  // LiveKit SFU Architecture hook (for high-scale 150+ student classrooms when configured)
+  const livekitSFU = useLiveKitSFU({
+    roomId,
+    participantId: myParticipantId,
+    name: displayName,
+    role: isMentor ? 'Host' : 'Student',
+    password: meeting?.password || '',
+    speakerMuted,
+  });
+
   const handleSFUDataReceived = useCallback(({ type, payload }: { type: string; payload: unknown; sender: string }) => {
     if (type === "MEETING_ENDED" && !isMentor) {
       window.location.href = "https://www.geonixa.com/";
@@ -618,12 +628,12 @@ export default function ClassRoomPage() {
         if (hostWantsMuted) {
           if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
           setMicOn(false);
-          if (livekitSFURef.current?.isSFUActive) livekitSFURef.current.setMicMutedSFU(true).catch(() => {});
+          if (livekitSFU.isSFUActive) livekitSFU.setMicMutedSFU(true).catch(() => {});
           showToast("The host has muted your microphone.");
         } else {
           if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = true);
           setMicOn(true);
-          if (livekitSFURef.current?.isSFUActive) livekitSFURef.current.setMicMutedSFU(false).catch(() => {});
+          if (livekitSFU.isSFUActive) livekitSFU.setMicMutedSFU(false).catch(() => {});
           showToast("The host has unmuted your microphone.");
         }
       }
@@ -637,30 +647,21 @@ export default function ClassRoomPage() {
       if (!isMentor) {
         if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
         setMicOn(false);
-        if (livekitSFURef.current?.isSFUActive) livekitSFURef.current.setMicMutedSFU(true).catch(() => {});
+        if (livekitSFU.isSFUActive) livekitSFU.setMicMutedSFU(true).catch(() => {});
         showToast("The host muted all participants.");
       }
       setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
     }
-  }, [isMentor, myParticipantId, displayName, studentName, showToast]);
+  }, [isMentor, myParticipantId, displayName, studentName, showToast, livekitSFU]);
 
-  // LiveKit SFU Architecture hook (for high-scale 150+ student classrooms when configured)
-  const livekitSFU = useLiveKitSFU({
-    roomId,
-    participantId: myParticipantId,
-    name: displayName,
-    role: isMentor ? 'Host' : 'Student',
-    password: meeting?.password || '',
-    speakerMuted,
-    onDataReceived: handleSFUDataReceived,
-  });
-
-  const livekitSFURef = useRef<typeof livekitSFU | null>(null);
+  const { setDataHandler, initSFU } = livekitSFU;
   useEffect(() => {
-    livekitSFURef.current = livekitSFU;
-  }, [livekitSFU]);
+    setDataHandler(handleSFUDataReceived);
+    return () => {
+      setDataHandler(null);
+    };
+  }, [setDataHandler, handleSFUDataReceived]);
 
-  const initSFU = livekitSFU.initSFU;
   useEffect(() => {
     if (roomId && initSFU) {
       initSFU().catch(() => {});
@@ -1166,7 +1167,7 @@ export default function ClassRoomPage() {
           audio.play().catch(() => {});
         }
       });
-      livekitSFURef.current?.unlockAudioSFU();
+      livekitSFU.unlockAudioSFU();
       if (remoteScreenVideoRef.current && remoteScreenVideoRef.current.srcObject) {
         remoteScreenVideoRef.current.play().then(() => {
           setIsWebRTCVideoPlaying(true);
@@ -3293,7 +3294,7 @@ export default function ClassRoomPage() {
 
   useEffect(() => {
     endClassRef.current = endClass;
-  }, [endClass]);
+  });
 
   const handleExtendMeeting = async (minutesToAdd: number) => {
     if (!roomId || minutesToAdd <= 0) return;

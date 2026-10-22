@@ -6,7 +6,7 @@ import {
   ExternalLink, 
   ChevronDown, Info, Download, Globe, HardDrive,
   Share2, Bell, Cloud, Check, X,
-  Plus, Trash2, Edit2, Users, Mail, Shield, Copy, Sparkles, Search
+  Plus, Trash2, Edit2, Users, Mail, Shield, Copy, Search
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, SettingsIcon,
@@ -259,7 +259,9 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (activeTab === "workspace") {
-      loadBatches();
+      void Promise.resolve().then(() => {
+        loadBatches();
+      });
     }
   }, [activeTab, loadBatches]);
 

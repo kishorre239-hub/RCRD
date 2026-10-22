@@ -61,6 +61,18 @@ export function useLiveKitSFU({
     iceCandidateType: 'unknown',
   });
 
+  const dataHandlerRef = useRef<((data: { type: string; payload: unknown; sender: string }) => void) | null>(null);
+
+  useEffect(() => {
+    if (onDataReceived) {
+      dataHandlerRef.current = onDataReceived;
+    }
+  }, [onDataReceived]);
+
+  const setDataHandler = useCallback((handler: ((data: { type: string; payload: unknown; sender: string }) => void) | null) => {
+    dataHandlerRef.current = handler;
+  }, []);
+
   const roomRef = useRef<Room | null>(null);
   const publishedScreenTrackRef = useRef<LocalVideoTrack | null>(null);
   const publishedAudioTrackRef = useRef<LocalAudioTrack | null>(null);
@@ -198,8 +210,9 @@ export function useLiveKitSFU({
         try {
           const decoder = new TextDecoder();
           const json = JSON.parse(decoder.decode(payload));
-          if (onDataReceived && json?.type) {
-            onDataReceived({
+          const handler = dataHandlerRef.current || onDataReceived;
+          if (handler && json?.type) {
+            handler({
               type: json.type,
               payload: json.payload,
               sender: participant?.name || participant?.identity || 'Peer',
@@ -542,5 +555,6 @@ export function useLiveKitSFU({
     setMicMutedSFU,
     broadcastDataSFU,
     unlockAudioSFU,
+    setDataHandler,
   };
 }

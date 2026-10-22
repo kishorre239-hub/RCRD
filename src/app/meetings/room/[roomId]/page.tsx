@@ -635,20 +635,28 @@ export default function ClassRoomPage() {
     const data = (payload || {}) as Record<string, unknown>;
     if (type === "SCREEN_SHARE") {
       if (!screenStreamRef.current) {
+        const incomingTime = (data?.updatedAt as number) || Date.now();
         if (!data?.active) {
-          setRemoteScreenShare({ active: false, streamFrame: undefined, updatedAt: Date.now() });
-          setRemoteWebRTCStream(null);
-        } else {
-          if (!isMentor) {
-            setShowWhiteboard(false);
-            setStudentViewMode("screen");
+          if (incomingTime >= lastScreenShareTimestampRef.current) {
+            lastScreenShareTimestampRef.current = incomingTime;
+            setRemoteScreenShare({ active: false, streamFrame: undefined, updatedAt: incomingTime });
+            setRemoteWebRTCStream(null);
+            setIsWebRTCVideoPlaying(false);
           }
-          setRemoteScreenShare(prev => ({
-            active: true,
-            presenterName: (data.presenterName as string) || "Host",
-            streamFrame: prev?.streamFrame,
-            updatedAt: Date.now(),
-          }));
+        } else {
+          if (incomingTime >= lastScreenShareTimestampRef.current) {
+            lastScreenShareTimestampRef.current = incomingTime;
+            if (!isMentor) {
+              setShowWhiteboard(false);
+              setStudentViewMode("screen");
+            }
+            setRemoteScreenShare(prev => ({
+              active: true,
+              presenterName: (data.presenterName as string) || "Host",
+              streamFrame: prev?.streamFrame,
+              updatedAt: incomingTime,
+            }));
+          }
         }
       }
     } else if (type === "REMOTE_MUTE_ACTION") {
@@ -1588,9 +1596,12 @@ export default function ClassRoomPage() {
             if (!screenStream) {
               const incomingTime = data?.updatedAt || 0;
               if (!data?.active) {
-                lastScreenShareTimestampRef.current = incomingTime;
-                setRemoteScreenShare({ active: false, streamFrame: undefined, updatedAt: incomingTime });
-                setRemoteWebRTCStream(null);
+                if (incomingTime >= lastScreenShareTimestampRef.current) {
+                  lastScreenShareTimestampRef.current = incomingTime;
+                  setRemoteScreenShare({ active: false, streamFrame: undefined, updatedAt: incomingTime });
+                  setRemoteWebRTCStream(null);
+                  setIsWebRTCVideoPlaying(false);
+                }
               } else if (incomingTime >= lastScreenShareTimestampRef.current) {
                 lastScreenShareTimestampRef.current = incomingTime;
                 if (!isMentor && data?.active) {
@@ -1808,34 +1819,38 @@ export default function ClassRoomPage() {
           // Sync Screen Share if not host sharing
           if (!screenStream && data.screenShare) {
             const incomingTime = data.screenShare.updatedAt || 0;
-            const isSFUStreaming = Boolean(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream);
-            if (!data.screenShare.active && !isSFUStreaming) {
-              lastScreenShareTimestampRef.current = incomingTime;
-              setRemoteScreenShare({ active: false, streamFrame: undefined, updatedAt: incomingTime });
-              setRemoteWebRTCStream(null);
-              setIsWebRTCVideoPlaying(false);
-            } else if (data.screenShare.active) {
-              lastScreenShareTimestampRef.current = incomingTime;
-              // If student is currently viewing whiteboard, auto-switch to screen share when host starts presenting screen!
-              if (!isMentor && data.screenShare.active) {
-                setShowWhiteboard(false);
-                setStudentViewMode("screen");
+            const hasActiveWebRTC = Boolean((livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream) || remoteWebRTCStream);
+            if (!data.screenShare.active && !hasActiveWebRTC) {
+              if (incomingTime >= lastScreenShareTimestampRef.current) {
+                lastScreenShareTimestampRef.current = incomingTime;
+                setRemoteScreenShare({ active: false, streamFrame: undefined, updatedAt: incomingTime });
+                setRemoteWebRTCStream(null);
+                setIsWebRTCVideoPlaying(false);
               }
-              // Prevent unnecessary re-renders if frame and active status did not change
-              setRemoteScreenShare(prev => {
-                const nextFrame = data.screenShare.streamFrame || prev?.streamFrame;
-                if (
-                  prev?.active === data.screenShare.active &&
-                  prev?.presenterName === data.screenShare.presenterName &&
-                  prev?.streamFrame === nextFrame
-                ) {
-                  return prev; // Same reference, skips unnecessary React reconciliation!
+            } else if (data.screenShare.active) {
+              if (incomingTime >= lastScreenShareTimestampRef.current) {
+                lastScreenShareTimestampRef.current = incomingTime;
+                // If student is currently viewing whiteboard, auto-switch to screen share when host starts presenting screen!
+                if (!isMentor && data.screenShare.active) {
+                  setShowWhiteboard(false);
+                  setStudentViewMode("screen");
                 }
-                return {
-                  ...data.screenShare,
-                  streamFrame: nextFrame,
-                };
-              });
+                // Prevent unnecessary re-renders if frame and active status did not change
+                setRemoteScreenShare(prev => {
+                  const nextFrame = data.screenShare.streamFrame || prev?.streamFrame;
+                  if (
+                    prev?.active === data.screenShare.active &&
+                    prev?.presenterName === data.screenShare.presenterName &&
+                    prev?.streamFrame === nextFrame
+                  ) {
+                    return prev; // Same reference, skips unnecessary React reconciliation!
+                  }
+                  return {
+                    ...data.screenShare,
+                    streamFrame: nextFrame,
+                  };
+                });
+              }
             }
           }
           // Sync Whiteboard if student
@@ -2143,16 +2158,10 @@ export default function ClassRoomPage() {
         helperVideo.srcObject = null;
       }
       if (bc) {
-        bc.postMessage({ type: "SCREEN_SHARE", data: { active: false, updatedAt: Date.now() } });
         bc.close();
       }
-      fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ screenShare: { active: false, updatedAt: Date.now() } }),
-      }).catch(() => {});
     };
-  }, [screenStream, isMentor, roomId, displayName, livekitSFU.isSFUActive]);
+  }, [screenStream, isMentor, roomId, displayName]);
 
   // Broadcast camera frames for Host AND Student participants
   useEffect(() => {
@@ -4272,13 +4281,13 @@ export default function ClassRoomPage() {
                 )}
               </div>
 
-              {/* Layer 1: HTTP Live Frame Stream (Active fallback ONLY when WebRTC video is not rendering) */}
-              {!isWebRTCVideoPlaying && remoteScreenShare?.streamFrame && (
+              {/* Layer 1: HTTP Live Frame Stream (Persistently rendered base layer for zero-flicker transitions) */}
+              {remoteScreenShare?.streamFrame && (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={remoteScreenShare.streamFrame}
                   alt="Shared Screen"
-                  className="absolute inset-0 w-full h-full object-contain select-none pointer-events-none"
+                  className="absolute inset-0 w-full h-full object-contain select-none pointer-events-none z-0"
                   style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
                 />
               )}
@@ -4307,7 +4316,7 @@ export default function ClassRoomPage() {
                   onPause={handleVideoWaiting}
                   onError={handleVideoWaiting}
                   onEnded={() => setIsWebRTCVideoPlaying(false)}
-                  className={`absolute inset-0 w-full h-full object-contain select-none z-10 ${
+                  className={`absolute inset-0 w-full h-full object-contain select-none z-10 transition-opacity duration-150 ${
                     isWebRTCVideoPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
                   }`}
                   style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}

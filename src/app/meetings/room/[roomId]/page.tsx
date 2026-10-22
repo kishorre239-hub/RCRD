@@ -579,10 +579,34 @@ export default function ClassRoomPage() {
   const [remoteWebRTCStream, setRemoteWebRTCStream] = useState<MediaStream | null>(null);
   const [isWebRTCVideoPlaying, setIsWebRTCVideoPlaying] = useState<boolean>(false);
   const isWebRTCVideoPlayingRef = useRef<boolean>(false);
+  const remoteScreenShareActiveRef = useRef<boolean>(false);
+  const videoStallTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     isWebRTCVideoPlayingRef.current = isWebRTCVideoPlaying;
   }, [isWebRTCVideoPlaying]);
+
+  useEffect(() => {
+    remoteScreenShareActiveRef.current = Boolean(remoteScreenShare?.active);
+  }, [remoteScreenShare?.active]);
+
+  // Watchdog: graceful stall handling without rapid jitter or screen shaking
+  const handleVideoWaiting = useCallback(() => {
+    if (!videoStallTimerRef.current) {
+      videoStallTimerRef.current = setTimeout(() => {
+        setIsWebRTCVideoPlaying(false);
+        videoStallTimerRef.current = null;
+      }, 2500);
+    }
+  }, []);
+
+  const handleVideoPlaying = useCallback(() => {
+    if (videoStallTimerRef.current) {
+      clearTimeout(videoStallTimerRef.current);
+      videoStallTimerRef.current = null;
+    }
+    setIsWebRTCVideoPlaying(true);
+  }, []);
 
   // LiveKit SFU Architecture hook (for high-scale 150+ student classrooms when configured)
   const livekitSFU = useLiveKitSFU({
@@ -1080,16 +1104,33 @@ export default function ClassRoomPage() {
       if (isMentor && screenStreamRef.current) {
         const vTrack = screenStreamRef.current.getVideoTracks()[0];
         if (vTrack && pc) {
+          if ('contentHint' in vTrack) {
+            vTrack.contentHint = 'motion';
+          }
           try {
             const sender = pc.getSenders().find(s => s.track?.kind === "video" || !s.track);
+            let needsOffer = false;
             if (sender) {
               await sender.replaceTrack(vTrack);
+              try {
+                const params = sender.getParameters();
+                if (params.encodings && params.encodings.length > 0) {
+                  params.encodings[0].maxBitrate = 4_000_000;
+                  params.encodings[0].maxFramerate = 60;
+                  await sender.setParameters(params);
+                }
+              } catch {}
             } else {
-              try { pc.addTrack(vTrack, screenStreamRef.current); } catch {}
+              try {
+                pc.addTrack(vTrack, screenStreamRef.current);
+                needsOffer = true;
+              } catch {}
             }
-            const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-            await pc.setLocalDescription(offer);
-            sendSignal(targetId, "offer", offer);
+            if (needsOffer && pc.signalingState === "stable") {
+              const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+              await pc.setLocalDescription(offer);
+              sendSignal(targetId, "offer", offer);
+            }
           } catch (err) {
             console.warn("Could not handle request-screen signal:", err);
           }
@@ -1652,12 +1693,16 @@ export default function ClassRoomPage() {
     }
 
     let pollInFlight = false;
+    let pollTimer: NodeJS.Timeout | null = null;
+    let pollActive = true;
+
     const pollState = async () => {
-      if (pollInFlight) return;
+      if (pollInFlight || !pollActive) return;
       pollInFlight = true;
       try {
         const sinceScreenParam = lastScreenShareTimestampRef.current;
-        const res = await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state?participantId=${encodeURIComponent(myParticipantId)}&sinceScreen=${sinceScreenParam}&sinceWb=${lastWhiteboardTimestampRef.current}`, {
+        const skipScreenFrame = isWebRTCVideoPlayingRef.current ? 1 : 0;
+        const res = await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state?participantId=${encodeURIComponent(myParticipantId)}&sinceScreen=${sinceScreenParam}&sinceWb=${lastWhiteboardTimestampRef.current}&skipScreenFrame=${skipScreenFrame}`, {
           cache: "no-store",
         });
         if (!res.ok) return;
@@ -1854,14 +1899,30 @@ export default function ClassRoomPage() {
       }
     };
 
-    pollState();
-    // Faster polling when screen share is active: 400ms gives students ~3 frames/sec from server
-    // (BroadcastChannel gives same-browser students 10fps with zero server load)
-    const pollIntervalMs = remoteScreenShare?.active ? 400 : (livekitSFU.isSFUActive ? 3000 : 1500);
-    const interval = setInterval(pollState, pollIntervalMs);
+    const scheduleNextPoll = () => {
+      if (!pollActive) return;
+      // Adaptive polling rate:
+      // - Screen share active and WebRTC NOT playing: 250ms for smooth 4fps HTTP frame delivery
+      // - WebRTC 60fps video IS playing smoothly: 2000ms (saves bandwidth and CPU)
+      // - Idle meeting: 1200ms
+      let delay = 1200;
+      if (remoteScreenShareActiveRef.current) {
+        delay = isWebRTCVideoPlayingRef.current ? 2000 : 250;
+      }
+      pollTimer = setTimeout(runPoll, delay);
+    };
+
+    const runPoll = async () => {
+      if (!pollActive) return;
+      await pollState();
+      scheduleNextPoll();
+    };
+
+    runPoll();
 
     return () => {
-      clearInterval(interval);
+      pollActive = false;
+      if (pollTimer) clearTimeout(pollTimer);
       if (bc) bc.close();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1871,6 +1932,9 @@ export default function ClassRoomPage() {
   useEffect(() => {
     if (isMentor || !remoteScreenShare?.active) return;
     const syncScreenStream = () => {
+      // If LiveKit SFU is already streaming, direct P2P renegotiation is not needed
+      if (livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream) return;
+
       const pc = peerConnectionsRef.current.get("host");
       if (!pc || pc.connectionState === "failed" || pc.connectionState === "closed") {
         initiateAudioCallToHost();
@@ -1881,18 +1945,16 @@ export default function ClassRoomPage() {
             if (prev && prev.getVideoTracks()[0] === vRecv.track) return prev;
             return new MediaStream([vRecv.track]);
           });
-          // Do not force setIsWebRTCVideoPlaying(true) here!
-          // Setting it prematurely triggers black screen flashing before actual frames arrive.
-          // Real frame arrival will be reported by the video element's onPlaying event.
-        } else {
+        } else if (pc.connectionState === "connected" && !isWebRTCVideoPlayingRef.current) {
+          // Connected but video track not flowing yet: request once (do not spam)
           sendSignal("host", "request-screen", {});
         }
       }
     };
     syncScreenStream();
-    const interval = setInterval(syncScreenStream, 3000);
+    const interval = setInterval(syncScreenStream, 8000);
     return () => clearInterval(interval);
-  }, [isMentor, remoteScreenShare?.active, initiateAudioCallToHost, sendSignal]);
+  }, [isMentor, remoteScreenShare?.active, initiateAudioCallToHost, sendSignal, livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream]);
 
   // Mentor auto-acquires microphone on room load so audio track is ready for connecting students
   useEffect(() => {
@@ -2005,8 +2067,8 @@ export default function ClassRoomPage() {
           lastSample = sampleStr;
           heartbeatCounter = 0;
 
-          // Higher quality for video content: 0.62 JPEG, max 720px width
-          const maxW = 720;
+          // Optimized for high frame rate & smooth motion: 640px max width, 0.52 JPEG (~22KB payload)
+          const maxW = 640;
           const scale = Math.min(1, maxW / vw);
           const tw = Math.round(vw * scale);
           const th = Math.round(vh * scale);
@@ -2015,10 +2077,10 @@ export default function ClassRoomPage() {
             canvas.height = th;
           }
           ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = "high";
+          ctx.imageSmoothingQuality = "medium";
           ctx.drawImage(vEl, 0, 0, tw, th);
 
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.62);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.52);
           lastDataUrl = dataUrl;
           lastPayloadTime = Date.now();
 
@@ -2052,7 +2114,7 @@ export default function ClassRoomPage() {
       const abortTimer = setTimeout(() => {
         if (abortCtrl) abortCtrl.abort();
         serverInFlight = false;
-      }, 2000);
+      }, 1500);
       try {
         await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
           method: "POST",
@@ -2069,8 +2131,8 @@ export default function ClassRoomPage() {
 
     // Path A: runs every 100ms for smooth ~10fps local/BC delivery (never blocked)
     const bcInterval = setInterval(encodeAndBroadcast, 100);
-    // Path B: runs every 500ms for server delivery to remote students
-    const serverInterval = setInterval(uploadToServer, 500);
+    // Path B: runs every 250ms for smooth 4fps server delivery to remote students
+    const serverInterval = setInterval(uploadToServer, 250);
     encodeAndBroadcast();
 
     return () => {
@@ -2674,7 +2736,7 @@ export default function ClassRoomPage() {
       const screenAudioTrack = ds.getAudioTracks()[0];
       if (vTrack) {
         if ('contentHint' in vTrack) {
-          vTrack.contentHint = 'detail';
+          vTrack.contentHint = 'motion';
         }
       }
 
@@ -4210,18 +4272,18 @@ export default function ClassRoomPage() {
                 )}
               </div>
 
-              {/* Layer 1: HTTP Live Frame Stream (Always continuously updated so presentation never freezes or gets stuck) */}
-              {remoteScreenShare?.streamFrame && (
+              {/* Layer 1: HTTP Live Frame Stream (Active fallback ONLY when WebRTC video is not rendering) */}
+              {!isWebRTCVideoPlaying && remoteScreenShare?.streamFrame && (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={remoteScreenShare.streamFrame}
                   alt="Shared Screen"
                   className="absolute inset-0 w-full h-full object-contain select-none pointer-events-none"
-                  style={{ transform: 'translateZ(0)' }}
+                  style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
                 />
               )}
 
-              {/* Layer 2: WebRTC Ultra HD 60FPS Video (Active stream with stall watchdog and zero-jitter GPU acceleration) */}
+              {/* Layer 2: WebRTC Ultra HD 60FPS Video (Silky smooth active stream with graceful stall watchdog) */}
               {(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream) && (
                 <video
                   ref={setRemoteVideoRef}
@@ -4231,21 +4293,21 @@ export default function ClassRoomPage() {
                   onPlaying={(e) => {
                     const v = e.currentTarget;
                     if (v.videoWidth > 0 && v.videoHeight > 0) {
-                      setIsWebRTCVideoPlaying(true);
+                      handleVideoPlaying();
                     }
                   }}
                   onTimeUpdate={(e) => {
                     const v = e.currentTarget;
                     if (v.videoWidth > 0 && v.videoHeight > 0 && !isWebRTCVideoPlayingRef.current) {
-                      setIsWebRTCVideoPlaying(true);
+                      handleVideoPlaying();
                     }
                   }}
-                  onWaiting={() => setIsWebRTCVideoPlaying(false)}
-                  onStalled={() => setIsWebRTCVideoPlaying(false)}
-                  onPause={() => setIsWebRTCVideoPlaying(false)}
-                  onError={() => setIsWebRTCVideoPlaying(false)}
+                  onWaiting={handleVideoWaiting}
+                  onStalled={handleVideoWaiting}
+                  onPause={handleVideoWaiting}
+                  onError={handleVideoWaiting}
                   onEnded={() => setIsWebRTCVideoPlaying(false)}
-                  className={`absolute inset-0 w-full h-full object-contain select-none z-10 transition-opacity duration-300 ${
+                  className={`absolute inset-0 w-full h-full object-contain select-none z-10 ${
                     isWebRTCVideoPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
                   }`}
                   style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}

@@ -267,9 +267,11 @@ export async function GET(
       !requestingPid || s.to === requestingPid || s.to === 'all' || (requestingPid === 'host' && s.to === 'host')
     );
 
-    // Delta payload optimization: if client already has the latest frame or slide data, strip base64 to save 95%+ bandwidth
+    const skipScreenFrame = url.searchParams.get('skipScreenFrame') === '1';
+
+    // Delta payload optimization: if client already has the latest frame or slide data, or WebRTC is active, strip base64 to save 95%+ bandwidth
     let screenShareToSend = state.screenShare;
-    if (state.screenShare && sinceScreen > 0 && state.screenShare.updatedAt <= sinceScreen) {
+    if (state.screenShare && (skipScreenFrame || (sinceScreen > 0 && state.screenShare.updatedAt <= sinceScreen))) {
       screenShareToSend = {
         active: state.screenShare.active,
         presenterName: state.screenShare.presenterName,

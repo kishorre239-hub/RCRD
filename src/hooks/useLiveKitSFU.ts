@@ -277,9 +277,9 @@ export function useLiveKitSFU({
       const vTrack = mediaStream.getVideoTracks()[0];
       if (!vTrack) return false;
 
-      // Set contentHint to 'detail' for maximum presentation text clarity
+      // Set contentHint to 'motion' for silky smooth 60fps video & YouTube playback without stutter
       if ('contentHint' in vTrack) {
-        vTrack.contentHint = 'detail';
+        vTrack.contentHint = 'motion';
       }
 
       const localVTrack = new LocalVideoTrack(vTrack);

@@ -368,14 +368,20 @@ export default function ClassRoomPage() {
     if (isOver) {
       if (isMentor) {
         if (!hasPromptedForDuration && !showDurationModal) {
-          setShowDurationModal(true);
-          setHasPromptedForDuration(true);
-          setAutoEndCountdown(60); // 60 seconds auto-end countdown
+          const t = setTimeout(() => {
+            setShowDurationModal(true);
+            setHasPromptedForDuration(true);
+            setAutoEndCountdown(60); // 60 seconds auto-end countdown
+          }, 0);
+          return () => clearTimeout(t);
         }
       } else {
-        setStudentDurationWarning(
-          `The scheduled duration of ${durMins} minutes has completed. Waiting for host to extend or conclude the class...`
-        );
+        const t = setTimeout(() => {
+          setStudentDurationWarning(
+            `The scheduled duration of ${durMins} minutes has completed. Waiting for host to extend or conclude the class...`
+          );
+        }, 0);
+        return () => clearTimeout(t);
       }
     }
   }, [now, meetingStartTime, meeting?.duration, meeting?.status, isMentor, hasPromptedForDuration, showDurationModal]);
@@ -384,9 +390,11 @@ export default function ClassRoomPage() {
   useEffect(() => {
     if (autoEndCountdown === null) return;
     if (autoEndCountdown <= 0) {
-      setAutoEndCountdown(null);
-      endClassRef.current();
-      return;
+      const t = setTimeout(() => {
+        setAutoEndCountdown(null);
+        endClassRef.current();
+      }, 0);
+      return () => clearTimeout(t);
     }
     const timer = setTimeout(() => {
       setAutoEndCountdown(prev => (prev !== null ? prev - 1 : null));
@@ -581,7 +589,7 @@ export default function ClassRoomPage() {
       window.location.href = "https://www.geonixa.com/";
       return;
     }
-    const data = payload as any;
+    const data = (payload || {}) as Record<string, unknown>;
     if (type === "SCREEN_SHARE") {
       if (!screenStreamRef.current) {
         if (!data?.active) {
@@ -594,14 +602,16 @@ export default function ClassRoomPage() {
           }
           setRemoteScreenShare(prev => ({
             active: true,
-            presenterName: data.presenterName || "Host",
+            presenterName: (data.presenterName as string) || "Host",
             streamFrame: prev?.streamFrame,
             updatedAt: Date.now(),
           }));
         }
       }
     } else if (type === "REMOTE_MUTE_ACTION") {
-      const { targetParticipantId, targetName, isMuted: hostWantsMuted } = data || {};
+      const targetParticipantId = data.targetParticipantId as string | undefined;
+      const targetName = data.targetName as string | undefined;
+      const hostWantsMuted = data.isMuted as boolean | undefined;
       const isTargetingMe = (targetParticipantId && targetParticipantId === myParticipantId) ||
                             (targetName && (targetName === displayName || targetName === studentName));
       if (isTargetingMe && !isMentor) {
@@ -646,16 +656,16 @@ export default function ClassRoomPage() {
   });
 
   const livekitSFURef = useRef<typeof livekitSFU | null>(null);
-  livekitSFURef.current = livekitSFU;
-
-  const initSFURef = useRef<typeof livekitSFU.initSFU | null>(null);
-  initSFURef.current = livekitSFU.initSFU;
-
   useEffect(() => {
-    if (roomId && initSFURef.current) {
-      initSFURef.current().catch(() => {});
+    livekitSFURef.current = livekitSFU;
+  }, [livekitSFU]);
+
+  const initSFU = livekitSFU.initSFU;
+  useEffect(() => {
+    if (roomId && initSFU) {
+      initSFU().catch(() => {});
     }
-  }, [roomId]);
+  }, [roomId, initSFU]);
 
   const lastScreenShareTimestampRef = useRef<number>(0);
   const lastWhiteboardTimestampRef = useRef<number>(0);
@@ -695,8 +705,11 @@ export default function ClassRoomPage() {
       }
     }
     if (!isMentor && activeStream) {
-      setShowWhiteboard(false);
-      setStudentViewMode("screen");
+      const t = setTimeout(() => {
+        setShowWhiteboard(false);
+        setStudentViewMode("screen");
+      }, 0);
+      return () => clearTimeout(t);
     }
   }, [remoteWebRTCStream, livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream, isMentor]);
 
@@ -2553,7 +2566,7 @@ export default function ClassRoomPage() {
     }).catch(() => {});
 
     showToast("Screen share stopped. Meeting is still active.");
-  }, [screenStream, showToast, setScreenStream, roomId, displayName, livekitSFU]);
+  }, [screenStream, showToast, setScreenStream, roomId, displayName, livekitSFU, sendSignal]);
 
   // ── Screen Share ─────────────────────────────────────────────────
   const startScreenShare = async () => {
@@ -3277,7 +3290,10 @@ export default function ClassRoomPage() {
 
     router.push("/meetings");
   };
-  endClassRef.current = endClass;
+
+  useEffect(() => {
+    endClassRef.current = endClass;
+  }, [endClass]);
 
   const handleExtendMeeting = async (minutesToAdd: number) => {
     if (!roomId || minutesToAdd <= 0) return;

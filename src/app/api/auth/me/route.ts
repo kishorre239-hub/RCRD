@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     delete user.passwordHash;
 
     return NextResponse.json(user);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching current user:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -48,7 +48,7 @@ export async function PATCH(req: Request) {
     }
 
     return NextResponse.json({ success: true, ...updateFields });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating current user:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

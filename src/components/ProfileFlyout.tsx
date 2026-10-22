@@ -273,6 +273,7 @@ export default function ProfileFlyout({
             >
               <div className="w-20 h-20 rounded-full bg-[#154360] text-white flex items-center justify-center text-xl font-bold shadow-md ring-4 ring-[#EBF5FB] overflow-hidden">
                 {profile.avatarUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img 
                     src={profile.avatarUrl} 
                     alt={profile.name} 

@@ -1160,6 +1160,7 @@ export default function ClassRoomPage() {
   }, [speakerMuted]);
 
   // Mobile / browser autoplay policy unlock: resume audio & video elements on first touch or click or keypress
+  const { unlockAudioSFU } = livekitSFU;
   useEffect(() => {
     const unlockMedia = () => {
       remoteAudiosRef.current.forEach((audio) => {
@@ -1167,7 +1168,7 @@ export default function ClassRoomPage() {
           audio.play().catch(() => {});
         }
       });
-      livekitSFU.unlockAudioSFU();
+      unlockAudioSFU();
       if (remoteScreenVideoRef.current && remoteScreenVideoRef.current.srcObject) {
         remoteScreenVideoRef.current.play().then(() => {
           setIsWebRTCVideoPlaying(true);
@@ -1182,7 +1183,7 @@ export default function ClassRoomPage() {
       window.removeEventListener("touchstart", unlockMedia);
       window.removeEventListener("keydown", unlockMedia);
     };
-  }, []);
+  }, [unlockAudioSFU]);
 
   // Cleanup remote audio elements from DOM on component unmount
   useEffect(() => {

@@ -21,6 +21,8 @@ import { getCourses, fetchWithAuth } from "@/lib/api";
 import RcrdLogo from "@/components/RcrdLogo";
 import ProfileFlyout from "@/components/ProfileFlyout";
 import AppHeader from "@/components/AppHeader";
+import { openGlobalRecording } from "@/components/GlobalRecordingManager";
+import RecordVideoButton from "@/components/RecordVideoButton";
 import { useNavPermissions } from "@/lib/navPermissions";
 
 interface Course { id: string; name: string; }
@@ -655,35 +657,28 @@ export default function MeetingsPage() {
         </div>
 
         {/* Navigation */}
-        <div className="flex-1 overflow-y-auto py-5 px-3.5 space-y-6 custom-scrollbar min-h-0">
-          <nav className="space-y-1.5">
-            {canAccess('for-you') && <SidebarItem icon={<HomeIcon size={17} />} label="For You" href="/" />}
-            {canAccess('library') && <SidebarItem icon={<LibraryIcon size={17} />} label="Library" href="/library" />}
-            {canAccess('meetings') && <SidebarItem icon={<VideoCameraIcon size={17} />} label="Meetings" active href="/meetings" />}
-            {canAccess('settings') && <SidebarItem icon={<SettingsIcon size={17} />} label="Settings" href="/settings" />}
+        <div className="flex-1 overflow-y-auto py-5 px-4 custom-scrollbar min-h-0">
+          <nav className="space-y-1">
+            {canAccess('for-you') && <SidebarItem icon={<HomeIcon size={18} />} label="For You" href="/" />}
+            {canAccess('library') && <SidebarItem icon={<LibraryIcon size={18} />} label="Library" href="/library" />}
+            {canAccess('meetings') && <SidebarItem icon={<VideoCameraIcon size={18} />} label="Meetings" active href="/meetings" />}
+            {canAccess('settings') && <SidebarItem icon={<SettingsIcon size={18} />} label="Settings" href="/settings" />}
           </nav>
 
           {(canAccess('manage-users') || canAccess('workspace-info')) && (
-            <div>
-              <h3 className="px-3.5 text-[11px] font-extrabold uppercase tracking-wider text-[#57636E] mb-2">Workspace Admin</h3>
-              <nav className="space-y-1.5">
-                {canAccess('manage-users') && <SidebarItem icon={<UserIcon size={17} />} label="Manage Users" href="/settings?tab=users" />}
-                {canAccess('workspace-info') && <SidebarItem icon={<WorkspaceIcon size={17} />} label="Workspace Info" href="/settings?tab=workspace" />}
+            <div className="mt-10">
+              <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#57636E] mb-3">Workspace Admin</h3>
+              <nav className="space-y-1">
+                {canAccess('manage-users') && <SidebarItem icon={<UserIcon size={18} />} label="Manage Users" href="/settings?tab=users" />}
+                {canAccess('workspace-info') && <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" href="/settings?tab=workspace" />}
               </nav>
             </div>
           )}
         </div>
 
-        {/* Schedule Meeting Button */}
-        <div className="p-4 border-t border-[#E2E7EC] bg-[#F5F6F8]/50 flex-shrink-0">
-          <button
-            onClick={() => { openScheduleModal(); setIsMobileMenuOpen(false); }}
-            className="w-full bg-[#154360] hover:bg-[#0E2F44] text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-          >
-            <Calendar size={15} className="text-white" />
-            Schedule Meeting
-          </button>
-        </div>
+        <RecordVideoButton 
+          onClick={() => { openGlobalRecording(); setIsMobileMenuOpen(false); }}
+        />
       </aside>
 
       {/* Main Meetings Area */}
@@ -700,7 +695,7 @@ export default function MeetingsPage() {
 
         {/* Content Body */}
         <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
-          <div className="max-w-[1200px] mx-auto pt-6 sm:pt-8 px-4 sm:px-8 pb-24 space-y-5 sm:space-y-7">
+          <div className="w-full max-w-[1500px] mx-auto pt-6 sm:pt-8 px-4 sm:px-8 pb-24 space-y-5 sm:space-y-7">
             
             {/* Quick Action Cards - Clean, Unified 3-Card SaaS Pattern */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

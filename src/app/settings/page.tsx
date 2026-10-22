@@ -678,7 +678,7 @@ export default function SettingsPage() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full min-w-0 bg-white overflow-hidden">
+      <main className="flex-1 flex flex-col h-full min-w-0 bg-[#F8FAFD] overflow-hidden">
         {/* Top Header - Unified Fixed h-16, Centered Search, Image 5 Avatar */}
         <AppHeader 
           placeholder="Search for people, tags, folders, Spaces, and RCRDs"
@@ -686,15 +686,19 @@ export default function SettingsPage() {
           onToggleMobileSidebar={() => setIsMobileMenuOpen(prev => !prev)}
         />
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-8 py-5 sm:py-6 min-h-0">
-          <div className="max-w-[1000px]">
-            {/* Title */}
-            <div className="mb-6">
-              <p className="text-[13px] text-[#57636E] mb-1">
-                {activeTab === 'users' ? 'harikishorereddy9908' : (activeTab === 'workspace' ? 'harikishorereddy9908' : 'Hari Kishore Reddy')}
-              </p>
-              <h1 className="text-2xl sm:text-[32px] font-bold text-[#20262E] leading-tight">
-                {activeTab === 'users' ? 'Users & groups' : (activeTab === 'workspace' ? 'Workspace Info' : 'Personal Settings')}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-8 lg:px-10 py-6 sm:py-8 min-h-0 bg-[#F8FAFD]">
+          <div className="w-full max-w-[1500px] mx-auto space-y-6">
+            {/* Header Section */}
+            <div className="mb-2">
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#57636E] mb-1">
+                <span>{activeTab === 'users' || activeTab === 'workspace' ? 'Workspace Admin' : 'Account'}</span>
+                <span>/</span>
+                <span className="text-[#154360] font-bold">
+                  {activeTab === 'users' ? 'Users & Groups' : (activeTab === 'workspace' ? 'Workspace Info' : 'Personal Settings')}
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-[30px] font-extrabold text-[#20262E] leading-tight tracking-tight">
+                {activeTab === 'users' ? 'Users & Groups Provisioning' : (activeTab === 'workspace' ? 'Workspace Information & Batches' : 'Personal Settings')}
               </h1>
             </div>
 
@@ -836,7 +840,7 @@ export default function SettingsPage() {
                       </button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                       {batches
                         .filter(b => {
                           if (!batchSearchQuery.trim()) return true;

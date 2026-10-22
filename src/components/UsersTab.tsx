@@ -583,22 +583,22 @@ export default function UsersTab() {
           </div>
 
           {/* Quick Metrics Strip utilizing full screen width */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-[#E2E7EC]/80">
-            <div className="p-3 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl">
-              <span className="text-[11px] font-semibold text-[#57636E] uppercase tracking-wider block">Total Members</span>
-              <span className="text-base font-extrabold text-[#20262E]">{users.length}</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 pt-5 border-t border-[#E2E7EC]/80">
+            <div className="p-4 bg-[#F8FAFC] border border-[#E2E7EC] rounded-2xl transition-all hover:shadow-xs">
+              <span className="text-[11px] font-bold text-[#57636E] uppercase tracking-wider block">Total Members</span>
+              <span className="text-2xl font-black text-[#20262E] mt-1 block">{users.length}</span>
             </div>
-            <div className="p-3 bg-purple-50/50 border border-purple-200/60 rounded-xl">
-              <span className="text-[11px] font-semibold text-purple-700 uppercase tracking-wider block">Mentors</span>
-              <span className="text-base font-extrabold text-[#6C3483]">{users.filter(u => u.role === "Mentor").length}</span>
+            <div className="p-4 bg-purple-50/60 border border-purple-200/70 rounded-2xl transition-all hover:shadow-xs">
+              <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wider block">Mentors</span>
+              <span className="text-2xl font-black text-[#6C3483] mt-1 block">{users.filter(u => u.role === "Mentor").length}</span>
             </div>
-            <div className="p-3 bg-blue-50/50 border border-blue-200/60 rounded-xl">
-              <span className="text-[11px] font-semibold text-blue-700 uppercase tracking-wider block">Administrators</span>
-              <span className="text-base font-extrabold text-[#154360]">{users.filter(u => u.role === "Admin").length}</span>
+            <div className="p-4 bg-blue-50/60 border border-blue-200/70 rounded-2xl transition-all hover:shadow-xs">
+              <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider block">Administrators</span>
+              <span className="text-2xl font-black text-[#154360] mt-1 block">{users.filter(u => u.role === "Admin").length}</span>
             </div>
-            <div className="p-3 bg-emerald-50/50 border border-emerald-200/60 rounded-xl">
-              <span className="text-[11px] font-semibold text-emerald-700 uppercase tracking-wider block">Active Logins</span>
-              <span className="text-base font-extrabold text-emerald-800">{users.filter(u => (u.status || "Active").toLowerCase() === "active").length}</span>
+            <div className="p-4 bg-emerald-50/60 border border-emerald-200/70 rounded-2xl transition-all hover:shadow-xs">
+              <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">Active Logins</span>
+              <span className="text-2xl font-black text-emerald-800 mt-1 block">{users.filter(u => (u.status || "Active").toLowerCase() === "active").length}</span>
             </div>
           </div>
         </div>

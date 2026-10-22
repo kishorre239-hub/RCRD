@@ -10,6 +10,7 @@ import {
   isDummyMeeting,
   isMeetingDurationExpired,
 } from '@/lib/server/localBackup';
+import { deleteRoomState } from '@/app/api/meetings/[id]/state/route';
 
 export async function GET(req: Request) {
   try {
@@ -263,10 +264,15 @@ export async function DELETE(req: Request) {
     }
 
     deleteBackupMeeting(id);
+    try {
+      deleteRoomState(id);
+    } catch {}
 
     try {
       const meetingsCol = await getCollection<StoredMeeting>('meetings');
       await meetingsCol.deleteOne({ id });
+      const stateCol = await getCollection('meeting_states').catch(() => null);
+      if (stateCol) await stateCol.deleteOne({ meetingId: id }).catch(() => {});
     } catch (dbErr) {
       console.warn('MongoDB delete meeting note:', (dbErr as Error)?.message);
     }

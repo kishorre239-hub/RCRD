@@ -598,6 +598,10 @@ export default function MeetingsPage() {
   const deleteMeeting = (id: string) => {
     if (confirm("Are you sure you want to delete this meeting?")) {
       save(meetings.filter(m => m.id !== id));
+      try {
+        sessionStorage.removeItem(`meeting_${id}`);
+        sessionStorage.removeItem(`participant_name_${id}`);
+      } catch {}
       fetch(`/api/meetings?id=${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => {});
       showToast("Meeting deleted.");
     }

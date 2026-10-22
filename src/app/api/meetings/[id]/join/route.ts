@@ -35,22 +35,10 @@ export async function POST(
       if (backup) {
         resolvedMeeting = backup;
       } else {
-        // Resilient fallback: allow joining room session dynamically
-        resolvedMeeting = {
-          id,
-          title: 'Live Classroom',
-          courseId: null,
-          password: '',
-          scheduledAt: new Date().toISOString(),
-          duration: 60,
-          status: 'live',
-          updatedAt: Date.now(),
-        };
-        saveBackupMeeting(resolvedMeeting);
-        try {
-          const meetingsCol = await getCollection<StoredMeeting>('meetings');
-          await meetingsCol.updateOne({ id }, { $set: resolvedMeeting }, { upsert: true });
-        } catch {}
+        return NextResponse.json(
+          { error: 'This meeting was not found or has been deleted.' },
+          { status: 404 }
+        );
       }
     }
 

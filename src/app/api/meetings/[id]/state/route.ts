@@ -217,6 +217,15 @@ function getOrCreateRoomState(rawId: string): MeetingState {
   return rooms[roomId];
 }
 
+export function deleteRoomState(rawId: string) {
+  const roomId = decodeURIComponent(rawId).trim();
+  const rooms = globalStore.__roomStates;
+  if (rooms && rooms[roomId]) {
+    delete rooms[roomId];
+    schedulePersistRoomStates();
+  }
+}
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -714,6 +714,21 @@ export default function ClassRoomPage() {
     }
   }, [remoteWebRTCStream, livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream, isMentor]);
 
+  // Memoized video ref callback to eliminate screen shaking / continuous re-renders
+  const setRemoteVideoRef = useCallback((el: HTMLVideoElement | null) => {
+    remoteScreenVideoRef.current = el;
+    if (!el) return;
+    const activeStream = livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream;
+    if (activeStream && el.srcObject !== activeStream) {
+      el.srcObject = activeStream;
+      el.muted = true;
+      el.playsInline = true;
+      el.setAttribute('playsinline', '');
+      el.setAttribute('webkit-playsinline', '');
+      el.play().catch(() => {});
+    }
+  }, [livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream, remoteWebRTCStream]);
+
   // Mobile & browser autoplay policy unlock: play remote screen video on touch or click
   useEffect(() => {
     const unlockVideo = () => {
@@ -1383,38 +1398,13 @@ export default function ClassRoomPage() {
             return;
           }
           if (data.meeting.courseId) setUploadCourse(data.meeting.courseId);
-        } else if (isMentor && roomId) {
-          // If meeting is not yet saved in database, register it now so all students can find it immediately
-          fetch('/api/meetings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: roomId,
-              title: 'Live Classroom',
-              status: 'live',
-              hostName: displayName || 'Host',
-              scheduledAt: new Date().toISOString(),
-              duration: 60,
-            }),
-          }).catch(() => {});
+        } else if (!isMentor && roomId) {
+          // Meeting was deleted or not found on server: redirect student to join page so they see Meeting Not Found
+          window.location.href = `/meeting/${roomId}`;
+          return;
         }
       })
-      .catch(() => {
-        if (isMentor && roomId) {
-          fetch('/api/meetings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: roomId,
-              title: 'Live Classroom',
-              status: 'live',
-              hostName: displayName || 'Host',
-              scheduledAt: new Date().toISOString(),
-              duration: 60,
-            }),
-          }).catch(() => {});
-        }
-      });
+      .catch(() => {});
     getCourses().then(setCourses).catch(() => {});
     getDriveFolder().then(df => {
       if (df?.folderId) {
@@ -4010,18 +4000,8 @@ export default function ClassRoomPage() {
             )}
           </div>
 
-          {/* Center: Meeting Title Pill & Duration Timer Pill */}
+          {/* Center: Duration Timer Badge (Removed circled title button per user request) */}
           <div className="pointer-events-auto flex items-center gap-2">
-            <button
-              onClick={() => setShowMeetingInfoModal(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/60 text-xs font-semibold text-white shadow-xl transition-all cursor-pointer max-w-[150px] sm:max-w-[260px]"
-              title="View Meeting Information"
-            >
-              <span className="truncate">
-                {meeting?.title || `${displayName}'s Meeting`}
-              </span>
-              <ChevronDown size={13} className="text-zinc-400 shrink-0" />
-            </button>
 
             {/* Duration Timer Badge */}
             {meetingStartTime > 0 && (
@@ -4152,9 +4132,12 @@ export default function ClassRoomPage() {
             className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${isLocalSharing ? "opacity-100 z-10 bg-black" : "opacity-0 pointer-events-none"}`}
           />
 
-          {/* Remote Host Screen Share (Live synced to students) */}
+          {/* Remote Host Screen Share (Live synced to students with anti-jitter hardware containment) */}
           {isRemoteSharing && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black overflow-hidden select-none">
+            <div
+              className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black overflow-hidden select-none"
+              style={{ contain: 'strict', transform: 'translateZ(0)' }}
+            >
               <div className="absolute top-16 left-3 sm:left-4 z-20 flex items-center gap-1.5 sm:gap-2 bg-zinc-900/90 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-zinc-700 shadow-md text-xs font-bold text-white max-w-[90vw] overflow-x-auto">
                 <Monitor size={14} className="text-blue-400 shrink-0" />
                 <span className="truncate max-w-[140px] sm:max-w-none">{remoteScreenShare?.presenterName || "Host"} is sharing screen</span>
@@ -4193,41 +4176,33 @@ export default function ClassRoomPage() {
                 )}
               </div>
 
-              {/* Layer 1: HTTP Live Frame Stream (Rock-solid fallback, immediate 0ms appearance) */}
-              {remoteScreenShare?.streamFrame && (
+              {/* Layer 1: HTTP Live Frame Stream (Only when video stream is not yet actively playing to prevent dual-layer shaking/jitter) */}
+              {remoteScreenShare?.streamFrame && !isWebRTCVideoPlaying && (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={remoteScreenShare.streamFrame}
                   alt="Shared Screen"
                   className="absolute inset-0 w-full h-full object-contain select-none pointer-events-none"
+                  style={{ transform: 'translateZ(0)' }}
                 />
               )}
 
-              {/* Layer 2: WebRTC Ultra HD 60FPS Video (Fades in over Layer 1 when packets arrive) */}
+              {/* Layer 2: WebRTC Ultra HD 60FPS Video (Active stream with stable ref callback and GPU acceleration) */}
               {(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream) && (
                 <video
-                  ref={(el) => {
-                    remoteScreenVideoRef.current = el;
-                    const activeStream = livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream;
-                    if (el && activeStream && el.srcObject !== activeStream) {
-                      el.srcObject = activeStream;
-                      el.muted = true;
-                      el.playsInline = true;
-                      el.setAttribute('playsinline', '');
-                      el.setAttribute('webkit-playsinline', '');
-                      el.play().catch(() => {});
-                    }
-                  }}
+                  ref={setRemoteVideoRef}
                   autoPlay
                   playsInline
                   muted
                   onLoadedMetadata={() => setIsWebRTCVideoPlaying(true)}
                   onCanPlay={() => setIsWebRTCVideoPlaying(true)}
                   onPlaying={() => setIsWebRTCVideoPlaying(true)}
-                  onTimeUpdate={() => setIsWebRTCVideoPlaying(true)}
                   onError={() => setIsWebRTCVideoPlaying(false)}
                   onEnded={() => setIsWebRTCVideoPlaying(false)}
-                  className="absolute inset-0 w-full h-full object-contain select-none z-10"
+                  className={`absolute inset-0 w-full h-full object-contain select-none z-10 transition-opacity duration-150 ${
+                    isWebRTCVideoPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  }`}
+                  style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
                 />
               )}
 

@@ -83,7 +83,7 @@ function JoinMeetingContent() {
 
     try {
       // 1. Try server API
-      const res = await fetch(`/api/meetings?id=${encodeURIComponent(meetingId)}`);
+      const res = await fetch(`/api/meetings?id=${encodeURIComponent(meetingId)}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data?.meeting) {
@@ -93,7 +93,25 @@ function JoinMeetingContent() {
         }
       }
 
-      // 2. Fallback to localStorage
+      // If server explicitly returned 404, the meeting does NOT exist or has been deleted
+      if (res.status === 404) {
+        if (typeof window !== "undefined") {
+          try {
+            sessionStorage.removeItem(`meeting_${meetingId}`);
+            const localStr = localStorage.getItem("rcrd_meetings");
+            if (localStr) {
+              const all: MeetingData[] = JSON.parse(localStr);
+              localStorage.setItem("rcrd_meetings", JSON.stringify(all.filter(m => m.id !== meetingId)));
+            }
+          } catch {}
+        }
+        setMeeting(null);
+        setMeetingNotFound(true);
+        setLoadingMeeting(false);
+        return;
+      }
+
+      // 2. Only if server was unreachable (500 or offline), check localStorage
       if (typeof window !== "undefined") {
         const localStr = localStorage.getItem("rcrd_meetings");
         if (localStr) {
@@ -105,11 +123,16 @@ function JoinMeetingContent() {
             return;
           }
         }
+      }
 
-        // 3. Fallback to sessionStorage
-        const sessionStr = sessionStorage.getItem(`meeting_${meetingId}`);
-        if (sessionStr) {
-          const found = JSON.parse(sessionStr);
+      setMeeting(null);
+      setMeetingNotFound(true);
+    } catch {
+      if (typeof window !== "undefined") {
+        const localStr = localStorage.getItem("rcrd_meetings");
+        if (localStr) {
+          const all: MeetingData[] = JSON.parse(localStr);
+          const found = all.find(m => m.id === meetingId);
           if (found) {
             setMeeting(found);
             setLoadingMeeting(false);
@@ -117,35 +140,7 @@ function JoinMeetingContent() {
           }
         }
       }
-
-      // 4. Resilient Fallback: Allow student to join the live room directly
-      if (meetingId && meetingId.trim().length >= 3) {
-        setMeeting({
-          id: meetingId,
-          title: "Live Classroom",
-          courseId: null,
-          scheduledAt: new Date().toISOString(),
-          duration: 60,
-          status: "live",
-        });
-        setLoadingMeeting(false);
-        return;
-      }
-
-      setMeetingNotFound(true);
-    } catch {
-      if (meetingId && meetingId.trim().length >= 3) {
-        setMeeting({
-          id: meetingId,
-          title: "Live Classroom",
-          courseId: null,
-          scheduledAt: new Date().toISOString(),
-          duration: 60,
-          status: "live",
-        });
-        setLoadingMeeting(false);
-        return;
-      }
+      setMeeting(null);
       setMeetingNotFound(true);
     } finally {
       setLoadingMeeting(false);
@@ -158,11 +153,30 @@ function JoinMeetingContent() {
     const loadMeeting = async () => {
       if (!meetingId) return;
       try {
-        const res = await fetch(`/api/meetings?id=${encodeURIComponent(meetingId)}`);
+        const res = await fetch(`/api/meetings?id=${encodeURIComponent(meetingId)}`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           if (active && data?.meeting) {
             setMeeting(data.meeting);
+            setLoadingMeeting(false);
+            return;
+          }
+        }
+
+        if (res.status === 404) {
+          if (active) {
+            if (typeof window !== "undefined") {
+              try {
+                sessionStorage.removeItem(`meeting_${meetingId}`);
+                const localStr = localStorage.getItem("rcrd_meetings");
+                if (localStr) {
+                  const all: MeetingData[] = JSON.parse(localStr);
+                  localStorage.setItem("rcrd_meetings", JSON.stringify(all.filter(m => m.id !== meetingId)));
+                }
+              } catch {}
+            }
+            setMeeting(null);
+            setMeetingNotFound(true);
             setLoadingMeeting(false);
             return;
           }
@@ -179,47 +193,27 @@ function JoinMeetingContent() {
               return;
             }
           }
-
-          const sessionStr = sessionStorage.getItem(`meeting_${meetingId}`);
-          if (sessionStr) {
-            const found = JSON.parse(sessionStr);
-            if (active && found) {
-              setMeeting(found);
-              setLoadingMeeting(false);
-              return;
-            }
-          }
         }
 
         if (active) {
-          if (meetingId && meetingId.trim().length >= 3) {
-            setMeeting({
-              id: meetingId,
-              title: "Live Classroom",
-              courseId: null,
-              scheduledAt: new Date().toISOString(),
-              duration: 60,
-              status: "live",
-            });
-            setLoadingMeeting(false);
-            return;
-          }
+          setMeeting(null);
           setMeetingNotFound(true);
         }
       } catch {
         if (active) {
-          if (meetingId && meetingId.trim().length >= 3) {
-            setMeeting({
-              id: meetingId,
-              title: "Live Classroom",
-              courseId: null,
-              scheduledAt: new Date().toISOString(),
-              duration: 60,
-              status: "live",
-            });
-            setLoadingMeeting(false);
-            return;
+          if (typeof window !== "undefined") {
+            const localStr = localStorage.getItem("rcrd_meetings");
+            if (localStr) {
+              const all: MeetingData[] = JSON.parse(localStr);
+              const found = all.find(m => m.id === meetingId);
+              if (found) {
+                setMeeting(found);
+                setLoadingMeeting(false);
+                return;
+              }
+            }
           }
+          setMeeting(null);
           setMeetingNotFound(true);
         }
       } finally {

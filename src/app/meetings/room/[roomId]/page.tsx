@@ -1855,8 +1855,9 @@ export default function ClassRoomPage() {
     };
 
     pollState();
-    // Responsive polling interval: 600ms when screen share is active for real-time 0-lag updates
-    const pollIntervalMs = isAnyScreenSharing ? 600 : (livekitSFU.isSFUActive ? 3000 : 1500);
+    // Faster polling when screen share is active: 400ms gives students ~3 frames/sec from server
+    // (BroadcastChannel gives same-browser students 10fps with zero server load)
+    const pollIntervalMs = remoteScreenShare?.active ? 400 : (livekitSFU.isSFUActive ? 3000 : 1500);
     const interval = setInterval(pollState, pollIntervalMs);
 
     return () => {
@@ -1937,21 +1938,26 @@ export default function ClassRoomPage() {
     }
   }, [isMentor, livekitSFU.isSFUActive, micOn, livekitSFU]);
 
-  // Broadcast screen share frames when Host shares screen (High-clarity, non-blocking, zero lag)
+  // Broadcast screen share frames when Host shares screen
+  // ARCHITECTURE: Two-path delivery for zero-lag + wide-area reach:
+  //   Path A: BroadcastChannel (same browser/device) — runs every 100ms, NEVER blocked by network
+  //   Path B: Server POST (remote students over internet) — runs every 500ms independently
   useEffect(() => {
     if (!screenStream || !isMentor || !roomId) return;
     let active = true;
-    let inFlight = false;
+    let serverInFlight = false;
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d", { alpha: false });
 
-    // Micro-canvas for zero-overhead frame change detection (eliminates 85% of redundant bandwidth)
+    // Micro-canvas for frame change detection (skips redundant server uploads for static content)
     const sampleCanvas = document.createElement("canvas");
     sampleCanvas.width = 16;
     sampleCanvas.height = 10;
     const sampleCtx = sampleCanvas.getContext("2d", { willReadFrequently: true });
     let lastSample = "";
     let heartbeatCounter = 0;
+    let lastDataUrl = "";
+    let lastPayloadTime = 0;
 
     let bc: BroadcastChannel | null = null;
     try {
@@ -1970,8 +1976,10 @@ export default function ClassRoomPage() {
       helperVideo.play().catch(() => {});
     }
 
-    const broadcastFrame = async () => {
-      if (!active || !screenStream || inFlight) return;
+    // PATH A: Encode frame → post to BroadcastChannel immediately (no network, ~0ms latency)
+    // Runs at 100ms for smooth ~10fps local preview with zero network overhead
+    const encodeAndBroadcast = () => {
+      if (!active || !screenStream) return;
       try {
         const vEl = (screenVideoRef.current && screenVideoRef.current.videoWidth > 0)
           ? screenVideoRef.current
@@ -1980,7 +1988,7 @@ export default function ClassRoomPage() {
           const vw = vEl.videoWidth;
           const vh = vEl.videoHeight;
 
-          // Quick change-detection: skip encoding and uploading if screen hasn't changed
+          // Change detection — skip encode if frame is identical (saves CPU for static content)
           sampleCtx.drawImage(vEl, 0, 0, 16, 10);
           const sampleData = sampleCtx.getImageData(0, 0, 16, 10).data;
           let sampleStr = "";
@@ -1988,14 +1996,16 @@ export default function ClassRoomPage() {
             sampleStr += `${sampleData[i]},${sampleData[i+1]},${sampleData[i+2]};`;
           }
 
-          if (sampleStr === lastSample && heartbeatCounter < 3) {
+          const frameChanged = sampleStr !== lastSample;
+          if (!frameChanged) {
             heartbeatCounter++;
-            return;
+            // Send heartbeat every ~1.5s even for static frames so students don't time out
+            if (heartbeatCounter < 15) return;
           }
           lastSample = sampleStr;
           heartbeatCounter = 0;
 
-          // Ultra-crisp 720px max width ensures tiny 14-18KB frames for instant 0-lag delivery across cellular 5G/4G
+          // Higher quality for video content: 0.62 JPEG, max 720px width
           const maxW = 720;
           const scale = Math.min(1, maxW / vw);
           const tw = Math.round(vw * scale);
@@ -2005,55 +2015,68 @@ export default function ClassRoomPage() {
             canvas.height = th;
           }
           ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = "medium";
+          ctx.imageSmoothingQuality = "high";
           ctx.drawImage(vEl, 0, 0, tw, th);
 
-          // 0.45 JPEG quality gives sharp text and code lines with minimal decode overhead on phones
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.45);
-          const now = Date.now();
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.62);
+          lastDataUrl = dataUrl;
+          lastPayloadTime = Date.now();
 
           const payload = {
             active: true,
             presenterName: displayName || "Host",
             streamFrame: dataUrl,
-            updatedAt: now,
+            updatedAt: lastPayloadTime,
           };
 
+          // BroadcastChannel delivery: instant, same browser, no network
           if (bc) {
             bc.postMessage({ type: "SCREEN_SHARE", data: payload });
           }
-
-          // Always persist active screen share state to server with 1.8s timeout guard so inFlight never locks
-          inFlight = true;
-          const abortCtrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-          const abortTimer = setTimeout(() => {
-            if (abortCtrl) abortCtrl.abort();
-            inFlight = false;
-          }, 1800);
-          try {
-            await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ screenShare: payload }),
-              signal: abortCtrl?.signal,
-            });
-          } catch {
-          } finally {
-            clearTimeout(abortTimer);
-            inFlight = false;
-          }
         }
+      } catch {}
+    };
+
+    // PATH B: POST latest encoded frame to server for remote students (independent timer)
+    // Non-blocking: never prevents Path A from running
+    const uploadToServer = async () => {
+      if (!active || !lastDataUrl || serverInFlight) return;
+      const payload = {
+        active: true,
+        presenterName: displayName || "Host",
+        streamFrame: lastDataUrl,
+        updatedAt: lastPayloadTime,
+      };
+      serverInFlight = true;
+      const abortCtrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const abortTimer = setTimeout(() => {
+        if (abortCtrl) abortCtrl.abort();
+        serverInFlight = false;
+      }, 2000);
+      try {
+        await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ screenShare: payload }),
+          signal: abortCtrl?.signal,
+        });
       } catch {
-        inFlight = false;
+      } finally {
+        clearTimeout(abortTimer);
+        serverInFlight = false;
       }
     };
 
-    const interval = setInterval(broadcastFrame, 320);
-    broadcastFrame();
+    // Path A: runs every 100ms for smooth ~10fps local/BC delivery (never blocked)
+    const bcInterval = setInterval(encodeAndBroadcast, 100);
+    // Path B: runs every 500ms for server delivery to remote students
+    const serverInterval = setInterval(uploadToServer, 500);
+    encodeAndBroadcast();
 
     return () => {
       active = false;
-      clearInterval(interval);
+      clearInterval(bcInterval);
+      clearInterval(serverInterval);
       if (helperVideo) {
         helperVideo.srcObject = null;
       }

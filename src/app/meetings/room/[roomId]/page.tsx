@@ -594,6 +594,15 @@ export default function ClassRoomPage() {
     speakerMuted,
   });
 
+  const isLocalSharing = !!screenStream;
+  const isRemoteSharing = !isLocalSharing && (
+    Boolean(remoteScreenShare?.active) ||
+    Boolean(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream) ||
+    Boolean(remoteWebRTCStream)
+  );
+  const isAnyScreenSharing = isLocalSharing || isRemoteSharing;
+  const isSharing = isAnyScreenSharing;
+
   const handleSFUDataReceived = useCallback(({ type, payload }: { type: string; payload: unknown; sender: string }) => {
     if (type === "MEETING_ENDED" && !isMentor) {
       window.location.href = "https://www.geonixa.com/";
@@ -1411,7 +1420,7 @@ export default function ClassRoomPage() {
         setUploadCourse(prev => prev || df.folderId);
       }
     }).catch(() => {});
-  }, [roomId, isMentor, displayName]);
+  }, [roomId, isMentor, displayName, router]);
 
   // Ensure students are NEVER left on admin dashboard (/meetings); if class is ended, send directly to Geonixa
   useEffect(() => {
@@ -1846,8 +1855,8 @@ export default function ClassRoomPage() {
     };
 
     pollState();
-    // Responsive polling interval: 800ms when screen share is active for real-time 0-lag updates
-    const pollIntervalMs = isAnyScreenSharing ? 800 : (livekitSFU.isSFUActive ? 3000 : 1500);
+    // Responsive polling interval: 600ms when screen share is active for real-time 0-lag updates
+    const pollIntervalMs = isAnyScreenSharing ? 600 : (livekitSFU.isSFUActive ? 3000 : 1500);
     const interval = setInterval(pollState, pollIntervalMs);
 
     return () => {
@@ -1859,7 +1868,7 @@ export default function ClassRoomPage() {
 
   // Auto-connect / reconnect student WebRTC stream whenever host is sharing screen
   useEffect(() => {
-    if (isMentor || !remoteScreenShare?.active || isWebRTCVideoPlaying) return;
+    if (isMentor || !remoteScreenShare?.active) return;
     const syncScreenStream = () => {
       const pc = peerConnectionsRef.current.get("host");
       if (!pc || pc.connectionState === "failed" || pc.connectionState === "closed") {
@@ -1867,8 +1876,13 @@ export default function ClassRoomPage() {
       } else {
         const vRecv = pc.getReceivers().find(r => r.track && r.track.kind === "video");
         if (vRecv && vRecv.track && vRecv.track.readyState === "live") {
-          setRemoteWebRTCStream(new MediaStream([vRecv.track]));
-          setIsWebRTCVideoPlaying(true);
+          setRemoteWebRTCStream(prev => {
+            if (prev && prev.getVideoTracks()[0] === vRecv.track) return prev;
+            return new MediaStream([vRecv.track]);
+          });
+          // Do not force setIsWebRTCVideoPlaying(true) here!
+          // Setting it prematurely triggers black screen flashing before actual frames arrive.
+          // Real frame arrival will be reported by the video element's onPlaying event.
         } else {
           sendSignal("host", "request-screen", {});
         }
@@ -1877,7 +1891,7 @@ export default function ClassRoomPage() {
     syncScreenStream();
     const interval = setInterval(syncScreenStream, 3000);
     return () => clearInterval(interval);
-  }, [isMentor, remoteScreenShare?.active, isWebRTCVideoPlaying, initiateAudioCallToHost, sendSignal]);
+  }, [isMentor, remoteScreenShare?.active, initiateAudioCallToHost, sendSignal]);
 
   // Mentor auto-acquires microphone on room load so audio track is ready for connecting students
   useEffect(() => {
@@ -3554,14 +3568,6 @@ export default function ClassRoomPage() {
     }
   };
 
-  const isLocalSharing = !!screenStream;
-  const isRemoteSharing = !isLocalSharing && (
-    Boolean(remoteScreenShare?.active) ||
-    Boolean(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream) ||
-    Boolean(remoteWebRTCStream)
-  );
-  const isAnyScreenSharing = isLocalSharing || isRemoteSharing;
-  const isSharing = isAnyScreenSharing;
   const isWhiteboardActive = isMentor
     ? showWhiteboard
     : Boolean(remoteWhiteboard?.active && showWhiteboard) && (!isRemoteSharing || studentViewMode === "whiteboard");
@@ -4148,16 +4154,14 @@ export default function ClassRoomPage() {
               <div className="absolute top-16 left-3 sm:left-4 z-20 flex items-center gap-1.5 sm:gap-2 bg-zinc-900/90 backdrop-blur-md px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl border border-zinc-700 shadow-md text-xs font-bold text-white max-w-[90vw] overflow-x-auto">
                 <Monitor size={14} className="text-blue-400 shrink-0" />
                 <span className="truncate max-w-[140px] sm:max-w-none">{remoteScreenShare?.presenterName || "Host"} is sharing screen</span>
-                {isWebRTCVideoPlaying ? (
-                  <span className="flex items-center gap-1.5 text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-medium shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Ultra HD 60FPS
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-medium shrink-0">
-                    HD Live
-                  </span>
-                )}
+                <span className={`inline-flex items-center justify-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 min-w-[76px] text-center ${
+                  isWebRTCVideoPlaying
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isWebRTCVideoPlaying ? 'bg-emerald-400 animate-pulse' : 'bg-blue-400'}`} />
+                  <span>{isWebRTCVideoPlaying ? "Ultra HD" : "HD Live"}</span>
+                </span>
                 <button
                   type="button"
                   onClick={toggleFullScreen}
@@ -4201,15 +4205,24 @@ export default function ClassRoomPage() {
                   autoPlay
                   playsInline
                   muted
-                  onLoadedMetadata={() => setIsWebRTCVideoPlaying(true)}
-                  onCanPlay={() => setIsWebRTCVideoPlaying(true)}
-                  onPlaying={() => setIsWebRTCVideoPlaying(true)}
+                  onPlaying={(e) => {
+                    const v = e.currentTarget;
+                    if (v.videoWidth > 0 && v.videoHeight > 0) {
+                      setIsWebRTCVideoPlaying(true);
+                    }
+                  }}
+                  onTimeUpdate={(e) => {
+                    const v = e.currentTarget;
+                    if (v.videoWidth > 0 && v.videoHeight > 0 && !isWebRTCVideoPlayingRef.current) {
+                      setIsWebRTCVideoPlaying(true);
+                    }
+                  }}
                   onWaiting={() => setIsWebRTCVideoPlaying(false)}
                   onStalled={() => setIsWebRTCVideoPlaying(false)}
                   onPause={() => setIsWebRTCVideoPlaying(false)}
                   onError={() => setIsWebRTCVideoPlaying(false)}
                   onEnded={() => setIsWebRTCVideoPlaying(false)}
-                  className={`absolute inset-0 w-full h-full object-contain select-none z-10 transition-opacity duration-150 ${
+                  className={`absolute inset-0 w-full h-full object-contain select-none z-10 transition-opacity duration-300 ${
                     isWebRTCVideoPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
                   }`}
                   style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}

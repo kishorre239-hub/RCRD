@@ -39,10 +39,22 @@ export async function sendTelegramMessage(
       disable_web_page_preview: false,
     };
 
-    if (inlineButtons && inlineButtons.length > 0) {
+    // Telegram Bot API rejects inline buttons if the URL is localhost or not a valid public web URL.
+    const validButtons = (inlineButtons || []).filter(btn => {
+      try {
+        const u = new URL(btn.url);
+        return (u.protocol === 'http:' || u.protocol === 'https:') &&
+          !u.hostname.includes('localhost') &&
+          !u.hostname.includes('127.0.0.1');
+      } catch {
+        return false;
+      }
+    });
+
+    if (validButtons.length > 0) {
       payload.reply_markup = {
         inline_keyboard: [
-          inlineButtons.map(btn => ({ text: btn.text, url: btn.url }))
+          validButtons.map(btn => ({ text: btn.text, url: btn.url }))
         ]
       };
     }
@@ -87,12 +99,13 @@ export async function alertClassScheduled(m: TelegramMeetingAlert): Promise<bool
 
   const text = `📅 <b>NEW CLASS SCHEDULED!</b>
 ━━━━━━━━━━━━━━━━━━━━━${batchText}
- <b>Topic:</b> ${escapeHtml(m.title)}
- <b>Time:</b> ${dateStr}
- <b>Duration:</b> ${m.duration || 60} mins${mentorText}
- <b>Meeting ID:</b> <code>${escapeHtml(m.id)}</code>${pwdText}
+<b>Topic:</b> ${escapeHtml(m.title)}
+<b>Time:</b> ${dateStr}
+<b>Duration:</b> ${m.duration || 60} mins${mentorText}
+<b>Meeting ID:</b> <code>${escapeHtml(m.id)}</code>${pwdText}
+<b>Join Link:</b> ${escapeHtml(joinUrl)}
 
-Students enrolled in this batch can join using the link below:`;
+Students can join directly using the link or enter the Meeting ID in RCRD.`;
 
   return sendTelegramMessage(text, [
     { text: '👉 View Class & Join', url: joinUrl }
@@ -112,11 +125,12 @@ export async function alertClassLive(m: TelegramMeetingAlert): Promise<boolean> 
 
   const text = `🔴 <b>LIVE CLASS STARTED!</b>
 ━━━━━━━━━━━━━━━━━━━━━
- <b>${escapeHtml(mentorName)}</b> is live now in the classroom!${batchText}
- <b>Topic:</b> ${escapeHtml(m.title)}
- <b>Meeting ID:</b> <code>${escapeHtml(m.id)}</code>${pwdText}
+<b>${escapeHtml(mentorName)}</b> is live now in the classroom!${batchText}
+<b>Topic:</b> ${escapeHtml(m.title)}
+<b>Meeting ID:</b> <code>${escapeHtml(m.id)}</code>${pwdText}
+<b>Join Link:</b> ${escapeHtml(joinUrl)}
 
-The room is open. Click below to join immediately!`;
+The room is open. Click the link to join immediately!`;
 
   return sendTelegramMessage(text, [
     { text: ' Join Live Class Now', url: joinUrl }

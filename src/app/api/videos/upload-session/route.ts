@@ -18,6 +18,41 @@ export async function POST(req: Request) {
       workspaceId: 'default',
     };
 
+    const PRIMARY_OWNER_EMAIL = "harikishorereddy9908@gmail.com";
+    const userEmail = (user.email || '').toLowerCase().trim();
+    const isAdmin = userEmail === PRIMARY_OWNER_EMAIL || (user.role || '').toLowerCase() === 'admin';
+
+    // Verify user plan and admin trial authorization in DB
+    let effectivePlanId = user.plan || 'none';
+    let isTrialGranted = isAdmin;
+    try {
+      const usersCol = await getCollection<User>('users');
+      let dbUser: User | null = null;
+      if (user.id || user._id) {
+        const { ObjectId } = await import('mongodb');
+        try {
+          dbUser = await usersCol.findOne({ _id: typeof user._id === 'string' ? new ObjectId(user._id) : user._id });
+        } catch {}
+      }
+      if (!dbUser && userEmail) {
+        dbUser = await usersCol.findOne({ email: userEmail });
+      }
+      if (dbUser) {
+        if (dbUser.plan) effectivePlanId = dbUser.plan;
+        if (dbUser.trialGranted === true) isTrialGranted = true;
+      }
+    } catch {}
+
+    const isPaid = ['pro', 'team', 'business', 'business_ai', 'yearly', 'enterprise'].includes(effectivePlanId);
+
+    // Free trials are strictly restricted: Admin only access for free trial grant
+    if (!isAdmin && !isPaid && !isTrialGranted) {
+      return NextResponse.json({
+        error: 'Free trials require administrator approval. Please subscribe to a SaaS rental plan or contact an administrator for trial access.',
+        code: 'RENTAL_REQUIRED',
+      }, { status: 403 });
+    }
+
     const body = await req.json().catch(() => ({}));
     const title = body.title || `Recording ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
     const mimeType = body.mimeType || 'video/webm';

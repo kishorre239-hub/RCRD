@@ -703,3 +703,20 @@ export const verifyBillingPayment = async (data: {
   return response.json();
 };
 
+export const updateAdminTrial = async (data: {
+  action: 'grant' | 'revoke';
+  targetEmail?: string;
+  days?: number;
+}) => {
+  const response = await fetchWithAuth('/billing/trial', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Failed to update trial status');
+  }
+  return response.json();
+};
+
+

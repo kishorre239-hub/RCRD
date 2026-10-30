@@ -118,5 +118,6 @@ export function useNavPermissions() {
     isAdmin,
     isMentor,
     canAccess,
+    userEmail,
   };
 }

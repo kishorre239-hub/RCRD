@@ -12,9 +12,12 @@ export interface User {
   hasAccess?: boolean;
   allowedNavItems?: string[];
   plan?: 'free' | 'pro' | 'team' | 'yearly' | string;
-  subscriptionStatus?: 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'EXPIRED';
+  subscriptionStatus?: 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'EXPIRED' | string;
   subscriptionId?: string;
   subscriptionExpiresAt?: number;
+  trialGranted?: boolean;
+  trialExpiresAt?: number;
+  trialGrantedBy?: string;
   avatarUrl?: string;
   createdAt?: number;
   updatedAt?: number;
@@ -77,9 +80,12 @@ export interface Workspace {
   ownerId?: string;
   members?: string[];
   plan?: 'free' | 'pro' | 'team' | 'yearly' | string;
-  subscriptionStatus?: 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'EXPIRED';
+  subscriptionStatus?: 'ACTIVE' | 'TRIAL' | 'PAST_DUE' | 'EXPIRED' | string;
   subscriptionId?: string;
   subscriptionExpiresAt?: number;
+  trialGranted?: boolean;
+  trialExpiresAt?: number;
+  trialGrantedBy?: string;
   createdAt?: number;
 }
 

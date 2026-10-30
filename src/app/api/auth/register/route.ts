@@ -38,12 +38,17 @@ export async function POST(req: Request) {
       }
 
       const passwordHash = await hashPassword(password);
+      const PRIMARY_OWNER_EMAIL = "harikishorereddy9908@gmail.com";
+      const isAdmin = cleanEmail === PRIMARY_OWNER_EMAIL || cleanRole === 'ADMIN';
+
       const newUser: User = {
         name: cleanName,
         email: cleanEmail,
         passwordHash,
         role: cleanRole,
-        plan: 'pro',
+        plan: isAdmin ? 'pro' : 'none',
+        subscriptionStatus: isAdmin ? 'ACTIVE' : 'RENTAL REQUIRED',
+        trialGranted: isAdmin,
         status: 'Active',
         createdAt: Date.now(),
         updatedAt: Date.now(),

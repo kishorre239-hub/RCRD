@@ -26,8 +26,20 @@ export async function GET(req: Request) {
       dbUser = await usersCol.findOne({ email: user.email.toLowerCase() });
     }
 
-    const currentPlanId = dbUser?.plan || user.plan || 'free';
-    const plan = getPlan(currentPlanId);
+    const PRIMARY_OWNER_EMAIL = "harikishorereddy9908@gmail.com";
+    const userEmail = (user.email || '').toLowerCase().trim();
+    const isAdmin = userEmail === PRIMARY_OWNER_EMAIL || (user.role || '').toLowerCase() === 'admin';
+    const trialGranted = dbUser?.trialGranted === true || isAdmin;
+
+    const currentPlanId = dbUser?.plan || user.plan || (trialGranted ? 'free' : 'none');
+    const isPaidPlan = ['pro', 'team', 'business', 'business_ai', 'yearly'].includes(currentPlanId);
+    const plan = isPaidPlan ? getPlan(currentPlanId) : (trialGranted ? getPlan('free') : {
+      ...getPlan('free'),
+      name: 'No Active Subscription',
+      description: 'Rental payment or Admin trial approval required to unlock workspace features.',
+      storageLimitBytes: 0,
+      storageLimitMb: 0,
+    });
 
     // Calculate storage used by this workspace or user
     const videosCol = await getCollection<Video>('videos');
@@ -40,8 +52,8 @@ export async function GET(req: Request) {
 
     const usedBytes = videos.reduce((acc: number, v: { size?: number }) => acc + (v.size || 0), 0);
     const limitBytes = plan.storageLimitBytes;
-    const isUnlimited = limitBytes <= 0;
-    const percentUsed = isUnlimited ? 0 : Math.min(100, Math.round((usedBytes / limitBytes) * 100));
+    const isUnlimited = limitBytes < 0;
+    const percentUsed = isUnlimited ? 0 : (limitBytes === 0 ? 100 : Math.min(100, Math.round((usedBytes / limitBytes) * 100)));
 
     // Fetch latest active subscription record if any
     const subsCol = await getCollection<SubscriptionRecord>('subscriptions');
@@ -50,20 +62,27 @@ export async function GET(req: Request) {
       { sort: { createdAt: -1 } }
     );
 
+    const subscriptionStatus = isPaidPlan 
+      ? (dbUser?.subscriptionStatus || 'ACTIVE')
+      : (trialGranted ? 'TRIAL (ADMIN GRANTED)' : 'RENTAL REQUIRED');
+
     return NextResponse.json({
       plan: plan,
-      planId: plan.id,
+      planId: currentPlanId,
+      isAdmin,
+      trialGranted,
+      canAccessFreeTrial: isAdmin || trialGranted,
       storage: {
         usedBytes,
         limitBytes,
         usedFormatted: formatBytes(usedBytes),
-        limitFormatted: isUnlimited ? 'Unlimited' : formatBytes(limitBytes),
+        limitFormatted: isUnlimited ? 'Unlimited' : (limitBytes === 0 ? '0 MB (Locked)' : formatBytes(limitBytes)),
         percentUsed,
         isOverLimit: !isUnlimited && usedBytes >= limitBytes,
       },
       subscription: {
-        status: dbUser?.subscriptionStatus || (plan.id === 'free' ? 'TRIAL' : 'ACTIVE'),
-        expiresAt: dbUser?.subscriptionExpiresAt || latestSub?.expiresAt || null,
+        status: subscriptionStatus,
+        expiresAt: dbUser?.subscriptionExpiresAt || latestSub?.expiresAt || dbUser?.trialExpiresAt || null,
         orderId: latestSub?.orderId || null,
         paymentId: latestSub?.paymentId || null,
       },

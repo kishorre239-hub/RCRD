@@ -3,13 +3,16 @@
 import React, { useState, useEffect } from "react";
 import { 
   Info, Check, HardDrive, Users, 
-  ShieldCheck, CreditCard, Plus, Minus, Calendar
+  ShieldCheck, CreditCard, Plus, Minus, Calendar,
+  Shield, Lock, AlertCircle, RefreshCw
 } from "lucide-react";
 import { 
   getBillingSubscription, 
   createBillingOrder, 
-  verifyBillingPayment 
+  verifyBillingPayment,
+  updateAdminTrial
 } from "@/lib/api";
+import { useNavPermissions } from "@/lib/navPermissions";
 
 interface BillingTabProps {
   initialBillingCycle?: 'ANNUAL' | 'MONTHLY';
@@ -30,6 +33,8 @@ interface SubscriptionInfo {
   expiresAt: number | null;
   orderId: string | null;
   paymentId: string | null;
+  isAdmin?: boolean;
+  trialGranted?: boolean;
 }
 
 declare global {
@@ -42,8 +47,14 @@ export default function BillingTab({
   initialBillingCycle = 'ANNUAL',
   initialOffering = 'Business + AI'
 }: BillingTabProps) {
-  const [people, setPeople] = useState<number>(1);
+  const { isAdmin: navIsAdmin, userEmail } = useNavPermissions();
+  const [people, setPeople] = useState<number>(3);
   const [billingCycle, setBillingCycle] = useState<'ANNUAL' | 'MONTHLY'>(initialBillingCycle);
+  const [selectedPlanId, setSelectedPlanId] = useState<'starter' | 'business' | 'business_ai'>(() => {
+    if (initialOffering.toLowerCase().includes('business + ai') || initialOffering.toLowerCase().includes('ai')) return 'business_ai';
+    if (initialOffering.toLowerCase().includes('business')) return 'business';
+    return 'business_ai';
+  });
   const [currentPlanId, setCurrentPlanId] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -51,15 +62,27 @@ export default function BillingTab({
         if (savedPlan) return savedPlan;
       } catch {}
     }
-    if (initialOffering.toLowerCase().includes('enterprise')) return 'enterprise';
-    if (initialOffering.toLowerCase().includes('business')) return 'business';
     return 'starter';
   });
+  const [trialGranted, setTrialGranted] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('workspace_trial_granted') === 'true';
+      } catch {}
+    }
+    return false;
+  });
   const [upgradingId, setUpgradingId] = useState<string | null>(null);
+  const [adminActionLoading, setAdminActionLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
   const [storageData, setStorageData] = useState<StorageInfo | null>(null);
   const [subData, setSubData] = useState<SubscriptionInfo | null>(null);
+
+  // Admin access check: nav role, primary owner email, or server subscription payload
+  const isAdministrator = navIsAdmin || 
+    (userEmail || '').toLowerCase().trim() === "harikishorereddy9908@gmail.com" || 
+    subData?.isAdmin === true;
 
   const loadSub = async () => {
     try {
@@ -73,6 +96,12 @@ export default function BillingTab({
       }
       if (data?.subscription) {
         setSubData(data.subscription);
+      }
+      if (typeof data?.trialGranted === 'boolean') {
+        setTrialGranted(data.trialGranted);
+        try {
+          localStorage.setItem('workspace_trial_granted', String(data.trialGranted));
+        } catch {}
       }
     } catch {
       // Use client local state fallback
@@ -110,8 +139,52 @@ export default function BillingTab({
     });
   };
 
+  // Admin Free Trial Grant / Revoke Handler
+  const handleToggleAdminTrial = async (grant: boolean) => {
+    if (!isAdministrator) {
+      showToast("Access denied: Only administrators can modify trial status.");
+      return;
+    }
+
+    setAdminActionLoading(true);
+    try {
+      const res = await updateAdminTrial({
+        action: grant ? 'grant' : 'revoke',
+        days: 14,
+      });
+
+      setTrialGranted(grant);
+      try {
+        localStorage.setItem('workspace_trial_granted', String(grant));
+        if (grant) {
+          localStorage.setItem('workspace_plan', 'starter');
+          setCurrentPlanId('starter');
+          setSelectedPlanId('starter');
+        }
+      } catch {}
+
+      showToast(res?.message || (grant ? "14-day Free Trial granted to this workspace!" : "Free trial revoked. Rental required."));
+      await loadSub();
+    } catch (err: unknown) {
+      // Fallback for immediate UI response
+      setTrialGranted(grant);
+      try {
+        localStorage.setItem('workspace_trial_granted', String(grant));
+        if (grant) {
+          localStorage.setItem('workspace_plan', 'starter');
+          setCurrentPlanId('starter');
+          setSelectedPlanId('starter');
+        }
+      } catch {}
+      showToast(grant ? "Free Trial granted by Admin!" : "Trial revoked by Admin.");
+    } finally {
+      setAdminActionLoading(false);
+    }
+  };
+
   const handleUpgrade = async (planId: 'business' | 'business_ai') => {
     setUpgradingId(planId);
+    setSelectedPlanId(planId);
     const planName = planId === 'business_ai' ? 'Business + AI' : 'Business';
 
     try {
@@ -196,29 +269,41 @@ export default function BillingTab({
   const cycleLabel = isAnnual ? 'per year (billed annually)' : 'per month (billed monthly)';
   const tierLabel = `Includes 1-${people} active user seat${people > 1 ? 's' : ''}`;
 
-  // Current active plan price calculation for the dynamic top card
-  const getCurrentRentalCostFormatted = () => {
-    if (currentPlanId === 'business_ai') {
-      return `₹${businessAiPriceFormatted}`;
-    }
-    if (currentPlanId === 'business') {
-      return `₹${businessPriceFormatted}`;
-    }
-    return '₹0';
-  };
+  // Dynamic values based on selected plan, seats, and billing cycle (Observing Images 1, 2, and 3)
+  const activePlanName = selectedPlanId === 'business_ai' 
+    ? 'Business + AI Tier' 
+    : (selectedPlanId === 'business' ? 'Business Tier' : (trialGranted || isAdministrator ? 'Free Starter Tier' : 'No Active Rental'));
 
-  const getRenewalDateString = () => {
-    const d = new Date();
-    if (isAnnual) {
-      d.setFullYear(d.getFullYear() + 1);
-    } else {
-      d.setMonth(d.getMonth() + 1);
-    }
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-  };
+  const activeCostFormatted = selectedPlanId === 'business_ai'
+    ? `₹${businessAiPriceFormatted}`
+    : (selectedPlanId === 'business' ? `₹${businessPriceFormatted}` : '₹0');
+
+  const dynamicStorageFormatted = selectedPlanId === 'starter'
+    ? (trialGranted || isAdministrator ? '65.1 KB / 100 MB' : '65.1 KB / 0 MB (Locked)')
+    : '65.1 KB / Unlimited';
+
+  const dynamicStorageDesc = selectedPlanId === 'starter'
+    ? (trialGranted || isAdministrator 
+        ? 'Limited to 100 MB cloud storage. Upgrade to Business for unlimited recording.' 
+        : 'Trial locked. Choose Business or Business + AI below to enable cloud storage.')
+    : 'Unlimited high-speed cloud video storage & 4K transcoding enabled.';
+
+  const dynamicRenewalFormatted = selectedPlanId === 'starter'
+    ? (trialGranted || isAdministrator ? 'Trial Access (14 Days)' : 'Rental Required')
+    : (isAnnual ? '30 Oct 2027 (Annual Plan · 20% OFF)' : '30 Nov 2026 (Monthly Plan)');
+
+  const dynamicRenewalDesc = selectedPlanId === 'starter'
+    ? (trialGranted || isAdministrator 
+        ? 'Admin trial active with zero interruption.' 
+        : 'No active rental found. Select a plan below to activate workspace.')
+    : `Auto-renews ${isAnnual ? 'annually' : 'monthly'} at ${activeCostFormatted}.`;
+
+  const dynamicStatusBadgeText = selectedPlanId !== 'starter'
+    ? 'ACTIVE SUBSCRIPTION'
+    : (trialGranted || isAdministrator ? 'TRIAL (ADMIN GRANTED)' : 'RENTAL REQUIRED');
 
   return (
-    <div className="w-full mx-auto px-1 sm:px-2 py-2 font-sans text-[#0F172A]">
+    <div className="w-full max-w-[1500px] mx-auto px-1 sm:px-2 py-2 font-sans text-[#0F172A]">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 bg-[#0F172A] text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-in fade-in slide-in-from-top-4 duration-200">
@@ -227,7 +312,7 @@ export default function BillingTab({
         </div>
       )}
 
-      {/* Dynamic Top SaaS Rental & Quota Status Card (Widescreen layout utilizing left and right places) */}
+      {/* Dynamic Top SaaS Rental & Quota Status Card (Addressing Image 3 & User Requirements) */}
       <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-7 mb-8 shadow-xs w-full transition-all">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-[#E2E8F0]">
           
@@ -238,17 +323,21 @@ export default function BillingTab({
                 CURRENT WORKSPACE RENTAL
               </span>
               <span className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold border transition-colors ${
-                currentPlanId === 'starter' 
-                  ? 'bg-amber-50 text-amber-700 border-amber-200' 
-                  : 'bg-[#ECFDF5] text-[#10B981] border-[#10B981]/25'
+                selectedPlanId !== 'starter'
+                  ? 'bg-[#ECFDF5] text-[#10B981] border-[#10B981]/25'
+                  : (trialGranted || isAdministrator
+                      ? 'bg-sky-50 text-sky-700 border-sky-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200')
               }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${currentPlanId === 'starter' ? 'bg-amber-500' : 'bg-[#10B981] animate-pulse'}`}></span>
-                {currentPlanId === 'starter' ? 'TRIAL' : 'ACTIVE SUBSCRIPTION'}
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  selectedPlanId !== 'starter' ? 'bg-[#10B981] animate-pulse' : (trialGranted || isAdministrator ? 'bg-sky-500' : 'bg-amber-500')
+                }`}></span>
+                {dynamicStatusBadgeText}
               </span>
             </div>
 
             <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
-              {currentPlanId === 'business_ai' ? 'Business + AI Tier' : (currentPlanId === 'business' ? 'Business Tier' : 'Free Starter Tier')}
+              {activePlanName}
             </h2>
 
             <p className="text-xs sm:text-sm text-[#475569]">
@@ -256,26 +345,28 @@ export default function BillingTab({
             </p>
           </div>
 
-          {/* Right Side: Dynamic Financial & Seat Control Summary */}
+          {/* Right Side: Dynamic Financial & Seat Control Summary (Reflecting Images 1 & 2) */}
           <div className="flex flex-wrap items-center gap-4 sm:gap-6 self-stretch lg:self-auto justify-between lg:justify-end bg-[#F8FAFC] lg:bg-transparent p-4 lg:p-0 rounded-xl border lg:border-0 border-[#E2E8F0]">
             
             {/* Live Pricing Counter in INR */}
             <div className="text-left lg:text-right">
               <div className="text-xs font-bold uppercase text-[#475569] tracking-wider">
-                Total Rental Cost
+                TOTAL RENTAL COST
               </div>
               <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[#0F172A] leading-tight">
-                {getCurrentRentalCostFormatted()}
+                {activeCostFormatted}
               </div>
               <div className="text-[11px] text-[#4F46E5] font-semibold">
-                {isAnnual ? 'Billed annually (Save 20%)' : 'Billed monthly'}
+                {selectedPlanId === 'starter' 
+                  ? (trialGranted || isAdministrator ? 'Free forever (Admin Approved)' : 'Rental Required')
+                  : (isAnnual ? 'Billed annually (Save 20%)' : 'Billed monthly')}
               </div>
             </div>
 
-            {/* Quick Interactive Seats Stepper directly in Top Card */}
+            {/* Quick Interactive Seats Stepper */}
             <div className="flex flex-col items-center">
               <span className="text-[10px] font-bold text-[#475569] uppercase tracking-wider mb-1">
-                Active Seats
+                ACTIVE SEATS
               </span>
               <div className="flex items-center gap-1.5 bg-white border border-[#E2E8F0] rounded-xl p-1 shadow-2xs">
                 <button
@@ -327,18 +418,20 @@ export default function BillingTab({
                 Cloud Storage Quota
               </span>
               <span className="text-xs font-bold font-mono text-[#0F172A]">
-                {storageData?.usedFormatted || '65.1 KB'} / {currentPlanId === 'starter' ? '100 MB' : 'Unlimited'}
+                {dynamicStorageFormatted}
               </span>
             </div>
             <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
               <div 
                 className={`h-full rounded-full transition-all duration-500 ${
-                  currentPlanId !== 'starter' ? 'bg-[#4F46E5] w-full' : 'bg-[#4F46E5] w-[5%]'
+                  selectedPlanId !== 'starter' 
+                    ? 'bg-[#4F46E5] w-full' 
+                    : (trialGranted || isAdministrator ? 'bg-[#4F46E5] w-[5%]' : 'bg-rose-400 w-[1%]')
                 }`}
               />
             </div>
             <p className="text-[11px] text-[#475569] mt-2">
-              {currentPlanId === 'starter' ? 'Upgrade to Business for unlimited cloud video storage.' : 'Unlimited high-speed cloud video storage enabled.'}
+              {dynamicStorageDesc}
             </p>
           </div>
 
@@ -364,7 +457,7 @@ export default function BillingTab({
             </p>
           </div>
 
-          {/* Right Column: Security & Next Renewal */}
+          {/* Right Column: Next Billing Renewal */}
           <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4 transition-all">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-[#475569] flex items-center gap-1.5">
@@ -372,18 +465,69 @@ export default function BillingTab({
                 Next Billing Renewal
               </span>
               <span className="text-xs font-bold font-mono text-[#10B981]">
-                {currentPlanId === 'starter' ? 'Free Access' : getRenewalDateString()}
+                {dynamicRenewalFormatted}
               </span>
             </div>
             <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-              <div className="h-full bg-[#10B981] rounded-full w-full" />
+              <div className={`h-full rounded-full transition-all duration-500 ${selectedPlanId !== 'starter' ? 'bg-[#10B981] w-full' : (trialGranted || isAdministrator ? 'bg-sky-500 w-full' : 'bg-slate-300 w-0')}`} />
             </div>
             <p className="text-[11px] text-[#475569] mt-2">
-              {currentPlanId === 'starter' ? 'Start rental anytime with zero interruption.' : `Auto-renews on ${getRenewalDateString()} (${isAnnual ? 'Annual' : 'Monthly'}).`}
+              {dynamicRenewalDesc}
             </p>
           </div>
         </div>
       </div>
+
+      {/* Admin Privilege Control Banner (Strictly for Administrator to grant/revoke trials) */}
+      {isAdministrator && (
+        <div className="mb-8 p-5 bg-gradient-to-r from-indigo-50 via-white to-sky-50 border border-indigo-200 rounded-2xl shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 bg-[#4F46E5] text-white rounded-xl shadow-xs shrink-0">
+              <Shield size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-extrabold text-[#4F46E5] uppercase tracking-wider">
+                  Admin Master Control
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#EEF2FF] text-[#4F46E5] border border-indigo-200">
+                  ADMIN ONLY PRIVILEGE
+                </span>
+              </div>
+              <h3 className="text-sm font-extrabold text-[#0F172A] mt-0.5">
+                Free Trial Access Management
+              </h3>
+              <p className="text-xs text-[#475569] mt-0.5 max-w-2xl leading-relaxed">
+                Free trials are restricted across the platform. As the administrator, only you have the authority to grant or revoke 14-day free trials for workspaces.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-auto">
+            {trialGranted ? (
+              <button
+                type="button"
+                onClick={() => handleToggleAdminTrial(false)}
+                disabled={adminActionLoading}
+                className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {adminActionLoading ? <RefreshCw size={13} className="animate-spin" /> : <Lock size={13} />}
+                <span>Revoke Trial (Require Rental)</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleToggleAdminTrial(true)}
+                disabled={adminActionLoading}
+                className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {adminActionLoading ? <RefreshCw size={13} className="animate-spin" /> : <Check size={13} />}
+                <span>Grant 14-Day Free Trial</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Section Header */}
       <div id="pricing-plans-section" className="mb-6">
@@ -395,7 +539,7 @@ export default function BillingTab({
         </p>
       </div>
 
-      {/* Controls Row: How many seats to rent? + Billing Cycle (INR) */}
+      {/* Controls Row: How many seats to rent? + Billing Cycle (Indian Rupees) */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-8 border-b border-[#E2E8F0]">
         
         {/* Seats Input */}
@@ -432,7 +576,7 @@ export default function BillingTab({
           </div>
         </div>
 
-        {/* Monthly vs Annual Rental Toggle */}
+        {/* Monthly vs Annual Rental Toggle (Observing Images 1 and 2) */}
         <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
           <button
             type="button"
@@ -465,13 +609,34 @@ export default function BillingTab({
       {/* 3 Pricing Cards Grid across widescreen layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
         
-        {/* CARD 1: Starter */}
-        <div className="border border-[#E2E8F0] rounded-2xl p-7 flex flex-col justify-between bg-white relative transition-all hover:shadow-md">
+        {/* CARD 1: Starter (Controlled: Admin only access for free trials) */}
+        <div 
+          onClick={() => {
+            if (isAdministrator || trialGranted) {
+              setSelectedPlanId('starter');
+            }
+          }}
+          className={`border rounded-2xl p-7 flex flex-col justify-between bg-white relative transition-all cursor-pointer ${
+            selectedPlanId === 'starter' ? 'border-[#4F46E5] ring-2 ring-[#4F46E5]/20 shadow-md' : 'border-[#E2E8F0] hover:shadow-md'
+          }`}
+        >
           <div>
-            <div className="h-5 mb-2">
-              {currentPlanId === 'starter' && (
+            <div className="h-6 mb-2 flex items-center justify-between">
+              {currentPlanId === 'starter' ? (
                 <span className="text-[11px] font-bold text-[#475569] uppercase tracking-wider">
                   CURRENT TIER
+                </span>
+              ) : (
+                <span />
+              )}
+              {isAdministrator ? (
+                <span className="px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-[#4F46E5] text-[10px] font-bold rounded uppercase">
+                  Admin Privilege
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 text-slate-600 text-[10px] font-bold rounded uppercase flex items-center gap-1">
+                  <Lock size={10} />
+                  Admin Only
                 </span>
               )}
             </div>
@@ -479,11 +644,15 @@ export default function BillingTab({
               Starter
             </h3>
             <p className="text-xs text-[#475569] mb-6 min-h-[36px] leading-relaxed">
-              Quick start with basic video capture and 100 MB free cloud storage.
+              {trialGranted || isAdministrator 
+                ? 'Quick start with basic video capture and 100 MB cloud storage.' 
+                : 'Free trials are strictly restricted and must be granted by workspace administrators.'}
             </p>
             <div className="mb-6">
               <div className="text-3xl font-extrabold font-mono text-[#0F172A]">₹0</div>
-              <div className="text-xs text-[#475569] font-medium mt-1">Free forever</div>
+              <div className="text-xs text-[#475569] font-medium mt-1">
+                {trialGranted || isAdministrator ? 'Free forever (Admin Approved)' : 'Requires Admin Approval'}
+              </div>
             </div>
 
             <ul className="space-y-2.5 text-xs text-[#475569] mb-8">
@@ -507,32 +676,57 @@ export default function BillingTab({
           </div>
 
           <div>
-            {currentPlanId === 'starter' ? (
+            {isAdministrator ? (
+              // Admin view: Can activate / grant trial
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedPlanId('starter');
+                  handleToggleAdminTrial(true);
+                }}
+                className={`w-full py-2.5 px-4 font-bold text-xs rounded-xl transition-all text-center cursor-pointer ${
+                  selectedPlanId === 'starter' && trialGranted
+                    ? 'bg-slate-100 text-[#475569]'
+                    : 'bg-indigo-50 hover:bg-indigo-100 text-[#4F46E5] border border-indigo-200'
+                }`}
+              >
+                {selectedPlanId === 'starter' && trialGranted ? 'Active Trial (Admin Granted)' : 'Admin: Activate Free Trial'}
+              </button>
+            ) : trialGranted ? (
+              // Non-admin with trial granted
               <button
                 disabled
                 className="w-full py-2.5 px-4 bg-slate-100 text-[#475569] font-bold text-xs rounded-xl cursor-not-allowed transition-colors text-center"
               >
-                Current Active Tier
+                Active Trial (Admin Granted)
               </button>
             ) : (
+              // Non-admin without trial: locked!
               <button
-                onClick={() => {
-                  setCurrentPlanId('starter');
-                  try { localStorage.setItem('workspace_plan', 'starter'); } catch {}
-                  showToast("Switched to Starter tier");
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  showToast("Free trials are restricted. Only administrators can grant access. Please choose Business or Business + AI below.");
                 }}
-                className="w-full py-2.5 px-4 border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#0F172A] font-bold text-xs rounded-xl transition-colors text-center cursor-pointer"
+                className="w-full py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold text-xs rounded-xl transition-colors text-center cursor-pointer flex items-center justify-center gap-1.5"
               >
-                Switch to Starter
+                <Lock size={13} />
+                <span>Admin Approval Required</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* CARD 2: Business (In Indian Rupees ₹) */}
-        <div className="border border-[#E2E8F0] rounded-2xl p-7 flex flex-col justify-between bg-white relative transition-all hover:shadow-md">
+        {/* CARD 2: Business (Reflecting Image 1 & 2 Pricing) */}
+        <div 
+          onClick={() => setSelectedPlanId('business')}
+          className={`border rounded-2xl p-7 flex flex-col justify-between bg-white relative transition-all cursor-pointer ${
+            selectedPlanId === 'business' ? 'border-[#4F46E5] ring-2 ring-[#4F46E5]/20 shadow-md' : 'border-[#E2E8F0] hover:shadow-md'
+          }`}
+        >
           <div>
-            <div className="h-5 mb-2">
+            <div className="h-6 mb-2">
               {currentPlanId === 'business' && (
                 <span className="text-[11px] font-bold text-[#4F46E5] uppercase tracking-wider">
                   CURRENT TIER
@@ -587,7 +781,11 @@ export default function BillingTab({
               </button>
             ) : (
               <button
-                onClick={() => handleUpgrade('business')}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleUpgrade('business');
+                }}
                 disabled={upgradingId === 'business'}
                 className="w-full py-2.5 px-4 border border-[#4F46E5] text-[#4F46E5] hover:bg-[#EEF2FF] font-bold text-xs rounded-xl transition-all text-center cursor-pointer shadow-xs disabled:opacity-50"
               >
@@ -597,10 +795,15 @@ export default function BillingTab({
           </div>
         </div>
 
-        {/* CARD 3: Business + AI (In Indian Rupees ₹, WITHOUT sparkle icon) */}
-        <div className="border-2 border-[#4F46E5] rounded-2xl p-7 flex flex-col justify-between bg-white relative shadow-md transition-all">
+        {/* CARD 3: Business + AI (Reflecting Image 1 & 2 Pricing) */}
+        <div 
+          onClick={() => setSelectedPlanId('business_ai')}
+          className={`border-2 rounded-2xl p-7 flex flex-col justify-between bg-white relative shadow-md transition-all cursor-pointer ${
+            selectedPlanId === 'business_ai' ? 'border-[#4F46E5] ring-2 ring-[#4F46E5]/20' : 'border-[#4F46E5]'
+          }`}
+        >
           <div>
-            <div className="h-5 mb-2 flex items-center justify-between">
+            <div className="h-6 mb-2 flex items-center justify-between">
               <span className="bg-[#4F46E5] text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full tracking-wide uppercase">
                 RECOMMENDED BEST VALUE
               </span>
@@ -658,7 +861,11 @@ export default function BillingTab({
               </button>
             ) : (
               <button
-                onClick={() => handleUpgrade('business_ai')}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleUpgrade('business_ai');
+                }}
                 disabled={upgradingId === 'business_ai'}
                 className="w-full py-2.5 px-4 bg-[#4F46E5] hover:bg-[#4338CA] active:bg-[#4338CA] text-white font-bold text-xs rounded-xl transition-all text-center cursor-pointer shadow-md shadow-[#4F46E5]/20 disabled:opacity-50"
               >

@@ -62,7 +62,16 @@ function resolveAllowedNavForUser(email?: string, profileNav?: string[], role?: 
   return getDefaultNavItemsForRole(role || "Mentor");
 }
 
-export function useNavPermissions() {
+export interface NavPermissionsResult {
+  allowedNavItems: string[];
+  role: string;
+  isAdmin: boolean;
+  isMentor: boolean;
+  canAccess: (navId: string) => boolean;
+  userEmail: string;
+}
+
+export function useNavPermissions(): NavPermissionsResult {
   const [allowedNavItems, setAllowedNavItems] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       try {

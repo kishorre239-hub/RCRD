@@ -8,7 +8,7 @@ import {
   Eye, EyeOff, Edit2,
   Home, Film, Video, Settings as SettingsIcon, Users, Building2, CreditCard
 } from "lucide-react";
-import { ALL_NAV_ITEMS, getDefaultNavItemsForRole } from "@/lib/navPermissions";
+import { ALL_NAV_ITEMS, getDefaultNavItemsForRole, useNavPermissions } from "@/lib/navPermissions";
 
 export interface WorkspaceUser {
   id: string;
@@ -61,6 +61,17 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function UsersTab() {
+  const { userEmail, role: currentRole, isAdmin: isPermAdmin } = useNavPermissions();
+  const isAdmin = 
+    (userEmail || "").toLowerCase().trim() === PRIMARY_OWNER_EMAIL || 
+    isPermAdmin ||
+    (typeof window !== "undefined" && (() => {
+      try {
+        const p = JSON.parse(localStorage.getItem("rcrd_user_profile") || "{}");
+        return (p.email || "").toLowerCase().trim() === PRIMARY_OWNER_EMAIL || (p.role || "").toUpperCase() === "ADMIN";
+      } catch { return false; }
+    })());
+
   const [users, setUsers] = useState<WorkspaceUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -109,14 +120,22 @@ export default function UsersTab() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Helper when role changes in Add modal - Image 3: DO NOT automatically check sidebars!
+  // Helper when role changes in Add modal - Admin gets all 7 items, Mentor gets customizable defaults
   const handleNewRoleChange = (role: "Mentor" | "Admin") => {
     setNewRole(role);
+    if (role === "Admin") {
+      setNewAllowedNav(ALL_NAV_ITEMS.map(i => i.id));
+    } else {
+      setNewAllowedNav(getDefaultNavItemsForRole("Mentor"));
+    }
   };
 
-  // Helper when role changes in Edit modal - Image 3: DO NOT automatically check sidebars!
+  // Helper when role changes in Edit modal - Admin gets all 7 items
   const handleEditRoleChange = (role: "Mentor" | "Admin") => {
     setEditRole(role);
+    if (role === "Admin") {
+      setEditAllowedNav(ALL_NAV_ITEMS.map(i => i.id));
+    }
   };
 
   // Fetch users from API and sync with local storage
@@ -527,14 +546,33 @@ export default function UsersTab() {
     return name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
   };
 
-  // Toggle single nav item in list
-  const toggleNavItem = (list: string[], setList: (v: string[]) => void, id: string) => {
-    if (list.includes(id)) {
-      setList(list.filter(item => item !== id));
-    } else {
-      setList([...list, id]);
-    }
+  // Toggle single nav item in Add User modal
+  const toggleNewNavItem = (id: string) => {
+    setNewAllowedNav(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
   };
+
+  // Toggle single nav item in Edit User modal
+  const toggleEditNavItem = (id: string) => {
+    setEditAllowedNav(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  if (!isAdmin) {
+    return (
+      <div className="bg-white border border-[#E2E7EC] rounded-2xl p-8 text-center max-w-lg mx-auto my-12 shadow-xs">
+        <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-200">
+          <AlertCircle size={24} />
+        </div>
+        <h3 className="text-lg font-bold text-[#20262E] mb-2">Administrator Access Required</h3>
+        <p className="text-xs text-[#57636E] leading-relaxed mb-4">
+          Only the workspace administrator (<strong className="text-[#20262E]">{PRIMARY_OWNER_EMAIL}</strong>) has access to manage workspace users and select side navbar permissions.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -572,7 +610,7 @@ export default function UsersTab() {
                 setNewEmail("");
                 setNewPassword("");
                 setNewRole("Mentor");
-                setNewAllowedNav([]);
+                setNewAllowedNav(getDefaultNavItemsForRole("Mentor"));
                 setGiveImmediateAccess(true);
                 setShowAddModal(true);
               }}
@@ -1114,29 +1152,42 @@ export default function UsersTab() {
                   {ALL_NAV_ITEMS.map(item => {
                     const isChecked = newAllowedNav.includes(item.id);
                     return (
-                      <label
+                      <div
                         key={item.id}
-                        onClick={() => toggleNavItem(newAllowedNav, setNewAllowedNav, item.id)}
-                        className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleNewNavItem(item.id);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            toggleNewNavItem(item.id);
+                          }
+                        }}
+                        className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left cursor-pointer transition-all select-none ${
                           isChecked 
-                            ? "bg-white border-[#154360]/40 shadow-xs ring-1 ring-[#154360]/10" 
-                            : "bg-transparent border-[#E2E7EC] opacity-65 hover:opacity-100"
+                            ? "bg-white border-[#154360] shadow-xs ring-2 ring-[#154360]/20" 
+                            : "bg-white/60 border-[#E2E7EC] hover:border-slate-300 hover:bg-white opacity-70 hover:opacity-100"
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => {}}
-                          className="mt-0.5 w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 pointer-events-none"
+                          readOnly
+                          tabIndex={-1}
+                          className="mt-0.5 w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 pointer-events-none cursor-pointer"
                         />
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 pointer-events-none">
                           <div className="flex items-center gap-1.5 text-xs font-bold text-[#20262E]">
                             {NAV_ICONS[item.id]}
                             <span>{item.label}</span>
                           </div>
                           <p className="text-[10px] text-[#57636E] truncate">{item.description}</p>
                         </div>
-                      </label>
+                      </div>
                     );
                   })}
                 </div>
@@ -1345,29 +1396,42 @@ export default function UsersTab() {
                   {ALL_NAV_ITEMS.map(item => {
                     const isChecked = editAllowedNav.includes(item.id);
                     return (
-                      <label
+                      <div
                         key={item.id}
-                        onClick={() => toggleNavItem(editAllowedNav, setEditAllowedNav, item.id)}
-                        className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toggleEditNavItem(item.id);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            toggleEditNavItem(item.id);
+                          }
+                        }}
+                        className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left cursor-pointer transition-all select-none ${
                           isChecked 
-                            ? "bg-white border-[#154360]/40 shadow-xs ring-1 ring-[#154360]/10" 
-                            : "bg-transparent border-[#E2E7EC] opacity-65 hover:opacity-100"
+                            ? "bg-white border-[#154360] shadow-xs ring-2 ring-[#154360]/20" 
+                            : "bg-white/60 border-[#E2E7EC] hover:border-slate-300 hover:bg-white opacity-70 hover:opacity-100"
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => {}}
-                          className="mt-0.5 w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 pointer-events-none"
+                          readOnly
+                          tabIndex={-1}
+                          className="mt-0.5 w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 pointer-events-none cursor-pointer"
                         />
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 pointer-events-none">
                           <div className="flex items-center gap-1.5 text-xs font-bold text-[#20262E]">
                             {NAV_ICONS[item.id]}
                             <span>{item.label}</span>
                           </div>
                           <p className="text-[10px] text-[#57636E] truncate">{item.description}</p>
                         </div>
-                      </label>
+                      </div>
                     );
                   })}
                 </div>

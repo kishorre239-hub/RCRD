@@ -58,6 +58,13 @@ export async function PATCH(
 ) {
   try {
     const { userId } = await params;
+    const authResult = await authenticateRequest(req);
+    const callerEmail = (authResult.user?.email || '').toLowerCase().trim();
+    const callerRole = (authResult.user?.role || '').toUpperCase();
+    if (authResult.user && callerEmail !== 'harikishorereddy9908@gmail.com' && callerRole !== 'ADMIN') {
+      return NextResponse.json({ error: 'Only workspace administrator (harikishorereddy9908@gmail.com) can modify user permissions' }, { status: 403 });
+    }
+
     const body = await req.json().catch(() => ({}));
     const { role, status, name, password, hasAccess, allowedNavItems, avatarUrl } = body;
 

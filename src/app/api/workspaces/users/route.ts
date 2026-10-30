@@ -72,8 +72,8 @@ export async function GET(req: Request) {
       if (rawRole === 'ADMIN') roleFormatted = 'Admin';
 
       const defaultNavForRole = roleFormatted === 'Admin'
-        ? ['for-you', 'library', 'meetings', 'settings', 'manage-users', 'workspace-info']
-        : ['for-you', 'library', 'meetings'];
+        ? ['for-you', 'library', 'meetings', 'settings', 'manage-users', 'workspace-info', 'billing']
+        : ['for-you', 'library', 'meetings', 'settings', 'billing'];
 
       const allowedNavItems = Array.isArray(u.allowedNavItems)
         ? u.allowedNavItems
@@ -102,6 +102,12 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const authResult = await authenticateRequest(req);
+    const callerEmail = (authResult.user?.email || '').toLowerCase().trim();
+    const callerRole = (authResult.user?.role || '').toUpperCase();
+    if (authResult.user && callerEmail !== 'harikishorereddy9908@gmail.com' && callerRole !== 'ADMIN') {
+      return NextResponse.json({ error: 'Only workspace administrator (harikishorereddy9908@gmail.com) can manage users' }, { status: 403 });
+    }
+
     const body = await req.json().catch(() => ({}));
     const { name, email, role = 'Mentor', password, status = 'Active', allowedNavItems } = body;
 
@@ -117,8 +123,8 @@ export async function POST(req: Request) {
     const workspaceId = authResult.user?.workspaceId || 'default';
 
     const defaultNav = cleanRole === 'Admin'
-      ? ['for-you', 'library', 'meetings', 'settings', 'manage-users', 'workspace-info']
-      : ['for-you', 'library', 'meetings'];
+      ? ['for-you', 'library', 'meetings', 'settings', 'manage-users', 'workspace-info', 'billing']
+      : ['for-you', 'library', 'meetings', 'settings', 'billing'];
 
     const cleanNavItems = Array.isArray(allowedNavItems)
       ? allowedNavItems

@@ -6,7 +6,7 @@ import {
   ExternalLink, 
   ChevronDown, Info, Download, Globe, HardDrive,
   Share2, Bell, Cloud, Check, X,
-  Plus, Trash2, Edit2, Users, Mail, Shield, Copy, Search
+  Plus, Trash2, Edit2, Users, Mail, Shield, Copy, Search, CreditCard
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, SettingsIcon,
@@ -16,6 +16,7 @@ import {
   saveDriveFolder, getDriveFolder, fetchWithAuth 
 } from '@/lib/api';
 import UsersTab from '@/components/UsersTab';
+import BillingTab from '@/components/BillingTab';
 import { openGlobalRecording } from "@/components/GlobalRecordingManager";
 import RecordVideoButton from "@/components/RecordVideoButton";
 import RcrdLogo from "@/components/RcrdLogo";
@@ -623,7 +624,7 @@ export default function SettingsPage() {
               <SidebarItem 
                 icon={<SettingsIcon size={18} />} 
                 label="Settings" 
-                active={activeTab !== 'users' && activeTab !== 'workspace'} 
+                active={activeTab !== 'users' && activeTab !== 'workspace' && activeTab !== 'billing'} 
                 onClick={() => {
                   setActiveTab('my-account');
                   setIsMobileMenuOpen(false);
@@ -635,7 +636,7 @@ export default function SettingsPage() {
             )}
           </nav>
 
-          {(canAccess('manage-users') || canAccess('workspace-info')) && (
+          {(canAccess('manage-users') || canAccess('workspace-info') || canAccess('billing')) && (
             <div className="mt-10">
               <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-3">Workspace Admin</h3>
               <nav className="space-y-1">
@@ -667,6 +668,20 @@ export default function SettingsPage() {
                     }} 
                   />
                 )}
+                {canAccess('billing') && (
+                  <SidebarItem 
+                    icon={<CreditCard size={18} />} 
+                    label="Plan & Billing" 
+                    active={activeTab === 'billing'} 
+                    onClick={() => {
+                      setActiveTab('billing');
+                      setIsMobileMenuOpen(false);
+                      if (typeof window !== 'undefined') {
+                        window.history.pushState(null, '', '/settings?tab=billing');
+                      }
+                    }} 
+                  />
+                )}
               </nav>
             </div>
           )}
@@ -691,19 +706,19 @@ export default function SettingsPage() {
             {/* Header Section */}
             <div className="mb-2">
               <div className="flex items-center gap-2 text-xs font-semibold text-[#475569] mb-1">
-                <span>{activeTab === 'users' || activeTab === 'workspace' ? 'Workspace Admin' : 'Account'}</span>
+                <span>{activeTab === 'users' || activeTab === 'workspace' || activeTab === 'billing' ? 'Workspace Admin' : 'Account'}</span>
                 <span>/</span>
                 <span className="text-[#4F46E5] font-bold">
-                  {activeTab === 'users' ? 'Users & Groups' : (activeTab === 'workspace' ? 'Workspace Info' : 'Personal Settings')}
+                  {activeTab === 'users' ? 'Users & Groups' : (activeTab === 'workspace' ? 'Workspace Info' : (activeTab === 'billing' ? 'Plan & Billing' : 'Personal Settings'))}
                 </span>
               </div>
               <h1 className="text-2xl sm:text-[30px] font-extrabold text-[#0F172A] leading-tight tracking-tight">
-                {activeTab === 'users' ? 'Users & Groups Provisioning' : (activeTab === 'workspace' ? 'Workspace Information & Batches' : 'Personal Settings')}
+                {activeTab === 'users' ? 'Users & Groups Provisioning' : (activeTab === 'workspace' ? 'Workspace Information & Batches' : (activeTab === 'billing' ? 'SaaS Rental Plans & Billing' : 'Personal Settings'))}
               </h1>
             </div>
 
-            {/* Banner (only for personal settings, not when viewing users or workspace) */}
-            {activeTab !== 'users' && activeTab !== 'workspace' && (
+            {/* Banner (only for personal settings, not when viewing users, workspace or billing) */}
+            {activeTab !== 'users' && activeTab !== 'workspace' && activeTab !== 'billing' && (
               <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-8">
                 <div className="flex items-center gap-3">
                   <Info size={18} className="text-[#475569] shrink-0" />
@@ -716,7 +731,7 @@ export default function SettingsPage() {
             )}
 
             {/* Tabs (only when personal settings) */}
-            {activeTab !== 'users' && activeTab !== 'workspace' && (
+            {activeTab !== 'users' && activeTab !== 'workspace' && activeTab !== 'billing' && (
               <div className="flex items-center gap-6 border-b border-[#E2E8F0] mb-8 overflow-x-auto">
                 {[
                   { id: "my-account", label: "My account" },
@@ -1218,6 +1233,9 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
+
+            {/* Tab Content: Plan & Billing (SaaS Rental & Subscription Plans) */}
+            {activeTab === "billing" && <BillingTab />}
 
             {activeTab === "meeting-recordings" && (
               <div className="space-y-6 pb-20">

@@ -16,6 +16,7 @@ export const ALL_NAV_ITEMS: NavItemConfig[] = [
   { id: "settings", label: "Settings", path: "/settings", description: "Personal preferences & account info" },
   { id: "manage-users", label: "Manage Users", path: "/settings?tab=users", description: "Workspace users and access control" },
   { id: "workspace-info", label: "Workspace Info", path: "/settings?tab=workspace", description: "Workspace details and plan" },
+  { id: "billing", label: "Plan & Billing", path: "/settings?tab=billing", description: "SaaS rental subscriptions, seats & payment plans" },
 ];
 
 export function getDefaultNavItemsForRole(role: string): string[] {

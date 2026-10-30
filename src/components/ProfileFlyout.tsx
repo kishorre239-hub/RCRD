@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { 
   X, Check, ExternalLink, Globe, GraduationCap, 
   BookOpen, Headset, User, LogOut, Edit3,
-  Camera, Trash2, Loader2
+  Camera, Trash2, Loader2, CreditCard
 } from "lucide-react";
 import { fetchWithAuth } from "@/lib/api";
 
@@ -458,6 +458,13 @@ export default function ProfileFlyout({
             >
               <User size={15} className="text-[#475569]" />
               <span>View Profile &amp; Settings</span>
+            </button>
+            <button
+              onClick={() => { onClose(); router.push('/settings?tab=billing'); }}
+              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F8FAFC] rounded-xl transition-colors flex items-center gap-2.5 cursor-pointer"
+            >
+              <CreditCard size={15} className="text-[#4F46E5]" />
+              <span>SaaS Rental &amp; Billing</span>
             </button>
           </div>
 

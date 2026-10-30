@@ -6,7 +6,7 @@ import {
   Trash2, Check, UserPlus,
   RefreshCw, AlertCircle, UserCheck, UserX,
   Eye, EyeOff, Edit2,
-  Home, Film, Video, Settings as SettingsIcon, Users, Building2
+  Home, Film, Video, Settings as SettingsIcon, Users, Building2, CreditCard
 } from "lucide-react";
 import { ALL_NAV_ITEMS, getDefaultNavItemsForRole } from "@/lib/navPermissions";
 
@@ -57,6 +57,7 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
   "settings": <SettingsIcon size={14} />,
   "manage-users": <Users size={14} />,
   "workspace-info": <Building2 size={14} />,
+  "billing": <CreditCard size={14} />,
 };
 
 export default function UsersTab() {

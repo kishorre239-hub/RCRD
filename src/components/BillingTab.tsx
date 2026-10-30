@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { 
   Info, Check, HardDrive, Users, 
-  ShieldCheck, CreditCard, Plus, Minus, Calendar,
-  Shield, Lock, AlertCircle, RefreshCw
+  CreditCard, Plus, Minus, Calendar,
+  Shield, Lock, RefreshCw
 } from "lucide-react";
 import { 
   getBillingSubscription, 
@@ -165,7 +165,7 @@ export default function BillingTab({
 
       showToast(res?.message || (grant ? "14-day Free Trial granted to this workspace!" : "Free trial revoked. Rental required."));
       await loadSub();
-    } catch (err: unknown) {
+    } catch {
       // Fallback for immediate UI response
       setTrialGranted(grant);
       try {
@@ -278,9 +278,10 @@ export default function BillingTab({
     ? `₹${businessAiPriceFormatted}`
     : (selectedPlanId === 'business' ? `₹${businessPriceFormatted}` : '₹0');
 
+  const currentUsageText = storageData?.usedFormatted || '65.1 KB';
   const dynamicStorageFormatted = selectedPlanId === 'starter'
-    ? (trialGranted || isAdministrator ? '65.1 KB / 100 MB' : '65.1 KB / 0 MB (Locked)')
-    : '65.1 KB / Unlimited';
+    ? (trialGranted || isAdministrator ? `${currentUsageText} / 100 MB` : `${currentUsageText} / 0 MB (Locked)`)
+    : `${currentUsageText} / Unlimited`;
 
   const dynamicStorageDesc = selectedPlanId === 'starter'
     ? (trialGranted || isAdministrator 

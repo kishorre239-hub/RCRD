@@ -226,7 +226,10 @@
   height: 36px;
   cursor: pointer;
   transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  -webkit-touch-callout: none;
   -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
   user-select: none;
   white-space: nowrap;
 }

@@ -65,7 +65,7 @@ interface UsersTabProps {
 }
 
 export default function UsersTab({ searchQueryProp = "" }: UsersTabProps) {
-  const { userEmail, role: currentRole, isAdmin: isPermAdmin } = useNavPermissions();
+  const { userEmail, isAdmin: isPermAdmin } = useNavPermissions();
   const isAdmin = 
     (userEmail || "").toLowerCase().trim() === PRIMARY_OWNER_EMAIL || 
     isPermAdmin ||

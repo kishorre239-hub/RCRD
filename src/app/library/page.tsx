@@ -66,9 +66,15 @@ export default function LibraryPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.search.includes('record=true')) {
-      const t = setTimeout(() => openGlobalRecording(), 0);
-      return () => clearTimeout(t);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('search') || params.get('q');
+      if (q) setSearchQuery(q);
+
+      if (params.get('record') === 'true') {
+        const t = setTimeout(() => openGlobalRecording(), 0);
+        return () => clearTimeout(t);
+      }
     }
   }, []);
 
@@ -598,10 +604,14 @@ export default function LibraryPage() {
 
     // 4. Search query filter
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const match = (video.title && video.title.toLowerCase().includes(q)) ||
-        (video.ownerName && video.ownerName.toLowerCase().includes(q));
-      if (!match) return false;
+      const q = searchQuery.toLowerCase().trim();
+      const titleMatch = Boolean(video.title && video.title.toLowerCase().includes(q));
+      const ownerMatch = Boolean(video.ownerName && video.ownerName.toLowerCase().includes(q));
+      const idMatch = Boolean(video.id && video.id.toLowerCase().includes(q));
+      const courseMatch = Boolean(video.courseId && video.courseId.toLowerCase().includes(q));
+      const folderMatch = courses.some(c => c.id === video.courseId && c.name.toLowerCase().includes(q));
+      const commentsMatch = Boolean(video.comments?.some(c => c.text?.toLowerCase().includes(q) || c.userName?.toLowerCase().includes(q)));
+      if (!titleMatch && !ownerMatch && !idMatch && !courseMatch && !folderMatch && !commentsMatch) return false;
     }
 
     return true;
@@ -697,6 +707,7 @@ export default function LibraryPage() {
           placeholder="Search for videos, folders, tags, or people..."
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          onSubmitSearch={(q) => setSearchQuery(q)}
           onOpenProfile={() => setIsProfileOpen(true)}
           onToggleMobileSidebar={() => setIsMobileMenuOpen(prev => !prev)}
         />
@@ -1451,6 +1462,24 @@ export default function LibraryPage() {
 
                   </div>
                 ))}
+              </div>
+            ) : searchQuery.trim() ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 text-[#57636E]">
+                  <Video size={28} />
+                </div>
+                <h3 className="text-[18px] font-bold text-[#20262E] mb-1">
+                  No videos matching &ldquo;{searchQuery}&rdquo;
+                </h3>
+                <p className="text-[#57636E] max-w-sm mx-auto mb-5 text-[13px]">
+                  Try searching by a different title, owner name, or folder.
+                </p>
+                <button 
+                  onClick={() => setSearchQuery("")}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#20262E] rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Clear search
+                </button>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">

@@ -620,11 +620,26 @@ export default function MeetingsPage() {
   const live = cleanMeetings.filter(m => m.status === "live");
   const past = cleanMeetings.filter(m => m.status === "ended");
 
-  const filtered = (activeTab === "upcoming" ? upcoming : activeTab === "live" ? live : past).filter(m => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return m.title.toLowerCase().includes(q) || m.id.includes(q);
-  });
+  const matchesSearch = (m: Meeting, query: string) => {
+    if (!query.trim()) return true;
+    const q = query.toLowerCase().trim();
+    return Boolean(
+      (m.title && m.title.toLowerCase().includes(q)) ||
+      (m.id && m.id.toLowerCase().includes(q)) ||
+      (m.hostName && m.hostName.toLowerCase().includes(q)) ||
+      (m.hostEmail && m.hostEmail.toLowerCase().includes(q)) ||
+      (m.mentorEmail && m.mentorEmail.toLowerCase().includes(q)) ||
+      (m.batchName && m.batchName.toLowerCase().includes(q)) ||
+      (m.courseId && m.courseId.toLowerCase().includes(q)) ||
+      (m.notes && m.notes.toLowerCase().includes(q))
+    );
+  };
+
+  const upcomingFiltered = upcoming.filter(m => matchesSearch(m, searchQuery));
+  const liveFiltered = live.filter(m => matchesSearch(m, searchQuery));
+  const pastFiltered = past.filter(m => matchesSearch(m, searchQuery));
+
+  const filtered = activeTab === "upcoming" ? upcomingFiltered : activeTab === "live" ? liveFiltered : pastFiltered;
 
   return (
     <div className="relative flex h-full w-full bg-[#F4F7FC] text-[#111827] font-sans overflow-hidden antialiased">
@@ -694,6 +709,7 @@ export default function MeetingsPage() {
           placeholder="Search meetings by topic, ID, or mentor..."
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          onSubmitSearch={(q) => setSearchQuery(q)}
           onOpenProfile={() => setIsProfileOpen(true)}
           onToggleMobileSidebar={() => setIsMobileMenuOpen(prev => !prev)}
         />
@@ -792,14 +808,14 @@ export default function MeetingsPage() {
             <div className="flex items-center justify-between pt-1">
               <div className="inline-flex items-center p-1 bg-slate-100/90 border border-[#E2E7EC]/70 rounded-xl">
                 {[
-                  { id: "upcoming", label: "Upcoming", count: upcoming.length },
-                  { id: "live", label: "Live", count: live.length },
-                  { id: "past", label: "Past Recorded", count: past.length },
+                  { id: "upcoming", label: "Upcoming", count: upcomingFiltered.length },
+                  { id: "live", label: "Live", count: liveFiltered.length },
+                  { id: "past", label: "Past Recorded", count: pastFiltered.length },
                 ].map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as "upcoming" | "live" | "past")}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs transition-all duration-150 flex items-center gap-2 ${
+                    className={`px-3.5 py-1.5 rounded-lg text-xs transition-all duration-150 flex items-center gap-2 cursor-pointer ${
                       activeTab === tab.id
                         ? "bg-white text-[#20262E] font-semibold shadow-xs"
                         : "text-[#57636E] hover:text-[#20262E] font-medium"
@@ -831,35 +847,64 @@ export default function MeetingsPage() {
                   <Calendar size={22} />
                 </div>
                 <h3 className="text-base font-bold text-[#20262E] mb-1">
-                  {activeTab === "upcoming"
+                  {searchQuery.trim()
+                    ? `No meetings matching "${searchQuery}"`
+                    : activeTab === "upcoming"
                     ? "No upcoming meetings"
                     : activeTab === "live"
                     ? "No live meetings right now"
                     : "No recorded meetings yet"}
                 </h3>
                 <p className="text-xs text-[#57636E] max-w-sm mb-5 font-normal">
-                  {activeTab === "upcoming"
+                  {searchQuery.trim()
+                    ? "Try searching by a different topic, meeting ID, or mentor name."
+                    : activeTab === "upcoming"
                     ? "Schedule a session or enter an ID to collaborate and record."
                     : activeTab === "live"
                     ? "Start any scheduled meeting to begin broadcasting live."
                     : "Completed class recordings with notes will show up here."}
                 </p>
-                {activeTab === "upcoming" && (
+                {searchQuery.trim() ? (
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="px-4 py-2 bg-white hover:bg-[#F5F6F8] text-[#20262E] border border-[#E2E7EC] text-xs font-semibold rounded-xl transition-all shadow-sm cursor-pointer"
+                    >
+                      Clear Search
+                    </button>
+                    {activeTab !== "past" && pastFiltered.length > 0 && (
+                      <button
+                        onClick={() => setActiveTab("past")}
+                        className="px-4 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-semibold rounded-xl transition-all shadow-sm cursor-pointer"
+                      >
+                        View {pastFiltered.length} matches in Past Recorded →
+                      </button>
+                    )}
+                    {activeTab !== "upcoming" && upcomingFiltered.length > 0 && (
+                      <button
+                        onClick={() => setActiveTab("upcoming")}
+                        className="px-4 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-semibold rounded-xl transition-all shadow-sm cursor-pointer"
+                      >
+                        View {upcomingFiltered.length} matches in Upcoming →
+                      </button>
+                    )}
+                  </div>
+                ) : activeTab === "upcoming" ? (
                   <div className="flex items-center gap-2.5">
                     <button
                       onClick={openScheduleModal}
-                      className="px-4 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-semibold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                      className="px-4 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-semibold rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
                     >
                       <Calendar size={14} /> Schedule Meeting
                     </button>
                     <button
                       onClick={() => setShowJoin(true)}
-                      className="px-4 py-2 bg-white hover:bg-[#F5F6F8] text-[#20262E] border border-[#E2E7EC] text-xs font-semibold rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                      className="px-4 py-2 bg-white hover:bg-[#F5F6F8] text-[#20262E] border border-[#E2E7EC] text-xs font-semibold rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
                     >
                       <Plus size={14} /> Join with ID
                     </button>
                   </div>
-                )}
+                ) : null}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

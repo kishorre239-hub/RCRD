@@ -58,6 +58,7 @@ export default function WatchLaterPage() {
   const [courses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [now, setNow] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // UI States
   const [toastMessage, setToastMessage] = useState('');
@@ -358,6 +359,9 @@ export default function WatchLaterPage() {
         {/* Top Header - Unified Fixed h-16, Centered Search, Image 5 Avatar */}
         <AppHeader 
           placeholder="Search for people, tags, folders, Spaces, and Recordings"
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSubmitSearch={(q) => router.push(`/library?search=${encodeURIComponent(q)}`)}
           onOpenProfile={() => setIsProfileOpen(true)}
           onToggleMobileSidebar={() => setIsMobileMenuOpen(prev => !prev)}
         />
@@ -412,9 +416,42 @@ export default function WatchLaterPage() {
                   Add RCRD videos to your watch later list to keep track of what you want to view.
                 </p>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {videos.map((video, idx) => (
+            ) : (() => {
+              const q = searchQuery.toLowerCase().trim();
+              const filteredVideos = videos.filter(v => {
+                if (!q) return true;
+                return (
+                  (v.title && v.title.toLowerCase().includes(q)) ||
+                  (v.ownerName && v.ownerName.toLowerCase().includes(q)) ||
+                  (v.id && v.id.toLowerCase().includes(q))
+                );
+              });
+
+              if (filteredVideos.length === 0) {
+                return (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center mb-3 text-[#57636E]">
+                      <Video size={24} />
+                    </div>
+                    <h3 className="text-base font-bold text-[#20262E] mb-1">
+                      No saved videos matching &ldquo;{searchQuery}&rdquo;
+                    </h3>
+                    <p className="text-xs text-[#57636E] max-w-sm mb-4">
+                      Try searching by a different video title or owner.
+                    </p>
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#20262E] rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      Clear search
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredVideos.map((video, idx) => (
                   <div 
                     key={video.id} 
                     className={`bg-white rounded-xl shadow-sm border group cursor-pointer hover:shadow-md transition-all relative ${
@@ -760,7 +797,8 @@ export default function WatchLaterPage() {
                   </div>
                 ))}
               </div>
-            )}
+            );
+          })()}
 
           </div>
         </div>

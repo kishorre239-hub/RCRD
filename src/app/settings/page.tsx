@@ -224,6 +224,7 @@ export default function SettingsPage() {
   const [batchToast, setBatchToast] = useState<string | null>(null);
   const [expandedBatchId, setExpandedBatchId] = useState<string | null>(null);
   const [batchSearchQuery, setBatchSearchQuery] = useState("");
+  const [headerSearchQuery, setHeaderSearchQuery] = useState("");
   const [copiedBatchId, setCopiedBatchId] = useState<string | null>(null);
 
   const showBatchNotification = (msg: string) => {
@@ -697,6 +698,19 @@ export default function SettingsPage() {
         {/* Top Header - Unified Fixed h-16, Centered Search, Image 5 Avatar */}
         <AppHeader 
           placeholder="Search for people, tags, folders, Spaces, and RCRDs"
+          searchQuery={headerSearchQuery}
+          onSearchChange={(val) => {
+            setHeaderSearchQuery(val);
+            setBatchSearchQuery(val);
+          }}
+          onSubmitSearch={(val) => {
+            if (activeTab === 'users' || activeTab === 'workspace') {
+              setHeaderSearchQuery(val);
+              setBatchSearchQuery(val);
+            } else if (val) {
+              router.push(`/library?search=${encodeURIComponent(val)}`);
+            }
+          }}
           onOpenProfile={() => setIsProfileOpen(true)}
           onToggleMobileSidebar={() => setIsMobileMenuOpen(prev => !prev)}
         />
@@ -757,7 +771,7 @@ export default function SettingsPage() {
             )}
 
             {/* Tab Content: Users Management */}
-            {activeTab === "users" && <UsersTab />}
+            {activeTab === "users" && <UsersTab searchQueryProp={headerSearchQuery} />}
 
             {/* Tab Content: Workspace Info */}
             {activeTab === "workspace" && (
@@ -781,14 +795,11 @@ export default function SettingsPage() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-bold text-[#20262E]">Class Batches & Student Enrollment</h3>
+                          <h3 className="text-lg font-bold text-[#20262E]">Class Batches &amp; Student Enrollment</h3>
                           <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
                             {batches.length} {batches.length === 1 ? 'Batch' : 'Batches'}
                           </span>
                         </div>
-                        <p className="text-xs text-[#57636E] mt-0.5 max-w-xl">
-                          Create dedicated cohorts (e.g. Web Development). When scheduling a meeting, select a batch so only enrolled students can join—outsiders are strictly blocked.
-                        </p>
                       </div>
                     </div>
 
@@ -837,9 +848,6 @@ export default function SettingsPage() {
                       </div>
                       <div className="max-w-md mx-auto">
                         <h4 className="text-sm font-bold text-[#20262E]">No Class Batches Created Yet</h4>
-                        <p className="text-xs text-[#57636E] mt-1">
-                          Create your first batch (e.g. &ldquo;Web Development&rdquo;) and add your student emails. Once created, mentors can select this batch when starting a meeting.
-                        </p>
                       </div>
                       <button
                         type="button"

@@ -339,10 +339,6 @@ export default function BillingTab({
             <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
               {activePlanName}
             </h2>
-
-            <p className="text-xs sm:text-sm text-[#475569]">
-              {tierLabel} · Cloud transcoding &amp; team video sharing active
-            </p>
           </div>
 
           {/* Right Side: Dynamic Financial & Seat Control Summary (Reflecting Images 1 & 2) */}
@@ -534,9 +530,6 @@ export default function BillingTab({
         <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
           SaaS Subscription &amp; Rental Plans
         </h1>
-        <p className="text-sm text-[#475569] mt-1">
-          Rent full video studio recording, AI transcription, and team collaboration capabilities for your organization.
-        </p>
       </div>
 
       {/* Controls Row: How many seats to rent? + Billing Cycle (Indian Rupees) */}

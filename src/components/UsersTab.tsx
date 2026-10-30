@@ -60,7 +60,11 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
   "billing": <CreditCard size={14} />,
 };
 
-export default function UsersTab() {
+interface UsersTabProps {
+  searchQueryProp?: string;
+}
+
+export default function UsersTab({ searchQueryProp = "" }: UsersTabProps) {
   const { userEmail, role: currentRole, isAdmin: isPermAdmin } = useNavPermissions();
   const isAdmin = 
     (userEmail || "").toLowerCase().trim() === PRIMARY_OWNER_EMAIL || 
@@ -494,10 +498,11 @@ export default function UsersTab() {
 
   // Filtered Users computation
   const filteredUsers = useMemo(() => {
+    const term = (searchQuery.trim() || searchQueryProp.trim()).toLowerCase();
     return users.filter(user => {
-      const matchesSearch = 
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = !term ||
+        user.name.toLowerCase().includes(term) ||
+        user.email.toLowerCase().includes(term);
 
       const userRole = (user.role || "").toLowerCase();
       let matchesRole = true;
@@ -511,7 +516,7 @@ export default function UsersTab() {
 
       return matchesSearch && matchesRole && matchesMember;
     });
-  }, [users, searchQuery, roleFilter, memberFilter]);
+  }, [users, searchQuery, searchQueryProp, roleFilter, memberFilter]);
 
   // Selectable users (excludes primary owner)
   const selectableUsers = useMemo(() => {
@@ -600,9 +605,6 @@ export default function UsersTab() {
                   {users.length} {users.length === 1 ? "Employee" : "Employees"}
                 </span>
               </h2>
-              <p className="text-[13px] text-[#57636E] mt-1">
-                Manage roles (Admin, Mentor), side navbar access, and login permissions dynamically.
-              </p>
             </div>
             <button
               onClick={() => {

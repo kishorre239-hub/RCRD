@@ -1,13 +1,15 @@
 "use client";
 
-import React from "react";
-import { Search, Menu } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, Menu, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import UserAvatarIcon from "@/components/UserAvatarIcon";
 
 interface AppHeaderProps {
   placeholder?: string;
   searchQuery?: string;
   onSearchChange?: (val: string) => void;
+  onSubmitSearch?: (val: string) => void;
   onOpenProfile: () => void;
   onToggleMobileSidebar?: () => void;
 }
@@ -16,10 +18,41 @@ export default function AppHeader({
   placeholder = "Search for videos, folders, tags, or people...",
   searchQuery,
   onSearchChange,
+  onSubmitSearch,
   onOpenProfile,
   onToggleMobileSidebar,
 }: AppHeaderProps) {
-  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(() => {
+  const router = useRouter();
+  const [internalQuery, setInternalQuery] = useState("");
+  const isControlled = searchQuery !== undefined;
+  const currentQuery = isControlled ? searchQuery : internalQuery;
+
+  const handleQueryChange = (val: string) => {
+    if (!isControlled) {
+      setInternalQuery(val);
+    }
+    if (onSearchChange) {
+      onSearchChange(val);
+    }
+  };
+
+  const handleClear = () => {
+    handleQueryChange("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const val = currentQuery.trim();
+      if (onSubmitSearch) {
+        onSubmitSearch(val);
+      } else if (!onSearchChange && val) {
+        router.push(`/library?search=${encodeURIComponent(val)}`);
+      }
+    }
+  };
+
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     try {
       const prof = localStorage.getItem("rcrd_user_profile");
@@ -36,7 +69,7 @@ export default function AppHeader({
     return null;
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleProfileUpdate = () => {
       try {
         const prof = localStorage.getItem("rcrd_user_profile");
@@ -87,11 +120,22 @@ export default function AppHeader({
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E] group-focus-within:text-[#154360] transition-colors pointer-events-none" />
           <input
             type="text"
-            value={searchQuery !== undefined ? searchQuery : undefined}
-            onChange={onSearchChange ? (e) => onSearchChange(e.target.value) : undefined}
+            value={currentQuery}
+            onChange={(e) => handleQueryChange(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full pl-10 pr-4 py-2 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:bg-white focus:border-[#154360] focus:ring-4 focus:ring-[#154360]/10 outline-none transition-all placeholder:text-[#57636E] font-medium"
+            className="w-full pl-10 pr-9 py-2 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:bg-white focus:border-[#154360] focus:ring-4 focus:ring-[#154360]/10 outline-none transition-all placeholder:text-[#57636E] font-medium"
           />
+          {currentQuery ? (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#20262E] p-0.5 rounded-full hover:bg-slate-200/60 transition-colors cursor-pointer"
+              aria-label="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          ) : null}
         </div>
       </div>
 

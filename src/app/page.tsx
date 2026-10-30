@@ -25,6 +25,7 @@ export default function HomePage() {
   const { canAccess } = useNavPermissions();
   
   // App States
+  const [searchQuery, setSearchQuery] = useState("");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -99,6 +100,9 @@ export default function HomePage() {
         {/* Top Header - Unified Fixed h-16, Centered Search, Image 5 Avatar */}
         <AppHeader 
           placeholder="Search for videos, folders, tags, or people..."
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onSubmitSearch={(q) => router.push(`/library?search=${encodeURIComponent(q)}`)}
           onOpenProfile={() => setIsProfileOpen(true)}
           onToggleMobileSidebar={() => setIsMobileMenuOpen(prev => !prev)}
         />

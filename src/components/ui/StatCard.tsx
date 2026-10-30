@@ -24,8 +24,8 @@ export function StatCard({
       <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center mb-4`}>
         <Icon size={20} className={iconColor} />
       </div>
-      <p className="text-[11px] font-bold text-text-muted mb-1 uppercase tracking-wider">{label}</p>
-      <p className="text-xl font-extrabold text-text-primary">{value}</p>
+      <p className="text-[11px] font-bold text-[#94A3B8] mb-1 uppercase tracking-wider">{label}</p>
+      <p className="text-[32px] font-bold text-[#0F172A] tracking-tight leading-tight">{value}</p>
     </Card>
   );
 }

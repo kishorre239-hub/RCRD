@@ -11,7 +11,7 @@ export default function CalendarPage() {
   }, [router]);
 
   return (
-    <div className="h-screen w-full flex items-center justify-center bg-white text-[#57636E] text-sm font-medium">
+    <div className="h-screen w-full flex items-center justify-center bg-white text-[#475569] text-sm font-medium">
       Redirecting to Meetings...
     </div>
   );

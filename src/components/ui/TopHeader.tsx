@@ -30,13 +30,13 @@ export function TopHeader({ title, subtitle, onMenuClick, showMenuButton = false
         </div>
       </div>
       <div className="flex gap-4">
-        <button className="w-10 h-10 bg-surface rounded-full flex items-center justify-center border border-border shadow-sm text-text-secondary hover:text-text-primary hover:border-[#E2E7EC] transition-colors">
+        <button className="w-10 h-10 bg-surface rounded-full flex items-center justify-center border border-border shadow-xs text-text-secondary hover:text-text-primary hover:border-[#E2E8F0] transition-colors cursor-pointer">
           <Search size={18} />
         </button>
-        <button className="relative w-10 h-10 bg-surface rounded-full flex items-center justify-center border border-border shadow-sm text-text-secondary hover:text-text-primary hover:border-[#E2E7EC] transition-colors">
+        <button className="relative w-10 h-10 bg-surface rounded-full flex items-center justify-center border border-border shadow-xs text-text-secondary hover:text-text-primary hover:border-[#E2E8F0] transition-colors cursor-pointer">
           <NotificationIcon size={18} />
           {/* Notification Dot */}
-          <span className="absolute top-2 right-2.5 w-2 h-2 bg-[#154360] rounded-full border border-surface" />
+          <span className="absolute top-2 right-2.5 w-2 h-2 bg-[#4F46E5] rounded-full border border-surface" />
         </button>
       </div>
     </header>

@@ -370,29 +370,29 @@ function MeetingNotesContent() {
   const isMeetingEnded = meeting?.status === "ended";
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8] text-[#20262E] font-sans flex flex-col">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] font-sans flex flex-col">
       {/* Toast */}
       {toast && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-5 py-2.5 rounded-2xl shadow-2xl z-50 text-xs font-bold animate-in fade-in slide-in-from-top-2 border border-slate-700 flex items-center gap-2">
-          <Check size={14} className="text-[#EBF5FB]" />
+          <Check size={14} className="text-[#EEF2FF]" />
           <span>{toast}</span>
         </div>
       )}
 
       {/* Top Navigation Bar */}
-      <header className="bg-white border-b border-[#E2E7EC] px-6 py-4 sticky top-0 z-40 shadow-xs">
+      <header className="bg-white border-b border-[#E2E8F0] px-6 py-4 sticky top-0 z-40 shadow-xs">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push("/meetings")}
-              className="p-2 rounded-xl text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 transition-colors cursor-pointer"
+              className="p-2 rounded-xl text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 transition-colors cursor-pointer"
               title="Back to Meetings"
             >
               <ArrowLeft size={18} />
             </button>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-[#20262E]">
+                <h1 className="text-lg font-bold text-[#0F172A]">
                   {meeting?.title || "Class Meeting Notes"}
                 </h1>
                 <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${
@@ -405,7 +405,7 @@ function MeetingNotesContent() {
                   {isMeetingEnded ? "Ended" : (meeting?.status || "Ended")}
                 </span>
               </div>
-              <div className="flex items-center gap-3 text-xs text-[#57636E] mt-0.5">
+              <div className="flex items-center gap-3 text-xs text-[#475569] mt-0.5">
                 <span className="font-mono">ID: {meetingId}</span>
                 {meeting?.scheduledAt && (
                   <span className="flex items-center gap-1">
@@ -434,10 +434,10 @@ function MeetingNotesContent() {
               <>
                 <button
                   onClick={() => importInputRef.current?.click()}
-                  className="px-3 py-1.5 rounded-xl border border-[#E2E7EC] hover:bg-[#F5F6F8] text-xs font-bold text-[#20262E] flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl border border-[#E2E8F0] hover:bg-[#F8FAFC] text-xs font-bold text-[#0F172A] flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
                   title="Upload Notes file (.txt, .md, .json)"
                 >
-                  <Upload size={13} className="text-[#154360]" />
+                  <Upload size={13} className="text-[#4F46E5]" />
                   <span>Upload Notes</span>
                 </button>
                 <input
@@ -454,7 +454,7 @@ function MeetingNotesContent() {
             {isHost && (
               <button
                 onClick={handleExportNotes}
-                className="px-3 py-1.5 rounded-xl border border-[#E2E7EC] hover:bg-[#F5F6F8] text-xs font-bold text-[#20262E] flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                className="px-3 py-1.5 rounded-xl border border-[#E2E8F0] hover:bg-[#F8FAFC] text-xs font-bold text-[#0F172A] flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
                 title="Export all notes to Markdown"
               >
                 <Download size={13} className="text-[#2980B9]" />
@@ -466,7 +466,7 @@ function MeetingNotesContent() {
             {!isMeetingEnded && (
               <button
                 onClick={() => router.push(`/meetings/room/${meetingId}`)}
-                className="px-4 py-1.5 rounded-xl bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                className="px-4 py-1.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
                 title="Open meeting room"
               >
                 <Video size={13} />
@@ -480,7 +480,7 @@ function MeetingNotesContent() {
       {/* Main Body */}
       <main className="max-w-6xl mx-auto w-full p-6 flex-1 flex flex-col gap-6">
         {/* Controls Bar: Sub-tabs & Search */}
-        <div className="bg-white rounded-2xl border border-[#E2E7EC] p-3 flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
+        <div className="bg-white rounded-2xl border border-[#E2E8F0] p-3 flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
           {/* Sub-tabs */}
           <div className="flex items-center gap-1 w-full md:w-auto">
             {(["all", "host", "participant", "group"] as const).map(tab => (
@@ -489,13 +489,13 @@ function MeetingNotesContent() {
                 onClick={() => setActiveTab(tab)}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all capitalize flex items-center gap-1.5 cursor-pointer ${
                   activeTab === tab
-                    ? "bg-[#154360] text-white shadow-sm"
-                    : "text-[#57636E] hover:text-[#20262E] hover:bg-slate-100"
+                    ? "bg-[#4F46E5] text-white shadow-sm"
+                    : "text-[#475569] hover:text-[#0F172A] hover:bg-slate-100"
                 }`}
               >
                 {tab === "all" ? "All Notes" : tab === "host" ? "Host Notes" : tab === "participant" ? "Participant Notes" : "Group Notes"}
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                  activeTab === tab ? "bg-white/20 text-white" : "bg-slate-100 text-[#57636E]"
+                  activeTab === tab ? "bg-white/20 text-white" : "bg-slate-100 text-[#475569]"
                 }`}>
                   {tab === "all" ? notes.length : notes.filter(n => n.type === tab).length}
                 </span>
@@ -505,18 +505,18 @@ function MeetingNotesContent() {
 
           {/* Search Bar */}
           <div className="relative w-full md:w-64">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#57636E]" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#475569]" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search notes or files..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#E2E7EC] bg-[#F5F6F8] text-xs text-[#20262E] placeholder-slate-400 focus:bg-white focus:border-[#154360] outline-none transition-colors"
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] text-xs text-[#0F172A] placeholder-slate-400 focus:bg-white focus:border-[#4F46E5] outline-none transition-colors"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#20262E] cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#475569] hover:text-[#0F172A] cursor-pointer"
               >
                 <X size={12} />
               </button>
@@ -527,15 +527,15 @@ function MeetingNotesContent() {
         {/* Notes Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {loading ? (
-            <div className="col-span-full bg-white rounded-2xl border border-[#E2E7EC] p-12 text-center text-[#57636E] flex flex-col items-center justify-center">
-              <FileText size={32} className="text-[#154360] animate-pulse mb-2" />
-              <p className="text-xs font-semibold text-[#57636E]">Loading class notes...</p>
+            <div className="col-span-full bg-white rounded-2xl border border-[#E2E8F0] p-12 text-center text-[#475569] flex flex-col items-center justify-center">
+              <FileText size={32} className="text-[#4F46E5] animate-pulse mb-2" />
+              <p className="text-xs font-semibold text-[#475569]">Loading class notes...</p>
             </div>
           ) : filteredNotes.length === 0 ? (
-            <div className="col-span-full bg-white rounded-2xl border border-[#E2E7EC] p-12 text-center text-[#57636E] flex flex-col items-center justify-center">
+            <div className="col-span-full bg-white rounded-2xl border border-[#E2E8F0] p-12 text-center text-[#475569] flex flex-col items-center justify-center">
               <FileText size={36} className="text-slate-300 mb-2" />
-              <h3 className="text-sm font-bold text-[#20262E]">No notes uploaded</h3>
-              <p className="text-xs text-[#57636E] max-w-sm mt-1">
+              <h3 className="text-sm font-bold text-[#0F172A]">No notes uploaded</h3>
+              <p className="text-xs text-[#475569] max-w-sm mt-1">
                 {searchQuery
                   ? "No notes matching your search filter."
                   : isHost
@@ -547,48 +547,48 @@ function MeetingNotesContent() {
             filteredNotes.map(n => (
               <div
                 key={n.id}
-                className="bg-white rounded-2xl border border-[#E2E7EC] p-4 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group relative"
+                className="bg-white rounded-2xl border border-[#E2E8F0] p-4 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group relative"
               >
                 <div>
                   {/* Top metadata */}
-                  <div className="flex items-center justify-between pb-2 border-b border-[#E2E7EC] mb-3 text-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0] mb-3 text-xs">
                     <div className="flex items-center gap-2">
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold ${
-                        n.type === "host" ? "bg-[#154360]" : n.type === "participant" ? "bg-[#0E2F44]" : "bg-[#2980B9]"
+                        n.type === "host" ? "bg-[#4F46E5]" : n.type === "participant" ? "bg-[#4338CA]" : "bg-[#2980B9]"
                       }`}>
                         {n.author.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <span className="font-bold text-[#20262E]">{n.author}</span>
+                        <span className="font-bold text-[#0F172A]">{n.author}</span>
                         <span className={`ml-2 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                          n.type === "host" ? "bg-[#EBF5FB] text-[#0E2F44] border border-[#154360]/30" :
+                          n.type === "host" ? "bg-[#EEF2FF] text-[#4338CA] border border-[#4F46E5]/30" :
                           n.type === "participant" ? "bg-indigo-50 text-indigo-700 border border-indigo-200" :
-                          "bg-[#EBF5FB]/40 text-[#0E2F44] border border-[#2980B9]/30"
+                          "bg-[#EEF2FF]/40 text-[#4338CA] border border-[#2980B9]/30"
                         }`}>
                           {n.type === "host" ? "Host Note" : n.type === "participant" ? "Private Thread" : "Group Note"}
                         </span>
                       </div>
                     </div>
-                    <span className="text-[11px] text-[#57636E]">
+                    <span className="text-[11px] text-[#475569]">
                       {new Date(n.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
 
                   {/* Note Content */}
-                  <p className="text-xs text-[#20262E] leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs text-[#0F172A] leading-relaxed whitespace-pre-wrap">
                     {n.content}
                   </p>
 
                   {/* Attached File Preview Card */}
                   {n.attachment && (
-                    <div className="mt-3 flex items-center justify-between p-2.5 rounded-xl bg-[#F5F6F8] border border-[#E2E7EC]">
+                    <div className="mt-3 flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-[#EBF5FB] text-[#0E2F44] flex items-center justify-center shrink-0">
+                        <div className="w-8 h-8 rounded-lg bg-[#EEF2FF] text-[#4338CA] flex items-center justify-center shrink-0">
                           <Paperclip size={14} />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-[#20262E] truncate">{n.attachment.name}</p>
-                          <p className="text-[10px] text-[#57636E]">{(n.attachment.size / 1024).toFixed(1)} KB</p>
+                          <p className="text-xs font-bold text-[#0F172A] truncate">{n.attachment.name}</p>
+                          <p className="text-[10px] text-[#475569]">{(n.attachment.size / 1024).toFixed(1)} KB</p>
                         </div>
                       </div>
                       {/* Host has exclusive access to download attachments */}
@@ -596,7 +596,7 @@ function MeetingNotesContent() {
                         <a
                           href={n.attachment.dataUrl}
                           download={n.attachment.name}
-                          className="px-2.5 py-1 rounded-lg bg-white border border-[#E2E7EC] hover:bg-[#EBF5FB] hover:border-[#154360]/30 text-[#20262E] hover:text-[#0E2F44] text-xs font-bold flex items-center gap-1 transition-colors shadow-xs shrink-0 cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-white border border-[#E2E8F0] hover:bg-[#EEF2FF] hover:border-[#4F46E5]/30 text-[#0F172A] hover:text-[#4338CA] text-xs font-bold flex items-center gap-1 transition-colors shadow-xs shrink-0 cursor-pointer"
                           title="Download attachment"
                         >
                           <Download size={12} />
@@ -634,10 +634,10 @@ function MeetingNotesContent() {
 
         {/* Note Composer Bar: Only shown to Host */}
         {isHost ? (
-          <div className="bg-white rounded-2xl border border-[#E2E7EC] p-4 shadow-sm space-y-3">
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-[#20262E] flex items-center gap-1.5">
-                <Plus size={14} className="text-[#154360]" />
+              <span className="text-xs font-bold text-[#0F172A] flex items-center gap-1.5">
+                <Plus size={14} className="text-[#4F46E5]" />
                 Add New Meeting Note
               </span>
               <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[11px] font-bold">
@@ -647,7 +647,7 @@ function MeetingNotesContent() {
                     type="button"
                     onClick={() => setNewNoteType(t)}
                     className={`px-2.5 py-0.5 rounded-md transition-all capitalize cursor-pointer ${
-                      newNoteType === t ? "bg-white text-[#154360] shadow-xs" : "text-[#57636E] hover:text-[#20262E]"
+                      newNoteType === t ? "bg-white text-[#4F46E5] shadow-xs" : "text-[#475569] hover:text-[#0F172A]"
                     }`}
                   >
                     {t === "group" ? "Group Note" : t === "host" ? "Host Private" : "Participant"}
@@ -658,15 +658,15 @@ function MeetingNotesContent() {
 
             {/* Attached file chip preview */}
             {newAttachment && (
-              <div className="flex items-center justify-between p-2 bg-[#EBF5FB] border border-[#154360]/30 rounded-xl text-xs text-blue-900">
+              <div className="flex items-center justify-between p-2 bg-[#EEF2FF] border border-[#4F46E5]/30 rounded-xl text-xs text-blue-900">
                 <div className="flex items-center gap-2 truncate">
-                  <Paperclip size={13} className="text-[#154360] shrink-0" />
+                  <Paperclip size={13} className="text-[#4F46E5] shrink-0" />
                   <span className="font-semibold truncate">{newAttachment.name}</span>
-                  <span className="text-[10px] text-[#154360] shrink-0">({(newAttachment.size / 1024).toFixed(1)} KB)</span>
+                  <span className="text-[10px] text-[#4F46E5] shrink-0">({(newAttachment.size / 1024).toFixed(1)} KB)</span>
                 </div>
                 <button
                   onClick={() => setNewAttachment(null)}
-                  className="text-[#154360] hover:text-[#154360] p-0.5 cursor-pointer"
+                  className="text-[#4F46E5] hover:text-[#4F46E5] p-0.5 cursor-pointer"
                   title="Remove attachment"
                 >
                   <X size={13} />
@@ -684,14 +684,14 @@ function MeetingNotesContent() {
               }}
               placeholder="Write meeting notes, key discussion points, or summaries... (Ctrl+Enter to save)"
               rows={3}
-              className="w-full bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-3 text-xs text-[#20262E] placeholder-slate-400 focus:bg-white focus:border-[#154360] outline-none resize-none shadow-xs font-normal"
+              className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 text-xs text-[#0F172A] placeholder-slate-400 focus:bg-white focus:border-[#4F46E5] outline-none resize-none shadow-xs font-normal"
             />
 
             <div className="flex items-center justify-between pt-1">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E2E7EC] hover:bg-slate-100 text-[#20262E] text-xs font-bold transition-all shadow-xs cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E2E8F0] hover:bg-slate-100 text-[#0F172A] text-xs font-bold transition-all shadow-xs cursor-pointer"
                 title="Attach a file to this note"
               >
                 <Paperclip size={13} />
@@ -706,14 +706,14 @@ function MeetingNotesContent() {
 
               <button
                 onClick={handleAddNote}
-                className="px-5 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                className="px-5 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
               >
                 Save Note
               </button>
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-[#E2E7EC] p-4 text-center text-xs text-[#57636E] flex items-center justify-center gap-1.5">
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] p-4 text-center text-xs text-[#475569] flex items-center justify-center gap-1.5">
             <Lock size={13} className="text-slate-400" />
             <span>Class lecture notes and attachments are managed exclusively by the instructor.</span>
           </div>
@@ -726,8 +726,8 @@ function MeetingNotesContent() {
 export default function MeetingNotesPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-[#F5F6F8] flex items-center justify-center">
-        <div className="text-xs font-bold text-[#57636E]">Loading notes...</div>
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="text-xs font-bold text-[#475569]">Loading notes...</div>
       </div>
     }>
       <MeetingNotesContent />

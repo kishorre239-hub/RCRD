@@ -38,12 +38,12 @@ interface RecordVideoButtonProps {
 
 export default function RecordVideoButton({ onClick, id = "tour-record-btn", className = "" }: RecordVideoButtonProps) {
   return (
-    <div className={`py-4 pl-0 pr-4 border-t border-[#E2E7EC] bg-white flex-shrink-0 flex items-center ${className}`}>
+    <div className={`py-4 pl-0 pr-4 border-t border-[#1E293B] bg-[#0F172A] flex-shrink-0 flex items-center ${className}`}>
       <button
         id={id}
         type="button"
         onClick={onClick}
-        className="bg-[#1868DB] hover:bg-[#1456B8] text-white py-3 pl-4 pr-6 rounded-r-2xl rounded-l-none text-[15px] font-bold flex items-center gap-2.5 shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer select-none"
+        className="bg-[#4F46E5] hover:bg-[#4338CA] text-white py-3 pl-4 pr-6 rounded-r-2xl rounded-l-none text-[15px] font-bold flex items-center gap-2.5 shadow-[0_4px_16px_rgba(79,70,229,0.4)] hover:shadow-[0_6px_20px_rgba(79,70,229,0.55)] transition-all active:scale-[0.98] cursor-pointer select-none"
         title="Record a video"
       >
         <LoomSparkIcon size={22} className="text-white shrink-0" />

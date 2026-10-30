@@ -24,8 +24,8 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             className={`w-full h-12 pl-4 pr-10 rounded-xl border bg-background text-text-primary text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors appearance-none cursor-pointer ${
               error 
-                ? "border-[#154360] focus:ring-[#154360]/50" 
-                : "border-border focus:ring-[#154360]/50 focus:bg-surface"
+                ? "border-[#EF4444] focus:ring-[#EF4444]/30" 
+                : "border-border focus:ring-[#4F46E5]/30 focus:border-[#4F46E5] focus:bg-surface"
             } ${className}`}
             {...props}
           >
@@ -35,7 +35,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             <ChevronDown size={18} />
           </div>
         </div>
-        {error && <span className="text-xs text-[#154360] font-medium">{error}</span>}
+        {error && <span className="text-xs text-[#EF4444] font-medium">{error}</span>}
       </div>
     );
   }

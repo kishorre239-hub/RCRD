@@ -79,13 +79,13 @@ const STORAGE_KEY = "rcrd_meetings";
 const NOTES_KEY = "rcrd_notes";
 
 const STEPS = [
-  { icon: "1", title: "Share Your Screen", desc: "Click the green Share Screen button in the toolbar below. Choose the window or tab you want participants to see.", color: "bg-[#EBF5FB]0" },
-  { icon: "2", title: "Start Recording", desc: "Once your screen is shared, click Record. A 3-second countdown starts, then recording begins automatically.", color: "bg-[#154360]" },
-  { icon: "3", title: "Present & Collaborate", desc: "Talk and present. Your screen + microphone audio will be recorded. Participants join with the Meeting ID & password.", color: "bg-[#154360]" },
-  { icon: "4", title: "Stop & Save", desc: "Click Stop & Save when done. Choose folder and save to Library. It syncs to Google Drive automatically.", color: "bg-[#EBF5FB]/400" },
+  { icon: "1", title: "Share Your Screen", desc: "Click the green Share Screen button in the toolbar below. Choose the window or tab you want participants to see.", color: "bg-[#EEF2FF]0" },
+  { icon: "2", title: "Start Recording", desc: "Once your screen is shared, click Record. A 3-second countdown starts, then recording begins automatically.", color: "bg-[#4F46E5]" },
+  { icon: "3", title: "Present & Collaborate", desc: "Talk and present. Your screen + microphone audio will be recorded. Participants join with the Meeting ID & password.", color: "bg-[#4F46E5]" },
+  { icon: "4", title: "Stop & Save", desc: "Click Stop & Save when done. Choose folder and save to Library. It syncs to Google Drive automatically.", color: "bg-[#EEF2FF]/400" },
 ];
 
-const WHITEBOARD_COLORS = ["#20262E", "#154360", "#DC2626", "#16A34A", "#D97706", "#9333EA", "#0284C7", "#EA580C"];
+const WHITEBOARD_COLORS = ["#0F172A", "#4F46E5", "#DC2626", "#16A34A", "#D97706", "#9333EA", "#0284C7", "#EA580C"];
 
 // WebRTC Audio & Video STUN + TURN Relay Configuration (Public STUN/TURN for cross-network mobile & desktop)
 const RTC_CONFIG: RTCConfiguration = {
@@ -406,7 +406,7 @@ export default function ClassRoomPage() {
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [penColor, setPenColor] = useState("#154360");
+  const [penColor, setPenColor] = useState("#4F46E5");
   const [penSize, setPenSize] = useState(3);
   const [isEraser, setIsEraser] = useState(false);
   const [eraserSize, setEraserSize] = useState(24);
@@ -2706,14 +2706,14 @@ export default function ClassRoomPage() {
         const ctx = canvas.getContext("2d");
         const renderScreen = () => {
           if (!ctx) return;
-          ctx.fillStyle = "#20262E";
+          ctx.fillStyle = "#0F172A";
           ctx.fillRect(0, 0, 1280, 720);
-          ctx.fillStyle = "#20262E";
+          ctx.fillStyle = "#0F172A";
           ctx.fillRect(40, 40, 1200, 640);
-          ctx.fillStyle = "#154360";
+          ctx.fillStyle = "#4F46E5";
           ctx.font = "bold 32px sans-serif";
           ctx.fillText("Presentation Screen Share (Active Stream)", 80, 120);
-          ctx.fillStyle = "#57636E";
+          ctx.fillStyle = "#475569";
           ctx.font = "20px sans-serif";
           ctx.fillText("Sharing classroom slides & notes live with attendees...", 80, 180);
           requestAnimationFrame(renderScreen);
@@ -2904,8 +2904,8 @@ export default function ClassRoomPage() {
             if (!ctx) return;
             frame++;
             const grad = ctx.createLinearGradient(0, 0, 640, 360);
-            grad.addColorStop(0, "#20262E");
-            grad.addColorStop(1, "#0E2F44");
+            grad.addColorStop(0, "#0F172A");
+            grad.addColorStop(1, "#4338CA");
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, 640, 360);
             const bounce = Math.sin(frame * 0.05) * 5;
@@ -3543,7 +3543,7 @@ export default function ClassRoomPage() {
     saveCanvasState();
     const ctx = canvasRef.current.getContext("2d");
     if (ctx) {
-      const textColor = penColor.toUpperCase() === "#FFFFFF" ? "#20262E" : penColor;
+      const textColor = penColor.toUpperCase() === "#FFFFFF" ? "#0F172A" : penColor;
       ctx.font = `bold ${textFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
       ctx.fillStyle = textColor;
       ctx.textBaseline = "top";
@@ -3870,7 +3870,7 @@ export default function ClassRoomPage() {
             </div>
             <a
               href="https://www.geonixa.com/"
-              className="w-full py-3 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 px-4 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
               Return to Geonixa Homepage
             </a>
@@ -4012,12 +4012,12 @@ export default function ClassRoomPage() {
   // Student waiting lobby (Pure White Background)
   if (isScheduledFuture && !isMentor && !bypassLobby) {
     return (
-      <div className="h-screen bg-[#F8FAFC] flex flex-col justify-between p-6 text-[#20262E] font-sans selection:bg-[#154360]/20 relative overflow-hidden">
-        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#154360]/5 rounded-full blur-[140px] pointer-events-none" />
+      <div className="h-screen bg-[#F8FAFC] flex flex-col justify-between p-6 text-[#0F172A] font-sans selection:bg-[#4F46E5]/20 relative overflow-hidden">
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#4F46E5]/5 rounded-full blur-[140px] pointer-events-none" />
         <div className="flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
             <RcrdLogo className="h-10 sm:h-12 w-auto scale-115 origin-left" />
-            <span className="text-xs bg-slate-100 border border-[#E2E7EC] px-3 py-1 rounded-full text-[#57636E] font-bold">
+            <span className="text-xs bg-slate-100 border border-[#E2E8F0] px-3 py-1 rounded-full text-[#475569] font-bold">
               Waiting Lobby
             </span>
           </div>
@@ -4027,58 +4027,58 @@ export default function ClassRoomPage() {
             } else {
               router.push('/meetings');
             }
-          }} className="px-4 py-2 bg-white hover:bg-slate-50 border border-[#E2E7EC] rounded-xl text-xs font-bold text-[#20262E] shadow-xs transition-colors">
+          }} className="px-4 py-2 bg-white hover:bg-slate-50 border border-[#E2E8F0] rounded-xl text-xs font-bold text-[#0F172A] shadow-xs transition-colors">
             ← Leave Lobby
           </button>
         </div>
 
         <div className="flex-1 flex items-center justify-center z-10 py-8">
-          <div className="bg-white border border-[#E2E7EC] rounded-3xl p-8 max-w-lg w-full text-center shadow-xl space-y-6">
-            <div className="w-20 h-20 bg-[#EBF5FB] border border-[#154360]/20 rounded-3xl flex items-center justify-center mx-auto text-[#154360] shadow-md animate-pulse">
+          <div className="bg-white border border-[#E2E8F0] rounded-3xl p-8 max-w-lg w-full text-center shadow-xl space-y-6">
+            <div className="w-20 h-20 bg-[#EEF2FF] border border-[#4F46E5]/20 rounded-3xl flex items-center justify-center mx-auto text-[#4F46E5] shadow-md animate-pulse">
               <Lock size={36} />
             </div>
             <div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold rounded-full mb-3">
                 <Clock size={12} /> Scheduled Class Session
               </span>
-              <h1 className="text-2xl font-black text-[#20262E] tracking-tight mb-2">
+              <h1 className="text-2xl font-black text-[#0F172A] tracking-tight mb-2">
                 {meeting?.title || "Class Meeting"}
               </h1>
-              {courseName && <p className="text-xs font-bold text-[#154360]">{courseName}</p>}
+              {courseName && <p className="text-xs font-bold text-[#4F46E5]">{courseName}</p>}
             </div>
 
-            <div className="bg-slate-50 border border-[#E2E7EC] rounded-2xl p-5">
-              <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#57636E] mb-3">Opens Automatically In</p>
+            <div className="bg-slate-50 border border-[#E2E8F0] rounded-2xl p-5">
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#475569] mb-3">Opens Automatically In</p>
               <div className="flex items-center justify-center gap-3">
                 {remDays > 0 && (
                   <div className="flex flex-col items-center">
-                    <span className="text-3xl font-mono font-black text-[#20262E] bg-white border border-[#E2E7EC] px-3 py-1.5 rounded-xl shadow-xs">{String(remDays).padStart(2, '0')}</span>
-                    <span className="text-[10px] text-[#57636E] uppercase font-bold mt-1">Days</span>
+                    <span className="text-3xl font-mono font-black text-[#0F172A] bg-white border border-[#E2E8F0] px-3 py-1.5 rounded-xl shadow-xs">{String(remDays).padStart(2, '0')}</span>
+                    <span className="text-[10px] text-[#475569] uppercase font-bold mt-1">Days</span>
                   </div>
                 )}
                 <div className="flex flex-col items-center">
-                  <span className="text-3xl font-mono font-black text-[#20262E] bg-white border border-[#E2E7EC] px-3 py-1.5 rounded-xl shadow-xs">{String(remHours).padStart(2, '0')}</span>
-                  <span className="text-[10px] text-[#57636E] uppercase font-bold mt-1">Hours</span>
+                  <span className="text-3xl font-mono font-black text-[#0F172A] bg-white border border-[#E2E8F0] px-3 py-1.5 rounded-xl shadow-xs">{String(remHours).padStart(2, '0')}</span>
+                  <span className="text-[10px] text-[#475569] uppercase font-bold mt-1">Hours</span>
                 </div>
-                <span className="text-2xl font-black text-[#57636E] mb-4">:</span>
+                <span className="text-2xl font-black text-[#475569] mb-4">:</span>
                 <div className="flex flex-col items-center">
-                  <span className="text-3xl font-mono font-black text-[#154360] bg-white border border-[#E2E7EC] px-3 py-1.5 rounded-xl shadow-xs">{String(remMins).padStart(2, '0')}</span>
-                  <span className="text-[10px] text-[#57636E] uppercase font-bold mt-1">Mins</span>
+                  <span className="text-3xl font-mono font-black text-[#4F46E5] bg-white border border-[#E2E8F0] px-3 py-1.5 rounded-xl shadow-xs">{String(remMins).padStart(2, '0')}</span>
+                  <span className="text-[10px] text-[#475569] uppercase font-bold mt-1">Mins</span>
                 </div>
-                <span className="text-2xl font-black text-[#57636E] mb-4">:</span>
+                <span className="text-2xl font-black text-[#475569] mb-4">:</span>
                 <div className="flex flex-col items-center">
-                  <span className="text-3xl font-mono font-black text-[#2980B9] bg-white border border-[#E2E7EC] px-3 py-1.5 rounded-xl shadow-xs">{String(remSecs).padStart(2, '0')}</span>
-                  <span className="text-[10px] text-[#57636E] uppercase font-bold mt-1">Secs</span>
+                  <span className="text-3xl font-mono font-black text-[#2980B9] bg-white border border-[#E2E8F0] px-3 py-1.5 rounded-xl shadow-xs">{String(remSecs).padStart(2, '0')}</span>
+                  <span className="text-[10px] text-[#475569] uppercase font-bold mt-1">Secs</span>
                 </div>
               </div>
             </div>
 
-            <button onClick={() => setBypassLobby(true)} className="w-full py-3 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <button onClick={() => setBypassLobby(true)} className="w-full py-3 px-4 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
               Enter Classroom Immediately (Skip Waiting)
             </button>
-            <div className="pt-2 border-t border-[#E2E7EC] flex items-center justify-between text-xs text-[#57636E]">
-              <span>Joined as: <strong className="text-[#20262E]">{studentName}</strong></span>
-              <span>Meeting ID: <strong className="text-[#154360] font-mono">{roomId}</strong></span>
+            <div className="pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-xs text-[#475569]">
+              <span>Joined as: <strong className="text-[#0F172A]">{studentName}</strong></span>
+              <span>Meeting ID: <strong className="text-[#4F46E5] font-mono">{roomId}</strong></span>
             </div>
           </div>
         </div>
@@ -4319,7 +4319,7 @@ export default function ClassRoomPage() {
               }}
             >
               {/* Whiteboard Top Navigation & Controls Bar */}
-              <div className="absolute top-2 inset-x-2 sm:inset-x-6 z-30 flex items-center justify-between bg-white/95 backdrop-blur-md border border-[#E2E7EC] shadow-md rounded-2xl px-2 sm:px-4 py-1.5 sm:py-2 gap-1 sm:gap-2">
+              <div className="absolute top-2 inset-x-2 sm:inset-x-6 z-30 flex items-center justify-between bg-white/95 backdrop-blur-md border border-[#E2E8F0] shadow-md rounded-2xl px-2 sm:px-4 py-1.5 sm:py-2 gap-1 sm:gap-2">
                 {/* Left: Mode toggle (Mentor Only) or View Badge (Students) + Clean Non-Overlapping REC badge */}
                 <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                   {isMentor ? (
@@ -4331,7 +4331,7 @@ export default function ClassRoomPage() {
                           broadcastWhiteboard(true, undefined, undefined, undefined, 'sketch');
                         }}
                         className={`flex items-center gap-1 px-2 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          whiteboardMode === 'sketch' ? 'bg-white text-[#154360] shadow-sm' : 'text-[#57636E] hover:text-[#20262E]'
+                          whiteboardMode === 'sketch' ? 'bg-white text-[#4F46E5] shadow-sm' : 'text-[#475569] hover:text-[#0F172A]'
                         }`}
                       >
                         <Pen size={13} />
@@ -4345,7 +4345,7 @@ export default function ClassRoomPage() {
                           broadcastWhiteboard(true, undefined, undefined, undefined, 'notepad');
                         }}
                         className={`flex items-center gap-1 px-2 sm:px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                          whiteboardMode === 'notepad' ? 'bg-white text-[#154360] shadow-sm' : 'text-[#57636E] hover:text-[#20262E]'
+                          whiteboardMode === 'notepad' ? 'bg-white text-[#4F46E5] shadow-sm' : 'text-[#475569] hover:text-[#0F172A]'
                         }`}
                       >
                         <FileText size={13} />
@@ -4355,7 +4355,7 @@ export default function ClassRoomPage() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-1 sm:gap-2">
-                      <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-[#EBF5FB] text-[#154360] font-bold text-xs border border-[#154360]/20 shrink-0">
+                      <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-[#EEF2FF] text-[#4F46E5] font-bold text-xs border border-[#4F46E5]/20 shrink-0">
                         <BookOpen size={13} />
                         <span className="hidden sm:inline">Mentor Board (View Only)</span>
                         <span className="sm:hidden text-[11px] font-extrabold">Board</span>
@@ -4402,19 +4402,19 @@ export default function ClassRoomPage() {
                         type="button"
                         onClick={() => switchSlide(currentSlideIndex - 1)}
                         disabled={currentSlideIndex <= 0}
-                        className="p-1 sm:p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#20262E] transition-colors cursor-pointer"
+                        className="p-1 sm:p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#0F172A] transition-colors cursor-pointer"
                         title="Previous Slide"
                       >
                         <ChevronLeft size={15} />
                       </button>
-                      <div className="px-2 sm:px-2.5 py-1 bg-slate-100 rounded-lg text-[11px] sm:text-xs font-bold text-[#20262E] whitespace-nowrap">
+                      <div className="px-2 sm:px-2.5 py-1 bg-slate-100 rounded-lg text-[11px] sm:text-xs font-bold text-[#0F172A] whitespace-nowrap">
                         Slide {currentSlideIndex + 1} / {slides.length}
                       </div>
                       <button
                         type="button"
                         onClick={() => switchSlide(currentSlideIndex + 1)}
                         disabled={currentSlideIndex >= slides.length - 1}
-                        className="p-1 sm:p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#20262E] transition-colors cursor-pointer"
+                        className="p-1 sm:p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:hover:bg-slate-100 text-[#0F172A] transition-colors cursor-pointer"
                         title="Next Slide"
                       >
                         <ChevronRight size={15} />
@@ -4422,7 +4422,7 @@ export default function ClassRoomPage() {
                       <button
                         type="button"
                         onClick={addNewSlide}
-                        className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg bg-[#EBF5FB] hover:bg-[#d4e6f1] text-[#154360] text-[11px] sm:text-xs font-bold border border-[#154360]/20 transition-all shadow-xs cursor-pointer shrink-0"
+                        className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg bg-[#EEF2FF] hover:bg-[#d4e6f1] text-[#4F46E5] text-[11px] sm:text-xs font-bold border border-[#4F46E5]/20 transition-all shadow-xs cursor-pointer shrink-0"
                         title="Add New Slide"
                       >
                         <Plus size={13} />
@@ -4430,7 +4430,7 @@ export default function ClassRoomPage() {
                       </button>
                     </>
                   ) : (
-                    <div className="px-2 sm:px-3 py-1 bg-slate-100 rounded-lg text-[11px] sm:text-xs font-bold text-[#20262E] whitespace-nowrap">
+                    <div className="px-2 sm:px-3 py-1 bg-slate-100 rounded-lg text-[11px] sm:text-xs font-bold text-[#0F172A] whitespace-nowrap">
                       Slide {currentSlideIndex + 1} / {slides.length}
                     </div>
                   )}
@@ -4443,11 +4443,11 @@ export default function ClassRoomPage() {
                     type="button"
                     onClick={toggleMic}
                     className={`p-1.5 sm:px-2.5 sm:py-1 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
-                      micOn ? "bg-slate-100 hover:bg-slate-200 text-[#20262E]" : "bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200"
+                      micOn ? "bg-slate-100 hover:bg-slate-200 text-[#0F172A]" : "bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200"
                     }`}
                     title={micOn ? "Mute Microphone" : "Unmute Microphone"}
                   >
-                    {micOn ? <Mic size={14} className="text-[#154360]" /> : <MicOff size={14} className="text-rose-600" />}
+                    {micOn ? <Mic size={14} className="text-[#4F46E5]" /> : <MicOff size={14} className="text-rose-600" />}
                     <span className="hidden xl:inline">{micOn ? "Mute" : "Unmute"}</span>
                   </button>
 
@@ -4456,11 +4456,11 @@ export default function ClassRoomPage() {
                     type="button"
                     onClick={toggleCamera}
                     className={`hidden sm:flex p-1.5 sm:px-2.5 sm:py-1 rounded-xl items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
-                      cameraOn ? "bg-slate-100 hover:bg-slate-200 text-[#20262E]" : "bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200"
+                      cameraOn ? "bg-slate-100 hover:bg-slate-200 text-[#0F172A]" : "bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200"
                     }`}
                     title={cameraOn ? "Stop Video" : "Start Video"}
                   >
-                    {cameraOn ? <Video size={14} className="text-[#154360]" /> : <VideoOff size={14} className="text-rose-600" />}
+                    {cameraOn ? <Video size={14} className="text-[#4F46E5]" /> : <VideoOff size={14} className="text-rose-600" />}
                     <span className="hidden xl:inline">{cameraOn ? "Video" : "Video Off"}</span>
                   </button>
 
@@ -4468,22 +4468,22 @@ export default function ClassRoomPage() {
                   <button
                     type="button"
                     onClick={() => setShowParticipantsSheet(true)}
-                    className="hidden sm:flex p-1.5 sm:px-2.5 sm:py-1 rounded-xl items-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-[#20262E] transition-all cursor-pointer relative"
+                    className="hidden sm:flex p-1.5 sm:px-2.5 sm:py-1 rounded-xl items-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-[#0F172A] transition-all cursor-pointer relative"
                     title="View Participants"
                   >
-                    <Users size={14} className="text-[#154360]" />
+                    <Users size={14} className="text-[#4F46E5]" />
                     <span className="hidden xl:inline">People</span>
-                    <span className="text-[10px] font-bold text-[#57636E]">({participants.length})</span>
+                    <span className="text-[10px] font-bold text-[#475569]">({participants.length})</span>
                   </button>
 
                   {/* Chat Quick Access */}
                   <button
                     type="button"
                     onClick={() => setShowChatSheet(true)}
-                    className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl flex items-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-[#20262E] transition-all cursor-pointer relative"
+                    className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl flex items-center gap-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-[#0F172A] transition-all cursor-pointer relative"
                     title="Open Class Chat"
                   >
-                    <MessageSquare size={14} className="text-[#154360]" />
+                    <MessageSquare size={14} className="text-[#4F46E5]" />
                     <span className="hidden xl:inline">Chat</span>
                     {chatMessages.length > 0 && (
                       <span className="w-2 h-2 rounded-full bg-blue-600 absolute top-1 right-1" />
@@ -4494,7 +4494,7 @@ export default function ClassRoomPage() {
                   <button
                     type="button"
                     onClick={toggleFullScreen}
-                    className="p-1.5 rounded-xl hover:bg-slate-100 text-[#57636E] hover:text-[#20262E] transition-colors cursor-pointer"
+                    className="p-1.5 rounded-xl hover:bg-slate-100 text-[#475569] hover:text-[#0F172A] transition-colors cursor-pointer"
                     title={isFullScreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                   >
                     {isFullScreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
@@ -4504,7 +4504,7 @@ export default function ClassRoomPage() {
                   <button
                     type="button"
                     onClick={downloadAllSlidesAsPdf}
-                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold transition-all shadow-sm cursor-pointer shrink-0"
+                    className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold transition-all shadow-sm cursor-pointer shrink-0"
                     title="Download all slides as multi-page PDF"
                   >
                     <Download size={13} />
@@ -4524,7 +4524,7 @@ export default function ClassRoomPage() {
                         setStudentViewMode("screen");
                       }
                     }}
-                    className="p-1.5 rounded-xl hover:bg-rose-50 text-[#57636E] hover:text-rose-600 transition-colors cursor-pointer shrink-0"
+                    className="p-1.5 rounded-xl hover:bg-rose-50 text-[#475569] hover:text-rose-600 transition-colors cursor-pointer shrink-0"
                     title="Close Whiteboard"
                   >
                     <X size={17} />
@@ -4542,16 +4542,16 @@ export default function ClassRoomPage() {
                       backgroundSize: '28px 28px'
                     }}
                   >
-                    <div className="flex items-center justify-between pb-3 border-b-2 border-[#154360]/20 mb-3">
+                    <div className="flex items-center justify-between pb-3 border-b-2 border-[#4F46E5]/20 mb-3">
                       <div className="flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
                         <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                        <span className="text-xs font-bold text-[#20262E] ml-2">
+                        <span className="text-xs font-bold text-[#0F172A] ml-2">
                           Slide {currentSlideIndex + 1} Lecture Notepad
                         </span>
                       </div>
-                      <div className="text-[11px] text-[#57636E] font-medium">
+                      <div className="text-[11px] text-[#475569] font-medium">
                         {isMentor ? "Mentor Notepad · Auto-synced to students" : "Mentor Notes (View Only)"}
                       </div>
                     </div>
@@ -4570,7 +4570,7 @@ export default function ClassRoomPage() {
                           ? "Type your lecture notes here like a notepad...\n\n• Key concept 1\n• Code snippets, formulas, or explanations\n• Important points for students\n\n(All notes & slides can be downloaded as a PDF)"
                           : "Mentor's lecture notes for Slide " + (currentSlideIndex + 1) + " will appear here..."
                       }
-                      className={`flex-1 w-full bg-transparent resize-none outline-none text-[#20262E] font-sans text-sm sm:text-base leading-relaxed placeholder:text-slate-400 ${
+                      className={`flex-1 w-full bg-transparent resize-none outline-none text-[#0F172A] font-sans text-sm sm:text-base leading-relaxed placeholder:text-slate-400 ${
                         !isMentor ? 'cursor-default' : ''
                       }`}
                       style={{
@@ -4648,7 +4648,7 @@ export default function ClassRoomPage() {
                         <button
                           onClick={() => { setActiveTool("pen"); setIsEraser(false); setShowSizePicker(prev => !prev); }}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            activeTool === "pen" && !isEraser ? "bg-[#154360] text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
+                            activeTool === "pen" && !isEraser ? "bg-[#4F46E5] text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
                           }`}
                           title="Pen tool"
                         >
@@ -4657,9 +4657,9 @@ export default function ClassRoomPage() {
                         </button>
                         {showSizePicker && !isEraser && (
                           <div className="absolute bottom-[115%] left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 rounded-xl p-3 w-48 shadow-2xl z-[120]">
-                            <p className="text-[10px] text-[#57636E] font-bold uppercase mb-2">Pen Size: {penSize}px</p>
+                            <p className="text-[10px] text-[#475569] font-bold uppercase mb-2">Pen Size: {penSize}px</p>
                             <input type="range" min={1} max={40} value={penSize} onChange={e => setPenSize(Number(e.target.value))} className="w-full accent-blue-500 cursor-pointer" />
-                            <div className="flex justify-between text-[10px] text-[#57636E] mt-1"><span>1px</span><span>40px</span></div>
+                            <div className="flex justify-between text-[10px] text-[#475569] mt-1"><span>1px</span><span>40px</span></div>
                           </div>
                         )}
                       </div>
@@ -4669,7 +4669,7 @@ export default function ClassRoomPage() {
                         <button
                           onClick={() => { setActiveTool("pen"); setIsEraser(!isEraser); setShowSizePicker(isEraser ? false : showSizePicker); }}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            isEraser ? "bg-[#154360] text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
+                            isEraser ? "bg-[#4F46E5] text-white shadow" : "bg-slate-800 text-slate-300 hover:text-white"
                           }`}
                           title="Eraser tool"
                         >
@@ -4678,9 +4678,9 @@ export default function ClassRoomPage() {
                         </button>
                         {isEraser && (
                           <div className="absolute bottom-[115%] left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700 rounded-xl p-3 w-48 shadow-2xl z-[120]">
-                            <p className="text-[10px] text-[#57636E] font-bold uppercase mb-2">Eraser Size: {eraserSize}px</p>
+                            <p className="text-[10px] text-[#475569] font-bold uppercase mb-2">Eraser Size: {eraserSize}px</p>
                             <input type="range" min={10} max={100} value={eraserSize} onChange={e => setEraserSize(Number(e.target.value))} className="w-full accent-amber-500 cursor-pointer" />
-                            <div className="flex justify-between text-[10px] text-[#57636E] mt-1"><span>10px</span><span>100px</span></div>
+                            <div className="flex justify-between text-[10px] text-[#475569] mt-1"><span>10px</span><span>100px</span></div>
                           </div>
                         )}
                       </div>
@@ -4694,11 +4694,11 @@ export default function ClassRoomPage() {
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
                           canUndo
                             ? "bg-slate-800 hover:bg-slate-700 text-white shadow cursor-pointer"
-                            : "bg-slate-800/40 text-[#57636E] cursor-not-allowed"
+                            : "bg-slate-800/40 text-[#475569] cursor-not-allowed"
                         }`}
                         title="Reverse: Restore previous erased data (Undo)"
                       >
-                        <RotateCcw size={13} className="text-[#EBF5FB]" />
+                        <RotateCcw size={13} className="text-[#EEF2FF]" />
                         <span>Reverse</span>
                       </button>
 
@@ -4709,11 +4709,11 @@ export default function ClassRoomPage() {
                         className={`flex items-center gap-1 px-2 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
                           canRedo
                             ? "bg-slate-800 hover:bg-slate-700 text-white shadow cursor-pointer"
-                            : "bg-slate-800/40 text-[#57636E] cursor-not-allowed"
+                            : "bg-slate-800/40 text-[#475569] cursor-not-allowed"
                         }`}
                         title="Redo"
                       >
-                        <RotateCw size={13} className="text-[#154360]" />
+                        <RotateCw size={13} className="text-[#4F46E5]" />
                       </button>
 
                       <div className="w-px h-6 bg-slate-700 shrink-0" />
@@ -4753,7 +4753,7 @@ export default function ClassRoomPage() {
                       {/* Clear Whiteboard */}
                       <button
                         onClick={clearWhiteboard}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800 text-slate-300 hover:bg-[#154360] hover:text-white transition-all shrink-0 cursor-pointer"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-800 text-slate-300 hover:bg-[#4F46E5] hover:text-white transition-all shrink-0 cursor-pointer"
                         title="Clear Whiteboard"
                       >
                         <Trash2 size={14} />
@@ -4809,7 +4809,7 @@ export default function ClassRoomPage() {
                 </button>
               ) : (
                 /* Full Video Card with Drag Grip & Minimize button */
-                <div className="w-28 sm:w-56 h-22 sm:h-38 bg-white rounded-xl sm:rounded-2xl overflow-hidden border-2 border-[#154360] shadow-2xl relative flex flex-col">
+                <div className="w-28 sm:w-56 h-22 sm:h-38 bg-white rounded-xl sm:rounded-2xl overflow-hidden border-2 border-[#4F46E5] shadow-2xl relative flex flex-col">
                   {/* Drag Handle Top Bar */}
                   <div
                     onMouseDown={(e) => {
@@ -4892,11 +4892,11 @@ export default function ClassRoomPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-[#20262E]">
-                        <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#154360] text-white flex items-center justify-center font-bold text-xs sm:text-base shadow-sm">
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-[#0F172A]">
+                        <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[#4F46E5] text-white flex items-center justify-center font-bold text-xs sm:text-base shadow-sm">
                           {displayInitial}
                         </div>
-                        <span className="text-[9px] sm:text-[10px] font-semibold text-[#57636E] mt-0.5 truncate max-w-[90%]">Camera Off</span>
+                        <span className="text-[9px] sm:text-[10px] font-semibold text-[#475569] mt-0.5 truncate max-w-[90%]">Camera Off</span>
                       </div>
                     )}
                   </div>
@@ -4906,14 +4906,14 @@ export default function ClassRoomPage() {
               {/* Connected Student Mini Avatar Badges (Hidden on mobile to keep presentation completely unobstructed!) */}
               <div className="hidden sm:flex gap-1.5 max-w-[280px] overflow-x-auto">
                 {uniqueOtherParticipants.slice(0, 4).map((p, idx) => {
-                  const colors = ["bg-[#154360]", "bg-[#2980B9]", "bg-[#0E2F44]", "bg-[#1B4F72]", "bg-[#2874A6]"];
+                  const colors = ["bg-[#4F46E5]", "bg-[#2980B9]", "bg-[#4338CA]", "bg-[#1B4F72]", "bg-[#2874A6]"];
                   const color = colors[idx % colors.length];
                   return (
-                    <div key={p.id || idx} className="w-20 h-14 bg-white rounded-xl border border-[#E2E7EC] overflow-hidden relative shadow-md flex items-center justify-center">
+                    <div key={p.id || idx} className="w-20 h-14 bg-white rounded-xl border border-[#E2E8F0] overflow-hidden relative shadow-md flex items-center justify-center">
                       <div className={`w-7 h-7 rounded-full ${color} text-white flex items-center justify-center text-[11px] font-bold shadow-xs`}>
                         {p.avatar || p.name.substring(0, 2).toUpperCase()}
                       </div>
-                      <div className="absolute bottom-0.5 inset-x-1 text-[9px] text-[#20262E] bg-white/90 border border-[#E2E7EC] px-1 rounded truncate font-medium text-center">
+                      <div className="absolute bottom-0.5 inset-x-1 text-[9px] text-[#0F172A] bg-white/90 border border-[#E2E8F0] px-1 rounded truncate font-medium text-center">
                         {p.name}
                       </div>
                     </div>
@@ -5728,7 +5728,7 @@ export default function ClassRoomPage() {
                     onClick={() => setExtendMinutesInput(String(mins))}
                     className={`py-2 px-1 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                       extendMinutesInput === String(mins)
-                        ? "bg-[#154360] border-sky-400 text-white shadow-sm"
+                        ? "bg-[#4F46E5] border-sky-400 text-white shadow-sm"
                         : "bg-zinc-900 border-zinc-800 hover:border-zinc-700 text-zinc-300"
                     }`}
                   >
@@ -6296,27 +6296,27 @@ export default function ClassRoomPage() {
       {/* ─── Tutorial Overlay (PURE WHITE THEME) ────────────────────────── */}
       {showTutorial && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E2E7EC] rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden text-[#20262E]">
-            <div className="p-6 border-b border-[#E2E7EC] flex items-center justify-between">
+          <div className="bg-white border border-[#E2E8F0] rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden text-[#0F172A]">
+            <div className="p-6 border-b border-[#E2E8F0] flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-[#20262E]">How to Host a Class</h2>
-                <p className="text-xs text-[#57636E] mt-0.5">4-step guide for mentors</p>
+                <h2 className="text-lg font-bold text-[#0F172A]">How to Host a Class</h2>
+                <p className="text-xs text-[#475569] mt-0.5">4-step guide for mentors</p>
               </div>
-              <button onClick={() => setShowTutorial(false)} className="p-2 hover:bg-slate-100 rounded-xl text-[#57636E] hover:text-[#20262E] transition-colors"><X size={18} /></button>
+              <button onClick={() => setShowTutorial(false)} className="p-2 hover:bg-slate-100 rounded-xl text-[#475569] hover:text-[#0F172A] transition-colors"><X size={18} /></button>
             </div>
             <div className="p-6 space-y-4">
               {STEPS.map((step, i) => (
-                <div key={i} className="flex items-start gap-4 p-4 bg-[#F8FAFC] rounded-2xl border border-[#E2E7EC]">
+                <div key={i} className="flex items-start gap-4 p-4 bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0]">
                   <div className={"w-9 h-9 rounded-xl flex items-center justify-center text-white font-black text-base shrink-0 " + step.color}>{step.icon}</div>
                   <div>
-                    <p className="text-sm font-bold text-[#20262E] mb-1">{step.title}</p>
-                    <p className="text-xs text-[#57636E] leading-relaxed">{step.desc}</p>
+                    <p className="text-sm font-bold text-[#0F172A] mb-1">{step.title}</p>
+                    <p className="text-xs text-[#475569] leading-relaxed">{step.desc}</p>
                   </div>
                 </div>
               ))}
             </div>
             <div className="p-6 pt-0">
-              <button onClick={() => setShowTutorial(false)} className="w-full py-3 bg-[#154360] hover:bg-[#0E2F44] text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md">
+              <button onClick={() => setShowTutorial(false)} className="w-full py-3 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md">
                 <ChevronRight size={16} />Got it, Start Teaching
               </button>
             </div>
@@ -6327,13 +6327,13 @@ export default function ClassRoomPage() {
       {/* ─── Upload Modal ────────────────────────────────────────── */}
       {showUpload && recBlob && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 transition-opacity animate-in fade-in duration-200">
-          <div className="bg-white border border-[#E2E7EC] rounded-2xl shadow-2xl w-full max-w-md overflow-visible transform transition-all animate-in zoom-in-95 duration-200">
-            <div className="px-6 pt-6 pb-4 border-b border-[#E2E7EC] flex items-start justify-between">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl shadow-2xl w-full max-w-md overflow-visible transform transition-all animate-in zoom-in-95 duration-200">
+            <div className="px-6 pt-6 pb-4 border-b border-[#E2E8F0] flex items-start justify-between">
               <div>
-                <h2 className="text-[18px] font-bold text-[#20262E]">Save Recording</h2>
-                <p className="text-[13px] text-[#57636E] mt-0.5">{fmtT(recTimer)} · {(recBlob.size / 1024 / 1024).toFixed(1)} MB</p>
+                <h2 className="text-[18px] font-bold text-[#0F172A]">Save Recording</h2>
+                <p className="text-[13px] text-[#475569] mt-0.5">{fmtT(recTimer)} · {(recBlob.size / 1024 / 1024).toFixed(1)} MB</p>
               </div>
-              <button onClick={() => setShowUpload(false)} className="p-1.5 text-[#57636E] hover:text-[#57636E] hover:bg-slate-100 rounded-lg transition-colors">
+              <button onClick={() => setShowUpload(false)} className="p-1.5 text-[#475569] hover:text-[#475569] hover:bg-slate-100 rounded-lg transition-colors">
                 <X size={18} />
               </button>
             </div>
@@ -6341,48 +6341,48 @@ export default function ClassRoomPage() {
               {uploadState === "idle" && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-[12px] font-semibold text-[#57636E] uppercase tracking-wider mb-1.5">Video Title</label>
+                    <label className="block text-[12px] font-semibold text-[#475569] uppercase tracking-wider mb-1.5">Video Title</label>
                     <input
                       type="text"
                       value={uploadTitle}
                       onChange={e => setUploadTitle(e.target.value)}
                       placeholder={meeting?.title ? `${meeting.title} - Recording` : `Meeting Recording`}
-                      className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-slate-400 focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/20 text-[#20262E] placeholder-slate-400 rounded-xl text-sm outline-none transition-all"
+                      className="w-full px-3.5 py-2.5 bg-white border border-[#E2E8F0] hover:border-slate-400 focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 text-[#0F172A] placeholder-slate-400 rounded-xl text-sm outline-none transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-semibold text-[#57636E] uppercase tracking-wider mb-1.5">Description <span className="text-[#57636E] normal-case font-normal">(optional)</span></label>
+                    <label className="block text-[12px] font-semibold text-[#475569] uppercase tracking-wider mb-1.5">Description <span className="text-[#475569] normal-case font-normal">(optional)</span></label>
                     <textarea
                       value={uploadDesc}
                       onChange={e => setUploadDesc(e.target.value)}
                       placeholder="Add a brief description..."
                       rows={2}
-                      className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-slate-400 focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/20 text-[#20262E] placeholder-slate-400 rounded-xl text-sm outline-none transition-all resize-none"
+                      className="w-full px-3.5 py-2.5 bg-white border border-[#E2E8F0] hover:border-slate-400 focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 text-[#0F172A] placeholder-slate-400 rounded-xl text-sm outline-none transition-all resize-none"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[12px] font-semibold text-[#57636E] uppercase tracking-wider mb-1.5">Save to Folder</label>
+                    <label className="block text-[12px] font-semibold text-[#475569] uppercase tracking-wider mb-1.5">Save to Folder</label>
                     <div className="relative">
                       <button 
                         type="button"
                         onClick={() => setIsCourseDropdownOpen(!isCourseDropdownOpen)}
-                        className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-slate-400 text-[#20262E] rounded-xl text-sm flex items-center justify-between outline-none transition-colors"
+                        className="w-full px-3.5 py-2.5 bg-white border border-[#E2E8F0] hover:border-slate-400 text-[#0F172A] rounded-xl text-sm flex items-center justify-between outline-none transition-colors"
                       >
                         <span className="font-medium">
                           {uploadCourse ? (courses.find(c => c.id === uploadCourse)?.name || "Selected Folder") : "Library Root (no folder)"}
                         </span>
-                        <ChevronDown size={16} className={`text-[#57636E] transition-transform ${isCourseDropdownOpen ? "rotate-180" : ""}`} />
+                        <ChevronDown size={16} className={`text-[#475569] transition-transform ${isCourseDropdownOpen ? "rotate-180" : ""}`} />
                       </button>
                       
                       {isCourseDropdownOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#E2E7EC] rounded-xl shadow-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-1">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#E2E8F0] rounded-xl shadow-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-1">
                           <div className="max-h-48 overflow-y-auto py-1">
                             <button 
                               type="button"
                               onClick={() => { setUploadCourse(""); setIsCourseDropdownOpen(false); }}
-                              className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#154360] hover:text-white transition-colors ${!uploadCourse ? "bg-[#154360] text-white" : "text-[#20262E]"}`}
+                              className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#4F46E5] hover:text-white transition-colors ${!uploadCourse ? "bg-[#4F46E5] text-white" : "text-[#0F172A]"}`}
                             >
                               Library Root (no folder)
                             </button>
@@ -6391,7 +6391,7 @@ export default function ClassRoomPage() {
                                 key={c.id}
                                 type="button"
                                 onClick={() => { setUploadCourse(c.id); setIsCourseDropdownOpen(false); }}
-                                className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#154360] hover:text-white transition-colors ${uploadCourse === c.id ? "bg-[#154360] text-white" : "text-[#20262E]"}`}
+                                className={`w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-[#4F46E5] hover:text-white transition-colors ${uploadCourse === c.id ? "bg-[#4F46E5] text-white" : "text-[#0F172A]"}`}
                               >
                                 {c.name}
                               </button>
@@ -6403,37 +6403,37 @@ export default function ClassRoomPage() {
                   </div>
 
                   <div className="flex gap-3 pt-1">
-                    <button onClick={() => setShowUpload(false)} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-sm font-semibold rounded-xl transition-colors">Discard</button>
-                    <button onClick={handleUpload} className="flex-1 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"><Upload size={15} />Upload to Library</button>
+                    <button onClick={() => setShowUpload(false)} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#0F172A] text-sm font-semibold rounded-xl transition-colors">Discard</button>
+                    <button onClick={handleUpload} className="flex-1 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm"><Upload size={15} />Upload to Library</button>
                   </div>
                 </div>
               )}
               {uploadState === "uploading" && (
                 <div className="flex flex-col items-center gap-4 py-6 animate-in fade-in">
-                  <Loader2 className="w-10 h-10 text-[#154360] animate-spin" />
+                  <Loader2 className="w-10 h-10 text-[#4F46E5] animate-spin" />
                   <div className="w-full">
-                    <div className="flex justify-between mb-2"><span className="text-sm text-[#57636E]">Uploading...</span><span className="text-sm text-[#154360] font-bold">{uploadProgress}%</span></div>
-                    <div className="w-full bg-slate-100 rounded-full h-2"><div className="bg-[#154360] h-2 rounded-full transition-all" style={{ width: uploadProgress + "%" }} /></div>
+                    <div className="flex justify-between mb-2"><span className="text-sm text-[#475569]">Uploading...</span><span className="text-sm text-[#4F46E5] font-bold">{uploadProgress}%</span></div>
+                    <div className="w-full bg-slate-100 rounded-full h-2"><div className="bg-[#4F46E5] h-2 rounded-full transition-all" style={{ width: uploadProgress + "%" }} /></div>
                   </div>
                 </div>
               )}
               {uploadState === "done" && (
                 <div className="flex flex-col items-center gap-3 py-6 animate-in zoom-in-95">
-                  <div className="w-14 h-14 bg-[#EBF5FB]/40 border border-[#2980B9]/30 rounded-full flex items-center justify-center"><Check size={24} className="text-green-500" /></div>
-                  <p className="text-base font-bold text-[#20262E]">Recording Saved!</p>
-                  <p className="text-sm text-[#57636E] text-center">Available in Library. Redirecting...</p>
+                  <div className="w-14 h-14 bg-[#EEF2FF]/40 border border-[#2980B9]/30 rounded-full flex items-center justify-center"><Check size={24} className="text-green-500" /></div>
+                  <p className="text-base font-bold text-[#0F172A]">Recording Saved!</p>
+                  <p className="text-sm text-[#475569] text-center">Available in Library. Redirecting...</p>
                 </div>
               )}
               {uploadState === "error" && (
                 <div className="flex flex-col items-center gap-3 py-6 animate-in zoom-in-95">
-                  <div className="w-14 h-14 bg-[#154360]/10 border border-[#154360]/30 rounded-full flex items-center justify-center"><AlertCircle size={24} className="text-[#154360]" /></div>
-                  <p className="text-base font-bold text-[#20262E]">Upload Failed</p>
-                  <p className="text-xs text-[#57636E] text-center max-w-sm px-2">
+                  <div className="w-14 h-14 bg-[#4F46E5]/10 border border-[#4F46E5]/30 rounded-full flex items-center justify-center"><AlertCircle size={24} className="text-[#4F46E5]" /></div>
+                  <p className="text-base font-bold text-[#0F172A]">Upload Failed</p>
+                  <p className="text-xs text-[#475569] text-center max-w-sm px-2">
                     {uploadErrorMsg || "Upload encountered an issue. You can retry direct Google Drive upload or download your recording locally."}
                   </p>
                   <div className="flex gap-3 w-full mt-2">
-                    <a href={URL.createObjectURL(recBlob)} download={(meeting?.title || "class") + "-recording.webm"} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-sm font-semibold rounded-xl text-center transition-colors">Download</a>
-                    <button onClick={handleUpload} className="flex-1 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white text-sm font-bold rounded-xl transition-colors">Try Again</button>
+                    <a href={URL.createObjectURL(recBlob)} download={(meeting?.title || "class") + "-recording.webm"} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-[#0F172A] text-sm font-semibold rounded-xl text-center transition-colors">Download</a>
+                    <button onClick={handleUpload} className="flex-1 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-sm font-bold rounded-xl transition-colors">Try Again</button>
                   </div>
                 </div>
               )}
@@ -6576,41 +6576,41 @@ export default function ClassRoomPage() {
 
 
       {toast && (
-        <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 z-[200] max-w-sm ${toast.ok ? "bg-white border border-[#E2E7EC] text-[#20262E]" : "bg-rose-50 border border-rose-200 text-rose-800"}`}>
+        <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 z-[200] max-w-sm ${toast.ok ? "bg-white border border-[#E2E8F0] text-[#0F172A]" : "bg-rose-50 border border-rose-200 text-rose-800"}`}>
           <span className="text-sm font-semibold">{toast.msg}</span>
-          <button onClick={() => setToast(null)} className="p-0.5 hover:bg-slate-100 rounded-lg shrink-0 text-[#57636E]"><X size={14} /></button>
+          <button onClick={() => setToast(null)} className="p-0.5 hover:bg-slate-100 rounded-lg shrink-0 text-[#475569]"><X size={14} /></button>
         </div>
       )}
 
       {/* ─── SAVING RECORDING MODAL (ON END MEETING) ─── */}
       {isEndingAndSaving && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[300] flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E2E7EC] rounded-3xl shadow-2xl w-full max-w-md p-6 text-center space-y-5 animate-in zoom-in-95 duration-200 text-[#20262E]">
-            <div className="w-16 h-16 rounded-2xl bg-[#EBF5FB] border border-[#154360]/20 flex items-center justify-center mx-auto text-[#154360]">
+          <div className="bg-white border border-[#E2E8F0] rounded-3xl shadow-2xl w-full max-w-md p-6 text-center space-y-5 animate-in zoom-in-95 duration-200 text-[#0F172A]">
+            <div className="w-16 h-16 rounded-2xl bg-[#EEF2FF] border border-[#4F46E5]/20 flex items-center justify-center mx-auto text-[#4F46E5]">
               {endingProgress >= 100 ? (
                 <Check size={32} className="text-emerald-600" />
               ) : (
-                <Loader2 size={32} className="animate-spin text-[#154360]" />
+                <Loader2 size={32} className="animate-spin text-[#4F46E5]" />
               )}
             </div>
             <div>
-              <h3 className="text-lg font-black text-[#20262E]">
+              <h3 className="text-lg font-black text-[#0F172A]">
                 {endingProgress >= 100 ? "Recording Saved to Google Drive!" : "Saving Class Recording"}
               </h3>
-              <p className="text-xs text-[#57636E] mt-1 font-medium">
+              <p className="text-xs text-[#475569] mt-1 font-medium">
                 {endingSaveStatus || "Uploading lecture video to your selected course folder..."}
               </p>
             </div>
 
             <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200">
               <div
-                className="bg-[#154360] h-full rounded-full transition-all duration-300"
+                className="bg-[#4F46E5] h-full rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(100, Math.max(5, endingProgress))}%` }}
               />
             </div>
-            <div className="flex justify-between text-[11px] font-bold text-[#57636E]">
+            <div className="flex justify-between text-[11px] font-bold text-[#475569]">
               <span>Google Drive Cloud Sync</span>
-              <span className="text-[#154360]">{endingProgress}%</span>
+              <span className="text-[#4F46E5]">{endingProgress}%</span>
             </div>
 
             <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl py-2 px-3">

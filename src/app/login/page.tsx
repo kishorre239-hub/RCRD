@@ -103,31 +103,31 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8] font-sans text-[#20262E] flex flex-col justify-between selection:bg-[#EBF5FB] selection:text-[#0E2F44]">
+    <div className="min-h-screen bg-[#F8FAFC] font-sans text-[#0F172A] flex flex-col justify-between selection:bg-[#EEF2FF] selection:text-[#4338CA]">
       
       {/* Top Navbar */}
-      <header className="h-24 sm:h-26 px-6 sm:px-12 flex items-center justify-between border-b border-[#E2E7EC] bg-white sticky top-0 z-30 shadow-xs">
+      <header className="h-24 sm:h-26 px-6 sm:px-12 flex items-center justify-between border-b border-[#E2E8F0] bg-white sticky top-0 z-30 shadow-xs">
         <Link href="/" className="flex items-center justify-center group">
           <RcrdLogo className="h-22 sm:h-24 md:h-26 w-auto scale-175 sm:scale-190 md:scale-205 origin-center transition-transform group-hover:scale-215" />
         </Link>
-        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EBF5FB] border border-[#154360]/20 text-[#154360] text-xs font-semibold">
-          <ShieldCheck size={14} className="text-[#154360]" />
+        <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EEF2FF] border border-[#4F46E5]/20 text-[#4F46E5] text-xs font-semibold">
+          <ShieldCheck size={14} className="text-[#4F46E5]" />
           <span>Managed Workspace Login</span>
         </div>
       </header>
 
       {/* Main Container */}
       <main className="flex-1 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-[440px] bg-white border border-[#E2E7EC] rounded-3xl p-8 sm:p-10 shadow-sm shadow-slate-200/50">
+        <div className="w-full max-w-[440px] bg-white border border-[#E2E8F0] rounded-3xl p-8 sm:p-10 shadow-sm shadow-slate-200/50">
           
           <div className="text-center mb-8">
-            <div className="w-12 h-12 bg-[#EBF5FB] border border-[#154360]/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#154360]">
+            <div className="w-12 h-12 bg-[#EEF2FF] border border-[#4F46E5]/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#4F46E5]">
               <Sparkles size={22} />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#20262E] tracking-tight">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
               Sign In to RCRD
             </h1>
-            <p className="text-xs text-[#57636E] mt-1.5 font-normal">
+            <p className="text-xs text-[#475569] mt-1.5 font-normal">
               Access is provisioned by workspace administrators. Enter your employee credentials to continue.
             </p>
           </div>
@@ -141,45 +141,45 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
                 Work Email
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E]" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#475569]" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8] hover:bg-slate-50 focus:bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs text-[#20262E] outline-none transition-all font-medium placeholder:text-[#57636E]"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#F8FAFC] hover:bg-slate-50 focus:bg-white border border-[#E2E8F0] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/15 rounded-xl text-xs text-[#0F172A] outline-none transition-all font-medium placeholder:text-[#475569]"
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider">
+                <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider">
                   Password
                 </label>
-                <a href="#" className="text-[11px] font-semibold text-[#154360] hover:underline">
+                <a href="#" className="text-[11px] font-semibold text-[#4F46E5] hover:underline">
                   Forgot password?
                 </a>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E]" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#475569]" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
-                  className="w-full pl-10 pr-10 py-2.5 bg-[#F5F6F8] hover:bg-slate-50 focus:bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs text-[#20262E] outline-none transition-all font-medium placeholder:text-[#57636E]"
+                  className="w-full pl-10 pr-10 py-2.5 bg-[#F8FAFC] hover:bg-slate-50 focus:bg-white border border-[#E2E8F0] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/15 rounded-xl text-xs text-[#0F172A] outline-none transition-all font-medium placeholder:text-[#475569]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#20262E]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#475569] hover:text-[#0F172A]"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -187,12 +187,12 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-[#57636E]">
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-[#475569]">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-[#E2E7EC] text-[#154360] focus:ring-[#154360] cursor-pointer"
+                  className="w-4 h-4 rounded border-[#E2E8F0] text-[#4F46E5] focus:ring-[#4F46E5] cursor-pointer"
                 />
                 <span>Remember this device</span>
               </label>
@@ -201,7 +201,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full mt-2 py-3 bg-[#154360] hover:bg-[#0E2F44] disabled:opacity-60 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-md cursor-pointer"
+              className="w-full mt-2 py-3 bg-[#4F46E5] hover:bg-[#4338CA] disabled:opacity-60 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-md cursor-pointer"
             >
               {isLoading ? (
                 <span>Signing in...</span>
@@ -215,26 +215,26 @@ export default function LoginPage() {
           </form>
 
           {/* Quick Demo Credentials for Fast Testing */}
-          <div className="mt-6 pt-5 border-t border-[#E2E7EC]">
-            <p className="text-[11px] font-bold text-[#57636E] uppercase tracking-wider mb-2.5 text-center">
+          <div className="mt-6 pt-5 border-t border-[#E2E8F0]">
+            <p className="text-[11px] font-bold text-[#475569] uppercase tracking-wider mb-2.5 text-center">
               Quick 1-Click Demo Accounts
             </p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <button
                 type="button"
                 onClick={() => handleQuickDemo("admin@rcrd.com", "2026")}
-                className="p-2 rounded-xl border border-[#E2E7EC] hover:border-[#154360] hover:bg-[#EBF5FB] text-left transition-colors cursor-pointer"
+                className="p-2 rounded-xl border border-[#E2E8F0] hover:border-[#4F46E5] hover:bg-[#EEF2FF] text-left transition-colors cursor-pointer"
               >
-                <div className="font-bold text-[#20262E]">Admin Studio</div>
-                <div className="text-[10px] text-[#57636E]">admin@rcrd.com</div>
+                <div className="font-bold text-[#0F172A]">Admin Studio</div>
+                <div className="text-[10px] text-[#475569]">admin@rcrd.com</div>
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickDemo("geonixa@rcrd.com", "9908")}
-                className="p-2 rounded-xl border border-[#E2E7EC] hover:border-[#154360] hover:bg-[#EBF5FB] text-left transition-colors cursor-pointer"
+                className="p-2 rounded-xl border border-[#E2E8F0] hover:border-[#4F46E5] hover:bg-[#EEF2FF] text-left transition-colors cursor-pointer"
               >
-                <div className="font-bold text-[#20262E]">Geonixa Host</div>
-                <div className="text-[10px] text-[#57636E]">geonixa@rcrd.com</div>
+                <div className="font-bold text-[#0F172A]">Geonixa Host</div>
+                <div className="text-[10px] text-[#475569]">geonixa@rcrd.com</div>
               </button>
             </div>
           </div>
@@ -243,7 +243,7 @@ export default function LoginPage() {
       </main>
 
       {/* Footer */}
-      <footer className="py-6 px-6 text-center text-xs text-[#57636E] border-t border-[#E2E7EC] bg-white">
+      <footer className="py-6 px-6 text-center text-xs text-[#475569] border-t border-[#E2E8F0] bg-white">
         © 2026 RCRD Technologies. All rights reserved · Built with Glassdoor Prism theme.
       </footer>
     </div>

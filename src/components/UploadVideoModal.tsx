@@ -120,23 +120,23 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div 
-        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#E2E7EC] overflow-hidden"
+        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#E2E8F0] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 border-b border-[#E2E7EC]">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 sm:py-5 border-b border-[#E2E8F0]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#EBF5FB] text-[#154360] flex items-center justify-center shadow-inner">
+            <div className="w-10 h-10 rounded-2xl bg-[#EEF2FF] text-[#4F46E5] flex items-center justify-center shadow-inner">
               <Upload size={20} className="stroke-[2.5]" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-bold text-[#20262E]">Upload Video to Project</h3>
-              <p className="text-xs text-[#57636E]">Save and organize video in your project folder</p>
+              <h3 className="text-base sm:text-lg font-bold text-[#0F172A]">Upload Video to Project</h3>
+              <p className="text-xs text-[#475569]">Save and organize video in your project folder</p>
             </div>
           </div>
           <button 
             onClick={resetForm}
-            className="p-2 text-[#57636E] hover:text-[#57636E] hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+            className="p-2 text-[#475569] hover:text-[#475569] hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
           >
             <X size={18} />
           </button>
@@ -146,12 +146,12 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 max-h-[75vh] overflow-y-auto custom-scrollbar">
           {uploadState === "success" ? (
             <div className="py-8 text-center space-y-4">
-              <div className="w-16 h-16 bg-[#EBF5FB] text-[#154360] rounded-full mx-auto flex items-center justify-center shadow-lg shadow-[#154360]/20">
+              <div className="w-16 h-16 bg-[#EEF2FF] text-[#4F46E5] rounded-full mx-auto flex items-center justify-center shadow-lg shadow-[#4F46E5]/20">
                 <Check size={32} className="stroke-[3]" />
               </div>
               <div>
-                <h4 className="text-xl font-extrabold text-[#20262E]">Upload Complete!</h4>
-                <p className="text-sm text-[#57636E] mt-1 max-w-xs mx-auto">
+                <h4 className="text-xl font-extrabold text-[#0F172A]">Upload Complete!</h4>
+                <p className="text-sm text-[#475569] mt-1 max-w-xs mx-auto">
                   Your video has been saved to the selected project folder.
                 </p>
               </div>
@@ -161,14 +161,14 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
                     resetForm();
                     router.push("/library");
                   }}
-                  className="px-6 py-3 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-[#154360]/30 transition-all cursor-pointer"
+                  className="px-6 py-3 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-[#4F46E5]/30 transition-all cursor-pointer"
                 >
                   <span>Go to Library</span>
                   <ArrowRight size={16} />
                 </button>
                 <button
                   onClick={resetForm}
-                  className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-[#20262E] rounded-xl text-sm font-semibold transition-all cursor-pointer"
+                  className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-[#0F172A] rounded-xl text-sm font-semibold transition-all cursor-pointer"
                 >
                   Done
                 </button>
@@ -178,7 +178,7 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
             <>
               {/* Dropzone */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#57636E] mb-2">
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#475569] mb-2">
                   Video File
                 </label>
                 <div
@@ -197,10 +197,10 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
                   onClick={() => fileInputRef.current?.click()}
                   className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
                     isDragging
-                      ? "border-[#154360] bg-[#EBF5FB]"
+                      ? "border-[#4F46E5] bg-[#EEF2FF]"
                       : selectedFile
-                      ? "border-[#154360]/40 bg-[#EBF5FB]/40"
-                      : "border-[#E2E7EC] hover:border-[#154360] hover:bg-[#F5F6F8]"
+                      ? "border-[#4F46E5]/40 bg-[#EEF2FF]/40"
+                      : "border-[#E2E8F0] hover:border-[#4F46E5] hover:bg-[#F8FAFC]"
                   }`}
                 >
                   <input
@@ -217,28 +217,28 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
 
                   {selectedFile ? (
                     <div className="flex items-center justify-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#154360] text-white flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-[#4F46E5] text-white flex items-center justify-center">
                         <Film size={20} />
                       </div>
                       <div className="text-left">
-                        <p className="text-sm font-bold text-[#20262E] truncate max-w-[280px]">
+                        <p className="text-sm font-bold text-[#0F172A] truncate max-w-[280px]">
                           {selectedFile.name}
                         </p>
-                        <p className="text-xs text-[#57636E]">
+                        <p className="text-xs text-[#475569]">
                           {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB · Click or drag to change
                         </p>
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <div className="w-12 h-12 rounded-2xl bg-[#EBF5FB] text-[#154360] mx-auto flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-2xl bg-[#EEF2FF] text-[#4F46E5] mx-auto flex items-center justify-center">
                         <Upload size={22} className="stroke-[2.2]" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-[#20262E]">
-                          Click to select a video <span className="font-normal text-[#57636E]">or drag & drop</span>
+                        <p className="text-sm font-bold text-[#0F172A]">
+                          Click to select a video <span className="font-normal text-[#475569]">or drag & drop</span>
                         </p>
-                        <p className="text-xs text-[#57636E] mt-1">MP4, WebM, MOV, or MKV up to 500MB</p>
+                        <p className="text-xs text-[#475569] mt-1">MP4, WebM, MOV, or MKV up to 500MB</p>
                       </div>
                     </div>
                   )}
@@ -247,7 +247,7 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
 
               {/* Video Title */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#57636E] mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#475569] mb-1.5">
                   Video Title
                 </label>
                 <input
@@ -255,21 +255,21 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
                   value={videoTitle}
                   onChange={(e) => setVideoTitle(e.target.value)}
                   placeholder="e.g., Sprint Planning Demo, Project Overview"
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E2E7EC] focus:border-[#154360] focus:ring-4 focus:ring-[#154360]/10 outline-none text-sm text-[#20262E] font-medium transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#E2E8F0] focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10 outline-none text-sm text-[#0F172A] font-medium transition-all"
                 />
               </div>
 
               {/* Project Folder Selection */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-[#57636E]">
+                  <label className="text-xs font-bold uppercase tracking-wider text-[#475569]">
                     Project / Target Folder
                   </label>
                   {!isCreatingNewFolder && (
                     <button
                       type="button"
                       onClick={() => setIsCreatingNewFolder(true)}
-                      className="text-xs font-bold text-[#154360] hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-bold text-[#4F46E5] hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <Plus size={12} /> New Project Folder
                     </button>
@@ -277,20 +277,20 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
                 </div>
 
                 {isCreatingNewFolder ? (
-                  <div className="p-3 bg-[#F5F6F8] rounded-xl border border-[#E2E7EC] space-y-2">
+                  <div className="p-3 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] space-y-2">
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
                         value={newFolderName}
                         onChange={(e) => setNewFolderName(e.target.value)}
                         placeholder="Enter new project folder name..."
-                        className="flex-1 px-3 py-1.5 bg-white border border-[#E2E7EC] rounded-lg text-xs font-semibold focus:border-[#154360] outline-none"
+                        className="flex-1 px-3 py-1.5 bg-white border border-[#E2E8F0] rounded-lg text-xs font-semibold focus:border-[#4F46E5] outline-none"
                       />
                       <button
                         type="button"
                         onClick={handleCreateFolder}
                         disabled={isCreatingFolderLoading || !newFolderName.trim()}
-                        className="px-3 py-1.5 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer"
+                        className="px-3 py-1.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer"
                       >
                         {isCreatingFolderLoading ? <Loader2 size={12} className="animate-spin" /> : "Save"}
                       </button>
@@ -300,7 +300,7 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
                           setIsCreatingNewFolder(false);
                           setNewFolderName("");
                         }}
-                        className="px-2 py-1.5 text-xs text-[#57636E] hover:text-[#20262E]"
+                        className="px-2 py-1.5 text-xs text-[#475569] hover:text-[#0F172A]"
                       >
                         Cancel
                       </button>
@@ -311,7 +311,7 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
                     <select
                       value={selectedCourseId}
                       onChange={(e) => setSelectedCourseId(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-[#E2E7EC] focus:border-[#154360] focus:ring-4 focus:ring-[#154360]/10 outline-none text-sm text-[#20262E] font-semibold bg-white cursor-pointer appearance-none transition-all"
+                      className="w-full px-4 py-2.5 rounded-xl border border-[#E2E8F0] focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10 outline-none text-sm text-[#0F172A] font-semibold bg-white cursor-pointer appearance-none transition-all"
                     >
                       <option value="root">Default / Root Library</option>
                       {courses.map((c) => (
@@ -320,14 +320,14 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
                         </option>
                       ))}
                     </select>
-                    <Folder size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#57636E] pointer-events-none" />
+                    <Folder size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#475569] pointer-events-none" />
                   </div>
                 )}
               </div>
 
               {/* Error Message */}
               {errorMessage && (
-                <div className="flex items-center gap-2 p-3 bg-[#154360]/10 border border-[#154360]/20 text-[#154360] rounded-xl text-xs font-semibold">
+                <div className="flex items-center gap-2 p-3 bg-[#4F46E5]/10 border border-[#4F46E5]/20 text-[#4F46E5] rounded-xl text-xs font-semibold">
                   <AlertCircle size={15} className="shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
@@ -336,16 +336,16 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
               {/* Progress bar */}
               {uploadState === "uploading" && (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-[#57636E]">
+                  <div className="flex items-center justify-between text-xs font-bold text-[#475569]">
                     <span className="flex items-center gap-2">
-                      <Loader2 size={14} className="animate-spin text-[#154360]" />
+                      <Loader2 size={14} className="animate-spin text-[#4F46E5]" />
                       Uploading video...
                     </span>
-                    <span className="text-[#154360]">{uploadProgress}%</span>
+                    <span className="text-[#4F46E5]">{uploadProgress}%</span>
                   </div>
                   <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#154360] rounded-full transition-all duration-300 shadow-sm"
+                      className="h-full bg-[#4F46E5] rounded-full transition-all duration-300 shadow-sm"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
@@ -357,18 +357,18 @@ export default function UploadVideoModal({ isOpen, onClose, onUploadComplete }: 
 
         {/* Footer */}
         {uploadState !== "success" && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 bg-[#F5F6F8] border-t border-[#E2E7EC]">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 bg-[#F8FAFC] border-t border-[#E2E8F0]">
             <button
               onClick={resetForm}
               disabled={uploadState === "uploading"}
-              className="px-5 py-2.5 text-sm font-semibold text-[#57636E] hover:text-[#20262E] hover:bg-slate-200/50 rounded-xl transition-all disabled:opacity-50 cursor-pointer"
+              className="px-5 py-2.5 text-sm font-semibold text-[#475569] hover:text-[#0F172A] hover:bg-slate-200/50 rounded-xl transition-all disabled:opacity-50 cursor-pointer"
             >
               Cancel
             </button>
             <button
               onClick={handleUpload}
               disabled={uploadState === "uploading" || !selectedFile}
-              className="px-6 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-[#154360]/25 transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
+              className="px-6 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-[#4F46E5]/25 transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
             >
               {uploadState === "uploading" ? (
                 <>

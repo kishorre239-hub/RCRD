@@ -92,7 +92,7 @@ function PushRow({
     return (
       <button 
         onClick={() => onToggle(category, item, device)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-[#154360]' : 'bg-slate-300'}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-[#4F46E5]' : 'bg-slate-300'}`}
       >
         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isActive ? 'translate-x-6' : 'translate-x-1'}`} />
       </button>
@@ -100,8 +100,8 @@ function PushRow({
   };
 
   return (
-    <div className="flex items-center justify-between py-4 border-b border-[#E2E7EC] last:border-0 hover:bg-[#F5F6F8] transition-colors px-2">
-      <div className="flex-1 text-[13px] text-[#20262E]">{label}</div>
+    <div className="flex items-center justify-between py-4 border-b border-[#E2E8F0] last:border-0 hover:bg-[#F8FAFC] transition-colors px-2">
+      <div className="flex-1 text-[13px] text-[#0F172A]">{label}</div>
       <div className="flex items-center gap-16 pr-8">
         <div className="w-16 flex justify-center">{renderBtn('email', email)}</div>
         <div className="w-16 flex justify-center">{renderBtn('desktop', desktop)}</div>
@@ -583,7 +583,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="relative flex h-full w-full bg-white text-[#20262E] font-sans overflow-hidden">
+    <div className="relative flex h-full w-full bg-white text-[#0F172A] font-sans overflow-hidden">
       {/* Mobile Drawer Backdrop */}
       {isMobileMenuOpen && (
         <div 
@@ -592,13 +592,13 @@ export default function SettingsPage() {
         />
       )}
 
-      {/* Sidebar - Crisp Light Mode with Mobile Drawer Support */}
-      <aside className={`w-[280px] flex-shrink-0 flex-col border-r border-[#E2E7EC] bg-white h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden transition-all duration-300 ${
+      {/* Sidebar - Midnight Navy #0F172A with active glow indicator in #4F46E5 */}
+      <aside className={`w-[280px] flex-shrink-0 flex-col border-r border-[#1E293B] bg-[#0F172A] h-full shadow-[4px_0_24px_rgba(0,0,0,0.15)] overflow-hidden transition-all duration-300 ${
         isMobileMenuOpen 
           ? "fixed inset-y-0 left-0 flex z-50 shadow-2xl" 
           : "hidden md:flex z-20"
       }`}>
-        <div className="relative h-24 sm:h-26 flex items-center justify-center px-4 border-b border-[#E2E7EC] flex-shrink-0 w-full overflow-hidden">
+        <div className="relative h-24 sm:h-26 flex items-center justify-center px-4 border-b border-[#1E293B] flex-shrink-0 w-full overflow-hidden bg-[#0F172A]">
           <div 
             className="flex items-center justify-center cursor-pointer group mx-auto" 
             onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}
@@ -608,13 +608,13 @@ export default function SettingsPage() {
           <button 
             type="button"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 md:hidden p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
+            className="absolute right-4 top-1/2 -translate-y-1/2 md:hidden p-1.5 text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto py-5 px-4 custom-scrollbar min-h-0">
+        <div className="flex-1 overflow-y-auto py-5 px-4 custom-scrollbar min-h-0 bg-[#0F172A]">
           <nav className="space-y-1">
             {canAccess('for-you') && <SidebarItem icon={<HomeIcon size={18} />} label="For You" href="/" />}
             {canAccess('library') && <SidebarItem icon={<LibraryIcon size={18} />} label="Library" href="/library" />}
@@ -637,7 +637,7 @@ export default function SettingsPage() {
 
           {(canAccess('manage-users') || canAccess('workspace-info')) && (
             <div className="mt-10">
-              <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#57636E] mb-3">Workspace Admin</h3>
+              <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-3">Workspace Admin</h3>
               <nav className="space-y-1">
                 {canAccess('manage-users') && (
                   <SidebarItem 
@@ -690,26 +690,26 @@ export default function SettingsPage() {
           <div className="w-full max-w-[1500px] mx-auto space-y-6">
             {/* Header Section */}
             <div className="mb-2">
-              <div className="flex items-center gap-2 text-xs font-semibold text-[#57636E] mb-1">
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#475569] mb-1">
                 <span>{activeTab === 'users' || activeTab === 'workspace' ? 'Workspace Admin' : 'Account'}</span>
                 <span>/</span>
-                <span className="text-[#154360] font-bold">
+                <span className="text-[#4F46E5] font-bold">
                   {activeTab === 'users' ? 'Users & Groups' : (activeTab === 'workspace' ? 'Workspace Info' : 'Personal Settings')}
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-[30px] font-extrabold text-[#20262E] leading-tight tracking-tight">
+              <h1 className="text-2xl sm:text-[30px] font-extrabold text-[#0F172A] leading-tight tracking-tight">
                 {activeTab === 'users' ? 'Users & Groups Provisioning' : (activeTab === 'workspace' ? 'Workspace Information & Batches' : 'Personal Settings')}
               </h1>
             </div>
 
             {/* Banner (only for personal settings, not when viewing users or workspace) */}
             {activeTab !== 'users' && activeTab !== 'workspace' && (
-              <div className="bg-[#F5F6F8] border border-[#E2E7EC] rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-8">
+              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-8">
                 <div className="flex items-center gap-3">
-                  <Info size={18} className="text-[#57636E] shrink-0" />
-                  <p className="text-[14px] text-[#20262E]">Your profile is linked to RCRD. To edit your info, visit your profile on RCRD.</p>
+                  <Info size={18} className="text-[#475569] shrink-0" />
+                  <p className="text-[14px] text-[#0F172A]">Your profile is linked to RCRD. To edit your info, visit your profile on RCRD.</p>
                 </div>
-                <button className="bg-slate-200 hover:bg-slate-300 text-[#20262E] text-[13px] font-bold px-4 py-1.5 rounded transition-colors shrink-0">
+                <button className="bg-slate-200 hover:bg-slate-300 text-[#0F172A] text-[13px] font-bold px-4 py-1.5 rounded transition-colors shrink-0">
                   Learn more
                 </button>
               </div>
@@ -717,7 +717,7 @@ export default function SettingsPage() {
 
             {/* Tabs (only when personal settings) */}
             {activeTab !== 'users' && activeTab !== 'workspace' && (
-              <div className="flex items-center gap-6 border-b border-[#E2E7EC] mb-8 overflow-x-auto">
+              <div className="flex items-center gap-6 border-b border-[#E2E8F0] mb-8 overflow-x-auto">
                 {[
                   { id: "my-account", label: "My account" },
                   { id: "meeting-recordings", label: "Meeting recordings" },
@@ -731,8 +731,8 @@ export default function SettingsPage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`pb-3 text-[14px] font-medium whitespace-nowrap border-b-2 transition-colors ${
                       activeTab === tab.id 
-                        ? 'border-[#154360] text-[#154360] font-bold' 
-                        : 'border-transparent text-[#57636E] hover:text-[#20262E] hover:border-[#E2E7EC]'
+                        ? 'border-[#4F46E5] text-[#4F46E5] font-bold' 
+                        : 'border-transparent text-[#475569] hover:text-[#0F172A] hover:border-[#E2E8F0]'
                     }`}
                   >
                     {tab.label}
@@ -750,28 +750,28 @@ export default function SettingsPage() {
 
                 {/* Toast Notification */}
                 {batchToast && (
-                  <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-[#154360] text-white text-xs font-semibold rounded-xl shadow-xl shadow-[#154360]/30 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-[#4F46E5] text-white text-xs font-semibold rounded-xl shadow-xl shadow-[#4F46E5]/30 animate-in fade-in slide-in-from-bottom-2 duration-200">
                     <Check size={16} className="text-emerald-400 shrink-0" />
                     <span>{batchToast}</span>
                   </div>
                 )}
 
                 {/* Class Batches & Student Enrollment Section */}
-                <div className="border border-[#E2E7EC] rounded-2xl p-6 sm:p-8 bg-white shadow-xs space-y-6">
+                <div className="border border-[#E2E8F0] rounded-2xl p-6 sm:p-8 bg-white shadow-xs space-y-6">
                   {/* Section Header */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-[#E2E7EC]">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-[#E2E8F0]">
                     <div className="flex items-start gap-3.5">
                       <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200/80 flex items-center justify-center text-indigo-700 shrink-0 shadow-2xs">
                         <Users size={24} />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-bold text-[#20262E]">Class Batches & Student Enrollment</h3>
+                          <h3 className="text-lg font-bold text-[#0F172A]">Class Batches & Student Enrollment</h3>
                           <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
                             {batches.length} {batches.length === 1 ? 'Batch' : 'Batches'}
                           </span>
                         </div>
-                        <p className="text-xs text-[#57636E] mt-0.5 max-w-xl">
+                        <p className="text-xs text-[#475569] mt-0.5 max-w-xl">
                           Create dedicated cohorts (e.g. Web Development). When scheduling a meeting, select a batch so only enrolled students can join—outsiders are strictly blocked.
                         </p>
                       </div>
@@ -781,7 +781,7 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={openCreateBatch}
-                        className="px-4 py-2.5 bg-gradient-to-r from-[#154360] to-[#0E2F44] hover:brightness-110 active:scale-[0.99] text-white text-xs font-bold rounded-xl shadow-md shadow-[#154360]/20 flex items-center gap-2 transition-all cursor-pointer"
+                        className="px-4 py-2.5 bg-gradient-to-r from-[#4F46E5] to-[#4338CA] hover:brightness-110 active:scale-[0.99] text-white text-xs font-bold rounded-xl shadow-md shadow-[#4F46E5]/20 flex items-center gap-2 transition-all cursor-pointer"
                       >
                         <Plus size={15} />
                         <span>Create New Batch</span>
@@ -793,36 +793,36 @@ export default function SettingsPage() {
                   {batches.length > 0 && (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#57636E]" size={14} />
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#475569]" size={14} />
                         <input
                           type="text"
                           value={batchSearchQuery}
                           onChange={e => setBatchSearchQuery(e.target.value)}
                           placeholder="Search by batch name, topic, or student email..."
-                          className="w-full pl-9 pr-3.5 py-2 bg-[#F8FAFC] border border-[#E2E7EC] focus:border-[#154360] focus:bg-white rounded-xl text-xs outline-none transition-all"
+                          className="w-full pl-9 pr-3.5 py-2 bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#4F46E5] focus:bg-white rounded-xl text-xs outline-none transition-all"
                         />
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-[#57636E]">
+                      <div className="flex items-center gap-2 text-xs text-[#475569]">
                         <Shield size={14} className="text-indigo-600" />
-                        <span>Total Enrolled Students: <strong className="text-[#20262E]">{batches.reduce((acc, b) => acc + (b.studentEmails?.length || 0), 0)}</strong></span>
+                        <span>Total Enrolled Students: <strong className="text-[#0F172A]">{batches.reduce((acc, b) => acc + (b.studentEmails?.length || 0), 0)}</strong></span>
                       </div>
                     </div>
                   )}
 
                   {/* Batches Grid or Empty State */}
                   {loadingBatches ? (
-                    <div className="py-12 text-center text-xs text-[#57636E]">
-                      <div className="inline-block w-6 h-6 border-2 border-[#154360] border-t-transparent rounded-full animate-spin mb-2" />
+                    <div className="py-12 text-center text-xs text-[#475569]">
+                      <div className="inline-block w-6 h-6 border-2 border-[#4F46E5] border-t-transparent rounded-full animate-spin mb-2" />
                       <p>Loading class batches...</p>
                     </div>
                   ) : batches.length === 0 ? (
-                    <div className="p-8 sm:p-10 rounded-2xl border-2 border-dashed border-[#E2E7EC] bg-[#F8FAFC] text-center space-y-4">
+                    <div className="p-8 sm:p-10 rounded-2xl border-2 border-dashed border-[#E2E8F0] bg-[#F8FAFC] text-center space-y-4">
                       <div className="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center mx-auto text-indigo-600">
                         <Users size={28} />
                       </div>
                       <div className="max-w-md mx-auto">
-                        <h4 className="text-sm font-bold text-[#20262E]">No Class Batches Created Yet</h4>
-                        <p className="text-xs text-[#57636E] mt-1">
+                        <h4 className="text-sm font-bold text-[#0F172A]">No Class Batches Created Yet</h4>
+                        <p className="text-xs text-[#475569] mt-1">
                           Create your first batch (e.g. &ldquo;Web Development&rdquo;) and add your student emails. Once created, mentors can select this batch when starting a meeting.
                         </p>
                       </div>
@@ -833,7 +833,7 @@ export default function SettingsPage() {
                           setBatchName("Web Development Batch");
                           setBatchTopic("Full-Stack Web Development");
                         }}
-                        className="px-4 py-2.5 bg-[#154360] hover:bg-[#1A5276] text-white text-xs font-bold rounded-xl shadow-xs inline-flex items-center gap-2 transition-all cursor-pointer"
+                        className="px-4 py-2.5 bg-[#4F46E5] hover:bg-[#1A5276] text-white text-xs font-bold rounded-xl shadow-xs inline-flex items-center gap-2 transition-all cursor-pointer"
                       >
                         <Plus size={14} />
                         <span>Create &ldquo;Web Development&rdquo; Batch</span>
@@ -856,28 +856,28 @@ export default function SettingsPage() {
                           return (
                             <div
                               key={b.id}
-                              className="border border-[#E2E7EC] hover:border-indigo-300 rounded-2xl p-5 bg-white transition-all shadow-xs flex flex-col justify-between"
+                              className="border border-[#E2E8F0] hover:border-indigo-300 rounded-2xl p-5 bg-white transition-all shadow-xs flex flex-col justify-between"
                             >
                               <div>
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2 flex-wrap">
-                                      <h4 className="text-sm font-extrabold text-[#20262E] truncate">
+                                      <h4 className="text-sm font-extrabold text-[#0F172A] truncate">
                                         {b.name}
                                       </h4>
                                       {b.topic && (
-                                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#EBF5FB] text-[#154360] border border-[#154360]/20">
+                                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#EEF2FF] text-[#4F46E5] border border-[#4F46E5]/20">
                                           {b.topic}
                                         </span>
                                       )}
                                     </div>
                                     {b.description && (
-                                      <p className="text-xs text-[#57636E] mt-1 line-clamp-2">
+                                      <p className="text-xs text-[#475569] mt-1 line-clamp-2">
                                         {b.description}
                                       </p>
                                     )}
                                     <div className="mt-2 flex items-center gap-1.5 flex-wrap">
-                                      <span className="text-[11px] font-semibold text-[#57636E]">Assigned Mentor:</span>
+                                      <span className="text-[11px] font-semibold text-[#475569]">Assigned Mentor:</span>
                                       <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 text-purple-800 border border-purple-200">
                                         {b.assignedMentorName || b.assignedMentorEmail || b.mentorEmail || 'All Mentors (Shared)'}
                                       </span>
@@ -889,7 +889,7 @@ export default function SettingsPage() {
                                       type="button"
                                       onClick={() => openEditBatch(b)}
                                       title="Edit Batch"
-                                      className="p-1.5 text-[#57636E] hover:text-[#154360] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
+                                      className="p-1.5 text-[#475569] hover:text-[#4F46E5] hover:bg-[#F8FAFC] rounded-lg transition-colors cursor-pointer"
                                     >
                                       <Edit2 size={14} />
                                     </button>
@@ -897,14 +897,14 @@ export default function SettingsPage() {
                                       type="button"
                                       onClick={() => handleDeleteBatch(b)}
                                       title="Delete Batch"
-                                      className="p-1.5 text-[#57636E] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                      className="p-1.5 text-[#475569] hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                                     >
                                       <Trash2 size={14} />
                                     </button>
                                   </div>
                                 </div>
 
-                                <div className="mt-3 pt-3 border-t border-[#E2E7EC]/70 flex items-center justify-between text-xs">
+                                <div className="mt-3 pt-3 border-t border-[#E2E8F0]/70 flex items-center justify-between text-xs">
                                   <span className="inline-flex items-center gap-1.5 font-semibold text-indigo-900 bg-indigo-50/80 px-2.5 py-1 rounded-lg border border-indigo-100">
                                     <Shield size={12} className="text-indigo-600" />
                                     <span>{b.studentEmails?.length || 0} Students Enrolled</span>
@@ -915,7 +915,7 @@ export default function SettingsPage() {
                                       <button
                                         type="button"
                                         onClick={() => copyBatchEmails(b)}
-                                        className="inline-flex items-center gap-1 text-[11px] font-medium text-[#57636E] hover:text-[#154360] cursor-pointer"
+                                        className="inline-flex items-center gap-1 text-[11px] font-medium text-[#475569] hover:text-[#4F46E5] cursor-pointer"
                                         title="Copy all student emails"
                                       >
                                         {copiedBatchId === b.id ? (
@@ -935,7 +935,7 @@ export default function SettingsPage() {
                                     <button
                                       type="button"
                                       onClick={() => setExpandedBatchId(isExpanded ? null : b.id)}
-                                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#154360] hover:underline cursor-pointer"
+                                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#4F46E5] hover:underline cursor-pointer"
                                     >
                                       <span>{isExpanded ? 'Hide' : 'View'} Emails</span>
                                       <ChevronDown size={12} className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
@@ -946,7 +946,7 @@ export default function SettingsPage() {
                                 {/* Expanded Enrolled Emails */}
                                 {isExpanded && (
                                   <div className="mt-3 pt-3 border-t border-indigo-100/60 bg-[#F8FAFC] p-3 rounded-xl space-y-2">
-                                    <div className="flex items-center justify-between text-[11px] font-bold text-[#57636E] uppercase tracking-wider">
+                                    <div className="flex items-center justify-between text-[11px] font-bold text-[#475569] uppercase tracking-wider">
                                       <span>Authorized Student Emails</span>
                                       <span>{b.studentEmails?.length || 0} verified</span>
                                     </div>
@@ -956,15 +956,15 @@ export default function SettingsPage() {
                                         {b.studentEmails.map((email, idx) => (
                                           <span
                                             key={idx}
-                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-white border border-[#E2E7EC] text-[#20262E] shadow-2xs"
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-white border border-[#E2E8F0] text-[#0F172A] shadow-2xs"
                                           >
-                                            <Mail size={10} className="text-[#57636E]" />
+                                            <Mail size={10} className="text-[#475569]" />
                                             {email}
                                           </span>
                                         ))}
                                       </div>
                                     ) : (
-                                      <p className="text-xs text-[#57636E] italic">
+                                      <p className="text-xs text-[#475569] italic">
                                         No student emails registered. Click &ldquo;Edit Batch&rdquo; to paste email addresses.
                                       </p>
                                     )}
@@ -981,17 +981,17 @@ export default function SettingsPage() {
                 {/* Create / Edit Batch Modal */}
                 {showBatchModal && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-[#E2E7EC] space-y-5 animate-in zoom-in-95 duration-200">
-                      <div className="flex items-center justify-between pb-4 border-b border-[#E2E7EC]">
+                    <div className="bg-white rounded-2xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-[#E2E8F0] space-y-5 animate-in zoom-in-95 duration-200">
+                      <div className="flex items-center justify-between pb-4 border-b border-[#E2E8F0]">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700">
                             <Users size={20} />
                           </div>
                           <div>
-                            <h3 className="text-base font-extrabold text-[#20262E]">
+                            <h3 className="text-base font-extrabold text-[#0F172A]">
                               {editingBatch ? 'Edit Class Batch' : 'Create New Class Batch'}
                             </h3>
-                            <p className="text-xs text-[#57636E]">
+                            <p className="text-xs text-[#475569]">
                               Configure student enrollment and meeting access control
                             </p>
                           </div>
@@ -999,7 +999,7 @@ export default function SettingsPage() {
                         <button
                           type="button"
                           onClick={() => setShowBatchModal(false)}
-                          className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-lg transition-colors cursor-pointer"
                         >
                           <X size={18} />
                         </button>
@@ -1007,7 +1007,7 @@ export default function SettingsPage() {
 
                       <form onSubmit={handleSaveBatch} className="space-y-4">
                         <div>
-                          <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
+                          <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
                             Batch Name *
                           </label>
                           <input
@@ -1016,13 +1016,13 @@ export default function SettingsPage() {
                             value={batchName}
                             onChange={e => setBatchName(e.target.value)}
                             placeholder="e.g. Web Development - Batch 1"
-                            className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all font-medium text-[#20262E]"
+                            className="w-full px-3.5 py-2.5 bg-white border border-[#E2E8F0] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/15 rounded-xl text-xs outline-none transition-all font-medium text-[#0F172A]"
                           />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
+                            <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
                               Course / Topic
                             </label>
                             <input
@@ -1030,12 +1030,12 @@ export default function SettingsPage() {
                               value={batchTopic}
                               onChange={e => setBatchTopic(e.target.value)}
                               placeholder="e.g. Full-Stack Web Development"
-                              className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all font-medium text-[#20262E]"
+                              className="w-full px-3.5 py-2.5 bg-white border border-[#E2E8F0] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/15 rounded-xl text-xs outline-none transition-all font-medium text-[#0F172A]"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
+                            <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
                               Short Description
                             </label>
                             <input
@@ -1043,13 +1043,13 @@ export default function SettingsPage() {
                               value={batchDescription}
                               onChange={e => setBatchDescription(e.target.value)}
                               placeholder="e.g. Monday-Friday evening cohort"
-                              className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all font-medium text-[#20262E]"
+                              className="w-full px-3.5 py-2.5 bg-white border border-[#E2E8F0] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/15 rounded-xl text-xs outline-none transition-all font-medium text-[#0F172A]"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
+                          <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
                             Assign to Mentor (Restricted Host Access)
                           </label>
                           <select
@@ -1060,7 +1060,7 @@ export default function SettingsPage() {
                               const found = mentorsList.find(m => m.email.toLowerCase() === val.toLowerCase());
                               setBatchAssignedMentorName(found?.name || '');
                             }}
-                            className="w-full px-3.5 py-2.5 bg-white border border-[#E2E7EC] hover:border-slate-300 focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all font-medium text-[#20262E] cursor-pointer"
+                            className="w-full px-3.5 py-2.5 bg-white border border-[#E2E8F0] hover:border-slate-300 focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/15 rounded-xl text-xs outline-none transition-all font-medium text-[#0F172A] cursor-pointer"
                           >
                             <option value="">-- All Mentors / Unassigned (Shared) --</option>
                             {mentorsList.map(m => (
@@ -1069,14 +1069,14 @@ export default function SettingsPage() {
                               </option>
                             ))}
                           </select>
-                          <p className="text-[11px] text-[#57636E] mt-1">
+                          <p className="text-[11px] text-[#475569] mt-1">
                             When assigned, this batch and its students will only appear in this specific mentor&apos;s meeting scheduler.
                           </p>
                         </div>
 
                         <div>
                           <div className="flex items-center justify-between mb-1.5">
-                            <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider">
+                            <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider">
                               Enrolled Student Emails *
                             </label>
                             <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
@@ -1088,26 +1088,26 @@ export default function SettingsPage() {
                             value={batchEmailsText}
                             onChange={e => setBatchEmailsText(e.target.value)}
                             placeholder={"student1@gmail.com\nstudent2@example.com\nstudent3@domain.org\n(Paste emails separated by new lines, commas, or semicolons)"}
-                            className="w-full p-3.5 bg-white border border-[#E2E7EC] focus:border-[#154360] focus:ring-2 focus:ring-[#154360]/15 rounded-xl text-xs outline-none transition-all font-mono font-medium text-[#20262E] leading-relaxed resize-y"
+                            className="w-full p-3.5 bg-white border border-[#E2E8F0] focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/15 rounded-xl text-xs outline-none transition-all font-mono font-medium text-[#0F172A] leading-relaxed resize-y"
                           />
-                          <p className="text-[11px] text-[#57636E] mt-1 flex items-center gap-1.5">
+                          <p className="text-[11px] text-[#475569] mt-1 flex items-center gap-1.5">
                             <Shield size={12} className="text-indigo-600 shrink-0" />
                             <span>When a host starts a meeting assigned to this batch, only students with these emails will be allowed in.</span>
                           </p>
                         </div>
 
-                        <div className="pt-3 border-t border-[#E2E7EC] flex items-center justify-end gap-2.5">
+                        <div className="pt-3 border-t border-[#E2E8F0] flex items-center justify-end gap-2.5">
                           <button
                             type="button"
                             onClick={() => setShowBatchModal(false)}
-                            className="px-4 py-2 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                            className="px-4 py-2 border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#475569] text-xs font-bold rounded-xl transition-colors cursor-pointer"
                           >
                             Cancel
                           </button>
                           <button
                             type="submit"
                             disabled={batchSaving || !batchName.trim()}
-                            className="px-5 py-2 bg-gradient-to-r from-[#154360] to-[#0E2F44] hover:brightness-110 active:scale-[0.99] disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-[#154360]/20 transition-all cursor-pointer"
+                            className="px-5 py-2 bg-gradient-to-r from-[#4F46E5] to-[#4338CA] hover:brightness-110 active:scale-[0.99] disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md shadow-[#4F46E5]/20 transition-all cursor-pointer"
                           >
                             {batchSaving ? 'Saving...' : (editingBatch ? 'Save Changes' : 'Create Batch')}
                           </button>
@@ -1123,94 +1123,94 @@ export default function SettingsPage() {
             {activeTab === "my-account" && (
               <div className="space-y-8 pb-20">
                 {/* Manage on RCRD (Restored Atlassian equivalent) */}
-                <div className="border border-[#E2E7EC] rounded-xl overflow-hidden bg-white shadow-sm">
-                  <div className="border-b border-[#E2E7EC] p-6 flex items-center gap-4">
-                    <div className="w-8 h-8 bg-[#154360] rounded-full flex items-center justify-center text-white font-bold text-[18px]">
+                <div className="border border-[#E2E8F0] rounded-xl overflow-hidden bg-white shadow-sm">
+                  <div className="border-b border-[#E2E8F0] p-6 flex items-center gap-4">
+                    <div className="w-8 h-8 bg-[#4F46E5] rounded-full flex items-center justify-center text-white font-bold text-[18px]">
                       A
                     </div>
-                    <h2 className="text-[20px] font-bold text-[#20262E]">Manage on RCRD</h2>
+                    <h2 className="text-[20px] font-bold text-[#0F172A]">Manage on RCRD</h2>
                   </div>
                   
                   <div className="p-6">
-                    <h3 className="text-[16px] font-bold text-[#20262E] mb-2">Name and photo</h3>
-                    <p className="text-[14px] text-[#57636E] mb-6">Change your name and photo on RCRD</p>
+                    <h3 className="text-[16px] font-bold text-[#0F172A] mb-2">Name and photo</h3>
+                    <p className="text-[14px] text-[#475569] mb-6">Change your name and photo on RCRD</p>
                     
-                    <div className="flex items-center gap-6 pb-8 border-b border-[#E2E7EC]">
-                      <div className="w-24 h-24 bg-[#154360] rounded-full flex items-center justify-center text-white text-[40px] font-bold shadow-sm">
+                    <div className="flex items-center gap-6 pb-8 border-b border-[#E2E8F0]">
+                      <div className="w-24 h-24 bg-[#4F46E5] rounded-full flex items-center justify-center text-white text-[40px] font-bold shadow-sm">
                         HR
                       </div>
                       <div>
-                        <p className="text-[12px] font-medium text-[#57636E] mb-1">Full name</p>
-                        <p className="text-[15px] font-bold text-[#20262E]">Hari Kishore Reddy</p>
+                        <p className="text-[12px] font-medium text-[#475569] mb-1">Full name</p>
+                        <p className="text-[15px] font-bold text-[#0F172A]">Hari Kishore Reddy</p>
                       </div>
                     </div>
 
-                    <div className="py-8 border-b border-[#E2E7EC]">
-                      <h3 className="text-[16px] font-bold text-[#20262E] mb-2">Contact Info</h3>
-                      <p className="text-[12px] font-medium text-[#57636E] mb-1">Email address</p>
-                      <p className="text-[15px] text-[#20262E]">harikishorereddy9908@gmail.com</p>
+                    <div className="py-8 border-b border-[#E2E8F0]">
+                      <h3 className="text-[16px] font-bold text-[#0F172A] mb-2">Contact Info</h3>
+                      <p className="text-[12px] font-medium text-[#475569] mb-1">Email address</p>
+                      <p className="text-[15px] text-[#0F172A]">harikishorereddy9908@gmail.com</p>
                     </div>
 
                     <div className="pt-8">
-                      <h3 className="text-[16px] font-bold text-[#20262E] mb-2">Delete Account</h3>
-                      <p className="text-[14px] text-[#57636E] mb-4">Your account is connected to RCRD. To delete your account, go to your RCRD account page.</p>
-                      <button className="border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E] text-[13px] font-bold px-4 py-2 rounded transition-colors flex items-center gap-2">
+                      <h3 className="text-[16px] font-bold text-[#0F172A] mb-2">Delete Account</h3>
+                      <p className="text-[14px] text-[#475569] mb-4">Your account is connected to RCRD. To delete your account, go to your RCRD account page.</p>
+                      <button className="border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#0F172A] text-[13px] font-bold px-4 py-2 rounded transition-colors flex items-center gap-2">
                         Delete RCRD Account <ExternalLink size={14} />
                       </button>
                     </div>
                   </div>
 
-                  <div className="bg-[#F5F6F8] border-t border-[#E2E7EC] p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <p className="text-[14px] text-[#57636E]">To make changes visit your RCRD profile or contact your RCRD Admin.</p>
-                    <button className="bg-[#154360] hover:bg-[#0E2F44] text-white text-[13px] font-bold px-4 py-2 rounded transition-colors flex items-center gap-2 whitespace-nowrap">
+                  <div className="bg-[#F8FAFC] border-t border-[#E2E8F0] p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <p className="text-[14px] text-[#475569]">To make changes visit your RCRD profile or contact your RCRD Admin.</p>
+                    <button className="bg-[#4F46E5] hover:bg-[#4338CA] text-white text-[13px] font-bold px-4 py-2 rounded transition-colors flex items-center gap-2 whitespace-nowrap">
                       View on RCRD <ExternalLink size={14} />
                     </button>
                   </div>
                 </div>
 
                 {/* Manage on RCRD (Loom) Card */}
-                <div className="border border-[#E2E7EC] rounded-xl overflow-hidden bg-white shadow-sm">
-                  <div className="border-b border-[#E2E7EC] p-6 flex items-center gap-4">
-                    <div className="w-8 h-8 bg-[#154360] rounded-full flex items-center justify-center text-white">
+                <div className="border border-[#E2E8F0] rounded-xl overflow-hidden bg-white shadow-sm">
+                  <div className="border-b border-[#E2E8F0] p-6 flex items-center gap-4">
+                    <div className="w-8 h-8 bg-[#4F46E5] rounded-full flex items-center justify-center text-white">
                       * 
                     </div>
-                    <h2 className="text-[20px] font-bold text-[#20262E]">Manage on RCRD</h2>
+                    <h2 className="text-[20px] font-bold text-[#0F172A]">Manage on RCRD</h2>
                   </div>
                   
                   <div className="p-6">
-                    <div className="pb-8 border-b border-[#E2E7EC]">
-                      <h3 className="text-[16px] font-bold text-[#20262E] mb-2">Default video access</h3>
-                      <p className="text-[14px] text-[#57636E] mb-4">Set the access level you want your videos to have. You can change this for any of your videos anytime.</p>
+                    <div className="pb-8 border-b border-[#E2E8F0]">
+                      <h3 className="text-[16px] font-bold text-[#0F172A] mb-2">Default video access</h3>
+                      <p className="text-[14px] text-[#475569] mb-4">Set the access level you want your videos to have. You can change this for any of your videos anytime.</p>
                       
                       <div className="w-[280px] mb-4">
-                        <button className="w-full flex items-center justify-between border border-[#E2E7EC] rounded-lg p-3 hover:border-slate-400 transition-colors bg-white">
+                        <button className="w-full flex items-center justify-between border border-[#E2E8F0] rounded-lg p-3 hover:border-slate-400 transition-colors bg-white">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-[#EBF5FB] rounded-full flex items-center justify-center text-[#2980B9]">
+                            <div className="w-8 h-8 bg-[#EEF2FF] rounded-full flex items-center justify-center text-[#2980B9]">
                               <Globe size={16} />
                             </div>
                             <div className="text-left">
-                              <div className="text-[14px] font-bold text-[#20262E] flex items-center gap-1">
-                                {videoAccess} <ChevronDown size={14} className="text-[#57636E]" />
+                              <div className="text-[14px] font-bold text-[#0F172A] flex items-center gap-1">
+                                {videoAccess} <ChevronDown size={14} className="text-[#475569]" />
                               </div>
-                              <p className="text-[12px] text-[#57636E]">Anyone with the link can view</p>
+                              <p className="text-[12px] text-[#475569]">Anyone with the link can view</p>
                             </div>
                           </div>
                         </button>
                       </div>
                       <div className="flex items-center gap-3">
-                        <button className="bg-slate-100 text-[#57636E] text-[13px] font-bold px-4 py-1.5 rounded cursor-not-allowed">
+                        <button className="bg-slate-100 text-[#475569] text-[13px] font-bold px-4 py-1.5 rounded cursor-not-allowed">
                           Save
                         </button>
-                        <button className="text-[#57636E] hover:text-[#20262E] text-[13px] font-bold transition-colors">
+                        <button className="text-[#475569] hover:text-[#0F172A] text-[13px] font-bold transition-colors">
                           Cancel
                         </button>
                       </div>
                     </div>
 
                     <div className="pt-8">
-                      <h3 className="text-[16px] font-bold text-[#20262E] mb-2">Download your data</h3>
-                      <p className="text-[14px] text-[#57636E] mb-4">Download a copy of your comments and notes data across your RCRD Workspaces.</p>
-                      <button className="border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E] text-[13px] font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+                      <h3 className="text-[16px] font-bold text-[#0F172A] mb-2">Download your data</h3>
+                      <p className="text-[14px] text-[#475569] mb-4">Download a copy of your comments and notes data across your RCRD Workspaces.</p>
+                      <button className="border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#0F172A] text-[13px] font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
                         <Download size={14} /> Download ZIP
                       </button>
                     </div>
@@ -1222,14 +1222,14 @@ export default function SettingsPage() {
             {activeTab === "meeting-recordings" && (
               <div className="space-y-6 pb-20">
                 {/* Calendar */}
-                <div className="border border-[#E2E7EC] rounded-xl bg-white shadow-sm overflow-hidden">
-                  <div className="p-6 border-b border-[#E2E7EC]">
-                    <h2 className="text-[16px] font-bold text-[#20262E]">Calendar</h2>
+                <div className="border border-[#E2E8F0] rounded-xl bg-white shadow-sm overflow-hidden">
+                  <div className="p-6 border-b border-[#E2E8F0]">
+                    <h2 className="text-[16px] font-bold text-[#0F172A]">Calendar</h2>
                   </div>
-                  <div className="p-6 flex items-center justify-between border-b border-[#E2E7EC]">
+                  <div className="p-6 flex items-center justify-between border-b border-[#E2E8F0]">
                     <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 flex items-center justify-center font-bold text-xl"><Globe className="w-5 h-5 text-[#154360]"/></div>
-                      <span className="text-[14px] font-bold text-[#20262E]">Google Calendar</span>
+                      <div className="w-6 h-6 flex items-center justify-center font-bold text-xl"><Globe className="w-5 h-5 text-[#4F46E5]"/></div>
+                      <span className="text-[14px] font-bold text-[#0F172A]">Google Calendar</span>
                     </div>
                     <button className="bg-[#c53030] hover:bg-[#9b2c2c] text-white text-[13px] font-bold px-4 py-1.5 rounded transition-colors">
                       Disconnect
@@ -1237,19 +1237,19 @@ export default function SettingsPage() {
                   </div>
                   <div className="p-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 flex items-center justify-center font-bold text-xl"><Globe className="w-5 h-5 text-[#154360]"/></div>
-                      <span className="text-[14px] font-bold text-[#20262E]">Outlook Calendar</span>
+                      <div className="w-6 h-6 flex items-center justify-center font-bold text-xl"><Globe className="w-5 h-5 text-[#4F46E5]"/></div>
+                      <span className="text-[14px] font-bold text-[#0F172A]">Outlook Calendar</span>
                     </div>
-                    <button className="border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E] text-[13px] font-bold px-4 py-1.5 rounded transition-colors">
+                    <button className="border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#0F172A] text-[13px] font-bold px-4 py-1.5 rounded transition-colors">
                       Connect
                     </button>
                   </div>
                 </div>
 
                 {/* Auto-recording */}
-                <div className="border border-[#E2E7EC] rounded-xl bg-white shadow-sm overflow-hidden p-6">
-                  <h2 className="text-[16px] font-bold text-[#20262E] mb-1">Auto-recording</h2>
-                  <p className="text-[13px] text-[#57636E] mb-6">Only available for meetings you own.</p>
+                <div className="border border-[#E2E8F0] rounded-xl bg-white shadow-sm overflow-hidden p-6">
+                  <h2 className="text-[16px] font-bold text-[#0F172A] mb-1">Auto-recording</h2>
+                  <p className="text-[13px] text-[#475569] mb-6">Only available for meetings you own.</p>
                   
                   <div className="space-y-6">
                     {[
@@ -1259,12 +1259,12 @@ export default function SettingsPage() {
                       { val: 'Manually-selected meetings', title: 'Manually-selected meetings', desc: 'Select meetings you want to record after setup.' }
                     ].map(opt => (
                       <div key={opt.val} className="flex items-start gap-3 cursor-pointer group" onClick={() => setMeetingSetting('autoRecording', opt.val)}>
-                        <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.autoRecording === opt.val ? 'border-[#154360]' : 'border-slate-400 group-hover:border-slate-600'}`}>
-                          {meetingRecordings.autoRecording === opt.val && <div className="w-2 h-2 bg-[#154360] rounded-full" />}
+                        <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.autoRecording === opt.val ? 'border-[#4F46E5]' : 'border-slate-400 group-hover:border-slate-600'}`}>
+                          {meetingRecordings.autoRecording === opt.val && <div className="w-2 h-2 bg-[#4F46E5] rounded-full" />}
                         </div>
                         <div>
-                          <div className="text-[14px] font-bold text-[#20262E]">{opt.title}</div>
-                          {opt.desc && <div className="text-[13px] text-[#57636E] mt-0.5">{opt.desc}</div>}
+                          <div className="text-[14px] font-bold text-[#0F172A]">{opt.title}</div>
+                          {opt.desc && <div className="text-[13px] text-[#475569] mt-0.5">{opt.desc}</div>}
                         </div>
                       </div>
                     ))}
@@ -1272,13 +1272,13 @@ export default function SettingsPage() {
                 </div>
 
                 {/* After-meeting settings */}
-                <div className="border border-[#E2E7EC] rounded-xl bg-white shadow-sm overflow-hidden p-6">
-                  <h2 className="text-[16px] font-bold text-[#20262E] mb-6">After-meeting settings</h2>
+                <div className="border border-[#E2E8F0] rounded-xl bg-white shadow-sm overflow-hidden p-6">
+                  <h2 className="text-[16px] font-bold text-[#0F172A] mb-6">After-meeting settings</h2>
                   
                   {/* Meeting recap */}
-                  <div className="pb-6 border-b border-[#E2E7EC] mb-6">
-                    <h3 className="text-[14px] font-bold text-[#20262E] mb-1">Meeting recap</h3>
-                    <p className="text-[13px] text-[#57636E] mb-4">Send a meeting recap email and allow access to the recording.</p>
+                  <div className="pb-6 border-b border-[#E2E8F0] mb-6">
+                    <h3 className="text-[14px] font-bold text-[#0F172A] mb-1">Meeting recap</h3>
+                    <p className="text-[13px] text-[#475569] mb-4">Send a meeting recap email and allow access to the recording.</p>
                     <div className="space-y-4">
                       {[
                         { val: 'All meeting invitees', title: 'All meeting invitees', desc: '' },
@@ -1286,12 +1286,12 @@ export default function SettingsPage() {
                         { val: 'Just me', title: 'Just me', desc: '' }
                       ].map(opt => (
                         <div key={opt.val} className="flex items-start gap-3 cursor-pointer group" onClick={() => setMeetingSetting('meetingRecap', opt.val)}>
-                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.meetingRecap === opt.val ? 'border-[#154360]' : 'border-slate-400 group-hover:border-slate-600'}`}>
-                            {meetingRecordings.meetingRecap === opt.val && <div className="w-2 h-2 bg-[#154360] rounded-full" />}
+                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.meetingRecap === opt.val ? 'border-[#4F46E5]' : 'border-slate-400 group-hover:border-slate-600'}`}>
+                            {meetingRecordings.meetingRecap === opt.val && <div className="w-2 h-2 bg-[#4F46E5] rounded-full" />}
                           </div>
                           <div>
-                            <div className="text-[14px] font-bold text-[#20262E]">{opt.title}</div>
-                            {opt.desc && <div className="text-[13px] text-[#57636E] mt-0.5">{opt.desc}</div>}
+                            <div className="text-[14px] font-bold text-[#0F172A]">{opt.title}</div>
+                            {opt.desc && <div className="text-[13px] text-[#475569] mt-0.5">{opt.desc}</div>}
                           </div>
                         </div>
                       ))}
@@ -1299,9 +1299,9 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Link access */}
-                  <div className="pb-6 border-b border-[#E2E7EC] mb-6">
-                    <h3 className="text-[14px] font-bold text-[#20262E] mb-1">Link access</h3>
-                    <p className="text-[13px] text-[#57636E] mb-4">Manage who can view the meeting recording from a shared link.</p>
+                  <div className="pb-6 border-b border-[#E2E8F0] mb-6">
+                    <h3 className="text-[14px] font-bold text-[#0F172A] mb-1">Link access</h3>
+                    <p className="text-[13px] text-[#475569] mb-4">Manage who can view the meeting recording from a shared link.</p>
                     <div className="space-y-4">
                       {[
                         { val: 'Public', title: 'Public', desc: '' },
@@ -1309,12 +1309,12 @@ export default function SettingsPage() {
                         { val: 'Private', title: 'Private', desc: '' }
                       ].map(opt => (
                         <div key={opt.val} className="flex items-start gap-3 cursor-pointer group" onClick={() => setMeetingSetting('linkAccess', opt.val)}>
-                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.linkAccess === opt.val ? 'border-[#154360]' : 'border-slate-400 group-hover:border-slate-600'}`}>
-                            {meetingRecordings.linkAccess === opt.val && <div className="w-2 h-2 bg-[#154360] rounded-full" />}
+                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.linkAccess === opt.val ? 'border-[#4F46E5]' : 'border-slate-400 group-hover:border-slate-600'}`}>
+                            {meetingRecordings.linkAccess === opt.val && <div className="w-2 h-2 bg-[#4F46E5] rounded-full" />}
                           </div>
                           <div>
-                            <div className="text-[14px] font-bold text-[#20262E]">{opt.title}</div>
-                            {opt.desc && <div className="text-[13px] text-[#57636E] mt-0.5">{opt.desc}</div>}
+                            <div className="text-[14px] font-bold text-[#0F172A]">{opt.title}</div>
+                            {opt.desc && <div className="text-[13px] text-[#475569] mt-0.5">{opt.desc}</div>}
                           </div>
                         </div>
                       ))}
@@ -1323,18 +1323,18 @@ export default function SettingsPage() {
 
                   {/* Language setting */}
                   <div>
-                    <h3 className="text-[14px] font-bold text-[#20262E] mb-1">Language setting</h3>
-                    <p className="text-[13px] text-[#57636E] mb-4">Only applies to meeting recap.</p>
+                    <h3 className="text-[14px] font-bold text-[#0F172A] mb-1">Language setting</h3>
+                    <p className="text-[13px] text-[#475569] mb-4">Only applies to meeting recap.</p>
                     <div className="space-y-4">
                       {[
                         { val: 'Auto-detect language', title: 'Auto-detect language' },
                         { val: 'Set default language', title: 'Set default language' }
                       ].map(opt => (
                         <div key={opt.val} className="flex items-start gap-3 cursor-pointer group" onClick={() => setMeetingSetting('languageSetting', opt.val)}>
-                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.languageSetting === opt.val ? 'border-[#154360]' : 'border-slate-400 group-hover:border-slate-600'}`}>
-                            {meetingRecordings.languageSetting === opt.val && <div className="w-2 h-2 bg-[#154360] rounded-full" />}
+                          <div className={`mt-0.5 flex shrink-0 items-center justify-center w-4 h-4 rounded-full border-2 ${meetingRecordings.languageSetting === opt.val ? 'border-[#4F46E5]' : 'border-slate-400 group-hover:border-slate-600'}`}>
+                            {meetingRecordings.languageSetting === opt.val && <div className="w-2 h-2 bg-[#4F46E5] rounded-full" />}
                           </div>
-                          <div className="text-[14px] font-bold text-[#20262E]">{opt.title}</div>
+                          <div className="text-[14px] font-bold text-[#0F172A]">{opt.title}</div>
                         </div>
                       ))}
                     </div>
@@ -1347,19 +1347,19 @@ export default function SettingsPage() {
             {activeTab === "push-notifications" && (
               <div className="space-y-8 pb-20">
                 {/* Banner */}
-                <div className="bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-[#EBF5FB] rounded-full flex items-center justify-center shrink-0">
-                      <Bell size={24} className="text-[#154360]" />
+                    <div className="w-16 h-16 bg-[#EEF2FF] rounded-full flex items-center justify-center shrink-0">
+                      <Bell size={24} className="text-[#4F46E5]" />
                     </div>
                     <div>
-                      <h2 className="text-[16px] font-bold text-[#20262E] mb-1">Turn on push notifications</h2>
-                      <p className="text-[14px] text-[#57636E]">Get notified when someone watches or reacts to your videos.</p>
+                      <h2 className="text-[16px] font-bold text-[#0F172A] mb-1">Turn on push notifications</h2>
+                      <p className="text-[14px] text-[#475569]">Get notified when someone watches or reacts to your videos.</p>
                     </div>
                   </div>
                   <button 
                     onClick={toggleMasterPushEnabled}
-                    className="bg-white border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E] text-[13px] font-bold px-4 py-2 rounded whitespace-nowrap transition-colors"
+                    className="bg-white border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#0F172A] text-[13px] font-bold px-4 py-2 rounded whitespace-nowrap transition-colors"
                   >
                     {pushNotifications.enabled ? 'Turn off push notifications' : 'Allow push notifications'}
                   </button>
@@ -1367,34 +1367,34 @@ export default function SettingsPage() {
 
                 {/* Grid */}
                 <div className="w-full">
-                  <div className="flex items-center justify-between py-2 border-b border-[#E2E7EC] mb-6">
-                    <div className="flex-1 text-[16px] font-bold text-[#20262E]">Notify me when...</div>
+                  <div className="flex items-center justify-between py-2 border-b border-[#E2E8F0] mb-6">
+                    <div className="flex-1 text-[16px] font-bold text-[#0F172A]">Notify me when...</div>
                     <div className="flex items-center gap-16 pr-8">
                       <div className="w-16 text-center">
-                        <div className="text-[13px] font-bold text-[#20262E] mb-1">Email</div>
+                        <div className="text-[13px] font-bold text-[#0F172A] mb-1">Email</div>
                         <button 
                           onClick={() => toggleAllPushDevice('email', !isAllDeviceOn('email'))}
-                          className="text-[12px] text-[#154360] hover:underline"
+                          className="text-[12px] text-[#4F46E5] hover:underline"
                         >
                           {isAllDeviceOn('email') ? 'Turn off all email' : 'Turn on all email'}
                         </button>
                       </div>
                       <div className="w-16 text-center">
-                        <div className="text-[13px] font-bold text-[#20262E] mb-1">Desktop</div>
-                        <div className="text-[11px] text-[#57636E] mb-1">Push notification</div>
+                        <div className="text-[13px] font-bold text-[#0F172A] mb-1">Desktop</div>
+                        <div className="text-[11px] text-[#475569] mb-1">Push notification</div>
                         <button 
                           onClick={() => toggleAllPushDevice('desktop', !isAllDeviceOn('desktop'))}
-                          className="text-[12px] text-[#154360] hover:underline"
+                          className="text-[12px] text-[#4F46E5] hover:underline"
                         >
                           {isAllDeviceOn('desktop') ? 'Turn off all desktop' : 'Turn on all desktop'}
                         </button>
                       </div>
                       <div className="w-16 text-center">
-                        <div className="text-[13px] font-bold text-[#20262E] mb-1">Mobile</div>
-                        <div className="text-[11px] text-[#57636E] mb-1">Push notification</div>
+                        <div className="text-[13px] font-bold text-[#0F172A] mb-1">Mobile</div>
+                        <div className="text-[11px] text-[#475569] mb-1">Push notification</div>
                         <button 
                           onClick={() => toggleAllPushDevice('mobile', !isAllDeviceOn('mobile'))}
-                          className="text-[12px] text-[#154360] hover:underline"
+                          className="text-[12px] text-[#4F46E5] hover:underline"
                         >
                           {isAllDeviceOn('mobile') ? 'Turn off all mobile' : 'Turn on all mobile'}
                         </button>
@@ -1406,8 +1406,8 @@ export default function SettingsPage() {
                   <div className="space-y-8">
                     {/* Engagement */}
                     <div>
-                      <h3 className="text-[14px] font-bold text-[#20262E] mb-4 px-2">Engagement</h3>
-                      <div className="bg-[#F5F6F8]/50 rounded-lg p-2">
+                      <h3 className="text-[14px] font-bold text-[#0F172A] mb-4 px-2">Engagement</h3>
+                      <div className="bg-[#F8FAFC]/50 rounded-lg p-2">
                         <PushRow label="My videos are first viewed" category="engagement" item="firstViewed" pushNotifications={pushNotifications} onToggle={togglePushCategory} />
                         <PushRow label="Comments and replies on my videos" category="engagement" item="comments" pushNotifications={pushNotifications} onToggle={togglePushCategory} />
                         <PushRow label="Reactions to comments on my videos" category="engagement" item="reactionsToComments" email={false} pushNotifications={pushNotifications} onToggle={togglePushCategory} />
@@ -1424,8 +1424,8 @@ export default function SettingsPage() {
 
                     {/* Video sharing */}
                     <div>
-                      <h3 className="text-[14px] font-bold text-[#20262E] mb-4 px-2">Video sharing</h3>
-                      <div className="bg-[#F5F6F8]/50 rounded-lg p-2">
+                      <h3 className="text-[14px] font-bold text-[#0F172A] mb-4 px-2">Video sharing</h3>
+                      <div className="bg-[#F8FAFC]/50 rounded-lg p-2">
                         <PushRow label="Someone shares a video with me" category="videoSharing" item="sharesVideo" pushNotifications={pushNotifications} onToggle={togglePushCategory} />
                         <PushRow label="A collaborator re-shares one of my videos" category="videoSharing" item="resharesVideo" pushNotifications={pushNotifications} onToggle={togglePushCategory} />
                         <PushRow label="A collaborator changes the privacy of my video" category="videoSharing" item="changesPrivacy" pushNotifications={pushNotifications} onToggle={togglePushCategory} />
@@ -1434,8 +1434,8 @@ export default function SettingsPage() {
 
                     {/* Video stitching */}
                     <div>
-                      <h3 className="text-[14px] font-bold text-[#20262E] mb-1 px-2 flex items-center gap-1">Video stitching <Info size={14} className="text-[#57636E]" /></h3>
-                      <div className="bg-[#F5F6F8]/50 rounded-lg p-2 mt-4">
+                      <h3 className="text-[14px] font-bold text-[#0F172A] mb-1 px-2 flex items-center gap-1">Video stitching <Info size={14} className="text-[#475569]" /></h3>
+                      <div className="bg-[#F8FAFC]/50 rounded-lg p-2 mt-4">
                         <PushRow label="Someone adds my video to their RCRD" category="videoStitching" item="addsVideo" pushNotifications={pushNotifications} onToggle={togglePushCategory} />
                         <PushRow label="A RCRD containing one of my videos is first viewed" category="videoStitching" item="firstViewed" pushNotifications={pushNotifications} onToggle={togglePushCategory} />
                       </div>
@@ -1443,8 +1443,8 @@ export default function SettingsPage() {
 
                     {/* Education */}
                     <div>
-                      <h3 className="text-[14px] font-bold text-[#20262E] mb-4 px-2">Education</h3>
-                      <div className="bg-[#F5F6F8]/50 rounded-lg p-2">
+                      <h3 className="text-[14px] font-bold text-[#0F172A] mb-4 px-2">Education</h3>
+                      <div className="bg-[#F8FAFC]/50 rounded-lg p-2">
                         <PushRow label="Reminders to record" category="education" item="reminders" mobile={false} pushNotifications={pushNotifications} onToggle={togglePushCategory} />
                         <PushRow label="Insights into my RCRD usage" category="education" item="insights" desktop={false} mobile={false} pushNotifications={pushNotifications} onToggle={togglePushCategory} />
                       </div>
@@ -1452,8 +1452,8 @@ export default function SettingsPage() {
 
                     {/* Spaces */}
                     <div>
-                      <h3 className="text-[14px] font-bold text-[#20262E] mb-4 px-2">Spaces</h3>
-                      <div className="bg-[#F5F6F8]/50 rounded-lg p-2">
+                      <h3 className="text-[14px] font-bold text-[#0F172A] mb-4 px-2">Spaces</h3>
+                      <div className="bg-[#F8FAFC]/50 rounded-lg p-2">
                         <PushRow label="Someone adds me to a Space" category="spaces" item="addsToSpace" pushNotifications={pushNotifications} onToggle={togglePushCategory} />
                         <PushRow label="Someone shares a new video to the All harikishorereddy9908 Space" category="spaces" item="sharesToAllSpace" email={false} desktop={false} mobile={false} pushNotifications={pushNotifications} onToggle={togglePushCategory} />
                         <PushRow label="Someone shares a new video to any other Space" category="spaces" item="sharesToOtherSpace" pushNotifications={pushNotifications} onToggle={togglePushCategory} />
@@ -1464,8 +1464,8 @@ export default function SettingsPage() {
 
                     {/* Watch later */}
                     <div>
-                      <h3 className="text-[14px] font-bold text-[#20262E] mb-4 px-2">Watch later</h3>
-                      <div className="bg-[#F5F6F8]/50 rounded-lg p-2">
+                      <h3 className="text-[14px] font-bold text-[#0F172A] mb-4 px-2">Watch later</h3>
+                      <div className="bg-[#F8FAFC]/50 rounded-lg p-2">
                         <PushRow label="Send a morning digest when I have RCRDs to watch" category="watchLater" item="morningDigest" desktop={false} pushNotifications={pushNotifications} onToggle={togglePushCategory} />
                         <PushRow label="Deliver digest notification on weekdays only" category="watchLater" item="weekdaysOnly" desktop={false} email={false} mobile={false} pushNotifications={pushNotifications} onToggle={togglePushCategory} />
                       </div>
@@ -1477,12 +1477,12 @@ export default function SettingsPage() {
 
             {activeTab === "integrations" && (
               <div className="space-y-6 pb-20">
-                <div className="p-6 bg-[#EBF5FB] border border-[#154360]/20 rounded-xl">
-                  <h2 className="text-[16px] font-bold text-[#20262E] mb-2 flex items-center gap-2">
-                    <HardDrive className="w-5 h-5 text-[#154360]" />
+                <div className="p-6 bg-[#EEF2FF] border border-[#4F46E5]/20 rounded-xl">
+                  <h2 className="text-[16px] font-bold text-[#0F172A] mb-2 flex items-center gap-2">
+                    <HardDrive className="w-5 h-5 text-[#4F46E5]" />
                     Google Drive Integration
                   </h2>
-                  <p className="text-[14px] text-[#57636E] mb-4">Authenticate your Google account and connect your Google Drive folder to sync recorded videos seamlessly.</p>
+                  <p className="text-[14px] text-[#475569] mb-4">Authenticate your Google account and connect your Google Drive folder to sync recorded videos seamlessly.</p>
                   
                   <div className="flex flex-col gap-4">
                     {googleConnected ? (
@@ -1503,12 +1503,12 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-3">
                         <a 
                           href="/api/auth/google?redirect=/settings"
-                          className="w-fit bg-[#154360] hover:bg-[#0E2F44] text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
+                          className="w-fit bg-[#4F46E5] hover:bg-[#4338CA] text-white px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
                         >
                           <Cloud className="w-4 h-4" />
                           Connect 5 TB Google Drive (kishorre239@gmail.com)
                         </a>
-                        <span className="text-xs text-[#57636E]">Sign in once to authorize video uploads to your 5 TB storage.</span>
+                        <span className="text-xs text-[#475569]">Sign in once to authorize video uploads to your 5 TB storage.</span>
                       </div>
                     )}
                     
@@ -1518,50 +1518,50 @@ export default function SettingsPage() {
                         value={driveLink}
                         onChange={(e) => setDriveLink(e.target.value)}
                         placeholder="Paste your Google Drive folder link here"
-                        className="flex-1 px-4 py-2 border border-[#E2E7EC] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#154360]"
+                        className="flex-1 px-4 py-2 border border-[#E2E8F0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
                       />
                       <button 
                         onClick={handleSaveDriveFolder}
                         disabled={isSavingDrive || !driveLink}
-                        className="bg-[#154360] hover:bg-[#0E2F44] disabled:opacity-50 text-white px-5 py-2 rounded-lg font-semibold text-sm transition-colors whitespace-nowrap"
+                        className="bg-[#4F46E5] hover:bg-[#4338CA] disabled:opacity-50 text-white px-5 py-2 rounded-lg font-semibold text-sm transition-colors whitespace-nowrap"
                       >
                         {isSavingDrive ? "Saving..." : "Set Folder"}
                       </button>
                     </div>
                   </div>
                   {driveSaveMessage && (
-                    <p className={`text-sm mt-3 font-medium ${driveSaveMessage.includes("success") || driveSaveMessage.includes("✓") ? "text-emerald-700" : "text-[#154360]"}`}>
+                    <p className={`text-sm mt-3 font-medium ${driveSaveMessage.includes("success") || driveSaveMessage.includes("✓") ? "text-emerald-700" : "text-[#4F46E5]"}`}>
                       {driveSaveMessage}
                     </p>
                   )}
                 </div>
 
                 <div className="mb-2 mt-8">
-                  <h2 className="text-[16px] font-bold text-[#20262E] mb-1">Link Embedding</h2>
-                  <p className="text-[14px] text-[#57636E]">Using the RCRD Chrome Extension, turn any link into an embedded video that can be played where you shared it.</p>
+                  <h2 className="text-[16px] font-bold text-[#0F172A] mb-1">Link Embedding</h2>
+                  <p className="text-[14px] text-[#475569]">Using the RCRD Chrome Extension, turn any link into an embedded video that can be played where you shared it.</p>
                 </div>
                 
-                <div className="border border-[#E2E7EC] rounded-xl bg-white overflow-hidden shadow-sm">
+                <div className="border border-[#E2E8F0] rounded-xl bg-white overflow-hidden shadow-sm">
                   {integrationsList.map((intg, index) => (
                     <div 
                       key={intg.key}
-                      className={`flex items-center justify-between p-5 hover:bg-[#F5F6F8] transition-colors ${
-                        index !== integrationsList.length - 1 ? 'border-b border-[#E2E7EC]' : ''
+                      className={`flex items-center justify-between p-5 hover:bg-[#F8FAFC] transition-colors ${
+                        index !== integrationsList.length - 1 ? 'border-b border-[#E2E8F0]' : ''
                       }`}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-8 h-8 flex items-center justify-center bg-slate-100 rounded text-xl font-bold text-[#57636E] shrink-0">
+                        <div className="w-8 h-8 flex items-center justify-center bg-slate-100 rounded text-xl font-bold text-[#475569] shrink-0">
                           {intg.name.charAt(0)}
                         </div>
                         <div>
-                          <h3 className="text-[14px] font-bold text-[#20262E]">{intg.name}</h3>
-                          <p className="text-[13px] text-[#57636E]">{intg.desc}</p>
+                          <h3 className="text-[14px] font-bold text-[#0F172A]">{intg.name}</h3>
+                          <p className="text-[13px] text-[#475569]">{intg.desc}</p>
                         </div>
                       </div>
                       
                       <button 
                         onClick={() => toggleIntegration(intg.key)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ml-4 shrink-0 ${integrations[intg.key] ? 'bg-[#154360]' : 'bg-slate-300'}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ml-4 shrink-0 ${integrations[intg.key] ? 'bg-[#4F46E5]' : 'bg-slate-300'}`}
                       >
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${integrations[intg.key] ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
@@ -1575,12 +1575,12 @@ export default function SettingsPage() {
               <div className="pb-20">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h2 className="text-[16px] font-bold text-[#20262E] mb-1">Quick record controls</h2>
-                    <p className="text-[14px] text-[#57636E]">RCRD Quick Record is a one-click record tool that shows up on these sites.</p>
+                    <h2 className="text-[16px] font-bold text-[#0F172A] mb-1">Quick record controls</h2>
+                    <p className="text-[14px] text-[#475569]">RCRD Quick Record is a one-click record tool that shows up on these sites.</p>
                   </div>
                   <button 
                     onClick={() => setQuickRecordEnabled(!quickRecordEnabled)}
-                    className={`${quickRecordEnabled ? 'bg-[#c53030] hover:bg-[#9b2c2c]' : 'bg-[#154360] hover:bg-[#0E2F44]'} text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-colors shadow-sm`}
+                    className={`${quickRecordEnabled ? 'bg-[#c53030] hover:bg-[#9b2c2c]' : 'bg-[#4F46E5] hover:bg-[#4338CA]'} text-white text-[13px] font-bold px-4 py-2 rounded-lg transition-colors shadow-sm`}
                   >
                     {quickRecordEnabled ? 'Turn off Quick Record' : 'Turn on Quick Record'}
                   </button>
@@ -1590,54 +1590,54 @@ export default function SettingsPage() {
 
             {activeTab === "keyboard-shortcuts" && (
               <div className="space-y-8 pb-20">
-                <div className="border border-[#E2E7EC] rounded-xl overflow-hidden bg-white shadow-sm p-8">
-                  <h2 className="text-[24px] font-bold text-[#20262E] mb-2">Keyboard shortcuts</h2>
-                  <p className="text-[14px] text-[#57636E] mb-6">Use keyboard shortcuts to increase the speed of your workflow. Many shortcuts appear when you hover over a setting.</p>
+                <div className="border border-[#E2E8F0] rounded-xl overflow-hidden bg-white shadow-sm p-8">
+                  <h2 className="text-[24px] font-bold text-[#0F172A] mb-2">Keyboard shortcuts</h2>
+                  <p className="text-[14px] text-[#475569] mb-6">Use keyboard shortcuts to increase the speed of your workflow. Many shortcuts appear when you hover over a setting.</p>
                   
                   <div className="flex items-center gap-3 mb-8 cursor-pointer" onClick={() => setUseShortcuts(!useShortcuts)}>
                     <button 
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${useShortcuts ? 'bg-[#154360]' : 'bg-slate-300'}`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${useShortcuts ? 'bg-[#4F46E5]' : 'bg-slate-300'}`}
                     >
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${useShortcuts ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
-                    <span className="text-[15px] font-medium text-[#20262E]">Use keyboard shortcuts</span>
+                    <span className="text-[15px] font-medium text-[#0F172A]">Use keyboard shortcuts</span>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
                     <div>
-                      <h3 className="text-[15px] font-bold text-[#20262E] mb-6">Global actions</h3>
+                      <h3 className="text-[15px] font-bold text-[#0F172A] mb-6">Global actions</h3>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-[14px] text-[#57636E]">Quick search</span>
+                          <span className="text-[14px] text-[#475569]">Quick search</span>
                           <div className="flex gap-1">
-                            <span className="px-1.5 py-0.5 bg-slate-100 border border-[#E2E7EC] rounded text-[11px] font-mono text-[#57636E]">Ctrl</span>
-                            <span className="px-1.5 py-0.5 bg-slate-100 border border-[#E2E7EC] rounded text-[11px] font-mono text-[#57636E]">K</span>
+                            <span className="px-1.5 py-0.5 bg-slate-100 border border-[#E2E8F0] rounded text-[11px] font-mono text-[#475569]">Ctrl</span>
+                            <span className="px-1.5 py-0.5 bg-slate-100 border border-[#E2E8F0] rounded text-[11px] font-mono text-[#475569]">K</span>
                           </div>
                         </div>
                       </div>
                     </div>
                     
                     <div>
-                      <h3 className="text-[15px] font-bold text-[#20262E] mb-6">Video playback</h3>
+                      <h3 className="text-[15px] font-bold text-[#0F172A] mb-6">Video playback</h3>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-[14px] text-[#57636E]">Play/Pause</span>
+                          <span className="text-[14px] text-[#475569]">Play/Pause</span>
                           <div className="flex gap-1">
-                            <span className="px-1.5 py-0.5 bg-slate-100 border border-[#E2E7EC] rounded text-[11px] font-mono text-[#57636E]">Space</span>
+                            <span className="px-1.5 py-0.5 bg-slate-100 border border-[#E2E8F0] rounded text-[11px] font-mono text-[#475569]">Space</span>
                           </div>
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <h3 className="text-[15px] font-bold text-[#20262E] mb-6">Recording</h3>
+                      <h3 className="text-[15px] font-bold text-[#0F172A] mb-6">Recording</h3>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-[14px] text-[#57636E]">Start/Stop</span>
+                          <span className="text-[14px] text-[#475569]">Start/Stop</span>
                           <div className="flex gap-1">
-                            <span className="px-1.5 py-0.5 bg-slate-100 border border-[#E2E7EC] rounded text-[11px] font-mono text-[#57636E]">Ctrl</span>
-                            <span className="px-1.5 py-0.5 bg-slate-100 border border-[#E2E7EC] rounded text-[11px] font-mono text-[#57636E]">Shift</span>
-                            <span className="px-1.5 py-0.5 bg-slate-100 border border-[#E2E7EC] rounded text-[11px] font-mono text-[#57636E]">L</span>
+                            <span className="px-1.5 py-0.5 bg-slate-100 border border-[#E2E8F0] rounded text-[11px] font-mono text-[#475569]">Ctrl</span>
+                            <span className="px-1.5 py-0.5 bg-slate-100 border border-[#E2E8F0] rounded text-[11px] font-mono text-[#475569]">Shift</span>
+                            <span className="px-1.5 py-0.5 bg-slate-100 border border-[#E2E8F0] rounded text-[11px] font-mono text-[#475569]">L</span>
                           </div>
                         </div>
                       </div>
@@ -1651,8 +1651,8 @@ export default function SettingsPage() {
             {!["my-account", "billing", "meeting-recordings", "push-notifications", "integrations", "quick-record", "keyboard-shortcuts", "workspace", "users"].includes(activeTab) && (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <SettingsIcon size={48} className="text-slate-300 mb-4" />
-                <h2 className="text-[18px] font-bold text-[#20262E] mb-2">Coming Soon</h2>
-                <p className="text-[14px] text-[#57636E] max-w-sm">
+                <h2 className="text-[18px] font-bold text-[#0F172A] mb-2">Coming Soon</h2>
+                <p className="text-[14px] text-[#475569] max-w-sm">
                   The {activeTab.replace('-', ' ')} settings will be available in a future update.
                 </p>
               </div>
@@ -1695,27 +1695,18 @@ function SidebarItem({
         if (onClick) onClick();
         else if (href) router.push(href);
       }}
-      style={{
-        fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-        fontSize: '14px',
-        fontWeight: 400,
-        fontStyle: 'normal',
-        lineHeight: '14px',
-        letterSpacing: 'normal',
-        color: active ? '#154360' : '#292A2E'
-      }}
       className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold cursor-pointer transition-all ${
       active 
-        ? "bg-[#EBF5FB] shadow-sm" 
-        : "hover:bg-[#F5F6F8]"
+        ? "bg-[#4F46E5] text-white shadow-[0_0_16px_rgba(79,70,229,0.45)] font-bold" 
+        : "hover:bg-white/5 text-[#94A3B8] hover:text-[#F8FAFC]"
     }`}>
       <div className="flex items-center gap-3">
-        <div className={`${active ? "text-[#154360]" : "text-[#57636E]"}`}>
+        <div className={`${active ? "text-white" : "text-[#94A3B8]"}`}>
           {icon}
         </div>
         <span className="text-sm tracking-wide">{label}</span>
       </div>
-      {external && <div className="text-[#57636E]"><Share2 size={12} className="rotate-45" /></div>}
+      {external && <div className="text-[#94A3B8]"><Share2 size={12} className="rotate-45" /></div>}
     </div>
   );
 }

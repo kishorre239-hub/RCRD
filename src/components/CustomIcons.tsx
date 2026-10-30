@@ -143,3 +143,15 @@ export function CalendarIcon({ size = 18, className = "" }: IconProps) {
   );
 }
 
+// 12. credit-card-billing-icon
+export function BillingIcon({ size = 18, className = "" }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="5" width="20" height="14" rx="3" stroke="currentColor" strokeWidth="1.8" />
+      <line x1="2" y1="10" x2="22" y2="10" stroke="currentColor" strokeWidth="1.8" />
+      <rect x="6" y="14" width="4" height="2" rx="0.5" fill="#4F46E5" />
+      <circle cx="17" cy="15" r="1" fill="#06B6D4" />
+    </svg>
+  );
+}
+

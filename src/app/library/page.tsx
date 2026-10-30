@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import {
   HomeIcon, LibraryIcon, VideoCameraIcon, SettingsIcon,
-  UserIcon, WorkspaceIcon
+  UserIcon, WorkspaceIcon, BillingIcon
 } from "@/components/CustomIcons";
 import { getVideos, getCourses, createCourse, renameCourse, deleteCourse, deleteVideo, updateVideo, syncVideos, addVideoComment, uploadVideo, API_URL } from "@/lib/api";
 import RcrdLogo from "@/components/RcrdLogo";
@@ -672,12 +672,13 @@ export default function LibraryPage() {
             {canAccess('settings') && <SidebarItem icon={<SettingsIcon size={18} />} label="Settings" href="/settings" />}
           </nav>
 
-          {(canAccess('manage-users') || canAccess('workspace-info')) && (
+          {(canAccess('manage-users') || canAccess('workspace-info') || canAccess('billing')) && (
             <div className="mt-10">
               <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-3">Workspace Admin</h3>
               <nav className="space-y-1">
                 {canAccess('manage-users') && <SidebarItem icon={<UserIcon size={18} />} label="Manage Users" href="/settings?tab=users" />}
                 {canAccess('workspace-info') && <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" href="/settings?tab=workspace" />}
+                {canAccess('billing') && <SidebarItem icon={<BillingIcon size={18} />} label="Plan & Billing" href="/settings?tab=billing" />}
               </nav>
             </div>
           )}

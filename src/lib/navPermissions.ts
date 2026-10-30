@@ -24,7 +24,7 @@ export function getDefaultNavItemsForRole(role: string): string[] {
   if (r === "admin") {
     return ALL_NAV_ITEMS.map(i => i.id);
   }
-  return ["for-you", "library", "meetings"];
+  return ["for-you", "library", "meetings", "settings", "billing"];
 }
 
 const PRIMARY_OWNER_EMAIL = "harikishorereddy9908@gmail.com";
@@ -117,7 +117,8 @@ export function useNavPermissions(): NavPermissionsResult {
   const isMentor = role.toLowerCase() === "mentor";
 
   const canAccess = (navId: string) => {
-    if (isPrimaryOwner) return true;
+    if (isPrimaryOwner || isAdmin) return true;
+    if (navId === "billing" || navId === "settings") return true;
     return allowedNavItems.includes(navId);
   };
 

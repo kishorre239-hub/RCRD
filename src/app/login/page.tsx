@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Lock, Mail, Eye, EyeOff, AlertCircle, Sparkles, ShieldCheck } from "lucide-react";
+import { ArrowRight, Lock, Mail, Eye, EyeOff, AlertCircle, ShieldCheck } from "lucide-react";
 import RcrdLogo from "@/components/RcrdLogo";
 
 export default function LoginPage() {
@@ -122,7 +122,7 @@ export default function LoginPage() {
           
           <div className="text-center mb-8">
             <div className="w-12 h-12 bg-[#EEF2FF] border border-[#4F46E5]/20 rounded-2xl flex items-center justify-center mx-auto mb-4 text-[#4F46E5]">
-              <Sparkles size={22} />
+              <Lock size={22} />
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
               Sign In to RCRD

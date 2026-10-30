@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { 
-  Info, ExternalLink, Check, HardDrive, Users, 
-  ShieldCheck, Sparkles, Building2, CreditCard 
+  Info, Check, HardDrive, Users, 
+  ShieldCheck, CreditCard, Plus, Minus, Calendar
 } from "lucide-react";
 import { 
   getBillingSubscription, 
@@ -118,7 +118,7 @@ export default function BillingTab({
       const orderRes = await createBillingOrder(planId);
 
       if (orderRes?.testMode) {
-        // Simulated instant payment when live gateway credentials are not yet added
+        // Instant simulated test upgrade
         await verifyBillingPayment({
           planId,
           razorpay_order_id: orderRes.orderId,
@@ -127,18 +127,18 @@ export default function BillingTab({
 
         setCurrentPlanId(planId);
         try { localStorage.setItem('workspace_plan', planId); } catch {}
-        showToast(`Upgraded to ${planName} for ${people} user${people > 1 ? 's' : ''}!`);
+        showToast(`Upgraded to ${planName} for ${people} seat${people > 1 ? 's' : ''}!`);
         await loadSub();
       } else if (orderRes?.keyId && orderRes?.orderId) {
-        // Live gateway credentials are active: open official checkout modal
+        // Official live Razorpay popup checkout
         const loaded = await loadRazorpayScript();
         if (loaded && window.Razorpay) {
           const rzp = new window.Razorpay({
             key: orderRes.keyId,
             amount: orderRes.amount,
-            currency: orderRes.currency || 'INR',
-            name: 'RCRD Studio',
-            description: `${planName} Subscription Rental (${people} seat${people > 1 ? 's' : ''})`,
+            currency: 'INR',
+            name: 'RCRD Studio SaaS',
+            description: `${planName} Subscription (${people} seat${people > 1 ? 's' : ''})`,
             order_id: orderRes.orderId,
             handler: async (response: { razorpay_payment_id?: string; razorpay_order_id?: string; razorpay_signature?: string }) => {
               try {
@@ -155,7 +155,7 @@ export default function BillingTab({
                 await loadSub();
               } catch (verifyErr) {
                 console.error("Verification error:", verifyErr);
-                showToast("Payment received, updating subscription...");
+                showToast("Payment confirmed, activating subscription...");
               }
             },
             theme: { color: '#4F46E5' },
@@ -163,7 +163,6 @@ export default function BillingTab({
           rzp.open();
           return;
         } else {
-          // Fallback if script load fails
           setCurrentPlanId(planId);
           try { localStorage.setItem('workspace_plan', planId); } catch {}
           showToast(`Upgraded to ${planName}!`);
@@ -179,20 +178,47 @@ export default function BillingTab({
     }
   };
 
-  // Pricing calculations
+  // Pricing calculations in Indian Rupees (₹)
   const isAnnual = billingCycle === 'ANNUAL';
   
-  // Business: $180/year ($15/mo) or $20/mo
-  const businessPrice = isAnnual ? (180 * people).toFixed(2) : (20 * people).toFixed(2);
+  // Business in INR: Monthly ₹1,500/seat/mo; Annual ₹1,200/seat/mo (billed annually as ₹14,400/seat/yr)
+  const businessMonthlyRate = 1500;
+  const businessAnnualRate = 1200;
+  const businessPriceNum = isAnnual ? (businessAnnualRate * 12 * people) : (businessMonthlyRate * people);
+  const businessPriceFormatted = businessPriceNum.toLocaleString('en-IN');
   
-  // Business + AI: $240/year ($20/mo) or $28/mo
-  const businessAiPrice = isAnnual ? (240 * people).toFixed(2) : (28 * people).toFixed(2);
+  // Business + AI in INR: Monthly ₹2,200/seat/mo; Annual ₹1,760/seat/mo (billed annually as ₹21,120/seat/yr)
+  const businessAiMonthlyRate = 2200;
+  const businessAiAnnualRate = 1760;
+  const businessAiPriceNum = isAnnual ? (businessAiAnnualRate * 12 * people) : (businessAiMonthlyRate * people);
+  const businessAiPriceFormatted = businessAiPriceNum.toLocaleString('en-IN');
 
   const cycleLabel = isAnnual ? 'per year (billed annually)' : 'per month (billed monthly)';
   const tierLabel = `Includes 1-${people} active user seat${people > 1 ? 's' : ''}`;
 
+  // Current active plan price calculation for the dynamic top card
+  const getCurrentRentalCostFormatted = () => {
+    if (currentPlanId === 'business_ai') {
+      return `₹${businessAiPriceFormatted}`;
+    }
+    if (currentPlanId === 'business') {
+      return `₹${businessPriceFormatted}`;
+    }
+    return '₹0';
+  };
+
+  const getRenewalDateString = () => {
+    const d = new Date();
+    if (isAnnual) {
+      d.setFullYear(d.getFullYear() + 1);
+    } else {
+      d.setMonth(d.getMonth() + 1);
+    }
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-4 font-sans text-[#0F172A]">
+    <div className="w-full mx-auto px-1 sm:px-2 py-2 font-sans text-[#0F172A]">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-6 right-6 z-50 bg-[#0F172A] text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-in fade-in slide-in-from-top-4 duration-200">
@@ -201,37 +227,88 @@ export default function BillingTab({
         </div>
       )}
 
-      {/* SaaS Rental & Quota Status Card */}
-      <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 mb-8 shadow-xs">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-[#E2E8F0]">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
+      {/* Dynamic Top SaaS Rental & Quota Status Card (Widescreen layout utilizing left and right places) */}
+      <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-7 mb-8 shadow-xs w-full transition-all">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-[#E2E8F0]">
+          
+          {/* Left Side: Current Rental Plan Info */}
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
               <span className="text-xs font-bold text-[#475569] uppercase tracking-wider">
-                Current Workspace Rental
+                CURRENT WORKSPACE RENTAL
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#ECFDF5] text-[#10B981] border border-[#10B981]/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse"></span>
-                {subData?.status || (currentPlanId === 'starter' ? 'FREE TRIAL' : 'ACTIVE SUBSCRIPTION')}
+              <span className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[11px] font-bold border transition-colors ${
+                currentPlanId === 'starter' 
+                  ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                  : 'bg-[#ECFDF5] text-[#10B981] border-[#10B981]/25'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${currentPlanId === 'starter' ? 'bg-amber-500' : 'bg-[#10B981] animate-pulse'}`}></span>
+                {currentPlanId === 'starter' ? 'TRIAL' : 'ACTIVE SUBSCRIPTION'}
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-[#0F172A] flex items-center gap-2">
-              <span>{currentPlanId === 'business_ai' ? 'Business + AI' : (currentPlanId === 'business' ? 'Business' : 'Free Starter Tier')}</span>
-              {currentPlanId !== 'starter' && (
-                <Sparkles size={18} className="text-[#4F46E5]" />
-              )}
+
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
+              {currentPlanId === 'business_ai' ? 'Business + AI Tier' : (currentPlanId === 'business' ? 'Business Tier' : 'Free Starter Tier')}
             </h2>
-            <p className="text-xs text-[#475569] mt-0.5">
+
+            <p className="text-xs sm:text-sm text-[#475569]">
               {tierLabel} · Cloud transcoding &amp; team video sharing active
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Right Side: Dynamic Financial & Seat Control Summary */}
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 self-stretch lg:self-auto justify-between lg:justify-end bg-[#F8FAFC] lg:bg-transparent p-4 lg:p-0 rounded-xl border lg:border-0 border-[#E2E8F0]">
+            
+            {/* Live Pricing Counter in INR */}
+            <div className="text-left lg:text-right">
+              <div className="text-xs font-bold uppercase text-[#475569] tracking-wider">
+                Total Rental Cost
+              </div>
+              <div className="text-2xl sm:text-3xl font-extrabold font-mono text-[#0F172A] leading-tight">
+                {getCurrentRentalCostFormatted()}
+              </div>
+              <div className="text-[11px] text-[#4F46E5] font-semibold">
+                {isAnnual ? 'Billed annually (Save 20%)' : 'Billed monthly'}
+              </div>
+            </div>
+
+            {/* Quick Interactive Seats Stepper directly in Top Card */}
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-bold text-[#475569] uppercase tracking-wider mb-1">
+                Active Seats
+              </span>
+              <div className="flex items-center gap-1.5 bg-white border border-[#E2E8F0] rounded-xl p-1 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => handlePeopleChange(people - 1)}
+                  disabled={people <= 1}
+                  className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0F172A] flex items-center justify-center transition-colors disabled:opacity-30 cursor-pointer"
+                  title="Decrease seats"
+                >
+                  <Minus size={13} />
+                </button>
+                <span className="w-10 text-center font-mono font-bold text-sm text-[#0F172A]">
+                  {people}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handlePeopleChange(people + 1)}
+                  disabled={people >= 500}
+                  className="w-7 h-7 rounded-lg bg-[#4F46E5] hover:bg-[#4338CA] text-white flex items-center justify-center transition-colors disabled:opacity-30 cursor-pointer"
+                  title="Increase seats"
+                >
+                  <Plus size={13} />
+                </button>
+              </div>
+            </div>
+
+            {/* Jump to Plans Button */}
             <button
               onClick={() => {
                 const el = document.getElementById('pricing-plans-section');
                 el?.scrollIntoView({ behavior: 'smooth' });
               }}
-              className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer shrink-0"
             >
               <CreditCard size={14} />
               <span>Change Plan or Seats</span>
@@ -239,34 +316,34 @@ export default function BillingTab({
           </div>
         </div>
 
-        {/* Quota Breakdown Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
-          {/* Storage Quota */}
-          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4">
+        {/* Dynamic Quota & Usage Grid (Filling the entire left, center, and right spaces) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-6">
+          
+          {/* Left Column: Storage Quota */}
+          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4 transition-all">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-[#475569] flex items-center gap-1.5">
                 <HardDrive size={14} className="text-[#4F46E5]" />
                 Cloud Storage Quota
               </span>
               <span className="text-xs font-bold font-mono text-[#0F172A]">
-                {storageData?.usedFormatted || '0 MB'} / {currentPlanId === 'starter' ? '100 MB' : 'Unlimited'}
+                {storageData?.usedFormatted || '65.1 KB'} / {currentPlanId === 'starter' ? '100 MB' : 'Unlimited'}
               </span>
             </div>
             <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
               <div 
                 className={`h-full rounded-full transition-all duration-500 ${
-                  (storageData?.percentUsed || 0) > 85 ? 'bg-rose-500' : 'bg-[#4F46E5]'
+                  currentPlanId !== 'starter' ? 'bg-[#4F46E5] w-full' : 'bg-[#4F46E5] w-[5%]'
                 }`}
-                style={{ width: `${currentPlanId === 'starter' ? (storageData?.percentUsed || 5) : 100}%` }}
               />
             </div>
-            <p className="text-[11px] text-[#475569] mt-1.5">
-              {currentPlanId === 'starter' ? 'Upgrade to Business for unlimited recording storage.' : 'Unlimited high-speed cloud video storage enabled.'}
+            <p className="text-[11px] text-[#475569] mt-2">
+              {currentPlanId === 'starter' ? 'Upgrade to Business for unlimited cloud video storage.' : 'Unlimited high-speed cloud video storage enabled.'}
             </p>
           </div>
 
-          {/* Seat Capacity */}
-          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4">
+          {/* Center Column: Team Seat Capacity */}
+          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4 transition-all">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-[#475569] flex items-center gap-1.5">
                 <Users size={14} className="text-[#06B6D4]" />
@@ -279,36 +356,36 @@ export default function BillingTab({
             <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-[#06B6D4] rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, (1 / people) * 100)}%` }}
+                style={{ width: `${Math.min(100, Math.max(10, (1 / people) * 100))}%` }}
               />
             </div>
-            <p className="text-[11px] text-[#475569] mt-1.5">
-              Manage member roles and licenses in the Users tab.
+            <p className="text-[11px] text-[#475569] mt-2">
+              Dynamically allocated across your organization workspace.
             </p>
           </div>
 
-          {/* Security & Access */}
-          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4">
+          {/* Right Column: Security & Next Renewal */}
+          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4 transition-all">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-[#475569] flex items-center gap-1.5">
-                <ShieldCheck size={14} className="text-[#10B981]" />
-                SaaS Security Tier
+                <Calendar size={14} className="text-[#10B981]" />
+                Next Billing Renewal
               </span>
-              <span className="text-xs font-bold text-[#10B981]">
-                SOC2 Compliant
+              <span className="text-xs font-bold font-mono text-[#10B981]">
+                {currentPlanId === 'starter' ? 'Free Access' : getRenewalDateString()}
               </span>
             </div>
             <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
               <div className="h-full bg-[#10B981] rounded-full w-full" />
             </div>
-            <p className="text-[11px] text-[#475569] mt-1.5">
-              Encrypted end-to-end video streaming and storage.
+            <p className="text-[11px] text-[#475569] mt-2">
+              {currentPlanId === 'starter' ? 'Start rental anytime with zero interruption.' : `Auto-renews on ${getRenewalDateString()} (${isAnnual ? 'Annual' : 'Monthly'}).`}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Main Title */}
+      {/* Main Section Header */}
       <div id="pricing-plans-section" className="mb-6">
         <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
           SaaS Subscription &amp; Rental Plans
@@ -318,9 +395,10 @@ export default function BillingTab({
         </p>
       </div>
 
-      {/* Controls Row: How many people? + Billing Cycle */}
+      {/* Controls Row: How many seats to rent? + Billing Cycle (INR) */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-8 border-b border-[#E2E8F0]">
-        {/* People Counter */}
+        
+        {/* Seats Input */}
         <div className="flex items-center gap-3">
           <label htmlFor="people-input" className="text-sm font-bold text-[#0F172A]">
             How many seats to rent?
@@ -348,18 +426,18 @@ export default function BillingTab({
             </button>
             {showTooltip && (
               <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 p-2.5 bg-slate-900 text-white text-[11px] rounded-xl shadow-xl z-30 leading-snug">
-                Rental pricing scales dynamically based on the number of active team seats in your workspace.
+                Rental pricing scales dynamically in Indian Rupees (₹) based on active team seats.
               </div>
             )}
           </div>
         </div>
 
-        {/* Billing Cycle Radio */}
-        <div className="flex items-center gap-4 bg-slate-100 p-1 rounded-xl">
+        {/* Monthly vs Annual Rental Toggle */}
+        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
           <button
             type="button"
             onClick={() => setBillingCycle('MONTHLY')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               billingCycle === 'MONTHLY' 
                 ? 'bg-white text-[#0F172A] shadow-xs' 
                 : 'text-[#475569] hover:text-[#0F172A]'
@@ -370,21 +448,21 @@ export default function BillingTab({
           <button
             type="button"
             onClick={() => setBillingCycle('ANNUAL')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               billingCycle === 'ANNUAL' 
                 ? 'bg-[#4F46E5] text-white shadow-xs' 
                 : 'text-[#475569] hover:text-[#0F172A]'
             }`}
           >
             <span>Annual Rent</span>
-            <span className="bg-emerald-400 text-slate-900 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full uppercase">
-              Save 20%
+            <span className="bg-emerald-400 text-slate-900 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full uppercase">
+              SAVE 20%
             </span>
           </button>
         </div>
       </div>
 
-      {/* 3 Pricing Cards Grid */}
+      {/* 3 Pricing Cards Grid across widescreen layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
         
         {/* CARD 1: Starter */}
@@ -404,7 +482,7 @@ export default function BillingTab({
               Quick start with basic video capture and 100 MB free cloud storage.
             </p>
             <div className="mb-6">
-              <div className="text-3xl font-extrabold font-mono text-[#0F172A]">$0</div>
+              <div className="text-3xl font-extrabold font-mono text-[#0F172A]">₹0</div>
               <div className="text-xs text-[#475569] font-medium mt-1">Free forever</div>
             </div>
 
@@ -451,7 +529,7 @@ export default function BillingTab({
           </div>
         </div>
 
-        {/* CARD 2: Business */}
+        {/* CARD 2: Business (In Indian Rupees ₹) */}
         <div className="border border-[#E2E8F0] rounded-2xl p-7 flex flex-col justify-between bg-white relative transition-all hover:shadow-md">
           <div>
             <div className="h-5 mb-2">
@@ -469,7 +547,7 @@ export default function BillingTab({
             </p>
             <div className="mb-6">
               <div className="text-3xl font-extrabold font-mono text-[#0F172A] leading-none">
-                ${businessPrice}
+                ₹{businessPriceFormatted}
               </div>
               <div className="text-xs text-[#475569] font-medium mt-1">
                 {cycleLabel}
@@ -519,7 +597,7 @@ export default function BillingTab({
           </div>
         </div>
 
-        {/* CARD 3: Business + AI (RECOMMENDED) */}
+        {/* CARD 3: Business + AI (In Indian Rupees ₹, WITHOUT sparkle icon) */}
         <div className="border-2 border-[#4F46E5] rounded-2xl p-7 flex flex-col justify-between bg-white relative shadow-md transition-all">
           <div>
             <div className="h-5 mb-2 flex items-center justify-between">
@@ -532,16 +610,15 @@ export default function BillingTab({
                 </span>
               )}
             </div>
-            <h3 className="text-2xl font-bold text-[#4F46E5] mb-1 flex items-center gap-1.5">
-              <span>Business + AI</span>
-              <Sparkles size={20} className="text-[#4F46E5]" />
+            <h3 className="text-2xl font-bold text-[#4F46E5] mb-1">
+              Business + AI
             </h3>
             <p className="text-xs text-[#475569] mb-6 min-h-[36px] leading-relaxed">
               Auto-enhanced by AI: titles, chapters, audio polish, and smart summaries.
             </p>
             <div className="mb-6">
               <div className="text-3xl font-extrabold font-mono text-[#0F172A] leading-none">
-                ${businessAiPrice}
+                ₹{businessAiPriceFormatted}
               </div>
               <div className="text-xs text-[#475569] font-medium mt-1">
                 {cycleLabel}
@@ -591,32 +668,6 @@ export default function BillingTab({
           </div>
         </div>
 
-      </div>
-
-      {/* Enterprise & White-Label Rental Information */}
-      <div className="mt-12 p-8 bg-gradient-to-r from-slate-900 to-[#0F172A] rounded-2xl text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="space-y-2 max-w-2xl">
-          <div className="flex items-center gap-2">
-            <Building2 size={18} className="text-[#06B6D4]" />
-            <span className="text-xs font-bold uppercase tracking-wider text-[#06B6D4]">
-              Enterprise &amp; White-Label Rental
-            </span>
-          </div>
-          <h4 className="text-xl font-extrabold text-white">
-            Need a dedicated private instance or custom white-label branding?
-          </h4>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Rent dedicated video infrastructure on your own custom domain (e.g. <span className="font-mono text-cyan-300">record.yourcompany.com</span>) with SAML/SSO authentication, custom storage buckets, and 24/7 dedicated engineering support.
-          </p>
-        </div>
-
-        <a
-          href="mailto:enterprise-sales@rcrd.com?subject=Inquiry%20about%20White-Label%20Rental"
-          className="px-6 py-3 bg-white hover:bg-slate-100 text-slate-900 text-xs font-extrabold rounded-xl transition-all shadow-md shrink-0 flex items-center gap-2 cursor-pointer"
-        >
-          <span>Contact Enterprise Sales</span>
-          <ExternalLink size={14} />
-        </a>
       </div>
     </div>
   );

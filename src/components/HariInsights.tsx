@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight, ArrowRight, Sparkles, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, TrendingUp, Play } from "lucide-react";
 
 interface HariInsightsProps {
   userName?: string;
@@ -28,7 +28,7 @@ export default function HariInsights({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="w-5 h-5 rounded-full bg-[#EEF2FF] text-[#4F46E5] flex items-center justify-center">
-            <Sparkles size={12} />
+            <TrendingUp size={12} />
           </div>
           <h2 className="text-xs font-bold uppercase tracking-wider text-[#475569]">
             {userName.toUpperCase()}&apos;S INSIGHTS

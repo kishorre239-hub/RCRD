@@ -6,7 +6,7 @@ import RcrdLogo from "@/components/RcrdLogo";
 import {
   Calendar, Clock, Lock, User, Video,
   CheckCircle2, AlertCircle, Eye, EyeOff, Copy,
-  Check, ArrowRight, Shield, Sparkles,
+  Check, ArrowRight, Shield,
   ChevronRight, RefreshCw, Mail
 } from "lucide-react";
 
@@ -548,7 +548,7 @@ function JoinMeetingContent() {
                 {isScheduled && (
                   <div className="mt-4 pt-3.5 border-t border-white/20 flex items-center justify-between text-xs font-bold text-sky-100">
                     <span className="flex items-center gap-1.5 text-sky-200">
-                      <Sparkles size={14} className="text-amber-300" />
+                      <Clock size={14} className="text-amber-300" />
                       <span style={{ color: "#e0f2fe" }}>Class Countdown</span>
                     </span>
                     <span

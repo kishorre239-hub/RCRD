@@ -3,105 +3,35 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-
-  /* Typography */
-  --font-sans: var(--font-inter), 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-heading: var(--font-inter), 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-glassdoor: var(--font-inter), 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-outfit: var(--font-inter), 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-mono), 'JetBrains Mono', monospace;
-
-  /* Brand Primary */
-  --color-primary: #4F46E5;
-  --color-primary-hover: #4338CA;
-  --color-primary-light: #EEF2FF;
-  --color-primary-tint: #EEF2FF;
-  --color-indigo-600: #4F46E5;
-  --color-indigo-700: #4338CA;
-  --color-indigo-50: #EEF2FF;
-
-  /* Geospatial / Telemetry Accent */
-  --color-accent: #06B6D4;
-  --color-accent-hover: #0891B2;
-  --color-accent-light: #ECFEFF;
-  --color-cyan-500: #06B6D4;
-
-  /* Canvas & Surfaces */
-  --color-canvas: #F8FAFC;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-heading: "Glassdoor Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-glassdoor: "Glassdoor Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-outfit: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --color-primary: #154360;
+  --color-primary-hover: #0E2F44;
+  --color-primary-light: #EBF5FB;
   --color-surface: #FFFFFF;
-  --color-card: #FFFFFF;
-  --color-modal: #FFFFFF;
-  --color-border: #E2E8F0;
-
-  /* Sidebar: Midnight Navy */
-  --color-sidebar: #0F172A;
-  --color-sidebar-hover: #1E293B;
-  --color-sidebar-text: #F8FAFC;
-  --color-sidebar-muted: #94A3B8;
-  --color-sidebar-border: #1E293B;
-  --color-sidebar-glow: #4F46E5;
-
-  /* Text Hierarchy */
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #475569;
-  --color-text-muted: #94A3B8;
-
-  /* Slate & Gray mappings */
-  --color-slate-900: #0F172A;
-  --color-slate-600: #475569;
-  --color-slate-500: #475569;
-  --color-slate-400: #94A3B8;
-  --color-slate-200: #E2E8F0;
-  --color-slate-100: #F1F5F9;
-  --color-slate-50: #F8FAFC;
-
-  --color-gray-900: #0F172A;
-  --color-gray-600: #475569;
-  --color-gray-500: #475569;
-  --color-gray-400: #94A3B8;
-  --color-gray-200: #E2E8F0;
-  --color-gray-100: #F1F5F9;
-  --color-gray-50: #F8FAFC;
-
-  /* Semantic Status Colors */
-  --color-success: #10B981;
-  --color-success-bg: #ECFDF5;
-  --color-warning: #F59E0B;
-  --color-warning-bg: #FFFBEB;
-  --color-danger: #EF4444;
-  --color-danger-bg: #FEF2F2;
-  --color-info: #0284C7;
-  --color-info-bg: #F0F9FF;
+  --color-border: #E2E7EC;
+  --color-canvas: #F5F6F8;
+  --color-text-primary: #20262E;
+  --color-text-secondary: #57636E;
+  --color-text-muted: #57636E;
+  --color-slate-500: #57636E;
+  --color-slate-400: #57636E;
+  --color-gray-500: #57636E;
+  --color-gray-400: #57636E;
+  --color-slate-200: #E2E7EC;
+  --color-gray-200: #E2E7EC;
+  --color-slate-100: #F5F6F8;
+  --color-gray-100: #F5F6F8;
+  --color-slate-50: #F5F6F8;
+  --color-gray-50: #F5F6F8;
 }
 
 :root {
-  --background: #F8FAFC;
-  --foreground: #0F172A;
-  --canvas: #F8FAFC;
-  --surface: #FFFFFF;
-  --sidebar-bg: #0F172A;
-  --border-color: #E2E8F0;
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #94A3B8;
-  --brand-primary: #4F46E5;
-  --brand-hover: #4338CA;
-  --brand-tint: #EEF2FF;
-  --accent-cyan: #06B6D4;
-
-  --font-sans: var(--font-inter), 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-mono), 'JetBrains Mono', monospace;
-}
-
-.dark {
-  --background: #0B0F19;
-  --foreground: #F9FAFB;
-  --canvas: #0B0F19;
-  --surface: #111827;
-  --border-color: #1F2937;
-  --text-primary: #F9FAFB;
-  --text-secondary: #9CA3AF;
-  --text-muted: #9CA3AF;
+  --background: #F5F6F8;
+  --foreground: #20262E;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 html,
@@ -112,87 +42,17 @@ body {
   margin: 0;
   padding: 0;
   overscroll-behavior: none;
-  background-color: #F8FAFC;
-  color: #0F172A;
-  font-family: var(--font-sans);
+  background-color: #F5F6F8;
+  color: #20262E;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Typography Hierarchy System */
-.text-metric {
-  font-size: 32px;
-  line-height: 40px;
-  font-weight: 700;
-}
-
-h1, .text-h1 {
-  font-size: 24px;
-  line-height: 32px;
-  font-weight: 700;
+h1, h2, h3, h4, h5, h6 {
   color: inherit;
-  font-family: var(--font-sans);
-  letter-spacing: -0.02em;
-}
-
-h2, .text-h2 {
-  font-size: 20px;
-  line-height: 28px;
-  font-weight: 600;
-  color: inherit;
-  font-family: var(--font-sans);
+  font-family: "Glassdoor Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700;
   letter-spacing: -0.015em;
-}
-
-h3, .text-h3 {
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
-  color: inherit;
-  font-family: var(--font-sans);
-}
-
-body, p, .text-body {
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 400;
-}
-
-.text-body-medium {
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 500;
-}
-
-.text-caption, .status-pill {
-  font-size: 12px;
-  line-height: 16px;
-  font-weight: 600;
-  letter-spacing: 0.025em;
-}
-
-.font-mono, .data-mono, code, pre {
-  font-family: var(--font-mono), 'JetBrains Mono', monospace !important;
-}
-
-/* Semantic Status Badges & Pills */
-.status-pill-success {
-  color: #10B981;
-  background-color: #ECFDF5;
-}
-
-.status-pill-warning {
-  color: #F59E0B;
-  background-color: #FFFBEB;
-}
-
-.status-pill-danger {
-  color: #EF4444;
-  background-color: #FEF2F2;
-}
-
-.status-pill-info {
-  color: #0284C7;
-  background-color: #F0F9FF;
 }
 
 body {

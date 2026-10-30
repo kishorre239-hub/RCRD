@@ -551,18 +551,18 @@ export default function UsersTab() {
       )}
 
       {/* Main Container */}
-      <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 sm:p-8 shadow-xs">
+      <div className="bg-white border border-[#E2E7EC] rounded-2xl p-6 sm:p-8 shadow-xs">
         {/* Header */}
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h2 className="text-[20px] font-bold text-[#0F172A] flex items-center gap-2.5">
+              <h2 className="text-[20px] font-bold text-[#20262E] flex items-center gap-2.5">
                 <span>Users &amp; groups</span>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#EEF2FF] text-[#4F46E5] font-bold border border-[#4F46E5]/15">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#EBF5FB] text-[#154360] font-bold border border-[#154360]/15">
                   {users.length} {users.length === 1 ? "Employee" : "Employees"}
                 </span>
               </h2>
-              <p className="text-[13px] text-[#475569] mt-1">
+              <p className="text-[13px] text-[#57636E] mt-1">
                 Manage roles (Admin, Mentor), side navbar access, and login permissions dynamically.
               </p>
             </div>
@@ -576,7 +576,7 @@ export default function UsersTab() {
                 setGiveImmediateAccess(true);
                 setShowAddModal(true);
               }}
-              className="bg-[#4F46E5] hover:bg-[#4338CA] text-white text-[13px] font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer shrink-0"
+              className="bg-[#154360] hover:bg-[#0E2F44] text-white text-[13px] font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer shrink-0"
             >
               <UserPlus size={16} />
               <span>+ Add user</span>
@@ -584,10 +584,10 @@ export default function UsersTab() {
           </div>
 
           {/* Quick Metrics Strip utilizing full screen width */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 pt-5 border-t border-[#E2E8F0]/80">
-            <div className="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl transition-all hover:shadow-xs">
-              <span className="text-[11px] font-bold text-[#475569] uppercase tracking-wider block">Total Members</span>
-              <span className="text-2xl font-black text-[#0F172A] mt-1 block">{users.length}</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 pt-5 border-t border-[#E2E7EC]/80">
+            <div className="p-4 bg-[#F8FAFC] border border-[#E2E7EC] rounded-2xl transition-all hover:shadow-xs">
+              <span className="text-[11px] font-bold text-[#57636E] uppercase tracking-wider block">Total Members</span>
+              <span className="text-2xl font-black text-[#20262E] mt-1 block">{users.length}</span>
             </div>
             <div className="p-4 bg-purple-50/60 border border-purple-200/70 rounded-2xl transition-all hover:shadow-xs">
               <span className="text-[11px] font-bold text-purple-700 uppercase tracking-wider block">Mentors</span>
@@ -595,7 +595,7 @@ export default function UsersTab() {
             </div>
             <div className="p-4 bg-blue-50/60 border border-blue-200/70 rounded-2xl transition-all hover:shadow-xs">
               <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider block">Administrators</span>
-              <span className="text-2xl font-black text-[#4F46E5] mt-1 block">{users.filter(u => u.role === "Admin").length}</span>
+              <span className="text-2xl font-black text-[#154360] mt-1 block">{users.filter(u => u.role === "Admin").length}</span>
             </div>
             <div className="p-4 bg-emerald-50/60 border border-emerald-200/70 rounded-2xl transition-all hover:shadow-xs">
               <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider block">Active Logins</span>
@@ -606,7 +606,7 @@ export default function UsersTab() {
 
         {/* Floating Bulk Action Bar (when multiple users selected) */}
         {selectedUserIds.length > 0 && (
-          <div className="mb-4 p-3 px-4 bg-[#4F46E5] text-white rounded-2xl shadow-md flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="mb-4 p-3 px-4 bg-[#154360] text-white rounded-2xl shadow-md flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-150">
             <div className="flex items-center gap-2.5">
               <span className="w-6 h-6 rounded-lg bg-white/20 text-white flex items-center justify-center text-xs font-bold">
                 {selectedUserIds.length}
@@ -645,12 +645,12 @@ export default function UsersTab() {
                 placeholder="Search by name or email address"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-3.5 pr-8 py-2 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm text-[#0F172A] placeholder:text-[#475569] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition-colors"
+                className="w-full pl-3.5 pr-8 py-2 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] placeholder:text-[#57636E] focus:outline-none focus:border-[#154360] focus:bg-white transition-colors"
               />
               {searchQuery && (
                 <button 
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#475569] hover:text-[#0F172A]"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#20262E]"
                 >
                   <X size={14} />
                 </button>
@@ -665,14 +665,14 @@ export default function UsersTab() {
                   setIsRoleDropdownOpen(!isRoleDropdownOpen);
                   setIsMemberDropdownOpen(false);
                 }}
-                className="flex items-center gap-2 px-3 py-2 bg-[#F8FAFC] hover:bg-slate-200/80 border border-[#E2E8F0] rounded-xl text-xs font-semibold text-[#0F172A] transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-3 py-2 bg-[#F5F6F8] hover:bg-slate-200/80 border border-[#E2E7EC] rounded-xl text-xs font-semibold text-[#20262E] transition-colors cursor-pointer"
               >
                 <span>Role: {roleFilter}</span>
-                <ChevronDown size={14} className="text-[#475569]" />
+                <ChevronDown size={14} className="text-[#57636E]" />
               </button>
 
               {isRoleDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1.5 w-40 bg-white border border-[#E2E8F0] rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95">
+                <div className="absolute top-full left-0 mt-1.5 w-40 bg-white border border-[#E2E7EC] rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95">
                   {(["All Roles", "Admins", "Mentors"] as const).map(role => (
                     <button
                       key={role}
@@ -681,11 +681,11 @@ export default function UsersTab() {
                         setIsRoleDropdownOpen(false);
                       }}
                       className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between transition-colors ${
-                        roleFilter === role ? "bg-[#EEF2FF] text-[#4F46E5]" : "text-[#0F172A] hover:bg-[#F8FAFC]"
+                        roleFilter === role ? "bg-[#EBF5FB] text-[#154360]" : "text-[#20262E] hover:bg-[#F5F6F8]"
                       }`}
                     >
                       <span>{role}</span>
-                      {roleFilter === role && <Check size={12} className="text-[#4F46E5]" />}
+                      {roleFilter === role && <Check size={12} className="text-[#154360]" />}
                     </button>
                   ))}
                 </div>
@@ -700,14 +700,14 @@ export default function UsersTab() {
                   setIsMemberDropdownOpen(!isMemberDropdownOpen);
                   setIsRoleDropdownOpen(false);
                 }}
-                className="flex items-center gap-2 px-3 py-2 bg-[#F8FAFC] hover:bg-slate-200/80 border border-[#E2E8F0] rounded-xl text-xs font-semibold text-[#0F172A] transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-3 py-2 bg-[#F5F6F8] hover:bg-slate-200/80 border border-[#E2E7EC] rounded-xl text-xs font-semibold text-[#20262E] transition-colors cursor-pointer"
               >
                 <span>Status: {memberFilter}</span>
-                <ChevronDown size={14} className="text-[#475569]" />
+                <ChevronDown size={14} className="text-[#57636E]" />
               </button>
 
               {isMemberDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1.5 w-44 bg-white border border-[#E2E8F0] rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95">
+                <div className="absolute top-full left-0 mt-1.5 w-44 bg-white border border-[#E2E7EC] rounded-xl shadow-lg py-1 z-30 animate-in fade-in zoom-in-95">
                   {(["All members", "Access Granted", "Access Revoked"] as const).map(status => (
                     <button
                       key={status}
@@ -716,11 +716,11 @@ export default function UsersTab() {
                         setIsMemberDropdownOpen(false);
                       }}
                       className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between transition-colors ${
-                        memberFilter === status ? "bg-[#EEF2FF] text-[#4F46E5]" : "text-[#0F172A] hover:bg-[#F8FAFC]"
+                        memberFilter === status ? "bg-[#EBF5FB] text-[#154360]" : "text-[#20262E] hover:bg-[#F5F6F8]"
                       }`}
                     >
                       <span>{status}</span>
-                      {memberFilter === status && <Check size={12} className="text-[#4F46E5]" />}
+                      {memberFilter === status && <Check size={12} className="text-[#154360]" />}
                     </button>
                   ))}
                 </div>
@@ -732,18 +732,18 @@ export default function UsersTab() {
           <button
             onClick={() => fetchUsers(true)}
             title="Refresh users from server"
-            className="p-2 border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#475569] hover:text-[#0F172A] rounded-xl transition-colors cursor-pointer shrink-0 self-end sm:self-center"
+            className="p-2 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-xl transition-colors cursor-pointer shrink-0 self-end sm:self-center"
           >
-            <RefreshCw size={16} className={loading ? "animate-spin text-[#4F46E5]" : ""} />
+            <RefreshCw size={16} className={loading ? "animate-spin text-[#154360]" : ""} />
           </button>
         </div>
 
         {/* Users Table */}
-        <div className="border border-[#E2E8F0]/90 rounded-2xl overflow-hidden bg-white shadow-xs">
+        <div className="border border-[#E2E7EC]/90 rounded-2xl overflow-hidden bg-white shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[700px]">
               <thead>
-                <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC] text-[11px] font-bold text-[#475569] uppercase tracking-wider">
+                <tr className="border-b border-[#E2E7EC] bg-[#F8FAFC] text-[11px] font-bold text-[#57636E] uppercase tracking-wider">
                   {/* Select All Checkbox */}
                   <th className="py-3.5 px-3.5 w-10 text-center">
                     <input
@@ -753,7 +753,7 @@ export default function UsersTab() {
                       onChange={handleToggleSelectAll}
                       disabled={selectableUsers.length === 0}
                       title="Select all employees for bulk delete"
-                      className="w-4 h-4 rounded text-[#4F46E5] focus:ring-[#4F46E5] border-slate-300 cursor-pointer disabled:opacity-40"
+                      className="w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 cursor-pointer disabled:opacity-40"
                     />
                   </th>
                   <th className="py-3.5 px-4">Employee</th>
@@ -764,21 +764,21 @@ export default function UsersTab() {
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E2E8F0]/60 text-[13px]">
+              <tbody className="divide-y divide-[#E2E7EC]/60 text-[13px]">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="py-14 text-center text-[#475569]">
+                    <td colSpan={7} className="py-14 text-center text-[#57636E]">
                       <div className="flex items-center justify-center gap-2 text-xs font-medium">
-                        <RefreshCw size={16} className="animate-spin text-[#4F46E5]" />
+                        <RefreshCw size={16} className="animate-spin text-[#154360]" />
                         <span>Loading workspace users...</span>
                       </div>
                     </td>
                   </tr>
                 ) : filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-14 text-center text-[#475569]">
-                      <p className="font-bold text-[#0F172A] text-sm">No employees match your filter</p>
-                      <p className="text-xs text-[#475569] mt-1">Click &quot;+ Add user&quot; to provision a new team member.</p>
+                    <td colSpan={7} className="py-14 text-center text-[#57636E]">
+                      <p className="font-bold text-[#20262E] text-sm">No employees match your filter</p>
+                      <p className="text-xs text-[#57636E] mt-1">Click &quot;+ Add user&quot; to provision a new team member.</p>
                     </td>
                   </tr>
                 ) : (
@@ -793,7 +793,7 @@ export default function UsersTab() {
                     return (
                       <tr 
                         key={user.id}
-                        className={`hover:bg-[#F8FAFC]/70 transition-colors group ${isSelected ? "bg-[#EEF2FF]/50" : ""}`}
+                        className={`hover:bg-[#F5F6F8]/70 transition-colors group ${isSelected ? "bg-[#EBF5FB]/50" : ""}`}
                       >
                         {/* Checkbox */}
                         <td className="py-3.5 px-3.5 w-10 text-center">
@@ -802,7 +802,7 @@ export default function UsersTab() {
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => handleToggleSelectUser(user.id)}
-                              className="w-4 h-4 rounded text-[#4F46E5] focus:ring-[#4F46E5] border-slate-300 cursor-pointer"
+                              className="w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 cursor-pointer"
                               title={`Select ${user.name}`}
                             />
                           ) : (
@@ -822,14 +822,14 @@ export default function UsersTab() {
                               />
                             ) : (
                               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-[12px] font-bold shrink-0 shadow-xs ${
-                                isAdmin ? "bg-[#4F46E5] text-white" : "bg-[#6C3483] text-white"
+                                isAdmin ? "bg-[#154360] text-white" : "bg-[#6C3483] text-white"
                               }`}>
                                 {getInitials(user.name)}
                               </div>
                             )}
                             <div>
-                              <p className="font-bold text-[#0F172A]">{user.name}</p>
-                              <p className="text-[11px] text-[#475569]">Added {user.dateAdded}</p>
+                              <p className="font-bold text-[#20262E]">{user.name}</p>
+                              <p className="text-[11px] text-[#57636E]">Added {user.dateAdded}</p>
                             </div>
                           </div>
                         </td>
@@ -849,7 +849,7 @@ export default function UsersTab() {
                         <td className="py-3.5 px-4">
                           <div className="flex flex-wrap items-center gap-1.5 max-w-[260px]">
                             {isAdmin ? (
-                              <span className="text-[11px] font-semibold text-[#4F46E5] bg-[#EEF2FF] px-2 py-0.5 rounded-md border border-[#4F46E5]/15">
+                              <span className="text-[11px] font-semibold text-[#154360] bg-[#EBF5FB] px-2 py-0.5 rounded-md border border-[#154360]/15">
                                 All Sidebars ({ALL_NAV_ITEMS.length})
                               </span>
                             ) : allowed.length === 0 ? (
@@ -862,7 +862,7 @@ export default function UsersTab() {
                                 return (
                                   <span 
                                     key={navId}
-                                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[#0F172A] bg-slate-100 px-2 py-0.5 rounded-md border border-[#E2E8F0]"
+                                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[#20262E] bg-slate-100 px-2 py-0.5 rounded-md border border-[#E2E7EC]"
                                     title={item?.description}
                                   >
                                     {NAV_ICONS[navId]}
@@ -875,7 +875,7 @@ export default function UsersTab() {
                         </td>
 
                         {/* Email address */}
-                        <td className="py-3.5 px-4 text-[#475569] font-mono text-[12px]">
+                        <td className="py-3.5 px-4 text-[#57636E] font-mono text-[12px]">
                           {user.email}
                         </td>
 
@@ -926,7 +926,7 @@ export default function UsersTab() {
                             <button
                               type="button"
                               onClick={() => openEditModal(user)}
-                              className="p-1.5 bg-slate-100 hover:bg-[#EEF2FF] text-[#0F172A] hover:text-[#4F46E5] border border-[#E2E8F0] hover:border-[#4F46E5]/30 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 bg-slate-100 hover:bg-[#EBF5FB] text-[#20262E] hover:text-[#154360] border border-[#E2E7EC] hover:border-[#154360]/30 rounded-lg transition-colors cursor-pointer"
                               title="Edit user role and sidebar navigation"
                             >
                               <Edit2 size={14} />
@@ -937,7 +937,7 @@ export default function UsersTab() {
                               <button
                                 type="button"
                                 onClick={() => setDeleteTargetUser(user)}
-                                className="p-1.5 bg-slate-100 hover:bg-rose-50 text-[#475569] hover:text-rose-700 border border-[#E2E8F0] hover:border-rose-200 rounded-lg transition-colors cursor-pointer"
+                                className="p-1.5 bg-slate-100 hover:bg-rose-50 text-[#57636E] hover:text-rose-700 border border-[#E2E7EC] hover:border-rose-200 rounded-lg transition-colors cursor-pointer"
                                 title="Delete employee from workspace"
                               >
                                 <Trash2 size={14} />
@@ -945,7 +945,7 @@ export default function UsersTab() {
                             )}
 
                             {isPrimaryOwner && (
-                              <span className="text-[11px] font-bold text-[#475569] uppercase bg-slate-100 px-2 py-0.5 rounded">Owner</span>
+                              <span className="text-[11px] font-bold text-[#57636E] uppercase bg-slate-100 px-2 py-0.5 rounded">Owner</span>
                             )}
                           </div>
                         </td>
@@ -964,21 +964,21 @@ export default function UsersTab() {
       {/* ========================================================================= */}
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[540px] my-8 overflow-hidden border border-[#E2E8F0] animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[540px] my-8 overflow-hidden border border-[#E2E7EC] animate-in zoom-in-95 duration-150">
             {/* Header */}
-            <div className="px-6 py-5 border-b border-[#E2E8F0] flex items-center justify-between bg-[#F8FAFC]">
+            <div className="px-6 py-5 border-b border-[#E2E7EC] flex items-center justify-between bg-[#F8FAFC]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#EEF2FF] border border-[#4F46E5]/20 flex items-center justify-center text-[#4F46E5]">
+                <div className="w-10 h-10 rounded-2xl bg-[#EBF5FB] border border-[#154360]/20 flex items-center justify-center text-[#154360]">
                   <UserPlus size={20} />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-[#0F172A]">Add Employee &amp; Grant Access</h3>
-                  <p className="text-xs text-[#475569]">Assign role, side navbars, and initial login password.</p>
+                  <h3 className="text-base font-bold text-[#20262E]">Add Employee &amp; Grant Access</h3>
+                  <p className="text-xs text-[#57636E]">Assign role, side navbars, and initial login password.</p>
                 </div>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="p-1.5 text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -988,7 +988,7 @@ export default function UsersTab() {
             <form onSubmit={handleAddUser} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto custom-scrollbar">
               {/* Full Name */}
               <div>
-                <label className="block text-[12px] font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
                   Full Name
                 </label>
                 <input
@@ -996,13 +996,13 @@ export default function UsersTab() {
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                   placeholder="e.g. Geonixa Instructor"
-                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white focus:ring-2 focus:ring-[#4F46E5]/10 transition-all font-medium"
+                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium"
                 />
               </div>
 
               {/* Work Email */}
               <div>
-                <label className="block text-[12px] font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
                   Work Email Address *
                 </label>
                 <input
@@ -1011,17 +1011,17 @@ export default function UsersTab() {
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
                   placeholder="geonixa@rcrd.com"
-                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white focus:ring-2 focus:ring-[#4F46E5]/10 transition-all font-medium"
+                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium"
                 />
               </div>
 
               {/* Login Password */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-[12px] font-bold text-[#0F172A] uppercase tracking-wider">
+                  <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider">
                     Login Password
                   </label>
-                  <span className="text-[11px] text-[#475569]">Default: rcrd2026</span>
+                  <span className="text-[11px] text-[#57636E]">Default: rcrd2026</span>
                 </div>
                 <div className="relative">
                   <input
@@ -1029,12 +1029,12 @@ export default function UsersTab() {
                     value={newPassword}
                     onChange={e => setNewPassword(e.target.value)}
                     placeholder="Set password (or empty for rcrd2026)"
-                    className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white focus:ring-2 focus:ring-[#4F46E5]/10 transition-all font-medium pr-10"
+                    className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#475569] hover:text-[#0F172A] cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#20262E] cursor-pointer"
                   >
                     {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -1043,7 +1043,7 @@ export default function UsersTab() {
 
               {/* ROLE SELECTION (Mentor and Admin only - Creator removed) */}
               <div>
-                <label className="block text-[12px] font-bold text-[#0F172A] uppercase tracking-wider mb-2">
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-2">
                   Role &amp; Responsibility
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -1053,14 +1053,14 @@ export default function UsersTab() {
                     className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
                       newRole === "Mentor"
                         ? "border-[#6C3483] bg-[#F4ECF7] ring-2 ring-[#6C3483]/20 shadow-xs"
-                        : "border-[#E2E8F0] hover:border-slate-300 bg-white"
+                        : "border-[#E2E7EC] hover:border-slate-300 bg-white"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-xs text-[#5B2C6F]">Mentor</span>
                       {newRole === "Mentor" && <Check size={16} className="text-[#6C3483]" />}
                     </div>
-                    <p className="text-[11px] text-[#475569] leading-tight">Custom Sidebars</p>
+                    <p className="text-[11px] text-[#57636E] leading-tight">Custom Sidebars</p>
                   </div>
 
                   {/* Admin */}
@@ -1068,27 +1068,27 @@ export default function UsersTab() {
                     onClick={() => handleNewRoleChange("Admin")}
                     className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
                       newRole === "Admin"
-                        ? "border-[#4F46E5] bg-[#EEF2FF] ring-2 ring-[#4F46E5]/20 shadow-xs"
-                        : "border-[#E2E8F0] hover:border-slate-300 bg-white"
+                        ? "border-[#154360] bg-[#EBF5FB] ring-2 ring-[#154360]/20 shadow-xs"
+                        : "border-[#E2E7EC] hover:border-slate-300 bg-white"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-xs text-[#4F46E5]">Admin</span>
-                      {newRole === "Admin" && <Check size={16} className="text-[#4F46E5]" />}
+                      <span className="font-bold text-xs text-[#154360]">Admin</span>
+                      {newRole === "Admin" && <Check size={16} className="text-[#154360]" />}
                     </div>
-                    <p className="text-[11px] text-[#475569] leading-tight">Full Workspace</p>
+                    <p className="text-[11px] text-[#57636E] leading-tight">Full Workspace</p>
                   </div>
                 </div>
               </div>
 
               {/* SIDE NAVBAR ACCESS SELECTION FOR ONBOARDING (Selected by admin for each user) */}
-              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0]">
+              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E7EC]">
                 <div className="flex items-center justify-between mb-2.5">
                   <div>
-                    <h4 className="text-xs font-bold text-[#0F172A] uppercase tracking-wider">
+                    <h4 className="text-xs font-bold text-[#20262E] uppercase tracking-wider">
                       Side Navbar Access ({newAllowedNav.length} of {ALL_NAV_ITEMS.length} Selected)
                     </h4>
-                    <p className="text-[11px] text-[#475569]">
+                    <p className="text-[11px] text-[#57636E]">
                       Select how many side navbar items will appear for this employee.
                     </p>
                   </div>
@@ -1096,14 +1096,14 @@ export default function UsersTab() {
                     <button
                       type="button"
                       onClick={() => setNewAllowedNav(ALL_NAV_ITEMS.map(i => i.id))}
-                      className="text-[11px] font-bold text-[#4F46E5] hover:underline px-2 py-0.5 rounded bg-white border border-[#E2E8F0] cursor-pointer"
+                      className="text-[11px] font-bold text-[#154360] hover:underline px-2 py-0.5 rounded bg-white border border-[#E2E7EC] cursor-pointer"
                     >
                       Select All
                     </button>
                     <button
                       type="button"
                       onClick={() => setNewAllowedNav([])}
-                      className="text-[11px] font-bold text-[#475569] hover:underline px-2 py-0.5 rounded bg-white border border-[#E2E8F0] cursor-pointer"
+                      className="text-[11px] font-bold text-[#57636E] hover:underline px-2 py-0.5 rounded bg-white border border-[#E2E7EC] cursor-pointer"
                     >
                       Clear
                     </button>
@@ -1119,22 +1119,22 @@ export default function UsersTab() {
                         onClick={() => toggleNavItem(newAllowedNav, setNewAllowedNav, item.id)}
                         className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                           isChecked 
-                            ? "bg-white border-[#4F46E5]/40 shadow-xs ring-1 ring-[#4F46E5]/10" 
-                            : "bg-transparent border-[#E2E8F0] opacity-65 hover:opacity-100"
+                            ? "bg-white border-[#154360]/40 shadow-xs ring-1 ring-[#154360]/10" 
+                            : "bg-transparent border-[#E2E7EC] opacity-65 hover:opacity-100"
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => {}}
-                          className="mt-0.5 w-4 h-4 rounded text-[#4F46E5] focus:ring-[#4F46E5] border-slate-300 pointer-events-none"
+                          className="mt-0.5 w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 pointer-events-none"
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-[#0F172A]">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-[#20262E]">
                             {NAV_ICONS[item.id]}
                             <span>{item.label}</span>
                           </div>
-                          <p className="text-[10px] text-[#475569] truncate">{item.description}</p>
+                          <p className="text-[10px] text-[#57636E] truncate">{item.description}</p>
                         </div>
                       </label>
                     );
@@ -1143,16 +1143,16 @@ export default function UsersTab() {
               </div>
 
               {/* Immediate Login Access Switch */}
-              <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 border border-[#E2E8F0] cursor-pointer">
+              <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 border border-[#E2E7EC] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={giveImmediateAccess}
                   onChange={e => setGiveImmediateAccess(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#4F46E5] focus:ring-[#4F46E5] border-slate-300 cursor-pointer"
+                  className="w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 cursor-pointer"
                 />
                 <div>
-                  <span className="text-xs font-bold text-[#0F172A] block">Grant Immediate Login Access</span>
-                  <span className="text-[11px] text-[#475569] block">
+                  <span className="text-xs font-bold text-[#20262E] block">Grant Immediate Login Access</span>
+                  <span className="text-[11px] text-[#57636E] block">
                     Employee can log in immediately upon creation. If unchecked, access is Revoked until granted.
                   </span>
                 </div>
@@ -1163,14 +1163,14 @@ export default function UsersTab() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2.5 border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#475569] hover:text-[#0F172A] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2.5 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <>
@@ -1195,21 +1195,21 @@ export default function UsersTab() {
       {/* ========================================================================= */}
       {editingUser && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[560px] my-8 overflow-hidden border border-[#E2E8F0] animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[560px] my-8 overflow-hidden border border-[#E2E7EC] animate-in zoom-in-95 duration-150">
             {/* Header */}
-            <div className="px-6 py-5 border-b border-[#E2E8F0] flex items-center justify-between bg-[#F8FAFC]">
+            <div className="px-6 py-5 border-b border-[#E2E7EC] flex items-center justify-between bg-[#F8FAFC]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-700 font-bold">
                   <Edit2 size={18} />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-[#0F172A]">Edit Employee &amp; Permissions</h3>
-                  <p className="text-xs text-[#475569]">{editingUser.email}</p>
+                  <h3 className="text-base font-bold text-[#20262E]">Edit Employee &amp; Permissions</h3>
+                  <p className="text-xs text-[#57636E]">{editingUser.email}</p>
                 </div>
               </div>
               <button
                 onClick={() => setEditingUser(null)}
-                className="p-1.5 text-[#475569] hover:text-[#0F172A] hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>
@@ -1218,7 +1218,7 @@ export default function UsersTab() {
             {/* Form */}
             <form onSubmit={handleSaveEdit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto custom-scrollbar">
               {/* Mentor Profile Photo (For Admins to view and change) */}
-              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-between gap-4">
+              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E7EC] flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
                   {editAvatarUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
@@ -1229,18 +1229,18 @@ export default function UsersTab() {
                     />
                   ) : (
                     <div className={`w-14 h-14 rounded-full flex items-center justify-center text-base font-bold text-white shadow-md ${
-                      editRole === "Admin" ? "bg-[#4F46E5]" : "bg-[#6C3483]"
+                      editRole === "Admin" ? "bg-[#154360]" : "bg-[#6C3483]"
                     }`}>
                       {getInitials(editName || editingUser.name)}
                     </div>
                   )}
                   <div>
-                    <p className="text-xs font-bold text-[#0F172A] uppercase tracking-wider">Mentor Profile Photo</p>
-                    <p className="text-[11px] text-[#475569]">Visible to admins and throughout classroom portals</p>
+                    <p className="text-xs font-bold text-[#20262E] uppercase tracking-wider">Mentor Profile Photo</p>
+                    <p className="text-[11px] text-[#57636E]">Visible to admins and throughout classroom portals</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <label className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-[#E2E8F0] hover:border-[#4F46E5]/40 rounded-xl text-xs font-bold text-[#4F46E5] cursor-pointer transition-all shadow-2xs">
+                  <label className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-[#E2E7EC] hover:border-[#154360]/40 rounded-xl text-xs font-bold text-[#154360] cursor-pointer transition-all shadow-2xs">
                     <span>{editAvatarUrl ? "Change Photo" : "Upload Photo"}</span>
                     <input
                       type="file"
@@ -1271,20 +1271,20 @@ export default function UsersTab() {
 
               {/* Full Name */}
               <div>
-                <label className="block text-[12px] font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
                   Full Name
                 </label>
                 <input
                   type="text"
                   value={editName}
                   onChange={e => setEditName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white focus:ring-2 focus:ring-[#4F46E5]/10 transition-all font-medium"
+                  className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium"
                 />
               </div>
 
               {/* Role Assignment (Mentor & Admin only) */}
               <div>
-                <label className="block text-[12px] font-bold text-[#0F172A] uppercase tracking-wider mb-2">
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-2">
                   Role Assignment
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -1296,15 +1296,15 @@ export default function UsersTab() {
                         editRole === r
                           ? r === "Mentor" 
                             ? "border-[#6C3483] bg-[#F4ECF7] ring-2 ring-[#6C3483]/20 shadow-xs" 
-                            : "border-[#4F46E5] bg-[#EEF2FF] ring-2 ring-[#4F46E5]/20 shadow-xs"
-                          : "border-[#E2E8F0] hover:border-slate-300 bg-white"
+                            : "border-[#154360] bg-[#EBF5FB] ring-2 ring-[#154360]/20 shadow-xs"
+                          : "border-[#E2E7EC] hover:border-slate-300 bg-white"
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className={`font-bold text-xs ${r === "Mentor" ? "text-[#5B2C6F]" : "text-[#4F46E5]"}`}>{r}</span>
-                        {editRole === r && <Check size={16} className={r === "Mentor" ? "text-[#6C3483]" : "text-[#4F46E5]"} />}
+                        <span className={`font-bold text-xs ${r === "Mentor" ? "text-[#5B2C6F]" : "text-[#154360]"}`}>{r}</span>
+                        {editRole === r && <Check size={16} className={r === "Mentor" ? "text-[#6C3483]" : "text-[#154360]"} />}
                       </div>
-                      <p className="text-[11px] text-[#475569]">
+                      <p className="text-[11px] text-[#57636E]">
                         {r === "Mentor" ? "Custom Sidebars" : "Full Access"}
                       </p>
                     </div>
@@ -1313,13 +1313,13 @@ export default function UsersTab() {
               </div>
 
               {/* SIDE NAVBAR SELECTION FOR THIS EMPLOYEE */}
-              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0]">
+              <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E7EC]">
                 <div className="flex items-center justify-between mb-2.5">
                   <div>
-                    <h4 className="text-xs font-bold text-[#0F172A] uppercase tracking-wider">
+                    <h4 className="text-xs font-bold text-[#20262E] uppercase tracking-wider">
                       Side Navbar Access ({editAllowedNav.length} of {ALL_NAV_ITEMS.length} Enabled)
                     </h4>
-                    <p className="text-[11px] text-[#475569]">
+                    <p className="text-[11px] text-[#57636E]">
                       Customize which side navbars appear when this employee logs in.
                     </p>
                   </div>
@@ -1327,14 +1327,14 @@ export default function UsersTab() {
                     <button
                       type="button"
                       onClick={() => setEditAllowedNav(ALL_NAV_ITEMS.map(i => i.id))}
-                      className="text-[11px] font-bold text-[#4F46E5] hover:underline px-2 py-0.5 rounded bg-white border border-[#E2E8F0] cursor-pointer"
+                      className="text-[11px] font-bold text-[#154360] hover:underline px-2 py-0.5 rounded bg-white border border-[#E2E7EC] cursor-pointer"
                     >
                       Select All
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditAllowedNav([])}
-                      className="text-[11px] font-bold text-[#475569] hover:underline px-2 py-0.5 rounded bg-white border border-[#E2E8F0] cursor-pointer"
+                      className="text-[11px] font-bold text-[#57636E] hover:underline px-2 py-0.5 rounded bg-white border border-[#E2E7EC] cursor-pointer"
                     >
                       Clear
                     </button>
@@ -1350,22 +1350,22 @@ export default function UsersTab() {
                         onClick={() => toggleNavItem(editAllowedNav, setEditAllowedNav, item.id)}
                         className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                           isChecked 
-                            ? "bg-white border-[#4F46E5]/40 shadow-xs ring-1 ring-[#4F46E5]/10" 
-                            : "bg-transparent border-[#E2E8F0] opacity-65 hover:opacity-100"
+                            ? "bg-white border-[#154360]/40 shadow-xs ring-1 ring-[#154360]/10" 
+                            : "bg-transparent border-[#E2E7EC] opacity-65 hover:opacity-100"
                         }`}
                       >
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => {}}
-                          className="mt-0.5 w-4 h-4 rounded text-[#4F46E5] focus:ring-[#4F46E5] border-slate-300 pointer-events-none"
+                          className="mt-0.5 w-4 h-4 rounded text-[#154360] focus:ring-[#154360] border-slate-300 pointer-events-none"
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-[#0F172A]">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-[#20262E]">
                             {NAV_ICONS[item.id]}
                             <span>{item.label}</span>
                           </div>
-                          <p className="text-[10px] text-[#475569] truncate">{item.description}</p>
+                          <p className="text-[10px] text-[#57636E] truncate">{item.description}</p>
                         </div>
                       </label>
                     );
@@ -1375,7 +1375,7 @@ export default function UsersTab() {
 
               {/* Login Access Status */}
               <div>
-                <label className="block text-[12px] font-bold text-[#0F172A] uppercase tracking-wider mb-2">
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-2">
                   Login Access Status
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -1384,12 +1384,12 @@ export default function UsersTab() {
                     className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
                       editStatus === "Active" 
                         ? "bg-emerald-50 border-emerald-300 ring-2 ring-emerald-200" 
-                        : "bg-white border-[#E2E8F0]"
+                        : "bg-white border-[#E2E7EC]"
                     }`}
                   >
                     <div>
                       <p className="text-xs font-bold text-emerald-800">Active (Access Granted)</p>
-                      <p className="text-[10px] text-[#475569]">Employee can log in</p>
+                      <p className="text-[10px] text-[#57636E]">Employee can log in</p>
                     </div>
                     {editStatus === "Active" && <Check size={16} className="text-emerald-600" />}
                   </div>
@@ -1399,12 +1399,12 @@ export default function UsersTab() {
                     className={`p-3 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
                       editStatus !== "Active" 
                         ? "bg-rose-50 border-rose-300 ring-2 ring-rose-200" 
-                        : "bg-white border-[#E2E8F0]"
+                        : "bg-white border-[#E2E7EC]"
                     }`}
                   >
                     <div>
                       <p className="text-xs font-bold text-rose-800">Access Revoked</p>
-                      <p className="text-[10px] text-[#475569]">Login blocked</p>
+                      <p className="text-[10px] text-[#57636E]">Login blocked</p>
                     </div>
                     {editStatus !== "Active" && <Check size={16} className="text-rose-600" />}
                   </div>
@@ -1413,7 +1413,7 @@ export default function UsersTab() {
 
               {/* Password Reset */}
               <div>
-                <label className="block text-[12px] font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
+                <label className="block text-[12px] font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
                   Reset Password (Optional)
                 </label>
                 <div className="relative">
@@ -1422,12 +1422,12 @@ export default function UsersTab() {
                     value={editPassword}
                     onChange={e => setEditPassword(e.target.value)}
                     placeholder="Enter new password to reset"
-                    className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white focus:ring-2 focus:ring-[#4F46E5]/10 transition-all font-medium pr-10"
+                    className="w-full px-3.5 py-2.5 bg-[#F8FAFC] border border-[#E2E7EC] rounded-xl text-sm text-[#20262E] focus:outline-none focus:border-[#154360] focus:bg-white focus:ring-2 focus:ring-[#154360]/10 transition-all font-medium pr-10"
                   />
                   <button
                     type="button"
                     onClick={() => setShowEditPassword(!showEditPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#475569] hover:text-[#0F172A] cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#20262E] cursor-pointer"
                   >
                     {showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -1435,7 +1435,7 @@ export default function UsersTab() {
               </div>
 
               {/* Actions: Save & Delete */}
-              <div className="flex items-center justify-between pt-4 border-t border-[#E2E8F0]">
+              <div className="flex items-center justify-between pt-4 border-t border-[#E2E7EC]">
                 {editingUser.email !== PRIMARY_OWNER_EMAIL ? (
                   <button
                     type="button"
@@ -1453,14 +1453,14 @@ export default function UsersTab() {
                   <button
                     type="button"
                     onClick={() => setEditingUser(null)}
-                    className="px-4 py-2.5 border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#475569] hover:text-[#0F172A] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                    className="px-4 py-2.5 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSavingEdit}
-                    className="px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="px-5 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     {isSavingEdit ? (
                       <>
@@ -1486,19 +1486,19 @@ export default function UsersTab() {
       {/* ========================================================================= */}
       {deleteTargetUser && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[420px] p-6 border border-[#E2E8F0] text-center animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[420px] p-6 border border-[#E2E7EC] text-center animate-in zoom-in-95 duration-150">
             <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mx-auto mb-4 border border-rose-200 shadow-sm">
               <Trash2 size={26} />
             </div>
-            <h3 className="text-lg font-bold text-[#0F172A] mb-1">Delete Employee?</h3>
-            <p className="text-xs text-[#475569] mb-4">
-              Are you sure you want to remove <strong className="text-[#0F172A] font-bold">{deleteTargetUser.name}</strong> ({deleteTargetUser.email}) from the workspace? They will permanently lose login access.
+            <h3 className="text-lg font-bold text-[#20262E] mb-1">Delete Employee?</h3>
+            <p className="text-xs text-[#57636E] mb-4">
+              Are you sure you want to remove <strong className="text-[#20262E] font-bold">{deleteTargetUser.name}</strong> ({deleteTargetUser.email}) from the workspace? They will permanently lose login access.
             </p>
             <div className="flex items-center justify-center gap-3">
               <button
                 type="button"
                 onClick={() => setDeleteTargetUser(null)}
-                className="px-4 py-2.5 border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#475569] hover:text-[#0F172A] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                className="px-4 py-2.5 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-xl text-xs font-bold transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -1520,14 +1520,14 @@ export default function UsersTab() {
       {/* ========================================================================= */}
       {showBulkDeleteModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[460px] p-6 border border-[#E2E8F0] text-center animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[460px] p-6 border border-[#E2E7EC] text-center animate-in zoom-in-95 duration-150">
             <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mx-auto mb-4 border border-rose-200 shadow-sm">
               <Trash2 size={26} />
             </div>
-            <h3 className="text-lg font-bold text-[#0F172A] mb-1">
+            <h3 className="text-lg font-bold text-[#20262E] mb-1">
               Delete {selectedUserIds.length} {selectedUserIds.length === 1 ? "Employee" : "Employees"}?
             </h3>
-            <p className="text-xs text-[#475569] mb-3">
+            <p className="text-xs text-[#57636E] mb-3">
               Are you sure you want to delete {selectedUserIds.length} selected employees from this workspace? They will immediately lose access and this action cannot be undone.
             </p>
 
@@ -1535,8 +1535,8 @@ export default function UsersTab() {
             <div className="max-h-36 overflow-y-auto bg-slate-50 border border-slate-200 rounded-xl p-2.5 mb-4 text-left divide-y divide-slate-100 custom-scrollbar">
               {users.filter(u => selectedUserIds.includes(u.id)).map(u => (
                 <div key={u.id} className="py-1.5 flex items-center justify-between text-xs">
-                  <span className="font-bold text-[#0F172A] truncate">{u.name}</span>
-                  <span className="text-[11px] text-[#475569] font-mono ml-2">{u.email}</span>
+                  <span className="font-bold text-[#20262E] truncate">{u.name}</span>
+                  <span className="text-[11px] text-[#57636E] font-mono ml-2">{u.email}</span>
                 </div>
               ))}
             </div>
@@ -1545,7 +1545,7 @@ export default function UsersTab() {
               <button
                 type="button"
                 onClick={() => setShowBulkDeleteModal(false)}
-                className="px-4 py-2.5 border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#475569] hover:text-[#0F172A] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                className="px-4 py-2.5 border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#57636E] hover:text-[#20262E] rounded-xl text-xs font-bold transition-colors cursor-pointer"
               >
                 Cancel
               </button>

@@ -631,7 +631,7 @@ export default function LibraryPage() {
 
 
   return (
-    <div className="relative flex h-full w-full bg-[#F8FAFC] text-[#0F172A] font-sans overflow-hidden">
+    <div className="relative flex h-full w-full bg-[#F5F6F8] text-[#20262E] font-sans overflow-hidden">
       
       {/* Mobile Drawer Backdrop */}
       {isMobileMenuOpen && (
@@ -641,13 +641,13 @@ export default function LibraryPage() {
         />
       )}
 
-      {/* Sidebar - Midnight Navy #0F172A with active glow indicator in #4F46E5 */}
-      <aside className={`w-[280px] flex-shrink-0 flex-col border-r border-[#1E293B] bg-[#0F172A] h-full shadow-[4px_0_24px_rgba(0,0,0,0.15)] overflow-hidden transition-all duration-300 ${
+      {/* Sidebar - Crisp Light Mode with Mobile Drawer Support */}
+      <aside className={`w-[280px] flex-shrink-0 flex-col border-r border-[#E2E7EC] bg-white h-full shadow-[4px_0_24px_rgba(0,0,0,0.02)] overflow-hidden transition-all duration-300 ${
         isMobileMenuOpen 
           ? "fixed inset-y-0 left-0 flex z-50 shadow-2xl" 
           : "hidden md:flex z-20"
       }`}>
-        <div className="relative h-24 sm:h-26 flex items-center justify-center px-4 border-b border-[#1E293B] flex-shrink-0 w-full overflow-hidden bg-[#0F172A]">
+        <div className="relative h-24 sm:h-26 flex items-center justify-center px-4 border-b border-[#E2E7EC] flex-shrink-0 w-full overflow-hidden">
           <div 
             className="flex items-center justify-center cursor-pointer group mx-auto" 
             onClick={() => { router.push('/'); setIsMobileMenuOpen(false); }}
@@ -657,14 +657,14 @@ export default function LibraryPage() {
           <button 
             type="button"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 md:hidden p-1.5 text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            className="absolute right-4 top-1/2 -translate-y-1/2 md:hidden p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-5 px-4 custom-scrollbar min-h-0 bg-[#0F172A]">
+        <div className="flex-1 overflow-y-auto py-5 px-4 custom-scrollbar min-h-0">
           <nav className="space-y-1">
             {canAccess('for-you') && <SidebarItem icon={<HomeIcon size={18} />} label="For You" href="/" />}
             {canAccess('library') && <SidebarItem icon={<LibraryIcon size={18} />} label="Library" active href="/library" />}
@@ -674,7 +674,7 @@ export default function LibraryPage() {
 
           {(canAccess('manage-users') || canAccess('workspace-info') || canAccess('billing')) && (
             <div className="mt-10">
-              <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#94A3B8] mb-3">Workspace Admin</h3>
+              <h3 className="px-3 text-[11px] font-bold uppercase tracking-wider text-[#57636E] mb-3">Workspace Admin</h3>
               <nav className="space-y-1">
                 {canAccess('manage-users') && <SidebarItem icon={<UserIcon size={18} />} label="Manage Users" href="/settings?tab=users" />}
                 {canAccess('workspace-info') && <SidebarItem icon={<WorkspaceIcon size={18} />} label="Workspace Info" href="/settings?tab=workspace" />}
@@ -727,7 +727,7 @@ export default function LibraryPage() {
                 {activeTab !== 'videos' && (
                   <button 
                     onClick={() => setActiveTab('videos')}
-                    className="p-2 hover:bg-slate-100 rounded-lg text-[#475569] transition-colors"
+                    className="p-2 hover:bg-slate-100 rounded-lg text-[#57636E] transition-colors"
                     title="Back to Videos"
                   >
                     <ArrowLeft size={24} />
@@ -735,14 +735,14 @@ export default function LibraryPage() {
                 )}
                 <div>
                   <div className="flex items-center gap-2.5 mb-1 flex-wrap">
-                    <span className="text-[13px] text-[#475569] font-medium">Library</span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EEF2FF]/40 text-[#4338CA] border border-[#2980B9]/30 shadow-xs">
+                    <span className="text-[13px] text-[#57636E] font-medium">Library</span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EBF5FB]/40 text-[#0E2F44] border border-[#2980B9]/30 shadow-xs">
                       <Cloud size={13} className="text-[#2980B9]" />
                       <span className="w-1.5 h-1.5 rounded-full bg-[#2980B9] animate-pulse"></span>
                       Google Drive Connected
                     </span>
                   </div>
-                  <h1 className="text-2xl sm:text-[28px] font-bold text-[#0F172A] leading-tight flex items-center gap-2">
+                  <h1 className="text-2xl sm:text-[28px] font-bold text-[#20262E] leading-tight flex items-center gap-2">
                     {activeTab === 'videos' ? 'Videos' : courses.find(c => `folder-${c.id}` === activeTab)?.name || 'Library'}
                   </h1>
                 </div>
@@ -750,14 +750,14 @@ export default function LibraryPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <button 
                   onClick={handleCreateFolder}
-                  className="px-4 py-2 bg-white border border-[#E2E8F0] hover:bg-[#F8FAFC] rounded-lg text-[13px] font-semibold text-[#0F172A] transition-colors shadow-xs"
+                  className="px-4 py-2 bg-white border border-[#E2E7EC] hover:bg-[#F5F6F8] rounded-lg text-[13px] font-semibold text-[#20262E] transition-colors shadow-xs"
                 >
                   New folder
                 </button>
-                <div className="relative flex items-center bg-[#4F46E5] hover:bg-[#4338CA] rounded-lg transition-colors text-white shadow-xs">
+                <div className="relative flex items-center bg-[#154360] hover:bg-[#0E2F44] rounded-lg transition-colors text-white shadow-xs">
                   <button 
                     onClick={() => openGlobalRecording()}
-                    className="px-4 py-2 text-[13px] font-semibold border-r border-[#4F46E5] hover:bg-[#4F46E5] transition-colors rounded-l-lg"
+                    className="px-4 py-2 text-[13px] font-semibold border-r border-[#154360] hover:bg-[#154360] transition-colors rounded-l-lg"
                   >
                     New video
                   </button>
@@ -766,7 +766,7 @@ export default function LibraryPage() {
                       e.stopPropagation(); 
                       setShowNewVideoMenu(!showNewVideoMenu); 
                     }}
-                    className="px-2 py-2 hover:bg-[#4F46E5] transition-colors rounded-r-lg"
+                    className="px-2 py-2 hover:bg-[#154360] transition-colors rounded-r-lg"
                     title="Video creation options"
                   >
                     <ChevronDown size={16} />
@@ -775,19 +775,19 @@ export default function LibraryPage() {
                   {/* New Video Dropdown Menu */}
                   {showNewVideoMenu && (
                     <div 
-                      className="absolute top-full right-0 mt-1.5 w-60 bg-white rounded-xl shadow-xl border border-[#E2E8F0] py-1.5 z-40 text-[#0F172A] animate-in fade-in zoom-in-95 duration-150"
+                      className="absolute top-full right-0 mt-1.5 w-60 bg-white rounded-xl shadow-xl border border-[#E2E7EC] py-1.5 z-40 text-[#20262E] animate-in fade-in zoom-in-95 duration-150"
                       onClick={e => e.stopPropagation()}
                     >
                       <button 
                         onClick={() => { setShowNewVideoMenu(false); openGlobalRecording(); }}
-                        className="w-full text-left px-4 py-2 text-[13px] font-medium hover:bg-[#F8FAFC] flex items-center gap-2.5 text-[#0F172A]"
+                        className="w-full text-left px-4 py-2 text-[13px] font-medium hover:bg-[#F5F6F8] flex items-center gap-2.5 text-[#20262E]"
                       >
-                        <Video size={16} className="text-[#4F46E5]" />
+                        <Video size={16} className="text-[#154360]" />
                         Record screen & camera
                       </button>
                       <button 
                         onClick={() => { setShowNewVideoMenu(false); fileInputRef.current?.click(); }}
-                        className="w-full text-left px-4 py-2 text-[13px] font-medium hover:bg-[#F8FAFC] flex items-center gap-2.5 text-[#0F172A]"
+                        className="w-full text-left px-4 py-2 text-[13px] font-medium hover:bg-[#F5F6F8] flex items-center gap-2.5 text-[#20262E]"
                       >
                         <Upload size={16} className="text-[#2980B9]" />
                         Upload video file to Drive
@@ -799,22 +799,22 @@ export default function LibraryPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex items-center justify-between border-b border-[#E2E8F0] mb-8">
+            <div className="flex items-center justify-between border-b border-[#E2E7EC] mb-8">
               <div className="flex items-center gap-6">
                 {['Videos', 'Archived'].map(tab => (
                   <button 
                     key={tab}
                     onClick={() => setActiveTab(tab.toLowerCase())}
-                    className={`pb-3 text-[14px] font-medium transition-colors relative ${activeTab === tab.toLowerCase() ? 'text-[#4F46E5]' : 'text-[#475569] hover:text-[#0F172A]'}`}
+                    className={`pb-3 text-[14px] font-medium transition-colors relative ${activeTab === tab.toLowerCase() ? 'text-[#154360]' : 'text-[#57636E] hover:text-[#20262E]'}`}
                   >
                     {tab}
                     {activeTab === tab.toLowerCase() && (
-                      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#4F46E5]"></div>
+                      <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#154360]"></div>
                     )}
                   </button>
                 ))}
               </div>
-              <div className="text-[13px] text-[#475569] font-medium pb-3">
+              <div className="text-[13px] text-[#57636E] font-medium pb-3">
                 {filteredVideos.length} videos
               </div>
             </div>
@@ -822,7 +822,7 @@ export default function LibraryPage() {
             {/* Folders Section */}
             {courses.length > 0 && (
               <div className="mb-10">
-                <h2 className="text-[16px] font-bold text-[#0F172A] mb-4">Folders</h2>
+                <h2 className="text-[16px] font-bold text-[#20262E] mb-4">Folders</h2>
                 <div className="flex flex-wrap gap-4">
                   {courses.map(folder => {
                     const count = folder.id === 'all'
@@ -833,17 +833,17 @@ export default function LibraryPage() {
                       <div 
                         key={folder.id} 
                         onClick={() => setActiveTab(`folder-${folder.id}`)}
-                        className={`group relative flex items-center justify-between w-full sm:w-[240px] p-3 bg-white border hover:border-[#E2E8F0] hover:shadow-sm rounded-xl cursor-pointer transition-all ${
-                          activeTab === `folder-${folder.id}` ? 'border-[#4F46E5] ring-2 ring-[#4F46E5]/20' : 'border-[#E2E8F0]'
+                        className={`group relative flex items-center justify-between w-full sm:w-[240px] p-3 bg-white border hover:border-[#E2E7EC] hover:shadow-sm rounded-xl cursor-pointer transition-all ${
+                          activeTab === `folder-${folder.id}` ? 'border-[#154360] ring-2 ring-[#154360]/20' : 'border-[#E2E7EC]'
                         }`}
                       >
                         <div className="flex items-center gap-3 overflow-hidden">
-                          <div className="w-10 h-10 bg-[#F8FAFC] rounded-lg flex items-center justify-center shrink-0">
-                            <Folder size={20} className="text-[#475569] fill-slate-200" />
+                          <div className="w-10 h-10 bg-[#F5F6F8] rounded-lg flex items-center justify-center shrink-0">
+                            <Folder size={20} className="text-[#57636E] fill-slate-200" />
                           </div>
                           <div className="truncate">
-                            <div className="text-[14px] font-semibold text-[#0F172A] truncate">{folder.name}</div>
-                            <div className="text-[12px] text-[#475569]">
+                            <div className="text-[14px] font-semibold text-[#20262E] truncate">{folder.name}</div>
+                            <div className="text-[12px] text-[#57636E]">
                               {count} videos
                             </div>
                           </div>
@@ -855,14 +855,14 @@ export default function LibraryPage() {
                             e.stopPropagation();
                             setActiveFolderMenu(activeFolderMenu === folder.id ? null : folder.id);
                           }}
-                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 hover:bg-slate-100 rounded text-[#475569] transition-all absolute right-2"
+                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1 hover:bg-slate-100 rounded text-[#57636E] transition-all absolute right-2"
                         >
                           <MoreVertical size={16} />
                         </button>
 
                         {/* Folder Dropdown Menu */}
                         {activeFolderMenu === folder.id && (
-                          <div className="absolute top-10 right-0 w-48 bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.1)] border border-[#E2E8F0] py-1.5 z-30" onClick={e => e.stopPropagation()}>
+                          <div className="absolute top-10 right-0 w-48 bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.1)] border border-[#E2E7EC] py-1.5 z-30" onClick={e => e.stopPropagation()}>
                             <DropdownItem label="Rename" onClick={() => handleRenameFolder(folder.id, folder.name)} />
                             <DropdownItem label="Make public" onClick={() => showToast("Folder is public")} />
                             <DropdownItem label="Delete" onClick={() => handleDeleteFolder(folder.id)} />
@@ -889,8 +889,8 @@ export default function LibraryPage() {
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-[13px] font-medium transition-colors shadow-2xs ${
                     videoTypeFilter !== 'all' 
-                      ? 'bg-[#EEF2FF] border-[#4F46E5] text-[#4338CA] font-semibold' 
-                      : 'bg-white border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#0F172A]'
+                      ? 'bg-[#EBF5FB] border-[#154360] text-[#0E2F44] font-semibold' 
+                      : 'bg-white border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E]'
                   }`}
                 >
                   <span>
@@ -905,10 +905,10 @@ export default function LibraryPage() {
                 {/* Video Type Dropdown */}
                 {showVideoTypeFilter && (
                   <div 
-                    className="absolute top-full right-0 mt-1.5 w-60 bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.1)] border border-[#E2E8F0] p-2.5 z-30 animate-in fade-in zoom-in-95 duration-150" 
+                    className="absolute top-full right-0 mt-1.5 w-60 bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.1)] border border-[#E2E7EC] p-2.5 z-30 animate-in fade-in zoom-in-95 duration-150" 
                     onClick={e => e.stopPropagation()}
                   >
-                    <div className="text-[11px] font-bold text-[#475569] uppercase tracking-wider px-2 py-1 mb-1">
+                    <div className="text-[11px] font-bold text-[#57636E] uppercase tracking-wider px-2 py-1 mb-1">
                       Filter by Video Type
                     </div>
                     <div className="space-y-0.5">
@@ -926,20 +926,20 @@ export default function LibraryPage() {
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg text-[13px] font-medium transition-colors flex items-center justify-between ${
                             videoTypeFilter === opt.id 
-                              ? 'bg-[#EEF2FF] text-[#4338CA] font-semibold' 
-                              : 'text-[#0F172A] hover:bg-[#F8FAFC]'
+                              ? 'bg-[#EBF5FB] text-[#0E2F44] font-semibold' 
+                              : 'text-[#20262E] hover:bg-[#F5F6F8]'
                           }`}
                         >
                           <span>{opt.label}</span>
-                          {videoTypeFilter === opt.id && <Check size={14} className="text-[#4F46E5]" />}
+                          {videoTypeFilter === opt.id && <Check size={14} className="text-[#154360]" />}
                         </button>
                       ))}
                     </div>
                     {videoTypeFilter !== 'all' && (
-                      <div className="border-t border-[#E2E8F0] mt-2 pt-2">
+                      <div className="border-t border-[#E2E7EC] mt-2 pt-2">
                         <button 
                           onClick={() => { setVideoTypeFilter('all'); setShowVideoTypeFilter(false); }}
-                          className="w-full text-center py-1.5 text-[12px] text-[#475569] hover:text-[#0F172A] font-medium"
+                          className="w-full text-center py-1.5 text-[12px] text-[#57636E] hover:text-[#20262E] font-medium"
                         >
                           Clear filter
                         </button>
@@ -960,8 +960,8 @@ export default function LibraryPage() {
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-[13px] font-medium transition-colors shadow-2xs ${
                     dateFilter !== 'all' 
-                      ? 'bg-[#EEF2FF] border-[#4F46E5] text-[#4338CA] font-semibold' 
-                      : 'bg-white border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#0F172A]'
+                      ? 'bg-[#EBF5FB] border-[#154360] text-[#0E2F44] font-semibold' 
+                      : 'bg-white border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E]'
                   }`}
                 >
                   <span>
@@ -977,10 +977,10 @@ export default function LibraryPage() {
                 {/* Upload Date Dropdown */}
                 {showDateFilter && (
                   <div 
-                    className="absolute top-full right-0 mt-1.5 w-56 bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.1)] border border-[#E2E8F0] p-2.5 z-30 animate-in fade-in zoom-in-95 duration-150" 
+                    className="absolute top-full right-0 mt-1.5 w-56 bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.1)] border border-[#E2E7EC] p-2.5 z-30 animate-in fade-in zoom-in-95 duration-150" 
                     onClick={e => e.stopPropagation()}
                   >
-                    <div className="text-[11px] font-bold text-[#475569] uppercase tracking-wider px-2 py-1 mb-1">
+                    <div className="text-[11px] font-bold text-[#57636E] uppercase tracking-wider px-2 py-1 mb-1">
                       Filter by Upload Date
                     </div>
                     <div className="space-y-0.5">
@@ -999,20 +999,20 @@ export default function LibraryPage() {
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg text-[13px] font-medium transition-colors flex items-center justify-between ${
                             dateFilter === opt.id 
-                              ? 'bg-[#EEF2FF] text-[#4338CA] font-semibold' 
-                              : 'text-[#0F172A] hover:bg-[#F8FAFC]'
+                              ? 'bg-[#EBF5FB] text-[#0E2F44] font-semibold' 
+                              : 'text-[#20262E] hover:bg-[#F5F6F8]'
                           }`}
                         >
                           <span>{opt.label}</span>
-                          {dateFilter === opt.id && <Check size={14} className="text-[#4F46E5]" />}
+                          {dateFilter === opt.id && <Check size={14} className="text-[#154360]" />}
                         </button>
                       ))}
                     </div>
                     {dateFilter !== 'all' && (
-                      <div className="border-t border-[#E2E8F0] mt-2 pt-2">
+                      <div className="border-t border-[#E2E7EC] mt-2 pt-2">
                         <button 
                           onClick={() => { setDateFilter('all'); setShowDateFilter(false); }}
-                          className="w-full text-center py-1.5 text-[12px] text-[#475569] hover:text-[#0F172A] font-medium"
+                          className="w-full text-center py-1.5 text-[12px] text-[#57636E] hover:text-[#20262E] font-medium"
                         >
                           Clear filter
                         </button>
@@ -1031,7 +1031,7 @@ export default function LibraryPage() {
                     setShowVideoTypeFilter(false);
                     setShowDateFilter(false);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E2E8F0] hover:bg-[#F8FAFC] rounded-lg text-[13px] font-medium text-[#0F172A] transition-colors shadow-2xs"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E2E7EC] hover:bg-[#F5F6F8] rounded-lg text-[13px] font-medium text-[#20262E] transition-colors shadow-2xs"
                 >
                   <span>
                     {sortOrder === 'newest' && 'Newest to Oldest'}
@@ -1046,10 +1046,10 @@ export default function LibraryPage() {
                 {/* Sort Order Dropdown */}
                 {showSortFilter && (
                   <div 
-                    className="absolute top-full right-0 mt-1.5 w-56 bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.1)] border border-[#E2E8F0] p-2.5 z-30 animate-in fade-in zoom-in-95 duration-150" 
+                    className="absolute top-full right-0 mt-1.5 w-56 bg-white rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.1)] border border-[#E2E7EC] p-2.5 z-30 animate-in fade-in zoom-in-95 duration-150" 
                     onClick={e => e.stopPropagation()}
                   >
-                    <div className="text-[11px] font-bold text-[#475569] uppercase tracking-wider px-2 py-1 mb-1">
+                    <div className="text-[11px] font-bold text-[#57636E] uppercase tracking-wider px-2 py-1 mb-1">
                       Sort Videos By
                     </div>
                     <div className="space-y-0.5">
@@ -1068,12 +1068,12 @@ export default function LibraryPage() {
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg text-[13px] font-medium transition-colors flex items-center justify-between ${
                             sortOrder === opt.id 
-                              ? 'bg-[#EEF2FF] text-[#4338CA] font-semibold' 
-                              : 'text-[#0F172A] hover:bg-[#F8FAFC]'
+                              ? 'bg-[#EBF5FB] text-[#0E2F44] font-semibold' 
+                              : 'text-[#20262E] hover:bg-[#F5F6F8]'
                           }`}
                         >
                           <span>{opt.label}</span>
-                          {sortOrder === opt.id && <Check size={14} className="text-[#4F46E5]" />}
+                          {sortOrder === opt.id && <Check size={14} className="text-[#154360]" />}
                         </button>
                       ))}
                     </div>
@@ -1091,7 +1091,7 @@ export default function LibraryPage() {
                   <div 
                     key={video.id} 
                     className={`bg-white rounded-xl shadow-sm border group cursor-pointer hover:shadow-md transition-all relative ${
-                      activeVideoMenu === video.id ? 'z-40 border-2 border-[#4F46E5] ring-2 ring-[#4F46E5]/20' : 'z-10 border-[#E2E8F0]'
+                      activeVideoMenu === video.id ? 'z-40 border-2 border-[#154360] ring-2 ring-[#154360]/20' : 'z-10 border-[#E2E7EC]'
                     }`}
                     onMouseEnter={() => {
                       setVideoHoverId(video.id);
@@ -1146,7 +1146,7 @@ export default function LibraryPage() {
 
                     {/* Top Left Pinned Badge */}
                     {pinnedVideoIds.includes(video.id) && (
-                      <div className="absolute top-2.5 left-2.5 z-30 px-2 py-0.5 bg-[#4F46E5] text-white text-[10px] font-bold rounded-md flex items-center gap-1 shadow-md">
+                      <div className="absolute top-2.5 left-2.5 z-30 px-2 py-0.5 bg-[#154360] text-white text-[10px] font-bold rounded-md flex items-center gap-1 shadow-md">
                         <Pin size={10} className="fill-white rotate-45" />
                         PINNED
                       </div>
@@ -1166,8 +1166,8 @@ export default function LibraryPage() {
                           onClick={(e) => { e.stopPropagation(); togglePinVideo(video.id); }}
                           className={`w-[28px] h-[28px] rounded shadow-sm flex items-center justify-center transition-colors cursor-pointer border ${
                             pinnedVideoIds.includes(video.id) 
-                              ? 'bg-[#4F46E5] text-white border-[#4F46E5] shadow-[rgba(21, 67, 96,0.2)]' 
-                              : 'bg-white text-[#0F172A] hover:bg-[#F8FAFC] border-[#E2E8F0]'
+                              ? 'bg-[#154360] text-white border-[#154360] shadow-[rgba(21, 67, 96,0.2)]' 
+                              : 'bg-white text-[#20262E] hover:bg-[#F5F6F8] border-[#E2E7EC]'
                           }`}
                           title={pinnedVideoIds.includes(video.id) ? "Unpin video" : "Pin video"}
                         >
@@ -1178,7 +1178,7 @@ export default function LibraryPage() {
                             e.stopPropagation(); 
                             copyVideoLink(video.id);
                           }}
-                          className="w-[28px] h-[28px] bg-white rounded shadow-sm flex items-center justify-center text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer border border-[#E2E8F0]"
+                          className="w-[28px] h-[28px] bg-white rounded shadow-sm flex items-center justify-center text-[#20262E] hover:bg-[#F5F6F8] transition-colors cursor-pointer border border-[#E2E7EC]"
                           title="Copy link"
                         >
                           <LinkIcon size={14} />
@@ -1189,7 +1189,7 @@ export default function LibraryPage() {
                               e.stopPropagation(); 
                               setActiveVideoMenu(activeVideoMenu === video.id ? null : video.id); 
                             }}
-                            className="w-[28px] h-[28px] bg-white rounded shadow-sm flex items-center justify-center text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer border border-[#E2E8F0]"
+                            className="w-[28px] h-[28px] bg-white rounded shadow-sm flex items-center justify-center text-[#20262E] hover:bg-[#F5F6F8] transition-colors cursor-pointer border border-[#E2E7EC]"
                             title="More actions"
                           >
                             <MoreHorizontal size={16} />
@@ -1203,7 +1203,7 @@ export default function LibraryPage() {
                           {/* Video Dropdown Menu (Image 3) */}                                                                                                                                                                                                                                                         
                           {activeVideoMenu === video.id && (
                             <div 
-                              className="absolute top-full right-0 mt-2 w-56 bg-white rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.18)] border border-[#E2E8F0]/90 py-2.5 z-50 animate-in fade-in zoom-in-95 duration-150"
+                              className="absolute top-full right-0 mt-2 w-56 bg-white rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.18)] border border-[#E2E7EC]/90 py-2.5 z-50 animate-in fade-in zoom-in-95 duration-150"
                               onClick={e => e.stopPropagation()}
                             >
                               <button
@@ -1212,7 +1212,7 @@ export default function LibraryPage() {
                                   copyVideoLink(video.id);
                                   setShareModalVideoId(video.id);
                                 }}
-                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#20262E] hover:bg-[#F5F6F8] transition-colors cursor-pointer"
                               >
                                 Share
                               </button>
@@ -1221,7 +1221,7 @@ export default function LibraryPage() {
                                   setActiveVideoMenu(null);
                                   handleRenameVideo(video.id, video.title);
                                 }}
-                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#20262E] hover:bg-[#F5F6F8] transition-colors cursor-pointer"
                               >
                                 Rename
                               </button>
@@ -1230,7 +1230,7 @@ export default function LibraryPage() {
                                   setActiveVideoMenu(null);
                                   handleMoveVideoClick(video.id);
                                 }}
-                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#20262E] hover:bg-[#F5F6F8] transition-colors cursor-pointer"
                               >
                                 Move...
                               </button>
@@ -1254,21 +1254,21 @@ export default function LibraryPage() {
                                   } catch {}
                                   showToast(`Video duplicated as "${newTitle}"`);
                                 }}
-                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#20262E] hover:bg-[#F5F6F8] transition-colors cursor-pointer"
                               >
                                 Duplicate
                               </button>
                               {activeTab === 'archived' ? (
                                 <button
                                   onClick={() => unarchiveVideo(video.id, video.title)}
-                                  className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#4F46E5] hover:bg-[#EEF2FF] transition-colors cursor-pointer"
+                                  className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#154360] hover:bg-[#EBF5FB] transition-colors cursor-pointer"
                                 >
                                   Restore from Archive
                                 </button>
                               ) : (
                                 <button
                                   onClick={() => archiveVideo(video.id, video.title)}
-                                  className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#0F172A] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                                  className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#20262E] hover:bg-[#F5F6F8] transition-colors cursor-pointer"
                                 >
                                   Archive
                                 </button>
@@ -1278,7 +1278,7 @@ export default function LibraryPage() {
                                   setActiveVideoMenu(null);
                                   handleDeleteVideo(video.id);
                                 }}
-                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#0F172A] hover:bg-[#4F46E5]/10 hover:text-[#4F46E5] transition-colors cursor-pointer"
+                                className="w-full text-left px-5 py-2.5 text-[14px] font-medium text-[#20262E] hover:bg-[#154360]/10 hover:text-[#154360] transition-colors cursor-pointer"
                               >
                                 Delete
                               </button>
@@ -1289,19 +1289,19 @@ export default function LibraryPage() {
                     )}
 
                     {/* Card Details (Image 3) */}
-                    <div className="p-4 relative bg-white border-t border-[#E2E8F0] flex flex-col gap-2">
+                    <div className="p-4 relative bg-white border-t border-[#E2E7EC] flex flex-col gap-2">
                       <div className="flex items-start gap-3 mb-2">
-                        <div className="w-9 h-9 rounded-full bg-[#4F46E5] text-white flex items-center justify-center text-[12px] font-bold shrink-0 shadow-sm">
+                        <div className="w-9 h-9 rounded-full bg-[#154360] text-white flex items-center justify-center text-[12px] font-bold shrink-0 shadow-sm">
                           {video.isDrive ? 'GD' : (video.ownerName ? video.ownerName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'HR')}
                         </div>
                         <div className="flex-1 min-w-0 pt-0.5">
-                          <div className="flex items-center gap-1 text-[13px] text-[#475569]">
-                            <span className="font-medium text-[#0F172A] truncate">{video.isDrive ? 'Google Drive' : (video.ownerName || 'Hari Kishore Reddy')}</span>
+                          <div className="flex items-center gap-1 text-[13px] text-[#57636E]">
+                            <span className="font-medium text-[#20262E] truncate">{video.isDrive ? 'Google Drive' : (video.ownerName || 'Hari Kishore Reddy')}</span>
                             <span>·</span>
                             <span>{formatTimeAgo(video.createdAt)}</span>
                           </div>
                           <div 
-                            className="text-[13px] text-[#475569] flex items-center gap-1 mt-0.5 cursor-pointer hover:text-[#0F172A]"
+                            className="text-[13px] text-[#57636E] flex items-center gap-1 mt-0.5 cursor-pointer hover:text-[#20262E]"
                             onClick={(e) => {
                               e.stopPropagation();
                               setShareModalVideoId(video.id);
@@ -1324,12 +1324,12 @@ export default function LibraryPage() {
                               if (e.key === 'Escape') setEditingTitleId(null);
                             }}
                             onBlur={() => handleSaveRename(video.id)}
-                            className="font-semibold text-[16px] text-[#0F172A] w-full border-b-2 border-[#4F46E5] focus:outline-none bg-transparent pb-0.5"
+                            className="font-semibold text-[16px] text-[#20262E] w-full border-b-2 border-[#154360] focus:outline-none bg-transparent pb-0.5"
                           />
                         </div>
                       ) : (
                         <h3 
-                          className="font-medium text-[15px] text-[#0F172A] truncate mb-3 cursor-pointer hover:text-[#4F46E5] transition-colors"
+                          className="font-medium text-[15px] text-[#20262E] truncate mb-3 cursor-pointer hover:text-[#154360] transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(`/video/${video.id}`);
@@ -1340,9 +1340,9 @@ export default function LibraryPage() {
                         </h3>
                       )}
                       
-                      <div className="flex items-center gap-4 text-[#475569] text-[13px] font-medium">
+                      <div className="flex items-center gap-4 text-[#57636E] text-[13px] font-medium">
                         <div 
-                          className="flex items-center gap-1.5 cursor-pointer hover:text-[#0F172A]"
+                          className="flex items-center gap-1.5 cursor-pointer hover:text-[#20262E]"
                           onClick={(e) => {
                             e.stopPropagation();
                             router.push(`/video/${video.id}`);
@@ -1351,7 +1351,7 @@ export default function LibraryPage() {
                           <Eye size={16} /> {video.views || 0}
                         </div>
                         <div 
-                          className="flex items-center gap-1.5 cursor-pointer hover:text-[#0F172A]"
+                          className="flex items-center gap-1.5 cursor-pointer hover:text-[#20262E]"
                           onClick={(e) => {
                             e.stopPropagation();
                             setExpandedCommentsVideoId(expandedCommentsVideoId === video.id ? null : video.id);
@@ -1365,10 +1365,10 @@ export default function LibraryPage() {
 
                     {/* Inline Comments Section */}
                     {expandedCommentsVideoId === video.id && (
-                      <div className="bg-[#F8FAFC] border-t border-[#E2E8F0] p-4 max-h-[300px] overflow-y-auto flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200" onClick={e => e.stopPropagation()}>
+                      <div className="bg-[#F5F6F8] border-t border-[#E2E7EC] p-4 max-h-[300px] overflow-y-auto flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200" onClick={e => e.stopPropagation()}>
                         <div className="flex flex-col gap-3 flex-1 overflow-y-auto">
                           {(!video.comments || video.comments.length === 0) ? (
-                            <div className="text-center text-[13px] text-[#475569] py-4">
+                            <div className="text-center text-[13px] text-[#57636E] py-4">
                               No comments yet. Be the first to comment!
                             </div>
                           ) : (
@@ -1377,14 +1377,14 @@ export default function LibraryPage() {
                                 <div className="w-7 h-7 bg-[#115E59] text-white rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 shadow-sm mt-0.5">
                                   {comment.userName ? comment.userName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'U'}
                                 </div>
-                                <div className="flex-1 bg-white p-2.5 rounded-lg border border-[#E2E8F0] shadow-sm">
+                                <div className="flex-1 bg-white p-2.5 rounded-lg border border-[#E2E7EC] shadow-sm">
                                   <div className="flex justify-between items-center mb-1">
-                                    <span className="font-semibold text-[13px] text-[#0F172A]">{comment.userName || 'User'}</span>
+                                    <span className="font-semibold text-[13px] text-[#20262E]">{comment.userName || 'User'}</span>
                                     {comment.videoTime && (
-                                      <span className="text-[11px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[#475569]">{comment.videoTime}</span>
+                                      <span className="text-[11px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-[#57636E]">{comment.videoTime}</span>
                                     )}
                                   </div>
-                                  <p className="text-[13px] text-[#0F172A] break-words">{comment.text}</p>
+                                  <p className="text-[13px] text-[#20262E] break-words">{comment.text}</p>
                                 </div>
                               </div>
                             ))
@@ -1418,7 +1418,7 @@ export default function LibraryPage() {
                                 }
                               }
                             }}
-                            className="flex-1 bg-white border border-[#E2E8F0] rounded-full px-4 py-2 text-[13px] focus:outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] transition-shadow shadow-sm"
+                            className="flex-1 bg-white border border-[#E2E7EC] rounded-full px-4 py-2 text-[13px] focus:outline-none focus:border-[#154360] focus:ring-1 focus:ring-[#154360] transition-shadow shadow-sm"
                           />
                           <button 
                             onClick={async () => {
@@ -1441,7 +1441,7 @@ export default function LibraryPage() {
                               }
                             }}
                             disabled={!newCommentText.trim()}
-                            className="bg-[#4F46E5] hover:bg-[#4338CA] disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-full px-4 py-2 text-[13px] font-semibold transition-colors shadow-sm"
+                            className="bg-[#154360] hover:bg-[#0E2F44] disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-full px-4 py-2 text-[13px] font-semibold transition-colors shadow-sm"
                           >
                             Post
                           </button>
@@ -1455,10 +1455,10 @@ export default function LibraryPage() {
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">
                 <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-6">
-                  <Video size={32} className="text-[#475569]" />
+                  <Video size={32} className="text-[#57636E]" />
                 </div>
-                <h3 className="text-[18px] font-bold text-[#0F172A] mb-2">No videos found</h3>
-                <p className="text-[#475569] max-w-sm mx-auto mb-6 text-[14px]">
+                <h3 className="text-[18px] font-bold text-[#20262E] mb-2">No videos found</h3>
+                <p className="text-[#57636E] max-w-sm mx-auto mb-6 text-[14px]">
                   {activeTab === 'videos' 
                     ? isLoading
                       ? "Fetching videos from Google Drive..."
@@ -1468,21 +1468,21 @@ export default function LibraryPage() {
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => openGlobalRecording()}
-                    className="bg-[#4F46E5] hover:bg-[#4338CA] text-white py-3 px-6 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2 shadow-[0_10px_25px_-5px_rgba(21, 67, 96,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(21, 67, 96,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
+                    className="bg-[#154360] hover:bg-[#0E2F44] text-white py-3 px-6 rounded-2xl text-[14px] font-bold flex items-center justify-center gap-2 shadow-[0_10px_25px_-5px_rgba(21, 67, 96,0.45)] hover:shadow-[0_14px_28px_-5px_rgba(21, 67, 96,0.55)] transition-all transform hover:-translate-y-0.5 active:scale-95 cursor-pointer"
                   >
                     <Video size={18} className="stroke-[2.2]" />
                     <span>Record Video</span>
                   </button>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-5 py-2.5 bg-[#2980B9] hover:bg-[#4338CA] text-white rounded-lg font-semibold transition-colors flex items-center gap-2 shadow-sm text-[14px]"
+                    className="px-5 py-2.5 bg-[#2980B9] hover:bg-[#0E2F44] text-white rounded-lg font-semibold transition-colors flex items-center gap-2 shadow-sm text-[14px]"
                   >
                     <Upload size={16} />
                     Upload to Drive
                   </button>
                   <button
                     onClick={fetchData}
-                    className="px-5 py-2.5 bg-white border border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#0F172A] rounded-lg font-semibold transition-colors flex items-center gap-2 text-[14px]"
+                    className="px-5 py-2.5 bg-white border border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E] rounded-lg font-semibold transition-colors flex items-center gap-2 text-[14px]"
                   >
                     <RefreshCw size={16} />
                     Sync Drive
@@ -1500,15 +1500,15 @@ export default function LibraryPage() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[560px] overflow-hidden" onClick={e => e.stopPropagation()}>
               
               <div className="flex items-center justify-between px-6 pt-5 pb-3">
-                <h2 className="text-[20px] font-bold text-[#0F172A]">Share</h2>
+                <h2 className="text-[20px] font-bold text-[#20262E]">Share</h2>
                 <div className="flex items-center gap-2">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-slate-100 rounded-lg text-[13px] font-semibold text-[#475569]">
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-slate-100 rounded-lg text-[13px] font-semibold text-[#57636E]">
                     <Globe size={16} /> Social
                   </button>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-slate-100 rounded-lg text-[13px] font-semibold text-[#475569]">
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-slate-100 rounded-lg text-[13px] font-semibold text-[#57636E]">
                     <Code size={16} /> Embed
                   </button>
-                  <button onClick={() => setShareModalVideoId(null)} className="p-1.5 hover:bg-slate-100 rounded-lg text-[#475569] ml-2">
+                  <button onClick={() => setShareModalVideoId(null)} className="p-1.5 hover:bg-slate-100 rounded-lg text-[#57636E] ml-2">
                     <X size={18} />
                   </button>
                 </div>
@@ -1520,50 +1520,50 @@ export default function LibraryPage() {
                     <input 
                       type="text" 
                       placeholder="Add names, emails, or Space" 
-                      className="w-full pl-4 pr-4 py-2.5 bg-white border border-[#E2E8F0] rounded-lg text-[14px] text-[#0F172A] focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] outline-none"
+                      className="w-full pl-4 pr-4 py-2.5 bg-white border border-[#E2E7EC] rounded-lg text-[14px] text-[#20262E] focus:border-[#154360] focus:ring-1 focus:ring-[#154360] outline-none"
                     />
                   </div>
-                  <div className="flex items-center gap-1 text-[13px] font-medium text-[#475569] cursor-pointer hover:text-[#0F172A] whitespace-nowrap">
+                  <div className="flex items-center gap-1 text-[13px] font-medium text-[#57636E] cursor-pointer hover:text-[#20262E] whitespace-nowrap">
                     Import from <div className="w-4 h-4 bg-gradient-to-tr from-yellow-400 via-red-500 to-blue-500 rounded-sm inline-block mx-1"></div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 px-4 py-2 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0] mb-6">
-                  <div className="w-5 h-5 border border-[#E2E8F0] rounded flex items-center justify-center bg-white"><Plus size={14} className="text-[#475569]"/></div>
-                  <span className="text-[14px] text-[#0F172A]">All harikishorereddy9908</span>
+                <div className="flex items-center gap-2 px-4 py-2 bg-[#F5F6F8] rounded-lg border border-[#E2E7EC] mb-6">
+                  <div className="w-5 h-5 border border-[#E2E7EC] rounded flex items-center justify-center bg-white"><Plus size={14} className="text-[#57636E]"/></div>
+                  <span className="text-[14px] text-[#20262E]">All harikishorereddy9908</span>
                 </div>
 
                 <div className="mb-2">
-                  <h3 className="text-[12px] font-bold text-[#0F172A] mb-3">General access</h3>
+                  <h3 className="text-[12px] font-bold text-[#20262E] mb-3">General access</h3>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                         <Globe size={20} className="text-green-700" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-1 font-semibold text-[14px] text-[#0F172A] cursor-pointer">
-                          Public <ChevronDown size={14} className="text-[#475569]" />
+                        <div className="flex items-center gap-1 font-semibold text-[14px] text-[#20262E] cursor-pointer">
+                          Public <ChevronDown size={14} className="text-[#57636E]" />
                         </div>
-                        <div className="text-[13px] text-[#475569]">Anyone with the link can view</div>
+                        <div className="text-[13px] text-[#57636E]">Anyone with the link can view</div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="px-6 py-4 border-t border-[#E2E8F0] bg-[#F8FAFC] flex items-center justify-between mt-4">
+              <div className="px-6 py-4 border-t border-[#E2E7EC] bg-[#F5F6F8] flex items-center justify-between mt-4">
                 <div className="flex items-center gap-6">
                   <button 
                     onClick={() => {
                       if (shareModalVideoId) copyVideoLink(shareModalVideoId);
                     }}
-                    className="flex items-center gap-2 text-[13px] font-semibold text-[#0F172A] hover:text-[#0F172A] cursor-pointer"
+                    className="flex items-center gap-2 text-[13px] font-semibold text-[#20262E] hover:text-[#20262E] cursor-pointer"
                   >
                     <LinkIcon size={16} /> Copy link
                   </button>
                   <label className="flex items-center gap-2 cursor-pointer group">
-                    <input type="checkbox" className="w-4 h-4 rounded border-[#E2E8F0] text-[#4F46E5] focus:ring-[#4F46E5] group-hover:border-slate-400 transition-colors" />
-                    <span className="text-[13px] font-medium text-[#0F172A]">Share video at 0:00</span>
+                    <input type="checkbox" className="w-4 h-4 rounded border-[#E2E7EC] text-[#154360] focus:ring-[#154360] group-hover:border-slate-400 transition-colors" />
+                    <span className="text-[13px] font-medium text-[#20262E]">Share video at 0:00</span>
                   </label>
                 </div>
                 <div className="flex items-center gap-3">
@@ -1582,7 +1582,7 @@ export default function LibraryPage() {
                       showToast("Link shared & copied to clipboard!");
                       setShareModalVideoId(null);
                     }}
-                    className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg text-[13px] font-semibold transition-colors cursor-pointer shadow-sm"
+                    className="px-4 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-lg text-[13px] font-semibold transition-colors cursor-pointer shadow-sm"
                   >
                     Share
                   </button>
@@ -1598,8 +1598,8 @@ export default function LibraryPage() {
           <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center animate-in fade-in duration-200" onClick={() => setShowMoveModal(null)}>
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-[480px] overflow-hidden" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between px-6 pt-5 pb-4">
-                <h2 className="text-[18px] font-bold text-[#0F172A]">Move 1 video</h2>
-                <button onClick={() => setShowMoveModal(null)} className="p-1 hover:bg-slate-100 rounded-lg text-[#475569] transition-colors">
+                <h2 className="text-[18px] font-bold text-[#20262E]">Move 1 video</h2>
+                <button onClick={() => setShowMoveModal(null)} className="p-1 hover:bg-slate-100 rounded-lg text-[#57636E] transition-colors">
                   <X size={18} />
                 </button>
               </div>
@@ -1608,11 +1608,11 @@ export default function LibraryPage() {
                 {/* Hierarchy Tree UI matching Loom */}
                 <div 
                   onClick={() => setMoveTargetFolderId('root')}
-                  className={`w-full rounded-lg px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors ${moveTargetFolderId === 'root' ? 'bg-[#E3EBF8]' : 'hover:bg-[#F8FAFC]'}`}
+                  className={`w-full rounded-lg px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors ${moveTargetFolderId === 'root' ? 'bg-[#E3EBF8]' : 'hover:bg-[#F5F6F8]'}`}
                 >
-                  <ChevronDown size={14} className="text-[#475569]" />
-                  <Folder size={18} className="text-[#0F172A]" />
-                  <span className="text-[14px] font-semibold text-[#0F172A]">Library</span>
+                  <ChevronDown size={14} className="text-[#57636E]" />
+                  <Folder size={18} className="text-[#20262E]" />
+                  <span className="text-[14px] font-semibold text-[#20262E]">Library</span>
                 </div>
                 
                 <div className="pl-12 pt-2 flex flex-col gap-1">
@@ -1620,16 +1620,16 @@ export default function LibraryPage() {
                     <div 
                       key={folder.id}
                       onClick={() => setMoveTargetFolderId(folder.id)}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer text-[#0F172A] font-medium text-[14px] transition-colors ${moveTargetFolderId === folder.id ? 'bg-[#E3EBF8]' : 'hover:bg-[#F8FAFC]'}`}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer text-[#20262E] font-medium text-[14px] transition-colors ${moveTargetFolderId === folder.id ? 'bg-[#E3EBF8]' : 'hover:bg-[#F5F6F8]'}`}
                     >
-                      <Folder size={16} className="text-[#475569]" />
+                      <Folder size={16} className="text-[#57636E]" />
                       {folder.name}
                     </div>
                   ))}
                   
                   <div 
                     onClick={() => setMoveTargetFolderId('workspace')}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer text-[#0F172A] font-medium text-[14px] mt-2 transition-colors ${moveTargetFolderId === 'workspace' ? 'bg-[#E3EBF8]' : 'hover:bg-[#F8FAFC]'}`}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer text-[#20262E] font-medium text-[14px] mt-2 transition-colors ${moveTargetFolderId === 'workspace' ? 'bg-[#E3EBF8]' : 'hover:bg-[#F5F6F8]'}`}
                   >
                     <div className="w-[18px] h-[18px] bg-[#FCD34D] text-[#B45309] text-[10px] font-bold flex items-center justify-center rounded shrink-0">
                       A
@@ -1639,23 +1639,23 @@ export default function LibraryPage() {
                 </div>
               </div>
 
-              <div className="px-6 py-4 flex items-center justify-between border-t border-[#E2E8F0]">
+              <div className="px-6 py-4 flex items-center justify-between border-t border-[#E2E7EC]">
                 <button 
                   onClick={handleCreateFolder}
-                  className="flex items-center gap-1.5 text-[14px] font-semibold text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAFC] px-2 py-1.5 rounded transition-colors"
+                  className="flex items-center gap-1.5 text-[14px] font-semibold text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] px-2 py-1.5 rounded transition-colors"
                 >
                   <Plus size={16} /> New Folder
                 </button>
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setShowMoveModal(null)}
-                    className="px-4 py-2 bg-white border border-[#E2E8F0] text-[#0F172A] hover:bg-[#F8FAFC] rounded-lg text-[13px] font-semibold transition-colors"
+                    className="px-4 py-2 bg-white border border-[#E2E7EC] text-[#20262E] hover:bg-[#F5F6F8] rounded-lg text-[13px] font-semibold transition-colors"
                   >
                     Cancel
                   </button>
                   <button 
                     onClick={confirmMoveVideo}
-                    className="px-5 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg text-[13px] font-semibold transition-colors shadow-sm"
+                    className="px-5 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-lg text-[13px] font-semibold transition-colors shadow-sm"
                   >
                     Move
                   </button>
@@ -1682,19 +1682,19 @@ export default function LibraryPage() {
           const embedCode = `<iframe src="${shareUrl}" width="640" height="360" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>`;
           return (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-150" onClick={() => setShareModalVideoId(null)}>
-              <div className="bg-white rounded-2xl shadow-2xl border border-[#E2E8F0] w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
+              <div className="bg-white rounded-2xl shadow-2xl border border-[#E2E7EC] w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
                 {/* Header */}
-                <div className="p-5 border-b border-[#E2E8F0] flex items-center justify-between bg-[#F8FAFC]/50">
+                <div className="p-5 border-b border-[#E2E7EC] flex items-center justify-between bg-[#F5F6F8]/50">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#EEF2FF] text-[#4F46E5] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-[#EBF5FB] text-[#154360] flex items-center justify-center">
                       <Share2 size={20} />
                     </div>
                     <div>
-                      <h3 className="font-bold text-[#0F172A] text-base">Share Recording</h3>
-                      <p className="text-xs text-[#475569] truncate max-w-[280px]">{targetVid?.title || 'Screen Recording'}</p>
+                      <h3 className="font-bold text-[#20262E] text-base">Share Recording</h3>
+                      <p className="text-xs text-[#57636E] truncate max-w-[280px]">{targetVid?.title || 'Screen Recording'}</p>
                     </div>
                   </div>
-                  <button onClick={() => setShareModalVideoId(null)} className="p-2 text-[#475569] hover:text-[#475569] hover:bg-slate-100 rounded-lg transition-colors">
+                  <button onClick={() => setShareModalVideoId(null)} className="p-2 text-[#57636E] hover:text-[#57636E] hover:bg-slate-100 rounded-lg transition-colors">
                     <X size={18} />
                   </button>
                 </div>
@@ -1703,9 +1703,9 @@ export default function LibraryPage() {
                 <div className="p-6 flex flex-col gap-5">
                   {/* Copy Link */}
                   <div>
-                    <label className="text-xs font-semibold text-[#0F172A] uppercase tracking-wider mb-2 block">Share Link</label>
+                    <label className="text-xs font-semibold text-[#20262E] uppercase tracking-wider mb-2 block">Share Link</label>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-3.5 py-2.5 text-sm text-[#0F172A] font-mono truncate select-all">
+                      <div className="flex-1 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl px-3.5 py-2.5 text-sm text-[#20262E] font-mono truncate select-all">
                         {shareUrl}
                       </div>
                       <button 
@@ -1715,7 +1715,7 @@ export default function LibraryPage() {
                             showToast("Link copied to clipboard!");
                           }
                         }}
-                        className="px-4 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 shrink-0 shadow-sm shadow-[rgba(21, 67, 96,0.2)]"
+                        className="px-4 py-2.5 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 shrink-0 shadow-sm shadow-[rgba(21, 67, 96,0.2)]"
                       >
                         <LinkIcon size={14} /> Copy link
                       </button>
@@ -1724,9 +1724,9 @@ export default function LibraryPage() {
 
                   {/* Embed Video Code */}
                   <div>
-                    <label className="text-xs font-semibold text-[#0F172A] uppercase tracking-wider mb-2 block">Embed on Website</label>
+                    <label className="text-xs font-semibold text-[#20262E] uppercase tracking-wider mb-2 block">Embed on Website</label>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-3.5 py-2 text-xs text-[#475569] font-mono truncate select-all">
+                      <div className="flex-1 bg-[#F5F6F8] border border-[#E2E7EC] rounded-xl px-3.5 py-2 text-xs text-[#57636E] font-mono truncate select-all">
                         {embedCode}
                       </div>
                       <button 
@@ -1736,7 +1736,7 @@ export default function LibraryPage() {
                             showToast("Embed iframe code copied!");
                           }
                         }}
-                        className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-[#0F172A] rounded-xl text-xs font-semibold transition-colors shrink-0"
+                        className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-[#20262E] rounded-xl text-xs font-semibold transition-colors shrink-0"
                       >
                         <Code size={13} className="inline mr-1" /> Copy code
                       </button>
@@ -1745,53 +1745,53 @@ export default function LibraryPage() {
 
                   {/* Quick Share to Social */}
                   <div>
-                    <label className="text-xs font-semibold text-[#0F172A] uppercase tracking-wider mb-2 block">Share with</label>
+                    <label className="text-xs font-semibold text-[#20262E] uppercase tracking-wider mb-2 block">Share with</label>
                     <div className="grid grid-cols-4 gap-2">
                       <a 
                         href={`mailto:?subject=${encodeURIComponent(targetVid?.title || 'Video')}&body=${encodeURIComponent(shareUrl)}`}
                         target="_blank" rel="noreferrer"
-                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[#E2E8F0] hover:bg-[#F8FAFC] hover:border-[#E2E8F0] transition-all text-[#0F172A] text-xs font-medium"
+                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[#E2E7EC] hover:bg-[#F5F6F8] hover:border-[#E2E7EC] transition-all text-[#20262E] text-xs font-medium"
                       >
-                        <div className="w-8 h-8 rounded-full bg-[#4F46E5]/10 text-[#4F46E5] flex items-center justify-center font-bold text-xs">@</div>
+                        <div className="w-8 h-8 rounded-full bg-[#154360]/10 text-[#154360] flex items-center justify-center font-bold text-xs">@</div>
                         <span>Email</span>
                       </a>
                       <a 
                         href={`https://api.whatsapp.com/send?text=${encodeURIComponent((targetVid?.title || 'Video') + ' - ' + shareUrl)}`}
                         target="_blank" rel="noreferrer"
-                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[#E2E8F0] hover:bg-[#F8FAFC] hover:border-[#E2E8F0] transition-all text-[#0F172A] text-xs font-medium"
+                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[#E2E7EC] hover:bg-[#F5F6F8] hover:border-[#E2E7EC] transition-all text-[#20262E] text-xs font-medium"
                       >
-                        <div className="w-8 h-8 rounded-full bg-[#EEF2FF]/40 text-[#2980B9] flex items-center justify-center font-bold text-xs">WA</div>
+                        <div className="w-8 h-8 rounded-full bg-[#EBF5FB]/40 text-[#2980B9] flex items-center justify-center font-bold text-xs">WA</div>
                         <span>WhatsApp</span>
                       </a>
                       <a 
                         href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(targetVid?.title || 'Video')}&url=${encodeURIComponent(shareUrl)}`}
                         target="_blank" rel="noreferrer"
-                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[#E2E8F0] hover:bg-[#F8FAFC] hover:border-[#E2E8F0] transition-all text-[#0F172A] text-xs font-medium"
+                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[#E2E7EC] hover:bg-[#F5F6F8] hover:border-[#E2E7EC] transition-all text-[#20262E] text-xs font-medium"
                       >
-                        <div className="w-8 h-8 rounded-full bg-slate-100 text-[#0F172A] flex items-center justify-center font-bold text-xs">𝕏</div>
+                        <div className="w-8 h-8 rounded-full bg-slate-100 text-[#20262E] flex items-center justify-center font-bold text-xs">𝕏</div>
                         <span>Twitter/X</span>
                       </a>
                       <a 
                         href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`}
                         target="_blank" rel="noreferrer"
-                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[#E2E8F0] hover:bg-[#F8FAFC] hover:border-[#E2E8F0] transition-all text-[#0F172A] text-xs font-medium"
+                        className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-[#E2E7EC] hover:bg-[#F5F6F8] hover:border-[#E2E7EC] transition-all text-[#20262E] text-xs font-medium"
                       >
-                        <div className="w-8 h-8 rounded-full bg-[#EEF2FF] text-[#4338CA] flex items-center justify-center font-bold text-xs">in</div>
+                        <div className="w-8 h-8 rounded-full bg-[#EBF5FB] text-[#0E2F44] flex items-center justify-center font-bold text-xs">in</div>
                         <span>LinkedIn</span>
                       </a>
                     </div>
                   </div>
 
                   {/* Access notice */}
-                  <div className="p-3 bg-[#EEF2FF]/60 border border-[#4F46E5]/20 rounded-xl flex items-center gap-2 text-xs text-[#4F46E5]">
-                    <Globe size={16} className="text-[#4F46E5] shrink-0" />
+                  <div className="p-3 bg-[#EBF5FB]/60 border border-[#154360]/20 rounded-xl flex items-center gap-2 text-xs text-[#154360]">
+                    <Globe size={16} className="text-[#154360] shrink-0" />
                     <span>Anyone with this link can watch this recording without an account.</span>
                   </div>
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 bg-[#F8FAFC] border-t border-[#E2E8F0] flex justify-end">
-                  <button onClick={() => setShareModalVideoId(null)} className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-[#0F172A] rounded-xl font-semibold text-sm transition-colors">
+                <div className="p-4 bg-[#F5F6F8] border-t border-[#E2E7EC] flex justify-end">
+                  <button onClick={() => setShareModalVideoId(null)} className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-[#20262E] rounded-xl font-semibold text-sm transition-colors">
                     Done
                   </button>
                 </div>
@@ -1814,26 +1814,26 @@ export default function LibraryPage() {
 
           return (
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-150" onClick={() => setShowMoveModal(null)}>
-              <div className="bg-white rounded-2xl shadow-2xl border border-[#E2E8F0] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
+              <div className="bg-white rounded-2xl shadow-2xl border border-[#E2E7EC] w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
                 {/* Header */}
-                <div className="p-5 border-b border-[#E2E8F0] flex items-center justify-between bg-[#F8FAFC]/50">
+                <div className="p-5 border-b border-[#E2E7EC] flex items-center justify-between bg-[#F5F6F8]/50">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-50 text-[#4338CA] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 text-[#0E2F44] flex items-center justify-center">
                       <Folder size={20} />
                     </div>
                     <div>
-                      <h3 className="font-bold text-[#0F172A] text-base">Move Video</h3>
-                      <p className="text-xs text-[#475569] truncate max-w-[240px]">{moveVid?.title || 'Select folder'}</p>
+                      <h3 className="font-bold text-[#20262E] text-base">Move Video</h3>
+                      <p className="text-xs text-[#57636E] truncate max-w-[240px]">{moveVid?.title || 'Select folder'}</p>
                     </div>
                   </div>
-                  <button onClick={() => setShowMoveModal(null)} className="p-2 text-[#475569] hover:text-[#475569] hover:bg-slate-100 rounded-lg transition-colors">
+                  <button onClick={() => setShowMoveModal(null)} className="p-2 text-[#57636E] hover:text-[#57636E] hover:bg-slate-100 rounded-lg transition-colors">
                     <X size={18} />
                   </button>
                 </div>
 
                 {/* Body */}
                 <div className="p-5 flex flex-col gap-2 max-h-[340px] overflow-y-auto">
-                  <div className="text-xs font-semibold text-[#475569] uppercase tracking-wider mb-1">Select Destination</div>
+                  <div className="text-xs font-semibold text-[#57636E] uppercase tracking-wider mb-1">Select Destination</div>
                   {allDestinations.map(dest => {
                     const isSelected = moveTargetFolderId === dest.id;
                     return (
@@ -1842,31 +1842,31 @@ export default function LibraryPage() {
                         onClick={() => setMoveTargetFolderId(dest.id)}
                         className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
                           isSelected 
-                            ? 'bg-[#EEF2FF] border-[#4F46E5] text-blue-900 font-semibold shadow-sm'
-                            : 'bg-white border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#0F172A]'
+                            ? 'bg-[#EBF5FB] border-[#154360] text-blue-900 font-semibold shadow-sm'
+                            : 'bg-white border-[#E2E7EC] hover:bg-[#F5F6F8] text-[#20262E]'
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <Folder size={18} className={isSelected ? 'text-[#4F46E5]' : 'text-[#475569]'} />
+                          <Folder size={18} className={isSelected ? 'text-[#154360]' : 'text-[#57636E]'} />
                           <span className="text-sm">{dest.name}</span>
                         </div>
-                        {isSelected && <Check size={16} className="text-[#4F46E5]" />}
+                        {isSelected && <Check size={16} className="text-[#154360]" />}
                       </button>
                     );
                   })}
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 bg-[#F8FAFC] border-t border-[#E2E8F0] flex justify-end gap-2">
+                <div className="p-4 bg-[#F5F6F8] border-t border-[#E2E7EC] flex justify-end gap-2">
                   <button 
                     onClick={() => setShowMoveModal(null)} 
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#0F172A] rounded-xl font-medium text-sm transition-colors"
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#20262E] rounded-xl font-medium text-sm transition-colors"
                   >
                     Cancel
                   </button>
                   <button 
                     onClick={confirmMoveVideo} 
-                    className="px-5 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl font-semibold text-sm transition-colors shadow-sm shadow-[rgba(21, 67, 96,0.2)]"
+                    className="px-5 py-2 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-xl font-semibold text-sm transition-colors shadow-sm shadow-[rgba(21, 67, 96,0.2)]"
                   >
                     Move here
                   </button>
@@ -1895,18 +1895,27 @@ function SidebarItem({ icon, label, active = false, external = false, href }: { 
   return (
     <div 
       onClick={() => href && router.push(href)}
+      style={{
+        fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+        fontSize: '14px',
+        fontWeight: 400,
+        fontStyle: 'normal',
+        lineHeight: '14px',
+        letterSpacing: 'normal',
+        color: active ? '#154360' : '#292A2E'
+      }}
       className={`flex items-center justify-between px-3 py-2.5 rounded-xl font-semibold cursor-pointer transition-all ${
       active 
-        ? "bg-[#4F46E5] text-white shadow-[0_0_16px_rgba(79,70,229,0.45)] font-bold" 
-        : "hover:bg-white/5 text-[#94A3B8] hover:text-[#F8FAFC]"
+        ? "bg-[#EBF5FB] shadow-sm" 
+        : "hover:bg-[#F5F6F8]"
     }`}>
       <div className="flex items-center gap-3">
-        <div className={`${active ? "text-white" : "text-[#94A3B8]"}`}>
+        <div className={`${active ? "text-[#154360]" : "text-[#57636E]"}`}>
           {icon}
         </div>
         <span className="text-sm tracking-wide">{label}</span>
       </div>
-      {external && <div className="text-[#94A3B8]"><Share2 size={12} className="rotate-45" /></div>}
+      {external && <div className="text-[#57636E]"><Share2 size={12} className="rotate-45" /></div>}
     </div>
   );
 }
@@ -1915,7 +1924,7 @@ function DropdownItem({ label, onClick }: { label: string, onClick?: () => void 
   return (
     <button 
       onClick={(e) => { e.stopPropagation(); onClick?.(); }}
-      className="w-full text-left px-4 py-1.5 text-[13px] font-medium text-[#0F172A] hover:bg-slate-100 hover:text-[#0F172A] transition-colors"
+      className="w-full text-left px-4 py-1.5 text-[13px] font-medium text-[#20262E] hover:bg-slate-100 hover:text-[#20262E] transition-colors"
     >
       {label}
     </button>

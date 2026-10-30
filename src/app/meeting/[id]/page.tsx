@@ -390,17 +390,17 @@ function JoinMeetingContent() {
   const isEnded = effectiveStatus === "ended";
 
   return (
-    <div className="min-h-screen bg-[#F4F7FC] flex flex-col justify-between selection:bg-[#4F46E5] selection:text-white font-sans antialiased text-[#0F172A] relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#F4F7FC] flex flex-col justify-between selection:bg-[#154360] selection:text-white font-sans antialiased text-[#20262E] relative overflow-x-hidden">
       
       {/* Background Decorative Gradient Blobs */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px] bg-gradient-to-b from-blue-100/60 via-indigo-50/40 to-transparent blur-3xl pointer-events-none -z-10" />
 
       {/* Top Navbar */}
-      <header className="h-20 px-6 sm:px-10 flex items-center justify-between border-b border-[#E2E8F0]/80 bg-white/80 backdrop-blur-md sticky top-0 z-20">
+      <header className="h-20 px-6 sm:px-10 flex items-center justify-between border-b border-[#E2E7EC]/80 bg-white/80 backdrop-blur-md sticky top-0 z-20">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => { window.location.href = "https://www.geonixa.com/"; }}>
           <RcrdLogo className="h-16 sm:h-18 md:h-20 w-auto scale-130 sm:scale-145 origin-left" />
           <div className="h-4 w-px bg-slate-200 hidden sm:block" />
-          <span className="text-xs font-bold text-[#475569] uppercase tracking-wider hidden sm:inline">
+          <span className="text-xs font-bold text-[#57636E] uppercase tracking-wider hidden sm:inline">
             Classroom Portal
           </span>
         </div>
@@ -408,17 +408,17 @@ function JoinMeetingContent() {
         <div className="flex items-center gap-3">
           <a
             href="https://www.geonixa.com/"
-            className="text-xs font-semibold text-[#475569] hover:text-[#4F46E5] px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            className="text-xs font-semibold text-[#57636E] hover:text-[#154360] px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
           >
             Geonixa Website
           </a>
           {!isEnded && (
             <button
               onClick={copyDirectLink}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#0F172A] shadow-2xs transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#E2E7EC] bg-white hover:bg-[#F5F6F8] text-xs font-semibold text-[#20262E] shadow-2xs transition-all"
               title="Copy direct join link"
             >
-              {copiedLink ? <Check size={13} className="text-[#2980B9]" /> : <Copy size={13} className="text-[#4F46E5]" />}
+              {copiedLink ? <Check size={13} className="text-[#2980B9]" /> : <Copy size={13} className="text-[#154360]" />}
               <span>{copiedLink ? "Link Copied!" : "Share Link"}</span>
             </button>
           )}
@@ -431,38 +431,38 @@ function JoinMeetingContent() {
 
           {/* LOADING STATE */}
           {loadingMeeting && (
-            <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#E2E8F0]/90 shadow-xl shadow-slate-200/50 text-center space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-[#EEF2FF] border border-[#4F46E5]/20 flex items-center justify-center mx-auto text-[#4F46E5] animate-spin">
+            <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#E2E7EC]/90 shadow-xl shadow-slate-200/50 text-center space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-[#EBF5FB] border border-[#154360]/20 flex items-center justify-center mx-auto text-[#154360] animate-spin">
                 <RefreshCw size={24} />
               </div>
-              <h2 className="text-base font-bold text-[#0F172A]">Connecting to Class Session...</h2>
-              <p className="text-xs text-[#475569] font-medium">Fetching meeting ID <span className="font-mono font-bold text-[#0F172A]">{meetingId}</span> details</p>
+              <h2 className="text-base font-bold text-[#20262E]">Connecting to Class Session...</h2>
+              <p className="text-xs text-[#57636E] font-medium">Fetching meeting ID <span className="font-mono font-bold text-[#20262E]">{meetingId}</span> details</p>
             </div>
           )}
 
           {/* MEETING NOT FOUND STATE */}
           {!loadingMeeting && meetingNotFound && (
-            <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#E2E8F0]/90 shadow-xl shadow-slate-200/50 text-center space-y-5">
-              <div className="w-14 h-14 rounded-2xl bg-[#EEF2FF]/40 border border-[#2980B9]/30 flex items-center justify-center mx-auto text-[#4F46E5]">
+            <div className="bg-white rounded-3xl p-8 sm:p-10 border border-[#E2E7EC]/90 shadow-xl shadow-slate-200/50 text-center space-y-5">
+              <div className="w-14 h-14 rounded-2xl bg-[#EBF5FB]/40 border border-[#2980B9]/30 flex items-center justify-center mx-auto text-[#154360]">
                 <AlertCircle size={26} />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-[#0F172A]">Meeting Not Found</h2>
-                <p className="text-xs text-[#475569] mt-1 max-w-sm mx-auto leading-relaxed">
-                  We could not find an active class for ID <span className="font-mono font-bold text-[#0F172A]">{meetingId}</span>. The meeting may have ended, expired, or been removed.
+                <h2 className="text-lg font-bold text-[#20262E]">Meeting Not Found</h2>
+                <p className="text-xs text-[#57636E] mt-1 max-w-sm mx-auto leading-relaxed">
+                  We could not find an active class for ID <span className="font-mono font-bold text-[#20262E]">{meetingId}</span>. The meeting may have ended, expired, or been removed.
                 </p>
               </div>
 
               <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
                 <button
                   onClick={fetchMeetingInfo}
-                  className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-[#0F172A] text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-[#20262E] text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <RefreshCw size={13} /> Retry
                 </button>
                 <a
                   href="https://www.geonixa.com/"
-                  className="flex-1 py-2.5 px-4 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 px-4 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
                 >
                   Visit Geonixa <ChevronRight size={13} />
                 </a>
@@ -472,10 +472,10 @@ function JoinMeetingContent() {
 
           {/* READY TO JOIN STATE */}
           {!loadingMeeting && !meetingNotFound && meeting && (
-            <div className="bg-white rounded-3xl border border-[#E2E8F0]/90 shadow-xl shadow-slate-200/50 overflow-hidden">
+            <div className="bg-white rounded-3xl border border-[#E2E7EC]/90 shadow-xl shadow-slate-200/50 overflow-hidden">
               
               {/* Meeting Banner Header */}
-              <div className="p-6 sm:p-7 bg-gradient-to-br from-[#4F46E5] via-[#1B4F72] to-[#4338CA] text-white relative overflow-hidden">
+              <div className="p-6 sm:p-7 bg-gradient-to-br from-[#154360] via-[#1B4F72] to-[#0E2F44] text-white relative overflow-hidden">
                 <div className="absolute right-0 bottom-0 translate-x-6 translate-y-6 w-36 h-36 bg-white/10 rounded-full blur-2xl pointer-events-none" />
 
                 {/* Status Badges */}
@@ -568,14 +568,14 @@ function JoinMeetingContent() {
                     <AlertCircle size={34} className="stroke-[2.5]" />
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-xl font-extrabold text-[#0F172A] tracking-tight">Meeting Link Expired</h3>
-                    <p className="text-xs sm:text-sm text-[#475569] leading-relaxed max-w-sm mx-auto font-medium">
+                    <h3 className="text-xl font-extrabold text-[#20262E] tracking-tight">Meeting Link Expired</h3>
+                    <p className="text-xs sm:text-sm text-[#57636E] leading-relaxed max-w-sm mx-auto font-medium">
                       This class session has concluded and the link has permanently expired. You can no longer join this meeting. Please visit Geonixa for upcoming courses and schedules.
                     </p>
                   </div>
                   <a
                     href="https://www.geonixa.com/"
-                    className="w-full py-3.5 px-5 bg-gradient-to-r from-[#4F46E5] via-[#1A5276] to-[#4338CA] hover:brightness-110 active:scale-[0.99] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-[#4F46E5]/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full py-3.5 px-5 bg-gradient-to-r from-[#154360] via-[#1A5276] to-[#0E2F44] hover:brightness-110 active:scale-[0.99] text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-[#154360]/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <span style={{ color: "#ffffff" }}>Visit Geonixa Website</span>
                     <ArrowRight size={15} />
@@ -585,8 +585,8 @@ function JoinMeetingContent() {
                 <form onSubmit={handleJoinSubmit} className="p-6 sm:p-7 space-y-4.5">
                   
                   {errorMsg && (
-                    <div className="p-3.5 bg-[#4F46E5]/10 border border-[#4F46E5]/30 rounded-2xl flex items-start gap-2.5 text-xs text-[#4338CA] animate-in fade-in duration-200">
-                      <AlertCircle size={16} className="text-[#4F46E5] shrink-0 mt-0.5" />
+                    <div className="p-3.5 bg-[#154360]/10 border border-[#154360]/30 rounded-2xl flex items-start gap-2.5 text-xs text-[#0E2F44] animate-in fade-in duration-200">
+                      <AlertCircle size={16} className="text-[#154360] shrink-0 mt-0.5" />
                       <span className="font-semibold leading-relaxed">{errorMsg}</span>
                     </div>
                   )}
@@ -609,11 +609,11 @@ function JoinMeetingContent() {
 
                   {/* Student Name */}
                   <div>
-                    <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
                       Your Full Name *
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#475569]" />
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E]" />
                       <input
                         type="text"
                         required
@@ -621,16 +621,16 @@ function JoinMeetingContent() {
                         onChange={e => setStudentName(e.target.value)}
                         placeholder="e.g. Alex Morgan"
                         autoFocus={!studentName}
-                        className="w-full pl-10 pr-4 py-2.5 bg-[#F8FAFC]/70 border border-[#E2E8F0] focus:border-[#4F46E5] focus:bg-white rounded-xl text-xs text-[#0F172A] placeholder:text-[#475569] focus:ring-2 focus:ring-[#4F46E5]/15 outline-none transition-all font-medium shadow-2xs"
+                        className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8]/70 border border-[#E2E7EC] focus:border-[#154360] focus:bg-white rounded-xl text-xs text-[#20262E] placeholder:text-[#57636E] focus:ring-2 focus:ring-[#154360]/15 outline-none transition-all font-medium shadow-2xs"
                       />
                     </div>
-                    <p className="text-[11px] text-[#475569] mt-1">This name will be shown to the instructor and attendees in the live room.</p>
+                    <p className="text-[11px] text-[#57636E] mt-1">This name will be shown to the instructor and attendees in the live room.</p>
                   </div>
 
                   {/* Student Email */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider">
+                      <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider">
                         Student Email Address {Boolean(meeting?.allowedEmails && meeting.allowedEmails.length > 0) ? '*' : '(Optional)'}
                       </label>
                       {Boolean(meeting?.allowedEmails && meeting.allowedEmails.length > 0) && (
@@ -640,17 +640,17 @@ function JoinMeetingContent() {
                       )}
                     </div>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#475569]" />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E]" />
                       <input
                         type="email"
                         required={Boolean(meeting?.allowedEmails && meeting.allowedEmails.length > 0)}
                         value={studentEmail}
                         onChange={e => setStudentEmail(e.target.value)}
                         placeholder="e.g. student@gmail.com"
-                        className="w-full pl-10 pr-4 py-2.5 bg-[#F8FAFC]/70 border border-[#E2E8F0] focus:border-[#4F46E5] focus:bg-white rounded-xl text-xs text-[#0F172A] placeholder:text-[#475569] focus:ring-2 focus:ring-[#4F46E5]/15 outline-none transition-all font-medium shadow-2xs"
+                        className="w-full pl-10 pr-4 py-2.5 bg-[#F5F6F8]/70 border border-[#E2E7EC] focus:border-[#154360] focus:bg-white rounded-xl text-xs text-[#20262E] placeholder:text-[#57636E] focus:ring-2 focus:ring-[#154360]/15 outline-none transition-all font-medium shadow-2xs"
                       />
                     </div>
-                    <p className="text-[11px] text-[#475569] mt-1">
+                    <p className="text-[11px] text-[#57636E] mt-1">
                       {Boolean(meeting?.allowedEmails && meeting.allowedEmails.length > 0)
                         ? "Only students enrolled in this batch are permitted to enter this live classroom."
                         : "Optional email for identification in the live classroom."}
@@ -659,12 +659,12 @@ function JoinMeetingContent() {
 
                   {/* Meeting ID (Read Only badge) */}
                   <div>
-                    <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider mb-1.5">
                       Meeting ID
                     </label>
-                    <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-100 border border-[#E2E8F0] rounded-xl text-xs font-mono font-bold text-[#0F172A]">
+                    <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-100 border border-[#E2E7EC] rounded-xl text-xs font-mono font-bold text-[#20262E]">
                       <span className="tracking-wider">{meeting.id}</span>
-                      <span className="text-[10px] uppercase font-bold text-[#2980B9] bg-[#EEF2FF]/40 px-2 py-0.5 rounded border border-[#2980B9]/30 flex items-center gap-1">
+                      <span className="text-[10px] uppercase font-bold text-[#2980B9] bg-[#EBF5FB]/40 px-2 py-0.5 rounded border border-[#2980B9]/30 flex items-center gap-1">
                         <CheckCircle2 size={10} /> Verified
                       </span>
                     </div>
@@ -673,38 +673,38 @@ function JoinMeetingContent() {
                   {/* Meeting Passcode */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider">
+                      <label className="block text-xs font-bold text-[#20262E] uppercase tracking-wider">
                         Passcode *
                       </label>
                       {initialPwd && (
-                        <span className="text-[10px] text-[#2980B9] font-bold bg-[#EEF2FF]/40 border border-[#2980B9]/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="text-[10px] text-[#2980B9] font-bold bg-[#EBF5FB]/40 border border-[#2980B9]/30 px-2 py-0.5 rounded-full flex items-center gap-1">
                           <Check size={10} /> Auto-filled from link
                         </span>
                       )}
                     </div>
                     <div className="relative">
-                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#475569]" />
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57636E]" />
                       <input
                         type={showPwd ? "text" : "password"}
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         placeholder="Enter 8-digit passcode"
-                        className="w-full pl-10 pr-10 py-2.5 bg-[#F8FAFC]/70 border border-[#E2E8F0] focus:border-[#4F46E5] focus:bg-white rounded-xl text-xs font-mono font-bold text-[#0F172A] placeholder:text-[#475569] tracking-wider focus:ring-2 focus:ring-[#4F46E5]/15 outline-none transition-all shadow-2xs"
+                        className="w-full pl-10 pr-10 py-2.5 bg-[#F5F6F8]/70 border border-[#E2E7EC] focus:border-[#154360] focus:bg-white rounded-xl text-xs font-mono font-bold text-[#20262E] placeholder:text-[#57636E] tracking-wider focus:ring-2 focus:ring-[#154360]/15 outline-none transition-all shadow-2xs"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPwd(!showPwd)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#475569] hover:text-[#475569] transition-colors p-1"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#57636E] hover:text-[#57636E] transition-colors p-1"
                       >
                         {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
                       </button>
                     </div>
-                    <p className="text-[11px] text-[#475569] mt-1">Provided in your class invitation or shared by your instructor.</p>
+                    <p className="text-[11px] text-[#57636E] mt-1">Provided in your class invitation or shared by your instructor.</p>
                   </div>
 
                   {/* Security Guarantee */}
-                  <div className="flex items-center gap-2 p-3 bg-[#EEF2FF]/60 border border-[#4F46E5]/20 rounded-xl text-[11px] text-[#475569]">
-                    <Shield size={14} className="text-[#4F46E5] shrink-0" />
+                  <div className="flex items-center gap-2 p-3 bg-[#EBF5FB]/60 border border-[#154360]/20 rounded-xl text-[11px] text-[#57636E]">
+                    <Shield size={14} className="text-[#154360] shrink-0" />
                     <span>Secure connection · High definition audio & screen broadcast</span>
                   </div>
 
@@ -713,7 +713,7 @@ function JoinMeetingContent() {
                     <button
                       type="submit"
                       disabled={joining || !studentName.trim()}
-                      className="w-full py-3 px-4 bg-gradient-to-r from-[#4F46E5] to-[#4338CA] hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-200 disabled:text-[#475569] text-white font-bold text-xs rounded-xl shadow-md shadow-[rgba(21, 67, 96,0.2)] hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                      className="w-full py-3 px-4 bg-gradient-to-r from-[#154360] to-[#0E2F44] hover:from-blue-700 hover:to-indigo-700 disabled:from-slate-200 disabled:to-slate-200 disabled:text-[#57636E] text-white font-bold text-xs rounded-xl shadow-md shadow-[rgba(21, 67, 96,0.2)] hover:shadow-lg hover:shadow-blue-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                     >
                       {joining ? (
                         <>
@@ -740,7 +740,7 @@ function JoinMeetingContent() {
       </main>
 
       {/* Footer */}
-      <footer className="py-4 px-6 text-center text-xs text-[#475569] border-t border-[#E2E8F0]/70 bg-white/50">
+      <footer className="py-4 px-6 text-center text-xs text-[#57636E] border-t border-[#E2E7EC]/70 bg-white/50">
         <span>© {new Date().getFullYear()} RCRD Workspace · Powered by RCRD Video & Screen Recording Engine</span>
       </footer>
 
@@ -753,11 +753,11 @@ export default function MeetingJoinPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-[#F4F7FC] flex items-center justify-center p-6 text-center">
-          <div className="p-8 bg-white rounded-3xl border border-[#E2E8F0] shadow-xl space-y-3">
-            <div className="w-10 h-10 rounded-xl bg-[#EEF2FF] text-[#4F46E5] flex items-center justify-center mx-auto animate-spin">
+          <div className="p-8 bg-white rounded-3xl border border-[#E2E7EC] shadow-xl space-y-3">
+            <div className="w-10 h-10 rounded-xl bg-[#EBF5FB] text-[#154360] flex items-center justify-center mx-auto animate-spin">
               <RefreshCw size={20} />
             </div>
-            <p className="text-xs font-bold text-[#0F172A]">Loading meeting room...</p>
+            <p className="text-xs font-bold text-[#20262E]">Loading meeting room...</p>
           </div>
         </div>
       }

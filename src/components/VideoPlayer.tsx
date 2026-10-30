@@ -371,9 +371,9 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
   if (hasError) {
     return (
       <div className="w-full aspect-video bg-slate-900 rounded-2xl flex flex-col items-center justify-center text-white p-6 text-center">
-        <AlertCircle className="w-12 h-12 text-[#4F46E5] mb-4" />
+        <AlertCircle className="w-12 h-12 text-[#154360] mb-4" />
         <h3 className="text-xl font-bold mb-2">Video Unavailable</h3>
-        <p className="text-[#475569] max-w-md">The video stream could not be loaded. This might happen if the file was deleted from Google Drive, or if you don&apos;t have permission to view it.</p>
+        <p className="text-[#57636E] max-w-md">The video stream could not be loaded. This might happen if the file was deleted from Google Drive, or if you don&apos;t have permission to view it.</p>
       </div>
     );
   }
@@ -403,7 +403,7 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
       
       {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none z-20">
-          <div className="w-12 h-12 border-4 border-[#2980B9]/30 border-t-[#4F46E5] rounded-full animate-spin"></div>
+          <div className="w-12 h-12 border-4 border-[#2980B9]/30 border-t-[#154360] rounded-full animate-spin"></div>
         </div>
       )}
 
@@ -440,9 +440,9 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
         if (text.stylePreset === 'subtitle' || !text.stylePreset) {
           styleClasses = "bg-slate-950/90 backdrop-blur-md px-5 py-2 rounded-xl border border-white/20 shadow-lg font-semibold tracking-wide text-center";
         } else if (text.stylePreset === 'lowerThird') {
-          styleClasses = "bg-slate-950/90 backdrop-blur-md px-5 py-2.5 rounded-r-xl border-l-4 border-[#4F46E5] shadow-lg font-semibold";
+          styleClasses = "bg-slate-950/90 backdrop-blur-md px-5 py-2.5 rounded-r-xl border-l-4 border-[#154360] shadow-lg font-semibold";
         } else if (text.stylePreset === 'badge') {
-          styleClasses = "bg-[#4F46E5] text-white px-4 py-1.5 rounded-full font-bold shadow-md ring-1 ring-white/30";
+          styleClasses = "bg-[#154360] text-white px-4 py-1.5 rounded-full font-bold shadow-md ring-1 ring-white/30";
         } else if (text.stylePreset === 'minimal') {
           styleClasses = "font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]";
         }
@@ -650,7 +650,7 @@ export default function VideoPlayer({ src, onError, onTimeUpdate, downloadEnable
           <div className="w-full h-px bg-white/10"></div>
           <div className="flex items-center justify-center gap-2 text-sm font-medium">
             <span className="text-white/50 line-through decoration-white/30">{Math.round(duration)} sec</span>
-            <Zap size={14} className="text-[#4F46E5] fill-[#4F46E5]" />
+            <Zap size={14} className="text-[#154360] fill-[#154360]" />
             <span className="text-white font-bold">{Math.round(duration / playbackSpeed)} sec</span>
           </div>
         </div>

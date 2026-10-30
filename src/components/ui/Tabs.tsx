@@ -18,8 +18,8 @@ export function Tabs({ tabs, activeTab, onChange, className = "" }: TabsProps) {
             onClick={() => onChange(tab.id)}
             className={`px-6 py-4 text-sm font-bold border-b-2 transition-colors ${
               isActive 
-                ? "border-[#4F46E5] text-[#4F46E5]" 
-                : "border-transparent text-[#475569] hover:text-[#0F172A] hover:border-[#E2E8F0]"
+                ? "border-primary text-primary" 
+                : "border-transparent text-text-secondary hover:text-text-primary hover:border-[#E2E7EC]"
             }`}
           >
             {tab.label}

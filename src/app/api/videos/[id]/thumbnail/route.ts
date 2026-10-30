@@ -8,15 +8,15 @@ function getPlaceholderThumbnail(title?: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
     <defs>
       <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stop-color="#0F172A" />
-        <stop offset="50%" stop-color="#4338CA" />
-        <stop offset="100%" stop-color="#0F172A" />
+        <stop offset="0%" stop-color="#20262E" />
+        <stop offset="50%" stop-color="#0E2F44" />
+        <stop offset="100%" stop-color="#20262E" />
       </linearGradient>
     </defs>
     <rect width="640" height="360" fill="url(#bg)" rx="8" />
-    <circle cx="320" cy="165" r="40" fill="#4F46E5" fill-opacity="0.25" stroke="#4F46E5" stroke-width="2.5" />
-    <polygon points="312,150 336,165 312,180" fill="#4F46E5" />
-    <text x="320" y="240" fill="#E2E8F0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" text-anchor="middle">
+    <circle cx="320" cy="165" r="40" fill="#154360" fill-opacity="0.25" stroke="#154360" stroke-width="2.5" />
+    <polygon points="312,150 336,165 312,180" fill="#154360" />
+    <text x="320" y="240" fill="#E2E7EC" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="600" text-anchor="middle">
       ${safeTitle}
     </text>
   </svg>`;

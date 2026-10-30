@@ -240,14 +240,14 @@ export default function ProfileFlyout({
 
       {/* Flyout Sidebar (Right side, matching 5th image) */}
       <div 
-        className="fixed top-0 right-0 h-full w-[340px] bg-white z-50 shadow-2xl border-l border-[#E2E8F0] flex flex-col font-sans animate-in slide-in-from-right duration-200 overflow-hidden"
+        className="fixed top-0 right-0 h-full w-[340px] bg-white z-50 shadow-2xl border-l border-[#E2E7EC] flex flex-col font-sans animate-in slide-in-from-right duration-200 overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Header with Close Button */}
-        <div className="flex items-center justify-end p-4 border-b border-[#E2E8F0]">
+        <div className="flex items-center justify-end p-4 border-b border-[#E2E7EC]">
           <button 
             onClick={onClose}
-            className="p-1.5 text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 text-[#57636E] hover:text-[#20262E] hover:bg-[#F5F6F8] rounded-lg transition-colors cursor-pointer"
             aria-label="Close Profile"
           >
             <X size={18} />
@@ -265,7 +265,7 @@ export default function ProfileFlyout({
               onClick={() => fileInputRef.current?.click()}
               title="Click to upload profile photo"
             >
-              <div className="w-20 h-20 rounded-full bg-[#4F46E5] text-white flex items-center justify-center text-xl font-bold shadow-md ring-4 ring-[#EEF2FF] overflow-hidden">
+              <div className="w-20 h-20 rounded-full bg-[#154360] text-white flex items-center justify-center text-xl font-bold shadow-md ring-4 ring-[#EBF5FB] overflow-hidden">
                 {profile.avatarUrl ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
                   <img 
@@ -285,7 +285,7 @@ export default function ProfileFlyout({
               </div>
 
               {/* Camera icon badge */}
-              <div className="absolute bottom-0 right-0 p-1.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-full shadow-md ring-2 ring-white transition-transform group-hover/avatar:scale-110">
+              <div className="absolute bottom-0 right-0 p-1.5 bg-[#154360] hover:bg-[#0E2F44] text-white rounded-full shadow-md ring-2 ring-white transition-transform group-hover/avatar:scale-110">
                 <Camera size={12} />
               </div>
             </div>
@@ -298,8 +298,8 @@ export default function ProfileFlyout({
               onChange={handleAvatarUpload}
             />
 
-            <h3 className="text-base font-bold text-[#0F172A]">{profile.name}</h3>
-            <p className="text-xs text-[#475569] mt-0.5">{profile.email}</p>
+            <h3 className="text-base font-bold text-[#20262E]">{profile.name}</h3>
+            <p className="text-xs text-[#57636E] mt-0.5">{profile.email}</p>
 
             {/* Photo Action Buttons */}
             <div className="flex items-center gap-2 mt-2.5">
@@ -307,7 +307,7 @@ export default function ProfileFlyout({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploadingPhoto}
-                className="px-3 py-1 bg-[#EEF2FF] hover:bg-[#4F46E5]/15 text-[#4F46E5] text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-3 py-1 bg-[#EBF5FB] hover:bg-[#154360]/15 text-[#154360] text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {isUploadingPhoto ? (
                   <>
@@ -337,49 +337,49 @@ export default function ProfileFlyout({
 
             <button
               onClick={() => setIsEditing(!isEditing)}
-              className="mt-2.5 px-4 py-1.5 border border-[#E2E8F0] hover:border-[#4F46E5] hover:bg-[#EEF2FF]/40 text-[#0F172A] hover:text-[#4338CA] text-xs font-semibold rounded-lg transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
+              className="mt-2.5 px-4 py-1.5 border border-[#E2E7EC] hover:border-[#154360] hover:bg-[#EBF5FB]/40 text-[#20262E] hover:text-[#0E2F44] text-xs font-semibold rounded-lg transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer"
             >
-              <Edit3 size={12} className="text-[#4F46E5]" />
+              <Edit3 size={12} className="text-[#154360]" />
               {isEditing ? "Cancel editing" : "Edit profile details"}
             </button>
           </div>
 
           {/* Inline Edit Form when editing is active */}
           {isEditing && (
-            <form onSubmit={handleSaveProfile} className="bg-[#F8FAFC] p-4 rounded-xl border border-[#E2E8F0] space-y-3 animate-in fade-in duration-150">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[#0F172A] mb-1">Update Details</h4>
+            <form onSubmit={handleSaveProfile} className="bg-[#F5F6F8] p-4 rounded-xl border border-[#E2E7EC] space-y-3 animate-in fade-in duration-150">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[#20262E] mb-1">Update Details</h4>
               <div>
-                <label className="block text-[11px] font-semibold text-[#475569] mb-1">Full Name</label>
+                <label className="block text-[11px] font-semibold text-[#57636E] mb-1">Full Name</label>
                 <input
                   type="text"
                   value={editForm.name}
                   onChange={e => setEditForm({ ...editForm, name: e.target.value })}
                   required
-                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E2E8F0] rounded-lg text-[#0F172A] focus:border-[#4F46E5] outline-none"
+                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E2E7EC] rounded-lg text-[#20262E] focus:border-[#154360] outline-none"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#475569] mb-1">Email</label>
+                <label className="block text-[11px] font-semibold text-[#57636E] mb-1">Email</label>
                 <input
                   type="email"
                   value={editForm.email}
                   onChange={e => setEditForm({ ...editForm, email: e.target.value })}
                   required
-                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E2E8F0] rounded-lg text-[#0F172A] focus:border-[#4F46E5] outline-none"
+                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E2E7EC] rounded-lg text-[#20262E] focus:border-[#154360] outline-none"
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[#475569] mb-1">Role / Job Title</label>
+                <label className="block text-[11px] font-semibold text-[#57636E] mb-1">Role / Job Title</label>
                 <input
                   type="text"
                   value={editForm.role}
                   onChange={e => setEditForm({ ...editForm, role: e.target.value })}
-                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E2E8F0] rounded-lg text-[#0F172A] focus:border-[#4F46E5] outline-none"
+                  className="w-full px-2.5 py-1.5 text-xs bg-white border border-[#E2E7EC] rounded-lg text-[#20262E] focus:border-[#154360] outline-none"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
+                className="w-full py-2 bg-[#154360] hover:bg-[#0E2F44] text-white text-xs font-bold rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
               >
                 <Check size={14} />
                 Save Changes
@@ -388,8 +388,8 @@ export default function ProfileFlyout({
           )}
 
           {/* Section 2: Geonixa Platform Links Hub (Image 4 Replacement) */}
-          <div className="pt-4 border-t border-[#E2E8F0] space-y-1.5">
-            <p className="text-[11px] font-bold text-[#475569] uppercase tracking-wider px-1 mb-2">
+          <div className="pt-4 border-t border-[#E2E7EC] space-y-1.5">
+            <p className="text-[11px] font-bold text-[#57636E] uppercase tracking-wider px-1 mb-2">
               Geonixa Platform Links
             </p>
 
@@ -398,13 +398,13 @@ export default function ProfileFlyout({
               href="https://geonixa.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#4F46E5] hover:bg-[#EEF2FF] rounded-xl transition-all flex items-center justify-between group border border-transparent hover:border-[#4F46E5]/20"
+              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#154360] hover:bg-[#EBF5FB] rounded-xl transition-all flex items-center justify-between group border border-transparent hover:border-[#154360]/20"
             >
               <span className="flex items-center gap-2.5">
-                <Globe size={15} className="text-[#4F46E5]" />
+                <Globe size={15} className="text-[#154360]" />
                 <span className="font-bold">geonixa</span>
               </span>
-              <ExternalLink size={12} className="text-[#4F46E5] group-hover:translate-x-0.5 transition-transform" />
+              <ExternalLink size={12} className="text-[#154360] group-hover:translate-x-0.5 transition-transform" />
             </a>
 
             {/* Geonixa LMS Portal */}
@@ -426,13 +426,13 @@ export default function ProfileFlyout({
               href="https://geonixa.com/courses"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F8FAFC] rounded-xl transition-all flex items-center justify-between group border border-transparent hover:border-[#E2E8F0]"
+              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#20262E] hover:bg-[#F5F6F8] rounded-xl transition-all flex items-center justify-between group border border-transparent hover:border-[#E2E7EC]"
             >
               <span className="flex items-center gap-2.5">
-                <BookOpen size={15} className="text-[#475569]" />
+                <BookOpen size={15} className="text-[#57636E]" />
                 <span>Geonixa Courses</span>
               </span>
-              <ExternalLink size={12} className="text-[#475569] group-hover:translate-x-0.5 transition-transform" />
+              <ExternalLink size={12} className="text-[#57636E] group-hover:translate-x-0.5 transition-transform" />
             </a>
 
             {/* Geonixa Help & Support */}
@@ -440,23 +440,23 @@ export default function ProfileFlyout({
               href="https://geonixa.com/contact"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F8FAFC] rounded-xl transition-all flex items-center justify-between group border border-transparent hover:border-[#E2E8F0]"
+              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#20262E] hover:bg-[#F5F6F8] rounded-xl transition-all flex items-center justify-between group border border-transparent hover:border-[#E2E7EC]"
             >
               <span className="flex items-center gap-2.5">
-                <Headset size={15} className="text-[#475569]" />
+                <Headset size={15} className="text-[#57636E]" />
                 <span>Geonixa Help &amp; Support</span>
               </span>
-              <ExternalLink size={12} className="text-[#475569] group-hover:translate-x-0.5 transition-transform" />
+              <ExternalLink size={12} className="text-[#57636E] group-hover:translate-x-0.5 transition-transform" />
             </a>
           </div>
 
           {/* Section 3: Profile & Settings */}
-          <div className="pt-3 border-t border-[#E2E8F0] space-y-1">
+          <div className="pt-3 border-t border-[#E2E7EC] space-y-1">
             <button
               onClick={() => { onClose(); router.push('/settings'); }}
-              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#0F172A] hover:bg-[#F8FAFC] rounded-xl transition-colors flex items-center gap-2.5 cursor-pointer"
+              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#20262E] hover:bg-[#F5F6F8] rounded-xl transition-colors flex items-center gap-2.5 cursor-pointer"
             >
-              <User size={15} className="text-[#475569]" />
+              <User size={15} className="text-[#57636E]" />
               <span>View Profile &amp; Settings</span>
             </button>
             <button
@@ -469,7 +469,7 @@ export default function ProfileFlyout({
           </div>
 
           {/* Section 5: Sign out */}
-          <div className="pt-4 border-t border-[#E2E8F0]">
+          <div className="pt-4 border-t border-[#E2E7EC]">
             <button
               onClick={() => {
                 localStorage.removeItem("token");
@@ -493,8 +493,8 @@ export default function ProfileFlyout({
 
         {/* Interactive Toast Notification */}
         {toastMsg && (
-          <div className="absolute bottom-4 left-4 right-4 bg-[#0F172A] text-white text-xs px-3 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-in slide-in-from-bottom duration-200 z-50">
-            <Check size={14} className="text-[#4F46E5]" />
+          <div className="absolute bottom-4 left-4 right-4 bg-[#20262E] text-white text-xs px-3 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-in slide-in-from-bottom duration-200 z-50">
+            <Check size={14} className="text-[#154360]" />
             <span>{toastMsg}</span>
           </div>
         )}

@@ -11,6 +11,7 @@ import {
   isMeetingDurationExpired,
 } from '@/lib/server/localBackup';
 import { deleteRoomState } from '@/app/api/meetings/[id]/state/route';
+import { alertClassScheduled, alertClassLive } from '@/lib/telegram';
 
 export async function GET(req: Request) {
   try {
@@ -203,6 +204,13 @@ export async function POST(req: Request) {
       console.warn('MongoDB save meeting note:', (dbErr as Error)?.message);
     }
 
+    // Send Telegram alert asynchronously
+    if (meetingData.status === 'live') {
+      void alertClassLive(meetingData).catch(() => {});
+    } else {
+      void alertClassScheduled(meetingData).catch(() => {});
+    }
+
     return NextResponse.json({ success: true, meeting: meetingData });
   } catch (error) {
     console.error('Error saving meeting:', error);
@@ -245,6 +253,11 @@ export async function PATCH(req: Request) {
       );
     } catch (dbErr) {
       console.warn('MongoDB patch meeting note:', (dbErr as Error)?.message);
+    }
+
+    // If meeting went live, send Telegram live alert
+    if (status === 'live' && existing) {
+      void alertClassLive(existing).catch(() => {});
     }
 
     return NextResponse.json({ success: true });

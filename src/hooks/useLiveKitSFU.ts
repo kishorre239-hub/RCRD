@@ -78,6 +78,8 @@ export function useLiveKitSFU({
   const roomRef = useRef<Room | null>(null);
   const publishedScreenTrackRef = useRef<LocalVideoTrack | null>(null);
   const publishedAudioTrackRef = useRef<LocalAudioTrack | null>(null);
+  const remoteVideoTrackRef = useRef<RemoteTrack | null>(null);
+  const remoteVideoElementRef = useRef<HTMLVideoElement | null>(null);
   const remoteAudioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const prevStatsRef = useRef<{
     time: number;
@@ -92,6 +94,17 @@ export function useLiveKitSFU({
     packetsLost: 0,
     packetsReceived: 0,
   });
+
+  const attachRemoteVideo = useCallback((el: HTMLVideoElement | null) => {
+    remoteVideoElementRef.current = el;
+    if (el && remoteVideoTrackRef.current) {
+      try {
+        (remoteVideoTrackRef.current as unknown as { attach: (element: HTMLMediaElement) => HTMLMediaElement }).attach(el);
+      } catch (err) {
+        console.warn('Could not attach RemoteVideoTrack to element:', err);
+      }
+    }
+  }, []);
 
   // Connect to LiveKit Room
   const initSFU = useCallback(async () => {
@@ -123,17 +136,10 @@ export function useLiveKitSFU({
         return false;
       }
 
-      // 2. Initialize LiveKit Room with crisp HD settings & adaptive streaming
+      // 2. Initialize LiveKit Room with crisp HD settings (adaptiveStream: false ensures continuous stream delivery without DOM observer pauses)
       const room = new Room({
-        adaptiveStream: true, // Automatically requests the optimal layer matching player size & network
-        dynacast: true,       // Only transmits layers that at least one subscriber is viewing
-        publishDefaults: {
-          simulcast: true,
-          videoSimulcastLayers: [
-            VideoPresets.h1080,
-            VideoPresets.h720,
-          ],
-        },
+        adaptiveStream: false,
+        dynacast: false,
       });
 
       roomRef.current = room;
@@ -165,8 +171,14 @@ export function useLiveKitSFU({
       // Track Subscribed (Receiving Host screen share, microphone voice, and screen music)
       room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
         if (track.kind === Track.Kind.Video) {
+          remoteVideoTrackRef.current = track;
           const mediaStream = new MediaStream([track.mediaStreamTrack]);
           setSfuRemoteStream(mediaStream);
+          if (remoteVideoElementRef.current) {
+            try {
+              (track as unknown as { attach: (element: HTMLMediaElement) => HTMLMediaElement }).attach(remoteVideoElementRef.current);
+            } catch {}
+          }
         } else if (track.kind === Track.Kind.Audio) {
           // Key by track SID so Host microphone voice AND screen music play simultaneously without collision!
           const trackKey = `${participant.identity}_${publication?.trackSid || track.sid || track.kind}`;
@@ -190,6 +202,7 @@ export function useLiveKitSFU({
       // Track Unsubscribed
       room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack, publication?: RemoteTrackPublication, participant?: RemoteParticipant) => {
         if (track.kind === Track.Kind.Video) {
+          remoteVideoTrackRef.current = null;
           setSfuRemoteStream(null);
         } else if (track.kind === Track.Kind.Audio && participant) {
           const trackKey = `${participant.identity}_${publication?.trackSid || track.sid || track.kind}`;
@@ -227,7 +240,13 @@ export function useLiveKitSFU({
         room.remoteParticipants.forEach((p) => {
           p.trackPublications.forEach((pub) => {
             if (pub.track && pub.track.kind === Track.Kind.Video) {
+              remoteVideoTrackRef.current = pub.track;
               setSfuRemoteStream(new MediaStream([pub.track.mediaStreamTrack]));
+              if (remoteVideoElementRef.current) {
+                try {
+                  (pub.track as unknown as { attach: (element: HTMLMediaElement) => HTMLMediaElement }).attach(remoteVideoElementRef.current);
+                } catch {}
+              }
             }
             if (pub.track && pub.track.kind === Track.Kind.Audio) {
               const trackKey = `${p.identity}_${pub.trackSid || pub.track.sid || pub.track.kind}`;
@@ -280,7 +299,6 @@ export function useLiveKitSFU({
 
       await room.localParticipant.publishTrack(localVTrack, {
         name: 'screen-share',
-        simulcast: true,
         source: Track.Source.ScreenShare,
         videoEncoding: {
           maxBitrate: 2_500_000, // 2.5 Mbps: Zoom & Google Meet calibrated bitrate for silky smooth 1080p 60fps without bufferbloat
@@ -549,5 +567,6 @@ export function useLiveKitSFU({
     broadcastDataSFU,
     unlockAudioSFU,
     setDataHandler,
+    attachRemoteVideo,
   };
 }

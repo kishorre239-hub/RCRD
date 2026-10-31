@@ -736,8 +736,11 @@ export default function ClassRoomPage() {
   // Safely connect remoteWebRTCStream or livekitSFU stream to student video element
   useEffect(() => {
     const activeStream = livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream;
-    if (remoteScreenVideoRef.current && activeStream) {
-      if (remoteScreenVideoRef.current.srcObject !== activeStream) {
+    if (remoteScreenVideoRef.current) {
+      if (livekitSFU.attachRemoteVideo) {
+        livekitSFU.attachRemoteVideo(remoteScreenVideoRef.current);
+      }
+      if (activeStream && remoteScreenVideoRef.current.srcObject !== activeStream) {
         remoteScreenVideoRef.current.srcObject = activeStream;
         remoteScreenVideoRef.current.muted = true;
         remoteScreenVideoRef.current.playsInline = true;
@@ -746,13 +749,15 @@ export default function ClassRoomPage() {
         remoteScreenVideoRef.current.play().catch(() => {});
       }
     }
-    // Removed unconditional whiteboard dismissal so student view never shakes or closes when stream connects
-  }, [remoteWebRTCStream, livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream, isMentor]);
+  }, [remoteWebRTCStream, livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream, isMentor, livekitSFU]);
 
   // Memoized video ref callback to eliminate screen shaking / continuous re-renders
   const setRemoteVideoRef = useCallback((el: HTMLVideoElement | null) => {
     remoteScreenVideoRef.current = el;
     if (!el) return;
+    if (livekitSFU.attachRemoteVideo) {
+      livekitSFU.attachRemoteVideo(el);
+    }
     const activeStream = livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream;
     if (activeStream && el.srcObject !== activeStream) {
       el.srcObject = activeStream;
@@ -762,7 +767,7 @@ export default function ClassRoomPage() {
       el.setAttribute('webkit-playsinline', '');
       el.play().catch(() => {});
     }
-  }, [livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream, remoteWebRTCStream]);
+  }, [livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream, remoteWebRTCStream, livekitSFU]);
 
   // Mobile & browser autoplay policy unlock: play remote screen video on touch or click
   useEffect(() => {
@@ -1103,8 +1108,6 @@ export default function ClassRoomPage() {
         }
       }
     } else if (sig.type === "request-screen") {
-      // If LiveKit SFU is active, all screen video flows via the cloud SFU — avoid duplicate P2P encoder overload
-      if (livekitSFU.isSFUActive) return;
       if (isMentor && screenStreamRef.current) {
         const vTrack = screenStreamRef.current.getVideoTracks()[0];
         if (vTrack && pc) {
@@ -2109,12 +2112,11 @@ export default function ClassRoomPage() {
     // PATH B: POST latest encoded frame to server for remote students (independent timer)
     // Non-blocking: never prevents Path A from running
     const uploadToServer = async () => {
-      if (!active || serverInFlight) return;
-      if (!livekitSFU.isSFUActive && !lastDataUrl) return;
+      if (!active || !lastDataUrl || serverInFlight) return;
       const payload = {
         active: true,
         presenterName: displayName || "Host",
-        streamFrame: livekitSFU.isSFUActive ? undefined : lastDataUrl,
+        streamFrame: lastDataUrl,
         updatedAt: lastPayloadTime || Date.now(),
       };
       serverInFlight = true;
@@ -2788,48 +2790,48 @@ export default function ClassRoomPage() {
           } else if (localAudioStreamRef.current) {
             livekitSFU.publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
           }
-        } else {
-          // Direct P2P distribution only when SFU is NOT active (prevents CPU encoder overload)
-          peerConnectionsRef.current.forEach(async (pc, targetId) => {
-            try {
-              const vSender = pc.getSenders().find(s => s.track?.kind === "video" || !s.track);
-              let needsOffer = false;
-              if (vSender) {
-                await vSender.replaceTrack(vTrack);
-                try {
-                  const params = vSender.getParameters();
-                  if (params.encodings && params.encodings.length > 0) {
-                    params.encodings[0].maxBitrate = 2_500_000;
-                    params.encodings[0].maxFramerate = 60;
-                    params.degradationPreference = 'maintain-framerate';
-                    await vSender.setParameters(params);
-                  }
-                } catch {}
+        }
+
+        // Always attach to connected peer connections as guaranteed real-time fallback
+        peerConnectionsRef.current.forEach(async (pc, targetId) => {
+          try {
+            const vSender = pc.getSenders().find(s => s.track?.kind === "video" || !s.track);
+            let needsOffer = false;
+            if (vSender) {
+              await vSender.replaceTrack(vTrack);
+              try {
+                const params = vSender.getParameters();
+                if (params.encodings && params.encodings.length > 0) {
+                  params.encodings[0].maxBitrate = 2_500_000;
+                  params.encodings[0].maxFramerate = 60;
+                  params.degradationPreference = 'maintain-framerate';
+                  await vSender.setParameters(params);
+                }
+              } catch {}
+            } else {
+              pc.addTrack(vTrack, ds);
+              needsOffer = true;
+            }
+
+            if (combinedAudioTrack) {
+              const aSender = pc.getSenders().find(s => s.track?.kind === "audio");
+              if (aSender) {
+                await aSender.replaceTrack(combinedAudioTrack);
               } else {
-                pc.addTrack(vTrack, ds);
+                pc.addTrack(combinedAudioTrack, ds);
                 needsOffer = true;
               }
-
-              if (combinedAudioTrack) {
-                const aSender = pc.getSenders().find(s => s.track?.kind === "audio");
-                if (aSender) {
-                  await aSender.replaceTrack(combinedAudioTrack);
-                } else {
-                  pc.addTrack(combinedAudioTrack, ds);
-                  needsOffer = true;
-                }
-              }
-
-              if (needsOffer && pc.signalingState === "stable") {
-                const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-                await pc.setLocalDescription(offer);
-                sendSignal(targetId, "offer", offer);
-              }
-            } catch (err) {
-              console.warn("Could not attach screen stream to peer:", err);
             }
-          });
-        }
+
+            if (needsOffer && pc.signalingState === "stable") {
+              const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+              await pc.setLocalDescription(offer);
+              sendSignal(targetId, "offer", offer);
+            }
+          } catch (err) {
+            console.warn("Could not attach screen stream to peer:", err);
+          }
+        });
       }
 
       showToast("Screen sharing started! Your screen & camera work together concurrently.");
@@ -4380,7 +4382,7 @@ export default function ClassRoomPage() {
                   onPause={handleVideoWaiting}
                   onError={handleVideoWaiting}
                   onEnded={() => setIsWebRTCVideoPlaying(false)}
-                  className="absolute inset-0 w-full h-full object-contain select-none z-10"
+                  className={`absolute inset-0 w-full h-full object-contain select-none z-10 transition-opacity duration-200 ${isWebRTCVideoPlaying ? 'opacity-100' : 'opacity-0'}`}
                   style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
                 />
               )}

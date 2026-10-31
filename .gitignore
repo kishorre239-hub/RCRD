@@ -45,3 +45,4 @@ Thumbs.db
 # Local storage runtime data
 .data/
 public/uploads/
+public/WhatsApp*.mp4

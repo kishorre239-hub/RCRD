@@ -47,7 +47,9 @@ export const useRecorder = () => {
         const displayMediaOptions = {
           video: {
             displaySurface: 'monitor',
-            frameRate: { ideal: 12, max: 15 },
+            width: { ideal: 1920, max: 3840 },
+            height: { ideal: 1080, max: 2160 },
+            frameRate: { ideal: 30, max: 60 },
           },
           audio: true, // Capture system audio if shared by user
           selfBrowserSurface: 'include',
@@ -72,8 +74,8 @@ export const useRecorder = () => {
 
       if (shouldGetMic || shouldGetCamera) {
         const avStream = await navigator.mediaDevices.getUserMedia({
-          video: shouldGetCamera ? { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 12, max: 15 } } : false,
-          audio: shouldGetMic ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 16000 } : false,
+          video: shouldGetCamera ? { width: { ideal: 1920, max: 1920 }, height: { ideal: 1080, max: 1080 }, frameRate: { ideal: 30, max: 60 } } : false,
+          audio: shouldGetMic ? { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 } : false,
         });
         
         avStream.getTracks().forEach((track) => {
@@ -109,13 +111,25 @@ export const useRecorder = () => {
         }
       });
 
-      // Ultra-efficient storage compression: 16 kbps video + 6 kbps Opus voice
-      // Exactly ~10 MB per 1 full 60-minute lecture (~340 KB for 2 minutes instead of 16 MB)
-      const mediaRecorder = new MediaRecorder(combinedStream, {
-        mimeType: getOptimalMimeType(),
-        videoBitsPerSecond: 16000,
-        audioBitsPerSecond: 6000,
-      });
+      // HD 1080p Recording: 5 Mbps video for crystal-clear HD text/screen + 128 kbps Opus voice audio
+      let mediaRecorder: MediaRecorder;
+      try {
+        mediaRecorder = new MediaRecorder(combinedStream, {
+          mimeType: getOptimalMimeType(),
+          videoBitsPerSecond: 5000000,
+          audioBitsPerSecond: 128000,
+        });
+      } catch {
+        try {
+          mediaRecorder = new MediaRecorder(combinedStream, {
+            mimeType: getOptimalMimeType(),
+            videoBitsPerSecond: 2500000,
+            audioBitsPerSecond: 96000,
+          });
+        } catch {
+          mediaRecorder = new MediaRecorder(combinedStream, { mimeType: getOptimalMimeType() });
+        }
+      }
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data && event.data.size > 0) {

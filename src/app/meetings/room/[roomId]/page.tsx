@@ -2691,7 +2691,12 @@ export default function ClassRoomPage() {
       let ds: MediaStream;
       try {
         ds = await navigator.mediaDevices.getDisplayMedia({
-          video: { width: { ideal: 1920, max: 1920 }, height: { ideal: 1080, max: 1080 }, frameRate: { ideal: 60, max: 60 } },
+          video: { 
+            displaySurface: "monitor",
+            width: { ideal: 1920, max: 3840 }, 
+            height: { ideal: 1080, max: 2160 }, 
+            frameRate: { ideal: 30, max: 60 } 
+          },
           audio: {
             echoCancellation: false,
             noiseSuppression: false,
@@ -2701,21 +2706,21 @@ export default function ClassRoomPage() {
       } catch {
         // Resilient fallback: active presentation canvas stream
         const canvas = document.createElement("canvas");
-        canvas.width = 1280;
-        canvas.height = 720;
+        canvas.width = 1920;
+        canvas.height = 1080;
         const ctx = canvas.getContext("2d");
         const renderScreen = () => {
           if (!ctx) return;
           ctx.fillStyle = "#20262E";
-          ctx.fillRect(0, 0, 1280, 720);
+          ctx.fillRect(0, 0, 1920, 1080);
           ctx.fillStyle = "#20262E";
-          ctx.fillRect(40, 40, 1200, 640);
+          ctx.fillRect(40, 40, 1840, 1000);
           ctx.fillStyle = "#154360";
-          ctx.font = "bold 32px sans-serif";
-          ctx.fillText("Presentation Screen Share (Active Stream)", 80, 120);
+          ctx.font = "bold 40px sans-serif";
+          ctx.fillText("Presentation Screen Share (Active Stream)", 80, 140);
           ctx.fillStyle = "#57636E";
-          ctx.font = "20px sans-serif";
-          ctx.fillText("Sharing classroom slides & notes live with attendees...", 80, 180);
+          ctx.font = "24px sans-serif";
+          ctx.fillText("Sharing classroom slides & notes live with attendees in HD...", 80, 220);
           requestAnimationFrame(renderScreen);
         };
         renderScreen();
@@ -2745,7 +2750,7 @@ export default function ClassRoomPage() {
       const screenAudioTrack = ds.getAudioTracks()[0];
       if (vTrack) {
         if ('contentHint' in vTrack) {
-          vTrack.contentHint = 'motion';
+          vTrack.contentHint = 'detail';
         }
       }
 
@@ -3064,13 +3069,25 @@ export default function ClassRoomPage() {
 
     const mimeType = getOptimalMimeType();
     try {
-      // Ultra-efficient storage compression: 16 kbps video + 6 kbps Opus voice
-      // Exactly ~10 MB per 1 full 60-minute lecture (~340 KB for 2 minutes instead of 16 MB)
-      const rec = new MediaRecorder(combined, { 
-        mimeType, 
-        videoBitsPerSecond: 16000,
-        audioBitsPerSecond: 6000
-      });
+      // HD 1080p Recording: 5 Mbps video for crystal-clear HD text/screen + 128 kbps Opus voice audio
+      let rec: MediaRecorder;
+      try {
+        rec = new MediaRecorder(combined, { 
+          mimeType, 
+          videoBitsPerSecond: 5000000,
+          audioBitsPerSecond: 128000
+        });
+      } catch {
+        try {
+          rec = new MediaRecorder(combined, { 
+            mimeType, 
+            videoBitsPerSecond: 2500000,
+            audioBitsPerSecond: 96000
+          });
+        } catch {
+          rec = new MediaRecorder(combined, { mimeType });
+        }
+      }
       mediaRecRef.current = rec;
       chunksRef.current = [];
       rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
@@ -3091,7 +3108,7 @@ export default function ClassRoomPage() {
       setRecState("recording");
       setRecTimer(0);
       timerRef.current = setInterval(() => setRecTimer(t => t + 1), 1000);
-      showToast("Recording started! Teach your lesson.");
+      showToast("HD Recording started! Teach your lesson.");
     } catch (e: unknown) {
       const err = e as Error;
       showToast("Failed to start recording: " + err.message, false);
@@ -3120,14 +3137,60 @@ export default function ClassRoomPage() {
     }
     const currentShare = screenStream || screenStreamRef.current;
     const currentCam = cameraStream || cameraStreamRef.current;
-    const tracks: MediaStreamTrack[] = [...(currentShare?.getTracks() || [])];
-    if (currentCam) currentCam.getVideoTracks().forEach(t => tracks.push(t));
-    const getMic = micOn
-      ? navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: true, echoCancellation: true } })
-          .then(a => a.getAudioTracks().forEach(t => tracks.push(t)))
-          .catch(() => {})
-      : Promise.resolve();
-    getMic.finally(() => beginRecording(tracks));
+    const tracks: MediaStreamTrack[] = [];
+
+    // Prioritize screen share video track for crisp HD recording
+    const screenVid = currentShare?.getVideoTracks()[0];
+    const camVid = currentCam?.getVideoTracks()[0];
+    if (screenVid) {
+      tracks.push(screenVid);
+    } else if (camVid) {
+      tracks.push(camVid);
+    }
+
+    const micPromise = micOn
+      ? navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 48000,
+          }
+        }).catch(() => null)
+      : Promise.resolve(null);
+
+    micPromise.then((micStream) => {
+      const audioTracks: MediaStreamTrack[] = [
+        ...(currentShare?.getAudioTracks() || []),
+        ...(micStream?.getAudioTracks() || []),
+      ];
+
+      if (audioTracks.length > 1) {
+        try {
+          const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+          if (AudioCtx) {
+            const actx = new AudioCtx();
+            const dest = actx.createMediaStreamDestination();
+            audioTracks.forEach(at => {
+              try {
+                const src = actx.createMediaStreamSource(new MediaStream([at]));
+                src.connect(dest);
+              } catch {}
+            });
+            const mixedAudio = dest.stream.getAudioTracks()[0];
+            if (mixedAudio) tracks.push(mixedAudio);
+          } else {
+            tracks.push(audioTracks[0]);
+          }
+        } catch {
+          tracks.push(audioTracks[0]);
+        }
+      } else if (audioTracks.length === 1) {
+        tracks.push(audioTracks[0]);
+      }
+
+      beginRecording(tracks);
+    });
   }, [recState, countdown, screenStream, cameraStream, micOn, beginRecording]);
 
   const pauseRecording = () => {

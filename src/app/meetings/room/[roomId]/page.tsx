@@ -984,6 +984,11 @@ export default function ClassRoomPage() {
     const isForMe = sig.to === myParticipantId || (isMentor && sig.to === "host") || sig.to === "all";
     if (!isForMe) return;
 
+    // When LiveKit Cloud SFU is active, ignore legacy P2P audio/video signals to avoid race conditions and m-line collisions
+    if (livekitSFU.isSFUActive && (sig.type === "offer" || sig.type === "answer" || sig.type === "candidate" || sig.type === "request-screen")) {
+      return;
+    }
+
     const targetId = sig.from;
     // Look up peer connection by specific ID or host alias
     let pc = peerConnectionsRef.current.get(targetId) || (!isMentor ? peerConnectionsRef.current.get("host") : undefined);
@@ -1194,7 +1199,7 @@ export default function ClassRoomPage() {
 
   // Student initiates audio and video connection to Host
   const initiateAudioCallToHost = useCallback(async () => {
-    if (isMentor || !roomId) return;
+    if (isMentor || !roomId || livekitSFU.isSFUActive) return;
     let pc = peerConnectionsRef.current.get("host");
     if (!pc || pc.connectionState === "closed" || pc.connectionState === "failed") {
       pc = new RTCPeerConnection(RTC_CONFIG);
@@ -1225,7 +1230,7 @@ export default function ClassRoomPage() {
     } catch (err) {
       console.warn("Error initiating audio/video call to host:", err);
     }
-  }, [isMentor, roomId, attachTrackHandlers, sendSignal]);
+  }, [isMentor, roomId, attachTrackHandlers, sendSignal, livekitSFU.isSFUActive]);
 
   // Synchronize speaker muted state to all remote audio elements
   useEffect(() => {
@@ -2013,7 +2018,24 @@ export default function ClassRoomPage() {
     if (isMentor && livekitSFU.isSFUActive && localAudioStreamRef.current && micOn) {
       livekitSFU.publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
     }
-  }, [isMentor, livekitSFU.isSFUActive, micOn, livekitSFU]);
+  }, [isMentor, livekitSFU.isSFUActive, micOn, livekitSFU.publishMicAudioSFU]);
+
+  // Proactively publish host screen share to LiveKit SFU whenever SFU connects or screenStream starts/changes
+  useEffect(() => {
+    if (isMentor && screenStream && livekitSFU.isSFUActive) {
+      livekitSFU.publishScreenShareSFU(screenStream).catch((err) => {
+        console.warn("Error auto-publishing screen share to LiveKit SFU:", err);
+      });
+      livekitSFU.broadcastDataSFU("SCREEN_SHARE", { active: true, presenterName: displayName || "Host", updatedAt: Date.now() }).catch(() => {});
+    }
+  }, [isMentor, screenStream, livekitSFU.isSFUActive, livekitSFU.publishScreenShareSFU, livekitSFU.broadcastDataSFU, displayName]);
+
+  // Unpublish from SFU when screen sharing stops
+  useEffect(() => {
+    if (isMentor && !screenStream && livekitSFU.isSFUActive) {
+      livekitSFU.unpublishScreenShareSFU().catch(() => {});
+    }
+  }, [isMentor, screenStream, livekitSFU.isSFUActive, livekitSFU.unpublishScreenShareSFU]);
 
   // Broadcast screen share frames when Host shares screen
   // ARCHITECTURE: Two-path delivery for zero-lag + wide-area reach:
@@ -2031,17 +2053,67 @@ export default function ClassRoomPage() {
       }
     } catch {}
 
+    let helperVideo: HTMLVideoElement | null = null;
+    if (!screenVideoRef.current || screenVideoRef.current.videoWidth === 0) {
+      helperVideo = document.createElement("video");
+      helperVideo.muted = true;
+      helperVideo.autoplay = true;
+      helperVideo.playsInline = true;
+      helperVideo.srcObject = screenStream;
+      helperVideo.play().catch(() => {});
+    }
+
     // When LiveKit SFU is active, 60fps WebRTC video is transmitted directly via SFU.
-    // We strictly SKIP CPU/GPU-heavy canvas sampling (sampleCtx.getImageData & toDataURL)
-    // so the host has 100% hardware acceleration for 60fps video!
+    // We send an initial snapshot and a relaxed 3.5s backup frame so joining students have an instant visual
+    // while keeping 99.9% of CPU/GPU dedicated to hardware-accelerated 60fps streaming!
     if (livekitSFU.isSFUActive) {
+      let sfuCanvas: HTMLCanvasElement | null = null;
+      let sfuCtx: CanvasRenderingContext2D | null = null;
+      let lastSnapshotDataUrl = "";
+      let lastSnapshotTime = 0;
+
+      const captureSFUSnapshot = () => {
+        try {
+          const vEl = (screenVideoRef.current && screenVideoRef.current.videoWidth > 0)
+            ? screenVideoRef.current
+            : helperVideo;
+          if (vEl && vEl.videoWidth > 0) {
+            if (!sfuCanvas) {
+              sfuCanvas = document.createElement("canvas");
+              sfuCtx = sfuCanvas.getContext("2d", { alpha: false });
+            }
+            const vw = vEl.videoWidth;
+            const vh = vEl.videoHeight;
+            const maxW = 640;
+            const scale = Math.min(1, maxW / vw);
+            const tw = Math.round(vw * scale);
+            const th = Math.round(vh * scale);
+            if (sfuCanvas.width !== tw || sfuCanvas.height !== th) {
+              sfuCanvas.width = tw;
+              sfuCanvas.height = th;
+            }
+            if (sfuCtx) {
+              sfuCtx.drawImage(vEl, 0, 0, tw, th);
+              lastSnapshotDataUrl = sfuCanvas.toDataURL("image/jpeg", 0.52);
+              lastSnapshotTime = Date.now();
+            }
+          }
+        } catch {}
+      };
+
+      captureSFUSnapshot();
+
       const sendSFUHeartbeat = async () => {
         if (!active || serverInFlight) return;
         serverInFlight = true;
         try {
+          if (Date.now() - lastSnapshotTime > 3500) {
+            captureSFUSnapshot();
+          }
           const payload = {
             active: true,
             presenterName: displayName || "Host",
+            streamFrame: lastSnapshotDataUrl || undefined,
             updatedAt: Date.now(),
           };
           if (bc) {
@@ -2058,12 +2130,13 @@ export default function ClassRoomPage() {
         }
       };
 
-      const sfuHeartbeatInterval = setInterval(sendSFUHeartbeat, 2500);
+      const sfuHeartbeatInterval = setInterval(sendSFUHeartbeat, 2000);
       sendSFUHeartbeat();
 
       return () => {
         active = false;
         clearInterval(sfuHeartbeatInterval);
+        if (helperVideo) helperVideo.srcObject = null;
         if (bc) bc.close();
       };
     }
@@ -2081,8 +2154,7 @@ export default function ClassRoomPage() {
     let lastDataUrl = "";
     let lastPayloadTime = 0;
 
-    let helperVideo: HTMLVideoElement | null = null;
-    if (!screenVideoRef.current || screenVideoRef.current.videoWidth === 0) {
+    if (!helperVideo && (!screenVideoRef.current || screenVideoRef.current.videoWidth === 0)) {
       helperVideo = document.createElement("video");
       helperVideo.muted = true;
       helperVideo.autoplay = true;

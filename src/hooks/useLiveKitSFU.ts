@@ -98,10 +98,6 @@ export function useLiveKitSFU({
       remoteVideoElementRef.current = null;
       return;
     }
-    // Prevent redundant track re-attachment that causes decoder restart and stutter
-    if (remoteVideoElementRef.current === el && el.srcObject) {
-      return;
-    }
     remoteVideoElementRef.current = el;
     if (remoteVideoTrackRef.current) {
       try {
@@ -109,7 +105,19 @@ export function useLiveKitSFU({
       } catch (err) {
         console.warn('Could not attach RemoteVideoTrack to element:', err);
       }
+      try {
+        if (remoteVideoTrackRef.current.mediaStreamTrack) {
+          if (!el.srcObject || (el.srcObject as MediaStream).getVideoTracks()[0] !== remoteVideoTrackRef.current.mediaStreamTrack) {
+            el.srcObject = new MediaStream([remoteVideoTrackRef.current.mediaStreamTrack]);
+          }
+        }
+      } catch {}
     }
+    el.muted = true;
+    el.playsInline = true;
+    el.setAttribute('playsinline', '');
+    el.setAttribute('webkit-playsinline', '');
+    el.play().catch(() => {});
   }, []);
 
   // Connect to LiveKit Room
@@ -174,6 +182,13 @@ export function useLiveKitSFU({
         setDiagnostics(prev => ({ ...prev, connectedParticipants: room.remoteParticipants.size + 1 }));
       });
 
+      // Explicitly subscribe to newly published tracks from the host
+      room.on(RoomEvent.TrackPublished, (publication: RemoteTrackPublication) => {
+        if (!publication.isSubscribed) {
+          publication.setSubscribed(true);
+        }
+      });
+
       // Track Subscribed (Receiving Host screen share, microphone voice, and screen music)
       room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
         if (track.kind === Track.Kind.Video) {
@@ -183,6 +198,10 @@ export function useLiveKitSFU({
           if (remoteVideoElementRef.current) {
             try {
               (track as unknown as { attach: (element: HTMLMediaElement) => HTMLMediaElement }).attach(remoteVideoElementRef.current);
+            } catch {}
+            try {
+              remoteVideoElementRef.current.srcObject = mediaStream;
+              remoteVideoElementRef.current.play().catch(() => {});
             } catch {}
           }
         } else if (track.kind === Track.Kind.Audio) {
@@ -245,12 +264,20 @@ export function useLiveKitSFU({
       try {
         room.remoteParticipants.forEach((p) => {
           p.trackPublications.forEach((pub) => {
+            if (!pub.isSubscribed) {
+              pub.setSubscribed(true);
+            }
             if (pub.track && pub.track.kind === Track.Kind.Video) {
               remoteVideoTrackRef.current = pub.track;
-              setSfuRemoteStream(new MediaStream([pub.track.mediaStreamTrack]));
+              const ms = new MediaStream([pub.track.mediaStreamTrack]);
+              setSfuRemoteStream(ms);
               if (remoteVideoElementRef.current) {
                 try {
                   (pub.track as unknown as { attach: (element: HTMLMediaElement) => HTMLMediaElement }).attach(remoteVideoElementRef.current);
+                } catch {}
+                try {
+                  remoteVideoElementRef.current.srcObject = ms;
+                  remoteVideoElementRef.current.play().catch(() => {});
                 } catch {}
               }
             }
@@ -294,6 +321,20 @@ export function useLiveKitSFU({
     try {
       const vTrack = mediaStream.getVideoTracks()[0];
       if (!vTrack) return false;
+
+      // Check if already published with this exact track
+      if (publishedScreenTrackRef.current?.mediaStreamTrack === vTrack) {
+        return true;
+      }
+
+      // If previous published track exists, unpublish first
+      if (publishedScreenTrackRef.current) {
+        try {
+          await room.localParticipant.unpublishTrack(publishedScreenTrackRef.current);
+          publishedScreenTrackRef.current.stop();
+        } catch {}
+        publishedScreenTrackRef.current = null;
+      }
 
       // Set contentHint to 'motion' for silky smooth 60fps video & YouTube playback without stutter
       if ('contentHint' in vTrack) {

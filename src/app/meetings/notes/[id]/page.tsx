@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import React, { useState, useEffect, useMemo, useRef, Suspense, useSyncExternalStore } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { 
   ArrowLeft, FileText, Download, Upload, Paperclip, 
@@ -46,7 +46,30 @@ function MeetingNotesContent() {
 
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
-  const [isHost, setIsHost] = useState(false);
+  const isHost = useSyncExternalStore(
+    () => () => {},
+    () => {
+      const roleParam = searchParams.get("role")?.toLowerCase();
+      if (roleParam === "host" || roleParam === "mentor") return true;
+      try {
+        const userProfile = localStorage.getItem("rcrd_user_profile");
+        const userObj = localStorage.getItem("user");
+        if (userProfile) {
+          const p = JSON.parse(userProfile);
+          if (p?.role === "admin" || p?.role === "instructor" || p?.role === "host") return true;
+        }
+        if (userObj) {
+          const u = JSON.parse(userObj);
+          if (u?.role === "admin" || u?.role === "instructor" || u?.role === "host") return true;
+        }
+      } catch {}
+      return false;
+    },
+    () => {
+      const roleParam = searchParams.get("role")?.toLowerCase();
+      return roleParam === "host" || roleParam === "mentor";
+    }
+  );
   const [activeTab, setActiveTab] = useState<"all" | "host" | "participant" | "group">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [newNoteText, setNewNoteText] = useState("");
@@ -63,40 +86,11 @@ function MeetingNotesContent() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Determine if viewer is Host (only Host can download or add/edit notes)
-  useEffect(() => {
-    const roleParam = searchParams.get("role")?.toLowerCase();
-    if (roleParam === "host" || roleParam === "mentor") {
-      setIsHost(true);
-      return;
-    }
-    try {
-      const userProfile = localStorage.getItem("rcrd_user_profile");
-      const userObj = localStorage.getItem("user");
-      if (userProfile) {
-        const p = JSON.parse(userProfile);
-        if (p?.role === "admin" || p?.role === "instructor" || p?.role === "host") {
-          setIsHost(true);
-          return;
-        }
-      }
-      if (userObj) {
-        const u = JSON.parse(userObj);
-        if (u?.role === "admin" || u?.role === "instructor" || u?.role === "host") {
-          setIsHost(true);
-          return;
-        }
-      }
-    } catch {}
-    setIsHost(false);
-  }, [searchParams]);
-
   // Load meeting details & real notes from backend API, room state, and localStorage
   useEffect(() => {
     if (!meetingId) return;
 
     let isMounted = true;
-    setLoading(true);
 
     const loadData = async () => {
       let resolvedNotes: Note[] = [];
@@ -155,8 +149,14 @@ function MeetingNotesContent() {
         if (stateRes.ok) {
           const stateData = await stateRes.json();
           if (isMounted) {
-            if (stateData?.status && !meeting?.status) {
-              setMeeting(prev => prev ? { ...prev, status: stateData.status } : null);
+            if (stateData?.status) {
+              setMeeting(prev => {
+                if (!prev) return null;
+                if (!prev.status) {
+                  return { ...prev, status: stateData.status };
+                }
+                return prev;
+              });
             }
             if (Array.isArray(stateData.notes) && stateData.notes.length > 0) {
               // Merge with existing

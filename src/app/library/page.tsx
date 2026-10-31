@@ -63,14 +63,17 @@ export default function LibraryPage() {
   const [now, setNow] = useState<number>(0);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('search') || params.get('q') || "";
+    }
+    return "";
+  });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      const q = params.get('search') || params.get('q');
-      if (q) setSearchQuery(q);
-
       if (params.get('record') === 'true') {
         const t = setTimeout(() => openGlobalRecording(), 0);
         return () => clearTimeout(t);

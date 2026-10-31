@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { getCollection } from '@/lib/server/db';
 import { authenticateRequest } from '@/lib/server/auth';
 import { User } from '@/lib/server/types';
-import { ObjectId } from 'mongodb';
 
 export async function GET(req: Request) {
   try {

@@ -111,23 +111,27 @@ export const useRecorder = () => {
         }
       });
 
-      // HD 1080p Recording: 5 Mbps video for crystal-clear HD text/screen + 128 kbps Opus voice audio
+      // Ultra-efficient 1080p Recording: 60 minutes = ~60 MB budget (115 kbps video + 24 kbps Opus audio)
       let mediaRecorder: MediaRecorder;
       try {
         mediaRecorder = new MediaRecorder(combinedStream, {
           mimeType: getOptimalMimeType(),
-          videoBitsPerSecond: 5000000,
-          audioBitsPerSecond: 128000,
+          videoBitsPerSecond: 115000,
+          audioBitsPerSecond: 24000,
         });
       } catch {
         try {
           mediaRecorder = new MediaRecorder(combinedStream, {
             mimeType: getOptimalMimeType(),
-            videoBitsPerSecond: 2500000,
-            audioBitsPerSecond: 96000,
+            videoBitsPerSecond: 96000,
+            audioBitsPerSecond: 20000,
           });
         } catch {
-          mediaRecorder = new MediaRecorder(combinedStream, { mimeType: getOptimalMimeType() });
+          try {
+            mediaRecorder = new MediaRecorder(combinedStream, { mimeType: getOptimalMimeType(), bitsPerSecond: 139000 });
+          } catch {
+            mediaRecorder = new MediaRecorder(combinedStream, { mimeType: getOptimalMimeType() });
+          }
         }
       }
 

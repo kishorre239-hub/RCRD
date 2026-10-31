@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   Room,
   RoomEvent,
@@ -94,8 +94,16 @@ export function useLiveKitSFU({
   });
 
   const attachRemoteVideo = useCallback((el: HTMLVideoElement | null) => {
+    if (!el) {
+      remoteVideoElementRef.current = null;
+      return;
+    }
+    // Prevent redundant track re-attachment that causes decoder restart and stutter
+    if (remoteVideoElementRef.current === el && el.srcObject) {
+      return;
+    }
     remoteVideoElementRef.current = el;
-    if (el && remoteVideoTrackRef.current) {
+    if (remoteVideoTrackRef.current) {
       try {
         (remoteVideoTrackRef.current as unknown as { attach: (element: HTMLMediaElement) => HTMLMediaElement }).attach(el);
       } catch (err) {
@@ -552,7 +560,7 @@ export function useLiveKitSFU({
     });
   }, []);
 
-  return {
+  return useMemo(() => ({
     isSFUActive,
     sfuRemoteStream,
     sfuConnectionState,
@@ -566,5 +574,19 @@ export function useLiveKitSFU({
     unlockAudioSFU,
     setDataHandler,
     attachRemoteVideo,
-  };
+  }), [
+    isSFUActive,
+    sfuRemoteStream,
+    sfuConnectionState,
+    diagnostics,
+    initSFU,
+    publishScreenShareSFU,
+    unpublishScreenShareSFU,
+    publishMicAudioSFU,
+    setMicMutedSFU,
+    broadcastDataSFU,
+    unlockAudioSFU,
+    setDataHandler,
+    attachRemoteVideo,
+  ]);
 }

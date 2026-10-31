@@ -735,39 +735,42 @@ export default function ClassRoomPage() {
 
   // Safely connect remoteWebRTCStream or livekitSFU stream to student video element
   useEffect(() => {
-    const activeStream = livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream;
-    if (remoteScreenVideoRef.current) {
+    const el = remoteScreenVideoRef.current;
+    if (!el || isMentor) return;
+
+    if (livekitSFU.isSFUActive) {
       if (livekitSFU.attachRemoteVideo) {
-        livekitSFU.attachRemoteVideo(remoteScreenVideoRef.current);
+        livekitSFU.attachRemoteVideo(el);
       }
-      if (activeStream && remoteScreenVideoRef.current.srcObject !== activeStream) {
-        remoteScreenVideoRef.current.srcObject = activeStream;
-        remoteScreenVideoRef.current.muted = true;
-        remoteScreenVideoRef.current.playsInline = true;
-        remoteScreenVideoRef.current.setAttribute('playsinline', '');
-        remoteScreenVideoRef.current.setAttribute('webkit-playsinline', '');
-        remoteScreenVideoRef.current.play().catch(() => {});
+    } else if (remoteWebRTCStream) {
+      if (el.srcObject !== remoteWebRTCStream) {
+        el.srcObject = remoteWebRTCStream;
+        el.muted = true;
+        el.playsInline = true;
+        el.setAttribute('playsinline', '');
+        el.setAttribute('webkit-playsinline', '');
+        el.play().catch(() => {});
       }
     }
-  }, [remoteWebRTCStream, livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream, isMentor, livekitSFU]);
+  }, [remoteWebRTCStream, livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream, isMentor, livekitSFU.attachRemoteVideo]);
 
-  // Memoized video ref callback to eliminate screen shaking / continuous re-renders
+  // Stable video ref callback: guards against redundant decoder reset and frame stuttering
   const setRemoteVideoRef = useCallback((el: HTMLVideoElement | null) => {
+    if (remoteScreenVideoRef.current === el) return;
     remoteScreenVideoRef.current = el;
     if (!el) return;
-    if (livekitSFU.attachRemoteVideo) {
+
+    if (livekitSFU.isSFUActive && livekitSFU.attachRemoteVideo) {
       livekitSFU.attachRemoteVideo(el);
-    }
-    const activeStream = livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream;
-    if (activeStream && el.srcObject !== activeStream) {
-      el.srcObject = activeStream;
+    } else if (remoteWebRTCStream && el.srcObject !== remoteWebRTCStream) {
+      el.srcObject = remoteWebRTCStream;
       el.muted = true;
       el.playsInline = true;
       el.setAttribute('playsinline', '');
       el.setAttribute('webkit-playsinline', '');
       el.play().catch(() => {});
     }
-  }, [livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream, remoteWebRTCStream, livekitSFU]);
+  }, [livekitSFU.isSFUActive, livekitSFU.attachRemoteVideo, remoteWebRTCStream]);
 
   // Mobile & browser autoplay policy unlock: play remote screen video on touch or click
   useEffect(() => {
@@ -1710,7 +1713,8 @@ export default function ClassRoomPage() {
       pollInFlight = true;
       try {
         const sinceScreenParam = lastScreenShareTimestampRef.current;
-        const skipScreenFrame = isWebRTCVideoPlayingRef.current ? 1 : 0;
+        const hasActiveVideo = Boolean((livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream) || remoteWebRTCStream);
+        const skipScreenFrame = hasActiveVideo || isWebRTCVideoPlayingRef.current ? 1 : 0;
         const res = await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state?participantId=${encodeURIComponent(myParticipantId)}&sinceScreen=${sinceScreenParam}&sinceWb=${lastWhiteboardTimestampRef.current}&skipScreenFrame=${skipScreenFrame}`, {
           cache: "no-store",
         });
@@ -1912,12 +1916,13 @@ export default function ClassRoomPage() {
     const scheduleNextPoll = () => {
       if (!pollActive) return;
       // Adaptive polling rate:
-      // - Screen share active and WebRTC NOT playing: 250ms for smooth 4fps HTTP frame delivery
-      // - WebRTC 60fps video IS playing smoothly: 2000ms (saves bandwidth and CPU)
+      // - WebRTC/SFU 60fps video active: 2500ms (preserves 100% CPU/GPU for 60fps decoding)
+      // - HTTP frame delivery fallback: 350ms
       // - Idle meeting: 1200ms
       let delay = 1200;
+      const hasActiveVideo = Boolean((livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream) || remoteWebRTCStream);
       if (remoteScreenShareActiveRef.current) {
-        delay = isWebRTCVideoPlayingRef.current ? 2000 : 250;
+        delay = (hasActiveVideo || isWebRTCVideoPlayingRef.current) ? 2500 : 350;
       }
       pollTimer = setTimeout(runPoll, delay);
     };
@@ -2018,10 +2023,55 @@ export default function ClassRoomPage() {
     if (!screenStream || !isMentor || !roomId) return;
     let active = true;
     let serverInFlight = false;
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
+      }
+    } catch {}
+
+    // When LiveKit SFU is active, 60fps WebRTC video is transmitted directly via SFU.
+    // We strictly SKIP CPU/GPU-heavy canvas sampling (sampleCtx.getImageData & toDataURL)
+    // so the host has 100% hardware acceleration for 60fps video!
+    if (livekitSFU.isSFUActive) {
+      const sendSFUHeartbeat = async () => {
+        if (!active || serverInFlight) return;
+        serverInFlight = true;
+        try {
+          const payload = {
+            active: true,
+            presenterName: displayName || "Host",
+            updatedAt: Date.now(),
+          };
+          if (bc) {
+            bc.postMessage({ type: "SCREEN_SHARE", data: payload });
+          }
+          await fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ screenShare: payload }),
+          });
+        } catch {
+        } finally {
+          serverInFlight = false;
+        }
+      };
+
+      const sfuHeartbeatInterval = setInterval(sendSFUHeartbeat, 2500);
+      sendSFUHeartbeat();
+
+      return () => {
+        active = false;
+        clearInterval(sfuHeartbeatInterval);
+        if (bc) bc.close();
+      };
+    }
+
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d", { alpha: false });
 
-    // Micro-canvas for frame change detection (skips redundant server uploads for static content)
+    // Fallback micro-canvas for frame change detection (only when SFU is inactive)
     const sampleCanvas = document.createElement("canvas");
     sampleCanvas.width = 16;
     sampleCanvas.height = 10;
@@ -2030,13 +2080,6 @@ export default function ClassRoomPage() {
     let heartbeatCounter = 0;
     let lastDataUrl = "";
     let lastPayloadTime = 0;
-
-    let bc: BroadcastChannel | null = null;
-    try {
-      if (typeof BroadcastChannel !== "undefined") {
-        bc = new BroadcastChannel(`rcrd_meeting_room_${roomId}`);
-      }
-    } catch {}
 
     let helperVideo: HTMLVideoElement | null = null;
     if (!screenVideoRef.current || screenVideoRef.current.videoWidth === 0) {
@@ -2048,8 +2091,7 @@ export default function ClassRoomPage() {
       helperVideo.play().catch(() => {});
     }
 
-    // PATH A: Encode frame → post to BroadcastChannel immediately (no network, ~0ms latency)
-    // Runs at 100ms for smooth ~10fps local preview with zero network overhead
+    // PATH A: Fallback broadcast to same-device BroadcastChannel
     const encodeAndBroadcast = () => {
       if (!active || !screenStream) return;
       try {
@@ -2071,13 +2113,11 @@ export default function ClassRoomPage() {
           const frameChanged = sampleStr !== lastSample;
           if (!frameChanged) {
             heartbeatCounter++;
-            // Send heartbeat every ~1.5s even for static frames so students don't time out
             if (heartbeatCounter < 15) return;
           }
           lastSample = sampleStr;
           heartbeatCounter = 0;
 
-          // Optimized for high frame rate & smooth motion: 640px max width, 0.52 JPEG (~22KB payload)
           const maxW = 640;
           const scale = Math.min(1, maxW / vw);
           const tw = Math.round(vw * scale);
@@ -2101,7 +2141,6 @@ export default function ClassRoomPage() {
             updatedAt: lastPayloadTime,
           };
 
-          // BroadcastChannel delivery: instant, same browser, no network
           if (bc) {
             bc.postMessage({ type: "SCREEN_SHARE", data: payload });
           }
@@ -2109,8 +2148,7 @@ export default function ClassRoomPage() {
       } catch {}
     };
 
-    // PATH B: POST latest encoded frame to server for remote students (independent timer)
-    // Non-blocking: never prevents Path A from running
+    // PATH B: POST latest encoded frame to server for remote students (fallback only)
     const uploadToServer = async () => {
       if (!active || !lastDataUrl || serverInFlight) return;
       const payload = {
@@ -2139,9 +2177,7 @@ export default function ClassRoomPage() {
       }
     };
 
-    // Path A: lightweight fallback for local/BC delivery (500ms preserves 100% CPU for WebRTC 60fps)
     const bcInterval = setInterval(encodeAndBroadcast, 500);
-    // Path B: runs every 1500ms as HTTP backup only (never starves WebRTC bandwidth or CPU)
     const serverInterval = setInterval(uploadToServer, 1500);
     encodeAndBroadcast();
 
@@ -4347,19 +4383,8 @@ export default function ClassRoomPage() {
               className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black overflow-hidden select-none"
               style={{ contain: 'strict', transform: 'translateZ(0)' }}
             >
-              {/* Layer 1: HTTP Live Frame Stream (Persistently rendered base layer for zero-flicker transitions) */}
-              {remoteScreenShare?.streamFrame && (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={remoteScreenShare.streamFrame}
-                  alt="Shared Screen"
-                  className="absolute inset-0 w-full h-full object-contain select-none pointer-events-none z-0"
-                  style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
-                />
-              )}
-
-              {/* Layer 2: WebRTC Ultra HD 60FPS Video (Silky smooth active stream with graceful stall watchdog) */}
-              {(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream) && (
+              {/* Ultra HD 60FPS Video (Primary WebRTC / LiveKit SFU display surface) */}
+              {(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream) ? (
                 <video
                   ref={setRemoteVideoRef}
                   autoPlay
@@ -4382,13 +4407,20 @@ export default function ClassRoomPage() {
                   onPause={handleVideoWaiting}
                   onError={handleVideoWaiting}
                   onEnded={() => setIsWebRTCVideoPlaying(false)}
-                  className={`absolute inset-0 w-full h-full object-contain select-none z-10 transition-opacity duration-200 ${isWebRTCVideoPlaying ? 'opacity-100' : 'opacity-0'}`}
+                  className="absolute inset-0 w-full h-full object-contain select-none z-10 bg-black"
                   style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
                 />
-              )}
-
-              {/* Layer 3: Presentation Connecting State (Only if neither stream nor frame is available) */}
-              {!remoteScreenShare?.streamFrame && !livekitSFU.sfuRemoteStream && !remoteWebRTCStream && (
+              ) : remoteScreenShare?.streamFrame ? (
+                /* Fallback HTTP Live Frame (Only rendered when WebRTC stream is NOT available) */
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={remoteScreenShare.streamFrame}
+                  alt="Shared Screen"
+                  className="absolute inset-0 w-full h-full object-contain select-none pointer-events-none z-10"
+                  style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
+                />
+              ) : (
+                /* Presentation Connecting State (Only if neither stream nor frame is available) */
                 <div className="flex flex-col items-center justify-center gap-3 p-6 text-center select-none z-10">
                   <div className="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-xl">
                     <Monitor size={28} className="animate-pulse" />

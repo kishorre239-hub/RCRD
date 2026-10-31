@@ -634,9 +634,7 @@ export default function ClassRoomPage() {
   const {
     isSFUActive,
     sfuRemoteStream,
-    sfuConnectionState,
     canPlaybackAudio,
-    diagnostics: sfuDiagnostics,
     initSFU,
     publishScreenShareSFU,
     unpublishScreenShareSFU,
@@ -698,12 +696,12 @@ export default function ClassRoomPage() {
         if (hostWantsMuted) {
           if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
           setMicOn(false);
-          if (livekitSFU.isSFUActive) livekitSFU.setMicMutedSFU(true).catch(() => {});
+          if (isSFUActive) setMicMutedSFU(true).catch(() => {});
           showToast("The host has muted your microphone.");
         } else {
           if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = true);
           setMicOn(true);
-          if (livekitSFU.isSFUActive) livekitSFU.setMicMutedSFU(false).catch(() => {});
+          if (isSFUActive) setMicMutedSFU(false).catch(() => {});
           showToast("The host has unmuted your microphone.");
         }
       }
@@ -1189,8 +1187,8 @@ export default function ClassRoomPage() {
             localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
           }
           setMicOn(false);
-          if (livekitSFU.isSFUActive) {
-            livekitSFU.setMicMutedSFU(true).catch(() => {});
+          if (isSFUActive) {
+            setMicMutedSFU(true).catch(() => {});
           }
           showToast("The host has muted your microphone.");
         } else {
@@ -1198,8 +1196,8 @@ export default function ClassRoomPage() {
             localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = true);
           }
           setMicOn(true);
-          if (livekitSFU.isSFUActive) {
-            livekitSFU.setMicMutedSFU(false).catch(() => {});
+          if (isSFUActive) {
+            setMicMutedSFU(false).catch(() => {});
           }
           showToast("The host has unmuted your microphone.");
         }
@@ -1216,18 +1214,18 @@ export default function ClassRoomPage() {
           localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
         }
         setMicOn(false);
-        if (livekitSFU.isSFUActive) {
-          livekitSFU.setMicMutedSFU(true).catch(() => {});
+        if (isSFUActive) {
+          setMicMutedSFU(true).catch(() => {});
         }
         showToast("The host muted all participants.");
       }
       setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
     }
-  }, [myParticipantId, isMentor, attachTrackHandlers, sendSignal, drainCandidateQueue, displayName, studentName, livekitSFU, showToast]);
+  }, [myParticipantId, isMentor, attachTrackHandlers, sendSignal, drainCandidateQueue, displayName, studentName, isSFUActive, setMicMutedSFU, showToast]);
 
   // Student initiates audio and video connection to Host
   const initiateAudioCallToHost = useCallback(async () => {
-    if (isMentor || !roomId || livekitSFU.isSFUActive) return;
+    if (isMentor || !roomId || isSFUActive) return;
     let pc = peerConnectionsRef.current.get("host");
     if (!pc || pc.connectionState === "closed" || pc.connectionState === "failed") {
       pc = new RTCPeerConnection(RTC_CONFIG);
@@ -1258,7 +1256,7 @@ export default function ClassRoomPage() {
     } catch (err) {
       console.warn("Error initiating audio/video call to host:", err);
     }
-  }, [isMentor, roomId, attachTrackHandlers, sendSignal, livekitSFU.isSFUActive]);
+  }, [isMentor, roomId, attachTrackHandlers, sendSignal, isSFUActive]);
 
   // Synchronize speaker muted state to all remote audio elements
   useEffect(() => {
@@ -2015,8 +2013,8 @@ export default function ClassRoomPage() {
         video: false,
       }).then((stream) => {
         localAudioStreamRef.current = stream;
-        if (livekitSFU.isSFUActive) {
-          livekitSFU.publishMicAudioSFU(stream).catch(() => {});
+        if (isSFUActive) {
+          publishMicAudioSFU(stream).catch(() => {});
         }
         const track = stream.getAudioTracks()[0];
         if (track) {
@@ -2093,7 +2091,7 @@ export default function ClassRoomPage() {
     // When LiveKit SFU is active, 60fps WebRTC video is transmitted directly via SFU.
     // We send an initial snapshot and a relaxed 3.5s backup frame so joining students have an instant visual
     // while keeping 99.9% of CPU/GPU dedicated to hardware-accelerated 60fps streaming!
-    if (livekitSFU.isSFUActive) {
+    if (isSFUActive) {
       let sfuCanvas: HTMLCanvasElement | null = null;
       let sfuCtx: CanvasRenderingContext2D | null = null;
       let lastSnapshotDataUrl = "";

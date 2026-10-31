@@ -1011,7 +1011,7 @@ export default function ClassRoomPage() {
     if (!isForMe) return;
 
     // When LiveKit Cloud SFU is active, ignore legacy P2P audio/video signals to avoid race conditions and m-line collisions
-    if (livekitSFU.isSFUActive && (sig.type === "offer" || sig.type === "answer" || sig.type === "candidate" || sig.type === "request-screen")) {
+    if (isSFUActive && (sig.type === "offer" || sig.type === "answer" || sig.type === "candidate" || sig.type === "request-screen")) {
       return;
     }
 
@@ -2764,7 +2764,7 @@ export default function ClassRoomPage() {
       } catch {}
       screenAudioMixerContextRef.current = null;
     }
-    livekitSFU.unpublishScreenShareSFU().catch(() => {});
+    unpublishScreenShareSFU().catch(() => {});
     peerConnectionsRef.current.forEach((pc) => {
       const sender = pc.getSenders().find(s => s.track?.kind === "video");
       if (sender) {
@@ -2776,13 +2776,13 @@ export default function ClassRoomPage() {
       }
     });
 
-    if (localAudioStreamRef.current && livekitSFU.isSFUActive) {
-      livekitSFU.publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
+    if (localAudioStreamRef.current && isSFUActive) {
+      publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
     }
 
     // Broadcast screen share stopped to students immediately across SFU and WebRTC
-    if (livekitSFU.isSFUActive) {
-      livekitSFU.broadcastDataSFU("SCREEN_SHARE", { active: false, presenterName: displayName, updatedAt: Date.now() }).catch(() => {});
+    if (isSFUActive) {
+      broadcastDataSFU("SCREEN_SHARE", { active: false, presenterName: displayName, updatedAt: Date.now() }).catch(() => {});
     }
     sendSignal("all", "SCREEN_SHARE", { active: false, presenterName: displayName, updatedAt: Date.now() });
 
@@ -2807,7 +2807,7 @@ export default function ClassRoomPage() {
     }).catch(() => {});
 
     showToast("Screen share stopped. Meeting is still active.");
-  }, [screenStream, showToast, setScreenStream, roomId, displayName, livekitSFU, sendSignal]);
+  }, [screenStream, showToast, setScreenStream, roomId, displayName, unpublishScreenShareSFU, isSFUActive, publishMicAudioSFU, broadcastDataSFU, sendSignal]);
 
   // ── Screen Share ─────────────────────────────────────────────────
   const startScreenShare = async () => {
@@ -2894,9 +2894,9 @@ export default function ClassRoomPage() {
       }
 
       // Publish to LiveKit SFU if active
-      if (livekitSFU.isSFUActive) {
-        livekitSFU.publishScreenShareSFU(ds).catch(() => {});
-        livekitSFU.broadcastDataSFU("SCREEN_SHARE", { active: true, presenterName: displayName || "Host", updatedAt: Date.now() }).catch(() => {});
+      if (isSFUActive) {
+        publishScreenShareSFU(ds).catch(() => {});
+        broadcastDataSFU("SCREEN_SHARE", { active: true, presenterName: displayName || "Host", updatedAt: Date.now() }).catch(() => {});
       }
       sendSignal("all", "SCREEN_SHARE", { active: true, presenterName: displayName || "Host", updatedAt: Date.now() });
 
@@ -3129,9 +3129,9 @@ export default function ClassRoomPage() {
             }
           });
         }
-        if (localAudioStreamRef.current && livekitSFU.isSFUActive) {
-          livekitSFU.publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
-          livekitSFU.setMicMutedSFU(false).catch(() => {});
+        if (localAudioStreamRef.current && isSFUActive) {
+          publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
+          setMicMutedSFU(false).catch(() => {});
         }
         showToast("Microphone unmuted - Voice live!");
       } catch {
@@ -3141,8 +3141,8 @@ export default function ClassRoomPage() {
       if (localAudioStreamRef.current) {
         localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
       }
-      if (livekitSFU.isSFUActive) {
-        livekitSFU.setMicMutedSFU(true).catch(() => {});
+      if (isSFUActive) {
+        setMicMutedSFU(true).catch(() => {});
       }
       showToast("Microphone muted");
     }
@@ -4015,8 +4015,8 @@ export default function ClassRoomPage() {
     }));
 
     // 2. Broadcast via LiveKit SFU data channel (sub-millisecond latency)
-    if (livekitSFU.isSFUActive) {
-      livekitSFU.broadcastDataSFU("REMOTE_MUTE_ACTION", {
+    if (isSFUActive) {
+      broadcastDataSFU("REMOTE_MUTE_ACTION", {
         targetParticipantId: targetParticipant.id,
         targetName: targetParticipant.name,
         isMuted: shouldMute,
@@ -4047,13 +4047,13 @@ export default function ClassRoomPage() {
     }).catch(() => {});
 
     showToast(shouldMute ? `Muted ${targetParticipant.name}` : `Unmuted ${targetParticipant.name}`);
-  }, [isMentor, livekitSFU, sendSignal, roomId, displayName, showToast]);
+  }, [isMentor, isSFUActive, broadcastDataSFU, sendSignal, roomId, displayName, showToast]);
 
   const muteAllParticipants = useCallback(() => {
     if (!isMentor) return;
     setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
-    if (livekitSFU.isSFUActive) {
-      livekitSFU.broadcastDataSFU("REMOTE_MUTE_ALL", { hostName: displayName }).catch(() => {});
+    if (isSFUActive) {
+      broadcastDataSFU("REMOTE_MUTE_ALL", { hostName: displayName }).catch(() => {});
     }
     sendSignal("all", "REMOTE_MUTE_ALL", { hostName: displayName });
     fetch(`/api/meetings/${encodeURIComponent(roomId)}/state`, {
@@ -4064,7 +4064,7 @@ export default function ClassRoomPage() {
       }),
     }).catch(() => {});
     showToast("All participants muted.");
-  }, [isMentor, livekitSFU, sendSignal, roomId, displayName, showToast]);
+  }, [isMentor, isSFUActive, broadcastDataSFU, sendSignal, roomId, displayName, showToast]);
 
   // Batch-Restricted Access Enforcement
   const isBatchRestricted = Boolean(meeting?.allowedEmails && meeting.allowedEmails.length > 0);

@@ -306,6 +306,7 @@ export default function ClassRoomPage() {
   const screenStreamRef = useRef<MediaStream | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const localAudioStreamRef = useRef<MediaStream | null>(null);
+  const screenAudioMixerContextRef = useRef<AudioContext | null>(null);
   const endClassRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   useEffect(() => {
@@ -2759,6 +2760,12 @@ export default function ClassRoomPage() {
     screenStreamRef.current?.getTracks().forEach(t => t.stop());
     screenStreamRef.current = null;
     setScreenStream(null);
+    if (screenAudioMixerContextRef.current) {
+      try {
+        screenAudioMixerContextRef.current.close();
+      } catch {}
+      screenAudioMixerContextRef.current = null;
+    }
     livekitSFU.unpublishScreenShareSFU().catch(() => {});
     peerConnectionsRef.current.forEach((pc) => {
       const sender = pc.getSenders().find(s => s.track?.kind === "video");
@@ -2901,7 +2908,11 @@ export default function ClassRoomPage() {
           try {
             const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
             if (AudioCtx) {
+              if (screenAudioMixerContextRef.current) {
+                try { screenAudioMixerContextRef.current.close(); } catch {}
+              }
               const actx = new AudioCtx();
+              screenAudioMixerContextRef.current = actx;
               if (actx.state === "suspended") {
                 actx.resume().catch(() => {});
               }
@@ -2923,14 +2934,6 @@ export default function ClassRoomPage() {
           }
         } else if (localAudioStreamRef.current) {
           combinedAudioTrack = localAudioStreamRef.current.getAudioTracks()[0] || null;
-        }
-
-        if (livekitSFU.isSFUActive) {
-          if (combinedAudioTrack) {
-            livekitSFU.publishMicAudioSFU(new MediaStream([combinedAudioTrack])).catch(() => {});
-          } else if (localAudioStreamRef.current) {
-            livekitSFU.publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
-          }
         }
 
         // Always attach to connected peer connections as guaranteed real-time fallback

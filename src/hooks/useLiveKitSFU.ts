@@ -172,11 +172,12 @@ export function useLiveKitSFU({
         return false;
       }
 
-      // 2. Initialize LiveKit Room with WebAudioMix to guarantee YouTube and music audio play smoothly
+      // 2. Initialize LiveKit Room with pure HTML5 audio and preserve local device tracks
       const room = new Room({
         adaptiveStream: false,
         dynacast: false,
-        webAudioMix: true,
+        stopLocalTrackOnUnpublish: false,
+        webAudioMix: false,
         disconnectOnPageLeave: true,
       });
 
@@ -239,19 +240,23 @@ export function useLiveKitSFU({
           const trackKey = `${participant.identity}_${publication?.trackSid || track.sid || track.kind}`;
           let audioEl = remoteAudioElementsRef.current.get(trackKey);
           if (!audioEl || !document.body.contains(audioEl)) {
-            audioEl = document.createElement('audio');
+            audioEl = (track as unknown as { attach: (element?: HTMLMediaElement) => HTMLMediaElement }).attach();
+            audioEl.id = `sfu_audio_${trackKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
             audioEl.autoplay = true;
             audioEl.setAttribute('playsinline', 'true');
             audioEl.setAttribute('webkit-playsinline', 'true');
-            audioEl.style.display = 'none';
-            audioEl.id = `sfu_audio_${trackKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+            audioEl.style.position = 'fixed';
+            audioEl.style.top = '-9999px';
+            audioEl.style.left = '-9999px';
+            audioEl.style.width = '1px';
+            audioEl.style.height = '1px';
+            audioEl.style.opacity = '0';
+            audioEl.style.pointerEvents = 'none';
             document.body.appendChild(audioEl);
             remoteAudioElementsRef.current.set(trackKey, audioEl);
+          } else {
+            (track as unknown as { attach: (element?: HTMLMediaElement) => HTMLMediaElement }).attach(audioEl);
           }
-          try {
-            (track as unknown as { attach: (element: HTMLMediaElement) => HTMLMediaElement }).attach(audioEl);
-          } catch {}
-          audioEl.srcObject = new MediaStream([track.mediaStreamTrack]);
           audioEl.volume = 1.0;
           audioEl.muted = Boolean(speakerMutedRef.current);
           audioEl.play().catch(() => {});
@@ -267,9 +272,14 @@ export function useLiveKitSFU({
           const trackKey = `${participant.identity}_${publication?.trackSid || track.sid || track.kind}`;
           const el = remoteAudioElementsRef.current.get(trackKey);
           if (el) {
-            el.pause();
-            el.srcObject = null;
-            el.remove();
+            try {
+              (track as unknown as { detach: (element?: HTMLMediaElement) => HTMLMediaElement }).detach(el);
+            } catch {}
+            try {
+              el.pause();
+              el.srcObject = null;
+              el.remove();
+            } catch {}
             remoteAudioElementsRef.current.delete(trackKey);
           }
         }
@@ -321,19 +331,23 @@ export function useLiveKitSFU({
               const trackKey = `${p.identity}_${pub.trackSid || pub.track.sid || pub.track.kind}`;
               let audioEl = remoteAudioElementsRef.current.get(trackKey);
               if (!audioEl || !document.body.contains(audioEl)) {
-                audioEl = document.createElement('audio');
+                audioEl = (pub.track as unknown as { attach: (element?: HTMLMediaElement) => HTMLMediaElement }).attach();
+                audioEl.id = `sfu_audio_${trackKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
                 audioEl.autoplay = true;
                 audioEl.setAttribute('playsinline', 'true');
                 audioEl.setAttribute('webkit-playsinline', 'true');
-                audioEl.style.display = 'none';
-                audioEl.id = `sfu_audio_${trackKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+                audioEl.style.position = 'fixed';
+                audioEl.style.top = '-9999px';
+                audioEl.style.left = '-9999px';
+                audioEl.style.width = '1px';
+                audioEl.style.height = '1px';
+                audioEl.style.opacity = '0';
+                audioEl.style.pointerEvents = 'none';
                 document.body.appendChild(audioEl);
                 remoteAudioElementsRef.current.set(trackKey, audioEl);
+              } else {
+                (pub.track as unknown as { attach: (element?: HTMLMediaElement) => HTMLMediaElement }).attach(audioEl);
               }
-              try {
-                (pub.track as unknown as { attach: (element: HTMLMediaElement) => HTMLMediaElement }).attach(audioEl);
-              } catch {}
-              audioEl.srcObject = new MediaStream([pub.track.mediaStreamTrack]);
               audioEl.volume = 1.0;
               audioEl.muted = Boolean(speakerMutedRef.current);
               audioEl.play().catch(() => {});
@@ -400,7 +414,6 @@ export function useLiveKitSFU({
       if (publishedScreenAudioTrackRef.current) {
         try {
           await room.localParticipant.unpublishTrack(publishedScreenAudioTrackRef.current);
-          publishedScreenAudioTrackRef.current.stop();
         } catch {}
         publishedScreenAudioTrackRef.current = null;
       }
@@ -434,7 +447,6 @@ export function useLiveKitSFU({
     if (publishedScreenTrackRef.current) {
       try {
         await room.localParticipant.unpublishTrack(publishedScreenTrackRef.current);
-        publishedScreenTrackRef.current.stop();
       } catch (err) {
         console.warn('Error unpublishing screen track from SFU:', err);
       }
@@ -444,7 +456,6 @@ export function useLiveKitSFU({
     if (publishedScreenAudioTrackRef.current) {
       try {
         await room.localParticipant.unpublishTrack(publishedScreenAudioTrackRef.current);
-        publishedScreenAudioTrackRef.current.stop();
       } catch (err) {
         console.warn('Error unpublishing screen audio track from SFU:', err);
       }
@@ -452,7 +463,7 @@ export function useLiveKitSFU({
     }
   }, []);
 
-  // Publish / Mute Local Mic Audio (Supports track replacement when Host mixes YouTube song audio)
+  // Publish / Mute Local Mic Audio (Pure microphone audio; never stops hardware device)
   const publishMicAudioSFU = useCallback(async (audioStream: MediaStream) => {
     const room = roomRef.current;
     if (!room || room.state !== ConnectionState.Connected) return false;
@@ -467,17 +478,18 @@ export function useLiveKitSFU({
         await room.localParticipant.publishTrack(localATrack, {
           name: 'microphone',
           source: Track.Source.Microphone,
+          dtx: true,
         });
       } else if (publishedAudioTrackRef.current.mediaStreamTrack !== aTrack) {
         try {
           await room.localParticipant.unpublishTrack(publishedAudioTrackRef.current);
-          publishedAudioTrackRef.current.stop();
         } catch {}
         const localATrack = new LocalAudioTrack(aTrack);
         publishedAudioTrackRef.current = localATrack;
         await room.localParticipant.publishTrack(localATrack, {
           name: 'microphone',
           source: Track.Source.Microphone,
+          dtx: true,
         });
       } else {
         publishedAudioTrackRef.current.mediaStreamTrack.enabled = true;
@@ -650,7 +662,7 @@ export function useLiveKitSFU({
     };
   }, []);
 
-  // Mobile & browser autoplay policy unlock: play all SFU remote audio on touch or click
+  // Mobile & browser autoplay policy unlock: play all SFU remote audio on touch, click, pointer, or keydown
   useEffect(() => {
     const unlockAudios = () => {
       if (roomRef.current) {
@@ -659,16 +671,21 @@ export function useLiveKitSFU({
         }).catch(() => {});
       }
       remoteAudioElementsRef.current.forEach((audio) => {
-        if (audio && audio.srcObject) {
+        if (audio) {
+          audio.muted = Boolean(speakerMutedRef.current);
           audio.play().catch(() => {});
         }
       });
     };
     window.addEventListener('click', unlockAudios, { passive: true });
     window.addEventListener('touchstart', unlockAudios, { passive: true });
+    window.addEventListener('pointerdown', unlockAudios, { passive: true });
+    window.addEventListener('keydown', unlockAudios, { passive: true });
     return () => {
       window.removeEventListener('click', unlockAudios);
       window.removeEventListener('touchstart', unlockAudios);
+      window.removeEventListener('pointerdown', unlockAudios);
+      window.removeEventListener('keydown', unlockAudios);
     };
   }, []);
 

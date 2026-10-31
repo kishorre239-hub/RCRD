@@ -3,8 +3,6 @@ import {
   Room,
   RoomEvent,
   Track,
-  VideoPresets,
-  VideoQuality,
   ConnectionState,
   LocalVideoTrack,
   LocalAudioTrack,

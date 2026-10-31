@@ -646,8 +646,7 @@ export default function ClassRoomPage() {
         } else {
           if (incomingTime >= lastScreenShareTimestampRef.current) {
             lastScreenShareTimestampRef.current = incomingTime;
-            if (!isMentor) {
-              setShowWhiteboard(false);
+            if (!isMentor && !remoteWhiteboard?.active) {
               setStudentViewMode("screen");
             }
             setRemoteScreenShare(prev => ({
@@ -746,13 +745,7 @@ export default function ClassRoomPage() {
         remoteScreenVideoRef.current.play().catch(() => {});
       }
     }
-    if (!isMentor && activeStream) {
-      const t = setTimeout(() => {
-        setShowWhiteboard(false);
-        setStudentViewMode("screen");
-      }, 0);
-      return () => clearTimeout(t);
-    }
+    // Removed unconditional whiteboard dismissal so student view never shakes or closes when stream connects
   }, [remoteWebRTCStream, livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream, isMentor]);
 
   // Memoized video ref callback to eliminate screen shaking / continuous re-renders
@@ -1604,8 +1597,7 @@ export default function ClassRoomPage() {
                 }
               } else if (incomingTime >= lastScreenShareTimestampRef.current) {
                 lastScreenShareTimestampRef.current = incomingTime;
-                if (!isMentor && data?.active) {
-                  setShowWhiteboard(false);
+                if (!isMentor && !remoteWhiteboard?.active) {
                   setStudentViewMode("screen");
                 }
                 setRemoteScreenShare(prev => {
@@ -1830,9 +1822,8 @@ export default function ClassRoomPage() {
             } else if (data.screenShare.active) {
               if (incomingTime >= lastScreenShareTimestampRef.current) {
                 lastScreenShareTimestampRef.current = incomingTime;
-                // If student is currently viewing whiteboard, auto-switch to screen share when host starts presenting screen!
-                if (!isMentor && data.screenShare.active) {
-                  setShowWhiteboard(false);
+                // If student is currently viewing whiteboard, only auto-switch to screen if mentor is NOT on whiteboard
+                if (!isMentor && data.screenShare.active && !data.whiteboard?.active) {
                   setStudentViewMode("screen");
                 }
                 // Prevent unnecessary re-renders if frame and active status did not change
@@ -1862,11 +1853,9 @@ export default function ClassRoomPage() {
             if (!isMentor) {
               const isWbActive = Boolean(data.whiteboard.active);
               if (isWbActive) {
-                // Only open whiteboard if screen share is NOT active or student explicitly chose whiteboard
-                if (!data.screenShare?.active) {
-                  setShowWhiteboard(true);
-                  setStudentViewMode("whiteboard");
-                }
+                setShowWhiteboard(true);
+                // Retain whiteboard view mode stably without shaking
+                setStudentViewMode(prev => (prev === "screen" && showWhiteboard) ? "screen" : "whiteboard");
               } else {
                 setShowWhiteboard(false);
                 setStudentViewMode("screen");
@@ -2144,10 +2133,10 @@ export default function ClassRoomPage() {
       }
     };
 
-    // Path A: runs every 100ms for smooth ~10fps local/BC delivery (never blocked)
-    const bcInterval = setInterval(encodeAndBroadcast, 100);
-    // Path B: runs every 250ms for smooth 4fps server delivery to remote students
-    const serverInterval = setInterval(uploadToServer, 250);
+    // Path A: lightweight fallback for local/BC delivery (500ms preserves 100% CPU for WebRTC 60fps)
+    const bcInterval = setInterval(encodeAndBroadcast, 500);
+    // Path B: runs every 1500ms as HTTP backup only (never starves WebRTC bandwidth or CPU)
+    const serverInterval = setInterval(uploadToServer, 1500);
     encodeAndBroadcast();
 
     return () => {
@@ -2806,7 +2795,7 @@ export default function ClassRoomPage() {
               try {
                 const params = vSender.getParameters();
                 if (params.encodings && params.encodings.length > 0) {
-                  params.encodings[0].maxBitrate = 4_000_000;
+                  params.encodings[0].maxBitrate = 2_500_000;
                   params.encodings[0].maxFramerate = 60;
                   params.degradationPreference = 'maintain-framerate';
                   await vSender.setParameters(params);
@@ -2827,7 +2816,7 @@ export default function ClassRoomPage() {
               }
             }
 
-            if (needsOffer || pc.signalingState === "stable") {
+            if (needsOffer && pc.signalingState === "stable") {
               const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
               await pc.setLocalDescription(offer);
               sendSignal(targetId, "offer", offer);
@@ -3770,7 +3759,7 @@ export default function ClassRoomPage() {
 
   const isWhiteboardActive = isMentor
     ? showWhiteboard
-    : Boolean(remoteWhiteboard?.active && showWhiteboard) && (!isRemoteSharing || studentViewMode === "whiteboard");
+    : Boolean(remoteWhiteboard?.active) && (studentViewMode === "whiteboard" || !isRemoteSharing);
 
   useEffect(() => {
     if (!isWhiteboardActive) return;
@@ -4386,9 +4375,7 @@ export default function ClassRoomPage() {
                   onPause={handleVideoWaiting}
                   onError={handleVideoWaiting}
                   onEnded={() => setIsWebRTCVideoPlaying(false)}
-                  className={`absolute inset-0 w-full h-full object-contain select-none z-10 transition-opacity duration-150 ${
-                    isWebRTCVideoPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                  }`}
+                  className="absolute inset-0 w-full h-full object-contain select-none z-10"
                   style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
                 />
               )}

@@ -280,7 +280,7 @@ export function useLiveKitSFU({
         try {
           const decoder = new TextDecoder();
           const json = JSON.parse(decoder.decode(payload));
-          const handler = dataHandlerRef.current || onDataReceived;
+          const handler = dataHandlerRef.current;
           if (handler && json?.type) {
             handler({
               type: json.type,

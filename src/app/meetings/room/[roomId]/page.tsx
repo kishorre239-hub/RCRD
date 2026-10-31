@@ -630,10 +630,27 @@ export default function ClassRoomPage() {
     speakerMuted,
   });
 
+  const {
+    isSFUActive,
+    sfuRemoteStream,
+    sfuConnectionState,
+    canPlaybackAudio,
+    diagnostics: sfuDiagnostics,
+    initSFU,
+    publishScreenShareSFU,
+    unpublishScreenShareSFU,
+    publishMicAudioSFU,
+    setMicMutedSFU,
+    broadcastDataSFU,
+    unlockAudioSFU,
+    setDataHandler,
+    attachRemoteVideo,
+  } = livekitSFU;
+
   const isLocalSharing = !!screenStream;
   const isRemoteSharing = !isLocalSharing && (
     Boolean(remoteScreenShare?.active) ||
-    Boolean(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream) ||
+    Boolean(isSFUActive && sfuRemoteStream) ||
     Boolean(remoteWebRTCStream)
   );
   const isAnyScreenSharing = isLocalSharing || isRemoteSharing;
@@ -699,14 +716,13 @@ export default function ClassRoomPage() {
       if (!isMentor) {
         if (localAudioStreamRef.current) localAudioStreamRef.current.getAudioTracks().forEach(t => t.enabled = false);
         setMicOn(false);
-        if (livekitSFU.isSFUActive) livekitSFU.setMicMutedSFU(true).catch(() => {});
+        if (isSFUActive) setMicMutedSFU(true).catch(() => {});
         showToast("The host muted all participants.");
       }
       setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
     }
-  }, [isMentor, myParticipantId, displayName, studentName, showToast, livekitSFU, remoteWhiteboard?.active]);
+  }, [isMentor, myParticipantId, displayName, studentName, showToast, isSFUActive, setMicMutedSFU, remoteWhiteboard?.active]);
 
-  const { setDataHandler, initSFU } = livekitSFU;
   useEffect(() => {
     setDataHandler(handleSFUDataReceived);
     return () => {
@@ -749,9 +765,9 @@ export default function ClassRoomPage() {
     const el = remoteScreenVideoRef.current;
     if (!el || isMentor) return;
 
-    if (livekitSFU.isSFUActive) {
-      if (livekitSFU.attachRemoteVideo) {
-        livekitSFU.attachRemoteVideo(el);
+    if (isSFUActive) {
+      if (attachRemoteVideo) {
+        attachRemoteVideo(el);
       }
     } else if (remoteWebRTCStream) {
       if (el.srcObject !== remoteWebRTCStream) {
@@ -763,7 +779,7 @@ export default function ClassRoomPage() {
         el.play().catch(() => {});
       }
     }
-  }, [remoteWebRTCStream, livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream, isMentor, livekitSFU.attachRemoteVideo]);
+  }, [remoteWebRTCStream, isSFUActive, sfuRemoteStream, isMentor, attachRemoteVideo]);
 
   // Stable video ref callback: guards against redundant decoder reset and frame stuttering
   const setRemoteVideoRef = useCallback((el: HTMLVideoElement | null) => {
@@ -771,8 +787,8 @@ export default function ClassRoomPage() {
     remoteScreenVideoRef.current = el;
     if (!el) return;
 
-    if (livekitSFU.isSFUActive && livekitSFU.attachRemoteVideo) {
-      livekitSFU.attachRemoteVideo(el);
+    if (isSFUActive && attachRemoteVideo) {
+      attachRemoteVideo(el);
     } else if (remoteWebRTCStream && el.srcObject !== remoteWebRTCStream) {
       el.srcObject = remoteWebRTCStream;
       el.muted = true;
@@ -781,7 +797,7 @@ export default function ClassRoomPage() {
       el.setAttribute('webkit-playsinline', '');
       el.play().catch(() => {});
     }
-  }, [livekitSFU.isSFUActive, livekitSFU.attachRemoteVideo, remoteWebRTCStream]);
+  }, [isSFUActive, attachRemoteVideo, remoteWebRTCStream]);
 
   // Mobile & browser autoplay policy unlock: play remote screen video on touch or click
   useEffect(() => {
@@ -1251,7 +1267,6 @@ export default function ClassRoomPage() {
   }, [speakerMuted]);
 
   // Mobile / browser autoplay policy unlock: resume audio & video elements on first touch or click or keypress
-  const { unlockAudioSFU } = livekitSFU;
   useEffect(() => {
     const unlockMedia = () => {
       remoteAudiosRef.current.forEach((audio) => {
@@ -1964,7 +1979,7 @@ export default function ClassRoomPage() {
     if (isMentor || !remoteScreenShare?.active) return;
     const syncScreenStream = () => {
       // If LiveKit SFU is already streaming, direct P2P renegotiation is not needed
-      if (livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream) return;
+      if (isSFUActive && sfuRemoteStream) return;
 
       const pc = peerConnectionsRef.current.get("host");
       if (!pc || pc.connectionState === "failed" || pc.connectionState === "closed") {
@@ -1985,7 +2000,7 @@ export default function ClassRoomPage() {
     syncScreenStream();
     const interval = setInterval(syncScreenStream, 8000);
     return () => clearInterval(interval);
-  }, [isMentor, remoteScreenShare?.active, initiateAudioCallToHost, sendSignal, livekitSFU.isSFUActive, livekitSFU.sfuRemoteStream]);
+  }, [isMentor, remoteScreenShare?.active, initiateAudioCallToHost, sendSignal, isSFUActive, sfuRemoteStream]);
 
   // Mentor auto-acquires microphone on room load so audio track is ready for connecting students
   useEffect(() => {
@@ -2022,31 +2037,31 @@ export default function ClassRoomPage() {
         console.warn("Host microphone waiting for user interaction or permission:", err);
       });
     }
-  }, [isMentor, micOn, sendSignal, livekitSFU]);
+  }, [isMentor, micOn, sendSignal, isSFUActive, publishMicAudioSFU]);
 
   // Proactively publish host microphone to LiveKit SFU as soon as SFU connects
   useEffect(() => {
-    if (isMentor && livekitSFU.isSFUActive && localAudioStreamRef.current && micOn) {
-      livekitSFU.publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
+    if (isMentor && isSFUActive && localAudioStreamRef.current && micOn) {
+      publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
     }
-  }, [isMentor, livekitSFU.isSFUActive, micOn, livekitSFU.publishMicAudioSFU]);
+  }, [isMentor, isSFUActive, micOn, publishMicAudioSFU]);
 
   // Proactively publish host screen share to LiveKit SFU whenever SFU connects or screenStream starts/changes
   useEffect(() => {
-    if (isMentor && screenStream && livekitSFU.isSFUActive) {
-      livekitSFU.publishScreenShareSFU(screenStream).catch((err) => {
+    if (isMentor && screenStream && isSFUActive) {
+      publishScreenShareSFU(screenStream).catch((err) => {
         console.warn("Error auto-publishing screen share to LiveKit SFU:", err);
       });
-      livekitSFU.broadcastDataSFU("SCREEN_SHARE", { active: true, presenterName: displayName || "Host", updatedAt: Date.now() }).catch(() => {});
+      broadcastDataSFU("SCREEN_SHARE", { active: true, presenterName: displayName || "Host", updatedAt: Date.now() }).catch(() => {});
     }
-  }, [isMentor, screenStream, livekitSFU.isSFUActive, livekitSFU.publishScreenShareSFU, livekitSFU.broadcastDataSFU, displayName]);
+  }, [isMentor, screenStream, isSFUActive, publishScreenShareSFU, broadcastDataSFU, displayName]);
 
   // Unpublish from SFU when screen sharing stops
   useEffect(() => {
-    if (isMentor && !screenStream && livekitSFU.isSFUActive) {
-      livekitSFU.unpublishScreenShareSFU().catch(() => {});
+    if (isMentor && !screenStream && isSFUActive) {
+      unpublishScreenShareSFU().catch(() => {});
     }
-  }, [isMentor, screenStream, livekitSFU.isSFUActive, livekitSFU.unpublishScreenShareSFU]);
+  }, [isMentor, screenStream, isSFUActive, unpublishScreenShareSFU]);
 
   // Broadcast screen share frames when Host shares screen
   // ARCHITECTURE: Two-path delivery for zero-lag + wide-area reach:
@@ -2275,7 +2290,7 @@ export default function ClassRoomPage() {
         bc.close();
       }
     };
-  }, [screenStream, isMentor, roomId, displayName, livekitSFU.isSFUActive]);
+  }, [screenStream, isMentor, roomId, displayName, isSFUActive]);
 
   // Broadcast camera frames for Host AND Student participants
   useEffect(() => {
@@ -4474,11 +4489,11 @@ export default function ClassRoomPage() {
               style={{ contain: 'strict', transform: 'translateZ(0)' }}
             >
               {/* Audio Autoplay Unlock Prompt for Students if browser blocked autoplay */}
-              {!isMentor && !livekitSFU.canPlaybackAudio && !speakerMuted && (
+              {!isMentor && !canPlaybackAudio && !speakerMuted && (
                 <button
                   type="button"
                   onClick={() => {
-                    livekitSFU.unlockAudioSFU();
+                    unlockAudioSFU();
                   }}
                   className="absolute top-4 z-30 px-4 py-2 rounded-full bg-blue-600/90 hover:bg-blue-500 text-white text-xs font-semibold shadow-2xl backdrop-blur flex items-center gap-2 animate-bounce cursor-pointer border border-blue-400/40 transition-all"
                 >

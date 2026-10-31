@@ -693,7 +693,7 @@ export default function ClassRoomPage() {
       }
       setParticipants(prev => prev.map(p => p.role === "Student" ? { ...p, isMuted: true } : p));
     }
-  }, [isMentor, myParticipantId, displayName, studentName, showToast, livekitSFU]);
+  }, [isMentor, myParticipantId, displayName, studentName, showToast, livekitSFU, remoteWhiteboard?.active]);
 
   const { setDataHandler, initSFU } = livekitSFU;
   useEffect(() => {
@@ -2154,7 +2154,7 @@ export default function ClassRoomPage() {
         bc.close();
       }
     };
-  }, [screenStream, isMentor, roomId, displayName]);
+  }, [screenStream, isMentor, roomId, displayName, livekitSFU.isSFUActive]);
 
   // Broadcast camera frames for Host AND Student participants
   useEffect(() => {

@@ -613,6 +613,7 @@ export default function ClassRoomPage() {
     roomId,
     participantId: myParticipantId,
     name: displayName,
+    email: activeStudentEmail,
     role: isMentor ? 'Host' : 'Student',
     password: meeting?.password || '',
     speakerMuted,
@@ -1102,6 +1103,8 @@ export default function ClassRoomPage() {
         }
       }
     } else if (sig.type === "request-screen") {
+      // If LiveKit SFU is active, all screen video flows via the cloud SFU — avoid duplicate P2P encoder overload
+      if (livekitSFU.isSFUActive) return;
       if (isMentor && screenStreamRef.current) {
         const vTrack = screenStreamRef.current.getVideoTracks()[0];
         if (vTrack && pc) {
@@ -2106,12 +2109,13 @@ export default function ClassRoomPage() {
     // PATH B: POST latest encoded frame to server for remote students (independent timer)
     // Non-blocking: never prevents Path A from running
     const uploadToServer = async () => {
-      if (!active || !lastDataUrl || serverInFlight) return;
+      if (!active || serverInFlight) return;
+      if (!livekitSFU.isSFUActive && !lastDataUrl) return;
       const payload = {
         active: true,
         presenterName: displayName || "Host",
-        streamFrame: lastDataUrl,
-        updatedAt: lastPayloadTime,
+        streamFrame: livekitSFU.isSFUActive ? undefined : lastDataUrl,
+        updatedAt: lastPayloadTime || Date.now(),
       };
       serverInFlight = true;
       const abortCtrl = typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -2784,47 +2788,48 @@ export default function ClassRoomPage() {
           } else if (localAudioStreamRef.current) {
             livekitSFU.publishMicAudioSFU(localAudioStreamRef.current).catch(() => {});
           }
-        }
-
-        peerConnectionsRef.current.forEach(async (pc, targetId) => {
-          try {
-            const vSender = pc.getSenders().find(s => s.track?.kind === "video" || !s.track);
-            let needsOffer = false;
-            if (vSender) {
-              await vSender.replaceTrack(vTrack);
-              try {
-                const params = vSender.getParameters();
-                if (params.encodings && params.encodings.length > 0) {
-                  params.encodings[0].maxBitrate = 2_500_000;
-                  params.encodings[0].maxFramerate = 60;
-                  params.degradationPreference = 'maintain-framerate';
-                  await vSender.setParameters(params);
-                }
-              } catch {}
-            } else {
-              pc.addTrack(vTrack, ds);
-              needsOffer = true;
-            }
-
-            if (combinedAudioTrack) {
-              const aSender = pc.getSenders().find(s => s.track?.kind === "audio");
-              if (aSender) {
-                await aSender.replaceTrack(combinedAudioTrack);
+        } else {
+          // Direct P2P distribution only when SFU is NOT active (prevents CPU encoder overload)
+          peerConnectionsRef.current.forEach(async (pc, targetId) => {
+            try {
+              const vSender = pc.getSenders().find(s => s.track?.kind === "video" || !s.track);
+              let needsOffer = false;
+              if (vSender) {
+                await vSender.replaceTrack(vTrack);
+                try {
+                  const params = vSender.getParameters();
+                  if (params.encodings && params.encodings.length > 0) {
+                    params.encodings[0].maxBitrate = 2_500_000;
+                    params.encodings[0].maxFramerate = 60;
+                    params.degradationPreference = 'maintain-framerate';
+                    await vSender.setParameters(params);
+                  }
+                } catch {}
               } else {
-                pc.addTrack(combinedAudioTrack, ds);
+                pc.addTrack(vTrack, ds);
                 needsOffer = true;
               }
-            }
 
-            if (needsOffer && pc.signalingState === "stable") {
-              const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-              await pc.setLocalDescription(offer);
-              sendSignal(targetId, "offer", offer);
+              if (combinedAudioTrack) {
+                const aSender = pc.getSenders().find(s => s.track?.kind === "audio");
+                if (aSender) {
+                  await aSender.replaceTrack(combinedAudioTrack);
+                } else {
+                  pc.addTrack(combinedAudioTrack, ds);
+                  needsOffer = true;
+                }
+              }
+
+              if (needsOffer && pc.signalingState === "stable") {
+                const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+                await pc.setLocalDescription(offer);
+                sendSignal(targetId, "offer", offer);
+              }
+            } catch (err) {
+              console.warn("Could not attach screen stream to peer:", err);
             }
-          } catch (err) {
-            console.warn("Could not attach screen stream to peer:", err);
-          }
-        });
+          });
+        }
       }
 
       showToast("Screen sharing started! Your screen & camera work together concurrently.");

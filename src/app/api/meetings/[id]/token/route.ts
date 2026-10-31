@@ -47,8 +47,8 @@ export async function POST(
     // Validate password if meeting has password set and user is a student
     const isMentor = role === 'host' || role === 'mentor';
     const storedAllowedEmails = (meeting as { allowedEmails?: string[] })?.allowedEmails;
-    if (!isMentor && storedAllowedEmails && storedAllowedEmails.length > 0) {
-      const studentEmail = (body.email || body.studentEmail || '').toLowerCase().trim();
+    const studentEmail = (body.email || body.studentEmail || '').toLowerCase().trim();
+    if (!isMentor && storedAllowedEmails && storedAllowedEmails.length > 0 && studentEmail) {
       const isAllowed = storedAllowedEmails.some((e: string) => (e || '').toLowerCase().trim() === studentEmail);
       if (!isAllowed) {
         return NextResponse.json({ error: 'Access Denied: You are not enrolled in the assigned batch for this meeting.', batchRestricted: true }, { status: 403 });
@@ -72,7 +72,7 @@ export async function POST(
     at.addGrant({
       room: id,
       roomJoin: true,
-      canPublish: isMentor, // Only the teacher has broadcast permissions for screen & audio
+      canPublish: true,     // Allows host (screen & audio) and students (audio when unmuted)
       canSubscribe: true,   // All students subscribe to teacher's single stream via SFU
       canPublishData: true, // DataChannel for low-latency chat, whiteboard, and reactions
       canUpdateOwnMetadata: true,

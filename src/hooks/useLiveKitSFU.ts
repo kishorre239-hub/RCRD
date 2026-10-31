@@ -34,6 +34,7 @@ export function useLiveKitSFU({
   name,
   role,
   password,
+  email,
   speakerMuted,
   onDataReceived,
 }: {
@@ -42,6 +43,7 @@ export function useLiveKitSFU({
   name: string;
   role: 'Host' | 'Student';
   password?: string;
+  email?: string;
   speakerMuted?: boolean;
   onDataReceived?: (data: { type: string; payload: unknown; sender: string }) => void;
 }) {
@@ -106,6 +108,7 @@ export function useLiveKitSFU({
         body: JSON.stringify({
           participantId,
           name,
+          email,
           role: role === 'Host' ? 'host' : 'student',
           password,
         }),
@@ -120,10 +123,10 @@ export function useLiveKitSFU({
         return false;
       }
 
-      // 2. Initialize LiveKit Room with crisp HD settings
+      // 2. Initialize LiveKit Room with crisp HD settings & adaptive streaming
       const room = new Room({
-        adaptiveStream: false, // Prevents mobile from downscaling to blurry 360p
-        dynacast: true,
+        adaptiveStream: true, // Automatically requests the optimal layer matching player size & network
+        dynacast: true,       // Only transmits layers that at least one subscriber is viewing
         publishDefaults: {
           simulcast: true,
           videoSimulcastLayers: [
@@ -162,11 +165,6 @@ export function useLiveKitSFU({
       // Track Subscribed (Receiving Host screen share, microphone voice, and screen music)
       room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
         if (track.kind === Track.Kind.Video) {
-          try {
-            if ('setVideoQuality' in publication && typeof (publication as unknown as { setVideoQuality: (q: VideoQuality) => void }).setVideoQuality === 'function') {
-              (publication as unknown as { setVideoQuality: (q: VideoQuality) => void }).setVideoQuality(VideoQuality.HIGH);
-            }
-          } catch {}
           const mediaStream = new MediaStream([track.mediaStreamTrack]);
           setSfuRemoteStream(mediaStream);
         } else if (track.kind === Track.Kind.Audio) {
@@ -229,11 +227,6 @@ export function useLiveKitSFU({
         room.remoteParticipants.forEach((p) => {
           p.trackPublications.forEach((pub) => {
             if (pub.track && pub.track.kind === Track.Kind.Video) {
-              try {
-                if ('setVideoQuality' in pub && typeof (pub as unknown as { setVideoQuality: (q: VideoQuality) => void }).setVideoQuality === 'function') {
-                  (pub as unknown as { setVideoQuality: (q: VideoQuality) => void }).setVideoQuality(VideoQuality.HIGH);
-                }
-              } catch {}
               setSfuRemoteStream(new MediaStream([pub.track.mediaStreamTrack]));
             }
             if (pub.track && pub.track.kind === Track.Kind.Audio) {
@@ -266,7 +259,7 @@ export function useLiveKitSFU({
       setDiagnostics(prev => ({ ...prev, mode: 'P2P Fallback' }));
       return false;
     }
-  }, [roomId, participantId, name, role, password, speakerMuted, onDataReceived]);
+  }, [roomId, participantId, name, role, password, email, speakerMuted, onDataReceived]);
 
   // Publish Screen Share (Teacher only)
   const publishScreenShareSFU = useCallback(async (mediaStream: MediaStream) => {
@@ -290,7 +283,7 @@ export function useLiveKitSFU({
         simulcast: true,
         source: Track.Source.ScreenShare,
         videoEncoding: {
-          maxBitrate: 6_000_000, // 6.0 Mbps for crisp, non-blurry 1080p video & animation
+          maxBitrate: 2_500_000, // 2.5 Mbps: Zoom & Google Meet calibrated bitrate for silky smooth 1080p 60fps without bufferbloat
           maxFramerate: 60,
         },
       });

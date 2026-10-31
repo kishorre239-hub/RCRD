@@ -48,6 +48,7 @@ export function useLiveKitSFU({
   const [isSFUActive, setIsSFUActive] = useState(false);
   const [sfuRemoteStream, setSfuRemoteStream] = useState<MediaStream | null>(null);
   const [sfuConnectionState, setSfuConnectionState] = useState<ConnectionState>(ConnectionState.Disconnected);
+  const [canPlaybackAudio, setCanPlaybackAudio] = useState(true);
   const [diagnostics, setDiagnostics] = useState<SFUDiagnostics>({
     mode: 'Connecting',
     bitrateIn: 0,
@@ -74,11 +75,28 @@ export function useLiveKitSFU({
   }, []);
 
   const roomRef = useRef<Room | null>(null);
+  const isConnectingRef = useRef(false);
   const publishedScreenTrackRef = useRef<LocalVideoTrack | null>(null);
+  const publishedScreenAudioTrackRef = useRef<LocalAudioTrack | null>(null);
   const publishedAudioTrackRef = useRef<LocalAudioTrack | null>(null);
   const remoteVideoTrackRef = useRef<RemoteTrack | null>(null);
   const remoteVideoElementRef = useRef<HTMLVideoElement | null>(null);
   const remoteAudioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+
+  // Store volatile props in refs so initSFU is not recreated on mute toggle or name updates
+  const propsRef = useRef({ participantId, name, role, password, email });
+  useEffect(() => {
+    propsRef.current = { participantId, name, role, password, email };
+  }, [participantId, name, role, password, email]);
+
+  const speakerMutedRef = useRef(speakerMuted);
+  useEffect(() => {
+    speakerMutedRef.current = speakerMuted;
+    remoteAudioElementsRef.current.forEach((audio) => {
+      audio.muted = Boolean(speakerMuted);
+    });
+  }, [speakerMuted]);
+
   const prevStatsRef = useRef<{
     time: number;
     bytesReceived: number;
@@ -120,24 +138,28 @@ export function useLiveKitSFU({
     el.play().catch(() => {});
   }, []);
 
-  // Connect to LiveKit Room
+  // Connect to LiveKit Room (Guarded against concurrent duplicate connection races)
   const initSFU = useCallback(async () => {
     if (!roomId) return false;
+    if (isConnectingRef.current) return true;
     if (roomRef.current && (roomRef.current.state === ConnectionState.Connected || roomRef.current.state === ConnectionState.Connecting)) {
       return true;
     }
 
+    isConnectingRef.current = true;
     try {
+      const { participantId: pid, name: pName, role: pRole, password: pPwd, email: pEmail } = propsRef.current;
+
       // 1. Request signed token from server-side route
       const res = await fetch(`/api/meetings/${encodeURIComponent(roomId)}/token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          participantId,
-          name,
-          email,
-          role: role === 'Host' ? 'host' : 'student',
-          password,
+          participantId: pid,
+          name: pName,
+          email: pEmail,
+          role: pRole === 'Host' ? 'host' : 'student',
+          password: pPwd,
         }),
       });
 
@@ -150,10 +172,12 @@ export function useLiveKitSFU({
         return false;
       }
 
-      // 2. Initialize LiveKit Room with crisp HD settings (adaptiveStream: false ensures continuous stream delivery without DOM observer pauses)
+      // 2. Initialize LiveKit Room with WebAudioMix to guarantee YouTube and music audio play smoothly
       const room = new Room({
         adaptiveStream: false,
         dynacast: false,
+        webAudioMix: true,
+        disconnectOnPageLeave: true,
       });
 
       roomRef.current = room;
@@ -171,7 +195,13 @@ export function useLiveKitSFU({
           }));
         } else if (state === ConnectionState.Disconnected) {
           setIsSFUActive(false);
+          setSfuRemoteStream(null);
+          remoteVideoTrackRef.current = null;
         }
+      });
+
+      room.on(RoomEvent.AudioPlaybackStatusChanged, () => {
+        setCanPlaybackAudio(room.canPlaybackAudio);
       });
 
       // Participant changes
@@ -189,7 +219,7 @@ export function useLiveKitSFU({
         }
       });
 
-      // Track Subscribed (Receiving Host screen share, microphone voice, and screen music)
+      // Track Subscribed (Receiving Host screen share, microphone voice, and YouTube song music)
       room.on(RoomEvent.TrackSubscribed, (track: RemoteTrack, publication: RemoteTrackPublication, participant: RemoteParticipant) => {
         if (track.kind === Track.Kind.Video) {
           remoteVideoTrackRef.current = track;
@@ -218,8 +248,12 @@ export function useLiveKitSFU({
             document.body.appendChild(audioEl);
             remoteAudioElementsRef.current.set(trackKey, audioEl);
           }
+          try {
+            (track as unknown as { attach: (element: HTMLMediaElement) => HTMLMediaElement }).attach(audioEl);
+          } catch {}
           audioEl.srcObject = new MediaStream([track.mediaStreamTrack]);
-          audioEl.muted = Boolean(speakerMuted);
+          audioEl.volume = 1.0;
+          audioEl.muted = Boolean(speakerMutedRef.current);
           audioEl.play().catch(() => {});
         }
       });
@@ -257,8 +291,10 @@ export function useLiveKitSFU({
         } catch {}
       });
 
-      // 3. Connect to room
-      await room.connect(data.serverUrl, data.token);
+      // 3. Connect to room with auto-subscribe
+      await room.connect(data.serverUrl, data.token, {
+        autoSubscribe: true,
+      });
 
       // 4. Immediately bind existing tracks from participants already streaming in the room
       try {
@@ -294,8 +330,12 @@ export function useLiveKitSFU({
                 document.body.appendChild(audioEl);
                 remoteAudioElementsRef.current.set(trackKey, audioEl);
               }
+              try {
+                (pub.track as unknown as { attach: (element: HTMLMediaElement) => HTMLMediaElement }).attach(audioEl);
+              } catch {}
               audioEl.srcObject = new MediaStream([pub.track.mediaStreamTrack]);
-              audioEl.muted = Boolean(speakerMuted);
+              audioEl.volume = 1.0;
+              audioEl.muted = Boolean(speakerMutedRef.current);
               audioEl.play().catch(() => {});
             }
           });
@@ -310,8 +350,10 @@ export function useLiveKitSFU({
       setIsSFUActive(false);
       setDiagnostics(prev => ({ ...prev, mode: 'P2P Fallback' }));
       return false;
+    } finally {
+      isConnectingRef.current = false;
     }
-  }, [roomId, participantId, name, role, password, email, speakerMuted, onDataReceived]);
+  }, [roomId]);
 
   // Publish Screen Share (Teacher only)
   const publishScreenShareSFU = useCallback(async (mediaStream: MediaStream) => {
@@ -355,13 +397,22 @@ export function useLiveKitSFU({
 
       // Publish screen tab audio (music / YouTube / video / presentation audio)
       const aTracks = mediaStream.getAudioTracks();
+      if (publishedScreenAudioTrackRef.current) {
+        try {
+          await room.localParticipant.unpublishTrack(publishedScreenAudioTrackRef.current);
+          publishedScreenAudioTrackRef.current.stop();
+        } catch {}
+        publishedScreenAudioTrackRef.current = null;
+      }
       for (const aTrack of aTracks) {
         try {
           const localATrack = new LocalAudioTrack(aTrack);
+          publishedScreenAudioTrackRef.current = localATrack;
           await room.localParticipant.publishTrack(localATrack, {
             name: 'screen-audio',
             source: Track.Source.ScreenShareAudio,
             dtx: false,
+            forceStereo: true,
           });
         } catch (e) {
           console.warn('Could not publish screen audio track to SFU:', e);
@@ -378,18 +429,30 @@ export function useLiveKitSFU({
   // Stop Screen Share (Teacher only)
   const unpublishScreenShareSFU = useCallback(async () => {
     const room = roomRef.current;
-    if (!room || !publishedScreenTrackRef.current) return;
+    if (!room) return;
 
-    try {
-      await room.localParticipant.unpublishTrack(publishedScreenTrackRef.current);
-      publishedScreenTrackRef.current.stop();
+    if (publishedScreenTrackRef.current) {
+      try {
+        await room.localParticipant.unpublishTrack(publishedScreenTrackRef.current);
+        publishedScreenTrackRef.current.stop();
+      } catch (err) {
+        console.warn('Error unpublishing screen track from SFU:', err);
+      }
       publishedScreenTrackRef.current = null;
-    } catch (err) {
-      console.warn('Error unpublishing screen track from SFU:', err);
+    }
+
+    if (publishedScreenAudioTrackRef.current) {
+      try {
+        await room.localParticipant.unpublishTrack(publishedScreenAudioTrackRef.current);
+        publishedScreenAudioTrackRef.current.stop();
+      } catch (err) {
+        console.warn('Error unpublishing screen audio track from SFU:', err);
+      }
+      publishedScreenAudioTrackRef.current = null;
     }
   }, []);
 
-  // Publish / Mute Local Mic Audio
+  // Publish / Mute Local Mic Audio (Supports track replacement when Host mixes YouTube song audio)
   const publishMicAudioSFU = useCallback(async (audioStream: MediaStream) => {
     const room = roomRef.current;
     if (!room || room.state !== ConnectionState.Connected) return false;
@@ -399,6 +462,17 @@ export function useLiveKitSFU({
       if (!aTrack) return false;
 
       if (!publishedAudioTrackRef.current) {
+        const localATrack = new LocalAudioTrack(aTrack);
+        publishedAudioTrackRef.current = localATrack;
+        await room.localParticipant.publishTrack(localATrack, {
+          name: 'microphone',
+          source: Track.Source.Microphone,
+        });
+      } else if (publishedAudioTrackRef.current.mediaStreamTrack !== aTrack) {
+        try {
+          await room.localParticipant.unpublishTrack(publishedAudioTrackRef.current);
+          publishedAudioTrackRef.current.stop();
+        } catch {}
         const localATrack = new LocalAudioTrack(aTrack);
         publishedAudioTrackRef.current = localATrack;
         await room.localParticipant.publishTrack(localATrack, {
@@ -579,8 +653,13 @@ export function useLiveKitSFU({
   // Mobile & browser autoplay policy unlock: play all SFU remote audio on touch or click
   useEffect(() => {
     const unlockAudios = () => {
+      if (roomRef.current) {
+        roomRef.current.startAudio().then(() => {
+          setCanPlaybackAudio(true);
+        }).catch(() => {});
+      }
       remoteAudioElementsRef.current.forEach((audio) => {
-        if (audio && audio.paused && audio.srcObject) {
+        if (audio && audio.srcObject) {
           audio.play().catch(() => {});
         }
       });
@@ -594,8 +673,13 @@ export function useLiveKitSFU({
   }, []);
 
   const unlockAudioSFU = useCallback(() => {
+    if (roomRef.current) {
+      roomRef.current.startAudio().then(() => {
+        setCanPlaybackAudio(true);
+      }).catch(() => {});
+    }
     remoteAudioElementsRef.current.forEach((audio) => {
-      if (audio && audio.paused && audio.srcObject) {
+      if (audio && audio.srcObject) {
         audio.play().catch(() => {});
       }
     });
@@ -605,6 +689,7 @@ export function useLiveKitSFU({
     isSFUActive,
     sfuRemoteStream,
     sfuConnectionState,
+    canPlaybackAudio,
     diagnostics,
     initSFU,
     publishScreenShareSFU,
@@ -619,6 +704,7 @@ export function useLiveKitSFU({
     isSFUActive,
     sfuRemoteStream,
     sfuConnectionState,
+    canPlaybackAudio,
     diagnostics,
     initSFU,
     publishScreenShareSFU,

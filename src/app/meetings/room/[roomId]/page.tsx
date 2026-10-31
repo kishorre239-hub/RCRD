@@ -471,21 +471,32 @@ export default function ClassRoomPage() {
   const [isHandRaised, setIsHandRaised] = useState(false);
   const [floatingReactions, setFloatingReactions] = useState<{ id: string; emoji: string; left: number; sender?: string }[]>([]);
 
-  // Unique participant ID for current user (persisted per student per room to prevent duplicate cards)
+  // Unique participant ID for current user (strictly tab-scoped via sessionStorage to prevent identity collisions across tabs)
   const [myParticipantId] = useState<string>(() => {
-    if (isMentor) return "host";
+    if (isMentor) {
+      if (typeof window !== "undefined") {
+        const hostKey = `rcrd_host_id_${roomId}`;
+        try {
+          const saved = sessionStorage.getItem(hostKey);
+          if (saved) return saved;
+          const hostId = `host_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          sessionStorage.setItem(hostKey, hostId);
+          return hostId;
+        } catch {}
+      }
+      return `host_${Date.now()}`;
+    }
     if (typeof window !== "undefined") {
-      const storageKey = `rcrd_mpid_${roomId}_${(studentName || "participant").trim().toLowerCase()}`;
+      const storageKey = `rcrd_tab_mpid_${roomId}`;
       try {
-        const saved = sessionStorage.getItem(storageKey) || localStorage.getItem(storageKey);
+        const saved = sessionStorage.getItem(storageKey);
         if (saved) return saved;
-        const newId = `student_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+        const newId = `student_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
         sessionStorage.setItem(storageKey, newId);
-        localStorage.setItem(storageKey, newId);
         return newId;
       } catch {}
     }
-    return `student_${Date.now()}`;
+    return `student_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   });
 
   // Remote Host Camera live sync state
@@ -2855,6 +2866,13 @@ export default function ClassRoomPage() {
         }
       }
 
+      // Proactively notify host about computer/YouTube tab audio status
+      if (!screenAudioTrack) {
+        showToast("Tip: To share YouTube sound, choose 'Chrome Tab' and check 'Share tab audio' in Chrome's picker.");
+      } else {
+        showToast("Screen & computer audio sharing active! Students will hear your YouTube music.");
+      }
+
       // Publish to LiveKit SFU if active
       if (livekitSFU.isSFUActive) {
         livekitSFU.publishScreenShareSFU(ds).catch(() => {});
@@ -4455,6 +4473,20 @@ export default function ClassRoomPage() {
               className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black overflow-hidden select-none"
               style={{ contain: 'strict', transform: 'translateZ(0)' }}
             >
+              {/* Audio Autoplay Unlock Prompt for Students if browser blocked autoplay */}
+              {!isMentor && !livekitSFU.canPlaybackAudio && !speakerMuted && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    livekitSFU.unlockAudioSFU();
+                  }}
+                  className="absolute top-4 z-30 px-4 py-2 rounded-full bg-blue-600/90 hover:bg-blue-500 text-white text-xs font-semibold shadow-2xl backdrop-blur flex items-center gap-2 animate-bounce cursor-pointer border border-blue-400/40 transition-all"
+                >
+                  <Volume2 size={16} />
+                  <span>Click to enable sound</span>
+                </button>
+              )}
+
               {/* Ultra HD 60FPS Video (Primary WebRTC / LiveKit SFU display surface) */}
               {(livekitSFU.isSFUActive && livekitSFU.sfuRemoteStream ? livekitSFU.sfuRemoteStream : remoteWebRTCStream) ? (
                 <video

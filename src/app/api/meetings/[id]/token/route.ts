@@ -59,7 +59,11 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid meeting password' }, { status: 401 });
     }
 
-    const safeParticipantId = participantId || (isMentor ? 'host' : `student_${Date.now()}`);
+    const safeParticipantId = participantId?.trim()
+      ? participantId.trim()
+      : (isMentor
+          ? `host_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+          : `student_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`);
     const safeName = name || (isMentor ? (meeting?.hostName || 'Host') : 'Student');
 
     // Mint short-lived, least-privilege LiveKit Access Token

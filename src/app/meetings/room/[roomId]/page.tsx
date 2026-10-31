@@ -2690,6 +2690,8 @@ export default function ClassRoomPage() {
     try {
       let ds: MediaStream;
       try {
+        // CRITICAL ARCHITECTURE RULE: Keep 1920x1080 @ 60fps for hardware-accelerated WebRTC encoding.
+        // Higher resolutions (like 4K) overwhelm real-time WebRTC encoders and cause severe lag for students.
         ds = await navigator.mediaDevices.getDisplayMedia({
           video: { width: { ideal: 1920, max: 1920 }, height: { ideal: 1080, max: 1080 }, frameRate: { ideal: 60, max: 60 } },
           audio: {
@@ -2740,7 +2742,8 @@ export default function ClassRoomPage() {
         }),
       }).catch(() => {});
 
-      // Attach high-fps screen video track & audio to WebRTC peers for instant zero-lag streaming
+      // CRITICAL: contentHint MUST ALWAYS be 'motion' (NEVER 'detail') for live student streaming.
+      // Setting 'detail' instructs WebRTC to throttle the outgoing stream down to 1-5 FPS.
       const vTrack = ds.getVideoTracks()[0];
       const screenAudioTrack = ds.getAudioTracks()[0];
       if (vTrack) {
@@ -3044,6 +3047,8 @@ export default function ClassRoomPage() {
       setRecState("idle");
       return;
     }
+    // CRITICAL: Keep contentHint as 'motion' (NEVER 'detail') so recording does not degrade live WebRTC stream to students.
+    // MediaRecorder achieves crisp HD 1080p recording purely via videoBitsPerSecond (5 Mbps).
     tracks.forEach((t) => {
       if (t.kind === 'video' && 'contentHint' in t) {
         t.contentHint = 'motion';

@@ -2691,12 +2691,7 @@ export default function ClassRoomPage() {
       let ds: MediaStream;
       try {
         ds = await navigator.mediaDevices.getDisplayMedia({
-          video: { 
-            displaySurface: "monitor",
-            width: { ideal: 1920, max: 3840 }, 
-            height: { ideal: 1080, max: 2160 }, 
-            frameRate: { ideal: 30, max: 60 } 
-          },
+          video: { width: { ideal: 1920, max: 1920 }, height: { ideal: 1080, max: 1080 }, frameRate: { ideal: 60, max: 60 } },
           audio: {
             echoCancellation: false,
             noiseSuppression: false,
@@ -2724,7 +2719,7 @@ export default function ClassRoomPage() {
           requestAnimationFrame(renderScreen);
         };
         renderScreen();
-        ds = canvas.captureStream(30);
+        ds = canvas.captureStream(60);
       }
       ds.getVideoTracks()[0].onended = stopScreenShare;
       screenStreamRef.current = ds;
@@ -2750,7 +2745,7 @@ export default function ClassRoomPage() {
       const screenAudioTrack = ds.getAudioTracks()[0];
       if (vTrack) {
         if ('contentHint' in vTrack) {
-          vTrack.contentHint = 'detail';
+          vTrack.contentHint = 'motion';
         }
       }
 
@@ -2808,7 +2803,9 @@ export default function ClassRoomPage() {
               try {
                 const params = vSender.getParameters();
                 if (params.encodings && params.encodings.length > 0) {
-                  params.encodings[0].maxBitrate = 3_000_000;
+                  params.encodings[0].maxBitrate = 4_000_000;
+                  params.encodings[0].maxFramerate = 60;
+                  params.degradationPreference = 'maintain-framerate';
                   await vSender.setParameters(params);
                 }
               } catch {}
@@ -3049,7 +3046,7 @@ export default function ClassRoomPage() {
     }
     tracks.forEach((t) => {
       if (t.kind === 'video' && 'contentHint' in t) {
-        t.contentHint = 'detail';
+        t.contentHint = 'motion';
       }
     });
     const combined = new MediaStream(tracks);
